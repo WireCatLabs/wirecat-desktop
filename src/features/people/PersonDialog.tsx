@@ -2,6 +2,7 @@ import { Check, Split, Undo2 } from "lucide-react"
 import { useLang, useMessages } from "@/i18n"
 import type { PersonDetail } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
+import { CopyRef } from "@/ui/CopyRef"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
@@ -22,6 +23,7 @@ export function PersonDialog() {
     <Dialog
       open={open !== null}
       title={open ? name(open) : ""}
+      titleAside={<CopyRef value={open} />}
       onClose={() => usePeople.getState().reveal(null)}
       wide="xl"
       scroll

@@ -30,6 +30,10 @@ type Props = {
   required?: boolean
   /** What the chip says once something is chosen, when the option's own label is too long for it. */
   shown?: string
+  /** A field of a form rather than a filter: the chip says this with nothing chosen, and only the names after. */
+  empty?: string
+  /** The field to narrow the list, however short it is. */
+  search?: boolean
 }
 
 const SEARCH_FROM = 7
@@ -47,6 +51,8 @@ export function FilterMenu({
   single = false,
   required = false,
   shown: chipText,
+  empty,
+  search = false,
 }: Props) {
   const m = useMessages(uiMessages)
   const lang = useLang()
@@ -59,7 +65,7 @@ export function FilterMenu({
   const listbox = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLInputElement>(null)
   const base = useId()
-  const searchable = options.length >= SEARCH_FROM
+  const searchable = search || options.length >= SEARCH_FROM
   const shown = options.filter((o) =>
     `${o.label} ${o.hint ?? ""} ${o.terms ?? ""}`.toLocaleLowerCase().includes(text.trim().toLocaleLowerCase()),
   )
@@ -126,6 +132,7 @@ export function FilterMenu({
           ref={button}
           type="button"
           aria-haspopup="listbox"
+          aria-label={empty === undefined ? undefined : `${label}: ${on ? names.join(", ") : empty}`}
           aria-expanded={open}
           aria-controls={listId}
           onClick={() => (open ? close(false) : setOpen(true))}
@@ -142,8 +149,12 @@ export function FilterMenu({
               : "text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",
           )}
         >
-          <span className="shrink-0">{on ? `${label}:` : label}</span>
-          {on && " "}
+          {empty === undefined ? (
+            <span className="shrink-0">{on ? `${label}:` : label}</span>
+          ) : (
+            !on && <span className="shrink-0">{empty}</span>
+          )}
+          {on && empty === undefined && " "}
           {on && (
             <span className="min-w-0 truncate font-medium text-ink">
               {chipText ?? (names.length > 2 ? m.chosen(names.length) : names.join(", "))}

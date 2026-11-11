@@ -1,4 +1,4 @@
-import { Check, ListChecks, LoaderCircle, Pencil, X } from "lucide-react"
+import { ListChecks, LoaderCircle, Pencil } from "lucide-react"
 import { useState } from "react"
 import { isConversation } from "@/domain/conversation"
 import { linkTargetOf } from "@/domain/links"
@@ -8,12 +8,13 @@ import { useMessages } from "@/i18n"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
+import { DecideAll, DecisionButtons } from "@/ui/DecisionButtons"
 import { Lamp } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
 import { focusInPlace, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
-import { Segmented } from "@/ui/Segmented"
 import { memoryMessages } from "./messages"
 import { findingsMessages } from "./messages-findings"
 import { CitedRef, citedText, ITEM_LIST, ITEM_PAD, SourceContextView } from "./RowSources"
@@ -64,15 +65,13 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
           </p>
         </div>
         {open && findings.length > 1 && (
-          <span className="flex shrink-0 items-center gap-[0.6rem] text-[0.9rem] text-ink-soft">
-            {f.markAll}
-            <LinkButton disabled={!!busy} onClick={() => skipAll(entry.ref, false)}>
-              {f.keepAll}
-            </LinkButton>
-            <LinkButton disabled={!!busy} onClick={() => skipAll(entry.ref, true)}>
-              {f.dropAll}
-            </LinkButton>
-          </span>
+          <DecideAll
+            label={f.markAll}
+            keepAll={f.keepAll}
+            dropAll={f.dropAll}
+            disabled={!!busy}
+            onChange={(v) => skipAll(entry.ref, v === "drop")}
+          />
         )}
       </div>
 
@@ -164,16 +163,13 @@ function FindingItem({
 
       <div className="flex items-start md:justify-end">
         {open ? (
-          <Segmented<"keep" | "drop">
-            size="md"
+          <DecisionButtons
             label={f.decision(x.text)}
             value={kept ? "keep" : "drop"}
             disabled={busy}
             onChange={(v) => skip(entry.ref, x.id, v === "drop")}
-            options={[
-              { value: "keep", label: f.keep, icon: <Check className="size-4" aria-hidden /> },
-              { value: "drop", label: f.drop, icon: <X className="size-4" aria-hidden /> },
-            ]}
+            keepLabel={f.keep}
+            dropLabel={f.drop}
           />
         ) : (
           decided && <Outcome entry={entry} finding={x} />
@@ -199,6 +195,7 @@ function Cited(props: { reference: string; label: string; shown: boolean; onTogg
   return (
     <li className="flex min-w-0 items-center gap-x-[0.8rem]">
       <CitedRef {...props} />
+      <CopyRef value={props.reference} className="-my-1 -ml-[0.5rem]" />
       {target && isConversation(target) && f.open[kind] && (
         <LinkButton className="shrink-0" onClick={() => openConversation(target)}>
           {f.open[kind]}
@@ -244,6 +241,7 @@ function Outcome({ entry, finding: x }: { entry: MemoryEntry; finding: Finding }
       <span className="inline-flex items-center gap-[0.45rem] text-[0.9rem] text-ink-soft">
         <Lamp tone={accepted ? "ok" : "off"} size="sm" />
         {m.outcomes[x.outcome ?? ""] ?? x.outcome}
+        {accepted && <CopyRef value={x.created} className="-my-1 -ml-[0.2rem]" />}
       </span>
       {accepted && made && (
         <Button

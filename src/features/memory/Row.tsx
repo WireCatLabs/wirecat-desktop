@@ -20,10 +20,12 @@ import { StandingPill } from "@/shared/StandingPill"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
+import { StableText } from "@/ui/Skeleton"
 import { SplitButton } from "@/ui/SplitButton"
 import { TextButton } from "@/ui/TextButton"
 import { dayLabel, kindOf, textOf, timeOf } from "./labels"
@@ -158,6 +160,9 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
     </span>
   )
 
+  // Beside the row's button, not in it: a button inside role=button is lost to screen readers.
+  const copy = <CopyRef value={entry.ref} className="-mt-[0.1rem]" />
+
   const openAnd = (then: () => void) => {
     if (!open) flip()
     then()
@@ -194,16 +199,19 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
         />
         <AutoHeight swap={`${open}${editing}`} className="min-w-0">
           {editing ? (
-            <div className="flex flex-col gap-[0.35rem]">
-              {label}
-              {entry.type === "relationship" ? (
-                <>
-                  <span className="text-[1rem] leading-snug font-medium">{textOf(entry, m, roles, x)}</span>
-                  <RelationEdit entry={entry} onDone={stopEditing} />
-                </>
-              ) : (
-                <InlineCorrect entry={entry} onDone={stopEditing} />
-              )}
+            <div className="flex min-w-0 items-start gap-[0.4rem]">
+              <div className="flex min-w-0 flex-1 flex-col gap-[0.35rem]">
+                {label}
+                {entry.type === "relationship" ? (
+                  <>
+                    <span className="text-[1rem] leading-snug font-medium">{textOf(entry, m, roles, x)}</span>
+                    <RelationEdit entry={entry} onDone={stopEditing} />
+                  </>
+                ) : (
+                  <InlineCorrect entry={entry} onDone={stopEditing} />
+                )}
+              </div>
+              {copy}
             </div>
           ) : (
             <div className="flex min-w-0 items-start gap-[0.4rem]">
@@ -233,6 +241,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
                   </span>
                 </span>
               </TextButton>
+              {copy}
             </div>
           )}
         </AutoHeight>
@@ -242,12 +251,20 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
           className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]"
         >
           {entry.findings && allowed.confirm ? (
-            // A batch is decided finding by finding in its opened panel, where its Save says what happens.
-            !open && (
-              <Button variant="secondary" onClick={flip}>
-                {m.reviewFindings(entry.findings.length)}
-              </Button>
-            )
+            // A batch is decided finding by finding in its opened panel, where its Save says what happens. The button
+            // that opened it closes it from the same spot, its width held by the longer of its two words.
+            <Button
+              variant="secondary"
+              aria-expanded={open}
+              aria-controls={panel}
+              onClick={flip}
+              icon={<ExpandChevron open={open} />}
+            >
+              <StableText
+                value={open ? m.collapseFindings : m.reviewFindings(entry.findings.length)}
+                variants={[m.collapseFindings, m.reviewFindings(entry.findings.length)]}
+              />
+            </Button>
           ) : allowed.confirm ? (
             <>
               <Button

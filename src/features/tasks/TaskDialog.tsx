@@ -1,7 +1,9 @@
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { referenceOf } from "@/domain/links"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { Skeleton } from "@/ui/Skeleton"
@@ -90,6 +92,7 @@ export function TaskDialog() {
     <Dialog
       open={Boolean(open)}
       title={open ? m.details(open) : ""}
+      titleAside={open && <CopyRef value={referenceOf({ type: "task", id: open })} />}
       onClose={close}
       canClose={canClose}
       wide="xl"

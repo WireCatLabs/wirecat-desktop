@@ -1,10 +1,11 @@
 import { Building2, User } from "lucide-react"
-import { crmToolOf } from "@/domain/catalog"
+import { type CatalogTool, crmToolOf, syncsHere } from "@/domain/catalog"
 import { accountKey, inScope, NOBODY, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
-import { syncKey, useSync } from "@/features/tools"
+import { SyncButton, SyncFollowUp, SyncStatus, syncKey, useSync, useSyncControl } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { CrmAccount, CrmCard, CrmPipeline } from "@/platform/bindings"
+import { ToolIcon } from "@/shared/ToolIcon"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
@@ -42,51 +43,70 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
         : why === "crmCli"
           ? m.scopeWhy.crmCli
           : null
+  const who = answer?.applied?.mode === "mine" ? answer.applied.also : null
   return (
-    <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-[0.4rem] text-[0.9rem] text-ink-soft">
-      <span>
-        {m.scope} · {nameOf(account, m.ownAccount)}
-      </span>
-      {everyone ? (
-        <>
-          <ErrorNotice inline>{m.scopeAll}</ErrorNotice>
-          <Button size="sm" disabled={!settable} onClick={() => set.mutate("mine")}>
-            {m.scopeToMine}
-          </Button>
-        </>
-      ) : (
-        <span className="inline-flex items-center gap-[0.3rem] text-ink">
-          <User className="size-4" aria-hidden />
-          {m.scopeMine}
+    <section aria-label={nameOf(account, m.ownAccount)} className="flex flex-col gap-[0.4rem]">
+      <div className="flex min-h-[2.25rem] flex-wrap items-center gap-x-[0.8rem] gap-y-[0.4rem] text-[0.9rem] text-ink-soft">
+        <span className="inline-flex min-w-0 items-center gap-[0.4rem]">
+          {tool && <ToolIcon id={tool.id} className="size-4 shrink-0" />}
+          <span className="font-medium text-ink">{nameOf(account, m.ownAccount)}</span>
+          {!everyone && <span>· {m.scopeWho(who)}</span>}
+          {busy ? (
+            <span className="text-ink-dim">{m.scopeSaving}</span>
+          ) : (
+            <InfoTip label={m.scopeAbout}>
+              {m.scopeHint}
+              {profile && settable && ` ${m.scopeAs(profile)}`}
+              {hint && ` ${hint}`}
+              {answer?.applied && ` ${m.applied(answer.applied.mode)}`}
+            </InfoTip>
+          )}
         </span>
-      )}
-      {why === "profile" && writesWith && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() =>
-            useClients.getState().ask({ account, profiles: writesWith.profiles, why: writesWith.why, move: null })
-          }
-        >
-          {m.chooseProfile}
-        </Button>
-      )}
-      {busy ? (
-        <span className="text-ink-dim">{m.scopeSaving}</span>
-      ) : (
-        <InfoTip label={m.scopeAbout}>
-          {m.scopeHint}
-          {profile && settable && ` ${m.scopeAs(profile)}`}
-          {hint && ` ${hint}`}
-          {answer?.applied && ` ${m.applied(answer.applied.mode)}`}
-        </InfoTip>
-      )}
+        {everyone && (
+          <>
+            <ErrorNotice inline>{m.scopeAll}</ErrorNotice>
+            <Button size="sm" disabled={!settable} onClick={() => set.mutate("mine")}>
+              {m.scopeToMine}
+            </Button>
+          </>
+        )}
+        {why === "profile" && writesWith && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              useClients.getState().ask({ account, profiles: writesWith.profiles, why: writesWith.why, move: null })
+            }
+          >
+            {m.chooseProfile}
+          </Button>
+        )}
+        {tool && profile && syncsHere(tool) && (
+          <CrmSync tool={tool} profile={profile} name={nameOf(account, m.ownAccount)} />
+        )}
+      </div>
       {set.error && (
         <ErrorNotice inline raw={set.error.message}>
           {m.scopeFailed}
         </ErrorNotice>
       )}
-    </div>
+    </section>
+  )
+}
+
+/** The CRM profile's own sync, as the Tools page runs it: when it last ran, its progress, and Sync. */
+function CrmSync({ tool, profile, name }: { tool: CatalogTool; profile: string; name: string }) {
+  const c = useSyncControl(tool, profile)
+  return (
+    <>
+      <span className="ml-auto flex min-w-[12rem] items-center justify-end gap-3">
+        <SyncStatus c={c} />
+        <SyncButton c={c} name={name} />
+      </span>
+      <div className="basis-full empty:hidden">
+        <SyncFollowUp c={c} />
+      </div>
+    </>
   )
 }
 

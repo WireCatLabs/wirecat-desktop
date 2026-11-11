@@ -8,6 +8,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec, Route, RouteChoices } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
+import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
@@ -16,8 +17,10 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { ToggleChip } from "@/ui/FilterBar"
+import { FilterMenu, type FilterOption } from "@/ui/FilterMenu"
 import type { LampTone } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
+import { NumberField } from "@/ui/NumberField"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { area, card } from "./editor-state"
@@ -119,6 +122,7 @@ export function DigestFields({
   const time = useFieldError(ids.times, {
     live: { problem: shown === "time" ? (l) => bookMessages[l].form.needTime : null, early: true },
   })
+  const installed = useTools((st) => st.installs)
   const set = (part: Partial<DigestSpec>) => onChange({ ...spec, ...part })
   const short = (day: string) =>
     new Intl.DateTimeFormat(lang, { weekday: "short" }).format(new Date(2026, 10, 9 + WEEKDAYS.indexOf(day as never)))
@@ -238,17 +242,20 @@ export function DigestFields({
       </Field>
 
       <Field label={m.sources} hint={m.sourcesHint}>
-        <fieldset disabled={!can.named} className={cx("flex flex-wrap gap-1.5", !can.named && "opacity-55")}>
-          {SOURCES.map((src) => (
-            <ToggleChip
-              key={src}
-              on={spec.sources.includes(src)}
-              onChange={(on) => set({ sources: on ? [...spec.sources, src] : spec.sources.filter((x) => x !== src) })}
-            >
-              {b.sources[src as Source]}
-            </ToggleChip>
-          ))}
-        </fieldset>
+        {can.named ? (
+          <div className="flex">
+            <FilterMenu
+              label={m.sourceList}
+              empty={m.allConnected}
+              search
+              options={sourceOptions(installed, spec.sources, b.sources)}
+              selected={spec.sources}
+              onChange={(sources) => set({ sources })}
+            />
+          </div>
+        ) : (
+          <p className="text-ink-dim">{m.allConnected}</p>
+        )}
       </Field>
 
       <Routes routes={spec.routes} onChange={(routes) => set({ routes })} m={s} />
@@ -257,7 +264,7 @@ export function DigestFields({
         <Field label={m.brief} hint={m.briefHint} htmlFor={ids.brief}>
           <textarea
             id={ids.brief}
-            rows={3}
+            rows={5}
             value={spec.brief ?? ""}
             placeholder={m.briefPlaceholder}
             onChange={(e) => set({ brief: e.target.value || null })}
@@ -320,20 +327,50 @@ function Usd(props: { label: string; value: number; min: number; onChange: (v: n
       <label htmlFor={id} className="text-ink-soft">
         {props.label}
       </label>
-      <span className="text-ink-dim">$</span>
-      <input
+      <NumberField
         id={id}
-        type="number"
-        inputMode="decimal"
+        prefix="$"
         min={props.min}
         max={50}
         step={0.1}
         value={props.value}
-        onChange={(e) => props.onChange(Number(e.target.value))}
-        className={cx(input, "w-[5.5rem] tabular-nums")}
+        onChange={props.onChange}
+        className="w-[7.5rem]"
       />
     </span>
   )
+}
+
+/**
+ * The tools that feed each source memo's digest reads (cli-memo `DIGEST_SOURCES`). Drive, Calendar and a CRM are not
+ * among them: memo's agenda has no part for documents, events or deals yet, so they are not offered.
+ */
+const FEEDS: Record<Source, readonly string[]> = {
+  telegram: ["tg"],
+  max: ["max"],
+  whatsapp: ["wa"],
+  mail: ["email"],
+  meetings: ["zm"],
+  tasks: ["memo"],
+}
+
+/** The sources whose tools are installed, and any already picked, so a saved choice never vanishes from the list. */
+export function sourceOptions(
+  installs: Readonly<Record<string, readonly unknown[] | undefined>>,
+  picked: readonly string[],
+  names: Readonly<Record<Source, string>>,
+): FilterOption[] {
+  return SOURCES.filter(
+    (src) => src === "tasks" || picked.includes(src) || FEEDS[src].some((t) => (installs[t]?.length ?? 0) > 0),
+  ).map((src) => {
+    const tools = FEEDS[src].map((t) => findTool(t)?.name ?? t)
+    return {
+      value: src,
+      label: names[src],
+      terms: tools.join(" "),
+      icon: <ToolIcon id={FEEDS[src][0] ?? "memo"} className="size-4 text-ink-soft" />,
+    }
+  })
 }
 
 const NO_CHOICES: RouteChoices = { bots: [], ownChats: [], mailboxes: [] }
@@ -371,6 +408,8 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
   const offer = suggestions(data ?? NO_CHOICES, kind, profile, m)
   const draft = `${PREFIX[kind]}:${profile.trim()}/${to.trim()}`
   const rowId = useId()
+  const ids = { profile: useId(), to: useId() }
+  const hintIds = { profileHint: `${ids.profile}-hint`, toHint: `${ids.to}-hint` }
   const need = useFieldError(rowId, {
     live: { problem: parsedRoute(draft) ? null : (l) => scheduleMessages[l].routeIncomplete(kind) },
   })
@@ -403,45 +442,82 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
           })}
         </ul>
       )}
-      <div id={rowId} className="flex flex-wrap items-center gap-2">
-        <Select
-          id={kindId}
-          size="sm"
-          aria-label={m.routes}
-          value={kind}
-          onChange={setKind}
-          options={[
-            { value: "telegramBot", label: m.routeKinds.telegramBot },
-            { value: "email", label: m.routeKinds.email },
-          ]}
-        />
-        <Combobox
-          aria-label={m.routeProfile}
-          placeholder={m.routeProfile}
-          value={profile}
-          onChange={setProfile}
-          aria-invalid={(need.error !== null && !profile.trim()) || undefined}
-          aria-describedby={need.field["aria-describedby"]}
-          options={offer.accounts}
-          className="w-[10rem]"
-        />
-        <Combobox
-          aria-label={m.routeTo(kind)}
-          placeholder={m.routeTo(kind)}
-          value={to}
-          onChange={setTo}
-          aria-invalid={(need.error !== null && !to.trim()) || undefined}
-          aria-describedby={need.field["aria-describedby"]}
-          options={offer.targets}
-          notes={offer.notes}
-          className="w-[16rem]"
-        />
-        <Button size="sm" variant="ghost" onClick={add}>
-          {m.addRoute}
-        </Button>
+      <div id={rowId} className="flex flex-wrap items-start gap-x-3 gap-y-2">
+        <RouteColumn label={m.routeKind} htmlFor={kindId}>
+          <Select
+            id={kindId}
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "telegramBot", label: m.routeKinds.telegramBot },
+              { value: "email", label: m.routeKinds.email },
+            ]}
+          />
+        </RouteColumn>
+        <RouteColumn
+          label={m.routeProfileLabel(kind)}
+          hint={m.routeProfileHint(kind)}
+          htmlFor={ids.profile}
+          width="w-[10rem]"
+        >
+          <Combobox
+            id={ids.profile}
+            value={profile}
+            onChange={setProfile}
+            aria-invalid={(need.error !== null && !profile.trim()) || undefined}
+            aria-describedby={cx(hintIds.profileHint, need.field["aria-describedby"]) || undefined}
+            options={offer.accounts}
+          />
+        </RouteColumn>
+        <RouteColumn label={m.routeToLabel(kind)} hint={m.routeToHint(kind)} htmlFor={ids.to} width="w-[14rem]">
+          <Combobox
+            id={ids.to}
+            value={to}
+            onChange={setTo}
+            aria-invalid={(need.error !== null && !to.trim()) || undefined}
+            aria-describedby={cx(hintIds.toHint, need.field["aria-describedby"]) || undefined}
+            options={offer.targets}
+            notes={offer.notes}
+          />
+        </RouteColumn>
+        <RouteColumn label={m.addRoute} hideLabel>
+          <Button variant="secondary" onClick={add}>
+            {m.addRoute}
+          </Button>
+        </RouteColumn>
       </div>
       {need.hint}
     </Field>
+  )
+}
+
+/** One field of the route row: its label on top and a one-line hint under it, so the row's fields line up. */
+function RouteColumn(props: {
+  label: string
+  hint?: string
+  htmlFor?: string
+  width?: string
+  hideLabel?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div className={cx("flex flex-col gap-1", props.width)}>
+      {props.hideLabel ? (
+        <span aria-hidden className="invisible text-[0.85rem]">
+          {props.label}
+        </span>
+      ) : (
+        <label htmlFor={props.htmlFor} className="text-[0.85rem] text-ink-soft">
+          {props.label}
+        </label>
+      )}
+      {props.children}
+      {props.hint && (
+        <p id={props.htmlFor && `${props.htmlFor}-hint`} className="text-[0.8rem] text-ink-dim">
+          {props.hint}
+        </p>
+      )}
+    </div>
   )
 }
 

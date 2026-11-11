@@ -9,6 +9,7 @@ import { CopyValue, type FieldOf, JsonTree } from "@/shared/JsonTree"
 import { sharedMessages } from "@/shared/messages"
 import { ServiceIcon } from "@/shared/ServiceIcon"
 import { Collapse } from "@/ui/Collapse"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { ExpandChevron } from "@/ui/ExpandChevron"
@@ -64,12 +65,13 @@ export function HitsTable(props: Props) {
       head: m.where,
       width: "var(--where)",
       className: cx(CELL, "font-medium"),
-      cell: ({ row }) => (
+      cell: ({ hit, row }) => (
         <span className="flex min-w-0 items-center gap-[0.4rem]">
           {row.tool && <ServiceIcon id={row.tool} className="size-4" />}
           <span className="truncate" title={row.where ?? undefined}>
             {row.where ?? <span className="font-normal text-ink-dim">—</span>}
           </span>
+          <CopyRef value={typeof hit.ref === "string" ? hit.ref : null} className="-my-1 -ml-[0.2rem]" />
         </span>
       ),
     },
@@ -125,7 +127,7 @@ export function HitsTable(props: Props) {
     },
   ]
   return (
-    <div className="[--where:7.1rem] [--who:5.6rem] lg:[--where:12.1rem] lg:[--who:9.1rem]">
+    <div className="[--where:8.6rem] [--who:5.6rem] lg:[--where:13.6rem] lg:[--who:9.1rem]">
       <DataTable
         density="compact"
         rows={items}

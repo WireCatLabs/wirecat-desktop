@@ -24,7 +24,14 @@ export function CopyButton({ value, label, className }: { value: string; label: 
     <>
       <button
         type="button"
-        onClick={copy}
+        // It sits inside rows that open on a click or on Enter; copying must not open them too.
+        onClick={(e) => {
+          e.stopPropagation()
+          void copy()
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") e.stopPropagation()
+        }}
         aria-label={copied ? m.copied : label}
         title={copied ? m.copied : label}
         className={cx(

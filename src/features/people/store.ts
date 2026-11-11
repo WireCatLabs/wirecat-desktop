@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
-import { STATES, setField } from "@/domain/tasks"
+import { tasksQuery } from "@/domain/tasks"
 import { platform } from "@/platform/bridge"
 import type {
   Doubts,
@@ -22,12 +22,6 @@ import { fresh } from "@/shared/fresh"
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export type TasksOf = { state: "loading" } | { state: "ready"; read: TaskRead } | { state: "failed"; error: string }
-
-/**
- * A person's tasks as the table counts them: every project and every state, since memo's search otherwise leaves
- * closed tasks out, and refuses `assignee:` without `project:`.
- */
-export const tasksQuery = (ref: string) => `project:* ${setField("", "assignee", [ref])} state:(${STATES.join(" OR ")})`
 
 export type Detail =
   | { state: "loading" }
@@ -601,7 +595,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     async loadTasks(ref) {
       set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "loading" } } }))
       try {
-        const read = await platform.taskList(tasksQuery(ref))
+        const read = await platform.taskList(tasksQuery([ref]))
         set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "ready", read } } }))
       } catch (e) {
         set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "failed", error: message(e) } } }))

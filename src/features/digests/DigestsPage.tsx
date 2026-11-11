@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { ToolNeeded } from "@/features/tools"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import type { DigestSpec } from "@/platform/bindings"
 import { useDigestDay } from "@/shared/digest-day"
 import { Page, PageHeader } from "@/shared/Page"
@@ -22,6 +22,7 @@ import { useDigestBook } from "./schedule-store"
 export function DigestsPage() {
   const m = useMessages(digestMessages)
   const b = useMessages(bookMessages)
+  const lang = useLang()
   const s = useMessages(scheduleMessages)
   const { book, error, open, load, openDigest } = useDigestBook()
   const [reading, setReading] = useState(false)
@@ -51,7 +52,7 @@ export function DigestsPage() {
     openDigest(linked)
     useDigestDay.setState({ digest: null })
   }, [linked, openDigest])
-  const pick = (t: Template) => ready && setCreating(draftOf(t, ready.digests, b))
+  const pick = (t: Template) => ready && setCreating(draftOf(t, ready.digests, b, lang))
 
   return (
     <Page>

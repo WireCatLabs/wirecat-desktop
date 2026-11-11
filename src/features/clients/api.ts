@@ -49,7 +49,7 @@ export function useStageName(kind: Kind) {
       const at = crm || !made ? -1 : made[kind].indexOf(name)
       return at >= 0 ? (here[kind][at] ?? name) : name
     },
-    pipeline: (name: string, crm = false) => (!crm && sets.some((set) => set.set === name) ? here.set : name),
+    pipeline: (name: string, crm = false) => (!crm && sets.some((set) => set.set === name) ? here.shown : name),
   }
 }
 

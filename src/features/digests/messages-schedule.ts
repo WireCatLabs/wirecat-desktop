@@ -33,8 +33,13 @@ const en = {
   noHarness: "Claude Code is not installed. The digest is written in it: install Claude Code first.",
   routesHint: "Where to send it. With none, it only shows here and as a notification.",
   addRoute: "Add",
-  routeProfile: "Account",
-  routeTo: (kind: RouteKind): string => (kind === "email" ? "Address" : "Chat id or user:id"),
+  routeKind: "Where",
+  routeProfileLabel: (kind: RouteKind): string => (kind === "email" ? "Mail account" : "Bot account"),
+  routeProfileHint: (kind: RouteKind): string =>
+    kind === "email" ? "The mailbox it is sent from." : "The bot that sends it.",
+  routeToLabel: (kind: RouteKind): string => (kind === "email" ? "Address" : "Chat or person"),
+  routeToHint: (kind: RouteKind): string =>
+    kind === "email" ? "Who receives it." : "A chat id, or user:<id> for a private chat with the bot.",
   routeIncomplete: (kind: RouteKind): string =>
     kind === "email" ? "Choose an account and type an address first." : "Choose an account and type a chat id first.",
   removeRoute: (route: string) => `Remove ${route}`,
@@ -133,8 +138,11 @@ const ru: typeof en = {
   noHarness: "Claude Code не установлен. Сводка пишется в нём: сначала установите Claude Code.",
   routesHint: "Куда отправлять. Если никуда, сводка будет только здесь и в уведомлении.",
   addRoute: "Добавить",
-  routeProfile: "Аккаунт",
-  routeTo: (kind) => (kind === "email" ? "Адрес" : "Id чата или user:id"),
+  routeKind: "Куда",
+  routeProfileLabel: (kind) => (kind === "email" ? "Почтовый аккаунт" : "Аккаунт бота"),
+  routeProfileHint: (kind) => (kind === "email" ? "Ящик, с которого уйдет письмо." : "Бот, который отправит сводку."),
+  routeToLabel: (kind) => (kind === "email" ? "Адрес" : "Чат или пользователь"),
+  routeToHint: (kind) => (kind === "email" ? "Кто получит письмо." : "Id чата или user:<id> для личного чата с ботом."),
   routeIncomplete: (kind) =>
     kind === "email" ? "Сначала выберите аккаунт и введите адрес." : "Сначала выберите аккаунт и введите id чата.",
   removeRoute: (route) => `Убрать ${route}`,
@@ -237,8 +245,12 @@ const es: typeof en = {
   noHarness: "Claude Code no está instalado. El resumen se escribe en él: instala Claude Code primero.",
   routesHint: "Dónde enviarlo. Sin ninguno, solo aparece aquí y como notificación.",
   addRoute: "Añadir",
-  routeProfile: "Cuenta",
-  routeTo: (kind) => (kind === "email" ? "Dirección" : "Id del chat o user:id"),
+  routeKind: "Dónde",
+  routeProfileLabel: (kind) => (kind === "email" ? "Cuenta de correo" : "Cuenta del bot"),
+  routeProfileHint: (kind) => (kind === "email" ? "El buzón desde el que se envía." : "El bot que lo envía."),
+  routeToLabel: (kind) => (kind === "email" ? "Dirección" : "Chat o persona"),
+  routeToHint: (kind) =>
+    kind === "email" ? "Quién lo recibe." : "Un id de chat, o user:<id> para un chat privado con el bot.",
   routeIncomplete: (kind) =>
     kind === "email"
       ? "Primero elige una cuenta y escribe una dirección."

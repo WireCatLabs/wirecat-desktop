@@ -1,6 +1,6 @@
 import { CalendarDays, Plus, Sun } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
-import { useMessages } from "@/i18n"
+import { type Lang, useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -8,6 +8,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
+import { briefTemplate } from "./brief-template"
 import { titleOf } from "./DigestTable"
 import { type BookText, bookMessages } from "./messages-book"
 import { type Can, DigestFields, focusProblem, NoHarness, problemOf } from "./ScheduleCard"
@@ -27,10 +28,16 @@ export const freeName = (base: string, taken: readonly string[]) => freeLabel(ba
 /** A template's title, with " 2", " 3" when a digest already has it, so two rows from one template read apart. */
 export const freeTitle = (base: string, taken: readonly string[]) => freeLabel(base, taken, " ")
 
-export function draftOf(template: Template, digests: readonly DigestItem[], m: BookText): DigestSpec {
+export function draftOf(template: Template, digests: readonly DigestItem[], m: BookText, lang: Lang): DigestSpec {
   const taken = digests.map((d) => d.name)
   const titles = digests.map((d) => titleOf(d, m))
-  const base = { sources: [], routes: [], brief: null, scheduled: true, ...DEFAULT_CAPS }
+  const base = {
+    sources: [],
+    routes: [],
+    brief: briefTemplate(template === "own" ? "digest" : `${template}-digest`, lang),
+    scheduled: true,
+    ...DEFAULT_CAPS,
+  }
   switch (template) {
     case "daily":
       // The first daily digest is the morning digest, so its brief, templates and past days carry on.

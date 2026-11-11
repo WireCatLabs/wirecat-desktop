@@ -1,6 +1,8 @@
 import type { TemplateChannel } from "@/domain/digest-editors"
 import type { Messages } from "@/i18n"
 
+export type BriefKind = "daily" | "weekly" | "own"
+
 const en = {
   readFailed: "Could not read it.",
   saving: "Saving…",
@@ -19,6 +21,13 @@ const en = {
     none: "No instructions yet: the digest follows the built-in ones alone.",
     unsupported: "This Memo cannot keep your instructions yet. Update Memo to write them.",
     failed: (message: string) => `Not saved: ${message}`,
+    template: {
+      daily:
+        "Put first: replies people are waiting for from me, and tasks due today.\nProjects that matter most: \nPeople that matter most: \nSkip: newsletters, service notifications and bots.\nAt most five items a section.",
+      weekly:
+        "The week on one page: what moved in each project, decisions still waiting for me, payments and invoices.\nProjects that matter most: \nSkip: newsletters, service notifications and small talk.\nAt most five items a section.",
+      own: "Collect: \nPut first: \nSkip: newsletters and service notifications.\nAt most five items a section.",
+    } satisfies Record<BriefKind, string>,
   },
   templates: {
     empty: "The template is empty. Write it before you save.",
@@ -62,6 +71,13 @@ const ru: typeof en = {
     none: "Указаний пока нет: сводка следует только встроенным.",
     unsupported: "Эта версия Memo пока не хранит ваши указания. Обновите Memo, чтобы их написать.",
     failed: (message) => `Не сохранено: ${message}`,
+    template: {
+      daily:
+        "Сначала: ответы, которых от меня ждут, и задачи со сроком сегодня.\nВажные проекты: \nВажные люди: \nПропускать: рассылки, уведомления сервисов и ботов.\nНе больше пяти пунктов в разделе.",
+      weekly:
+        "Неделя на одной странице: что сдвинулось в каждом проекте, какие решения еще ждут меня, платежи и счета.\nВажные проекты: \nПропускать: рассылки, уведомления сервисов и пустые разговоры.\nНе больше пяти пунктов в разделе.",
+      own: "Собирать: \nСначала: \nПропускать: рассылки и уведомления сервисов.\nНе больше пяти пунктов в разделе.",
+    },
   },
   templates: {
     empty: "Шаблон пуст. Напишите его, прежде чем сохранять.",
@@ -106,6 +122,13 @@ const es: typeof en = {
     none: "Aún no hay instrucciones: el resumen sigue solo las integradas.",
     unsupported: "Esta versión de Memo aún no guarda tus instrucciones. Actualiza Memo para escribirlas.",
     failed: (message) => `No se guardó: ${message}`,
+    template: {
+      daily:
+        "Primero: las respuestas que esperan de mí y las tareas que vencen hoy.\nProyectos importantes: \nPersonas importantes: \nOmitir: boletines, avisos de servicios y bots.\nComo mucho cinco puntos por sección.",
+      weekly:
+        "La semana en una página: qué avanzó en cada proyecto, qué decisiones siguen esperándome, pagos y facturas.\nProyectos importantes: \nOmitir: boletines, avisos de servicios y charlas sin importancia.\nComo mucho cinco puntos por sección.",
+      own: "Recoger: \nPrimero: \nOmitir: boletines y avisos de servicios.\nComo mucho cinco puntos por sección.",
+    },
   },
   templates: {
     empty: "La plantilla está vacía. Escríbela antes de guardar.",

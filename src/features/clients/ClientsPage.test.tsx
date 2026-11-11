@@ -73,6 +73,28 @@ describe("Clients on the base stages", () => {
     await waitFor(() => expect(read).toHaveBeenCalledTimes(2))
   })
 
+  it("lists the tasks of a card's contact people, not of the CRM user responsible for it", async () => {
+    const list = vi.spyOn(platform, "taskList")
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    const task = await within(dialog).findByRole("button", { name: /Book the two pilot clinics/ })
+    expect(list).toHaveBeenCalledWith(expect.stringContaining('assignee:"person:2"'))
+    expect(list).not.toHaveBeenCalledWith(expect.stringContaining("person:13"))
+    expect(within(dialog).getByRole("button", { name: "Copy id: task:HRB-14" })).toBeInTheDocument()
+    await user.click(task)
+    expect(screen.queryByRole("dialog", { name: "Northstar: 40 office chairs" })).toBeNull()
+  })
+
+  it("says in one line when a card has no contact person to find tasks for", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Support contract"))
+    const dialog = await screen.findByRole("dialog", { name: "Support contract" })
+    expect(dialog).toHaveTextContent("No contact person on this card, so there are no tasks to show.")
+  })
+
   it("opens a card's details on a click", async () => {
     const user = userEvent.setup()
     render(<ClientsPage />)
@@ -255,7 +277,7 @@ describe("Clients on the base stages", () => {
     render(<ClientsPage />)
     await user.click(await screen.findByRole("button", { name: "Read only" }))
     expect(await screen.findByText(/Read only: WireCat cannot run this CRM's own tool yet/)).toBeInTheDocument()
-    expect(screen.getByText(/Sync · Bitrix24 · northstar\.example/)).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "Bitrix24 · northstar.example" })).toBeInTheDocument()
     const chairs = await card("Northstar: 40 office chairs")
     chairs.focus()
     await user.keyboard(" {ArrowRight} ")
@@ -378,6 +400,22 @@ describe("Clients moving a CRM's cards through b24", () => {
     await waitFor(() => expect(mine).toBeEnabled())
     await user.click(mine)
     expect(set).toHaveBeenCalledWith(NORTHSTAR, "work", "mine")
+    await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
+  })
+
+  it("says in words whose deals the CRM's sync downloads, and syncs that profile from its own button", async () => {
+    freshMemo("one")
+    vi.spyOn(platform, "clientsScope").mockResolvedValue({
+      kind: "settable",
+      scope: "mine",
+      applied: { mode: "mine", also: ["Anna Kotova"] },
+    })
+    const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    const line = await screen.findByRole("region", { name: "Bitrix24 · northstar.example" })
+    await waitFor(() => expect(line).toHaveTextContent("downloads your deals and those of Anna Kotova"))
+    await user.click(within(line).getByRole("button", { name: "Sync Bitrix24 · northstar.example now" }))
     await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
   })
 })

@@ -7,6 +7,7 @@ import type { MemoryEntry } from "@/platform/memory-schemas"
 import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { Pill } from "@/ui/Pill"
@@ -323,6 +324,7 @@ export function DocumentFacts({ entry }: { entry: MemoryEntry }) {
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.document}</h3>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="selectable font-medium">{doc.title ?? doc.ref}</span>
+        <CopyRef value={doc.ref} className="-my-1 -ml-[0.6rem] self-center" />
         {doc.url && <ExtLink href={doc.url}>{x.documentOpen}</ExtLink>}
       </div>
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-[0.2rem] text-[0.92rem]">

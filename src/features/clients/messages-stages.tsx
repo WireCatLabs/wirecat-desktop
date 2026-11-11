@@ -55,7 +55,8 @@ type Words = {
   keepOne: (outcome: string) => string
   nameProblem: Record<NameProblem, string>
   /** memo's default set, as cli-core names it in each language (`base-stages.ts`, `NAMES`). */
-  defaults: { set: string } & Record<Kind, readonly string[]>
+  /** `set` is the stored name memo was given and how the base set is recognised; `shown` is what the page says. */
+  defaults: { set: string; shown: string } & Record<Kind, readonly string[]>
 }
 
 const en: Words = {
@@ -129,6 +130,7 @@ const en: Words = {
   },
   defaults: {
     set: "Base stages",
+    shown: "Base stages",
     lead: ["New", "Contacted", "Qualified", "Converted", "Rejected"],
     deal: ["New", "Qualification", "Proposal", "Negotiation", "Won", "Lost"],
   },
@@ -220,6 +222,7 @@ const ru: Words = {
   },
   defaults: {
     set: "Базовые стадии",
+    shown: "Базовые этапы",
     lead: ["Новый", "Связались", "Квалифицирован", "Конвертирован", "Отклонён"],
     deal: ["Новая", "Квалификация", "Предложение", "Переговоры", "Выиграна", "Проиграна"],
   },
@@ -296,6 +299,7 @@ const es: Words = {
   },
   defaults: {
     set: "Etapas base",
+    shown: "Etapas base",
     lead: ["Nuevo", "Contactado", "Calificado", "Convertido", "Rechazado"],
     deal: ["Nuevo", "Calificación", "Propuesta", "Negociación", "Ganado", "Perdido"],
   },

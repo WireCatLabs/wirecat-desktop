@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react"
 import { briefChars } from "@/domain/digest-editors"
-import { type Lang, useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -8,6 +8,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
+import { briefTemplate } from "./brief-template"
 import { area, card, useMemoEditor } from "./editor-state"
 import { editorMessages } from "./messages-editors"
 
@@ -19,8 +20,11 @@ export function BriefCard({ name }: { name?: string | undefined }) {
   const counterId = useId()
   const fieldId = useId()
   const { value, readError, busy, failed, change } = useMemoEditor(() => platform.digestBrief(name), `brief:${name}`)
+  const lang = useLang()
   const saved = value?.state === "ready" ? (value.body ?? "") : ""
-  const [draft, setDraft] = useState(saved)
+  // With no brief yet the field starts from a template to edit; a brief already written is never replaced.
+  const start = value?.state === "ready" && value.body == null ? briefTemplate(name, lang) : saved
+  const [draft, setDraft] = useState(start)
 
   const ready = value?.state === "ready" ? value : null
   const limit = ready?.limit ?? 4000
@@ -36,9 +40,9 @@ export function BriefCard({ name }: { name?: string | undefined }) {
   const need = useFieldError(fieldId, { live: { problem, early: over } })
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new saved brief starts without the last complaint
   useEffect(() => {
-    setDraft(saved)
+    setDraft(start)
     need.clear()
-  }, [saved])
+  }, [start])
 
   if (value?.state === "noMemo") return null
 

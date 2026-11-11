@@ -44,8 +44,8 @@ type Words = {
   dropped: (ref: string, column: string) => string
   putBack: (ref: string, reason?: string) => string
   notMoved: (reason: string) => string
-  scope: string
-  scopeMine: string
+  /** Who the sync downloads: `also` are the CRM users chosen beside the owner, null when not known yet. */
+  scopeWho: (also: readonly string[] | null) => string
   scopeAll: string
   scopeToMine: string
   scopeHint: string
@@ -64,6 +64,11 @@ type Words = {
   updated: string
   statusOf: Record<string, string>
   close: string
+  tasksTitle: string
+  tasksNone: string
+  tasksNoPeople: string
+  tasksFailed: string
+  tasksAll: (n: number) => string
   cancel: string
   readOnlyInstall: (tool: string) => string
   readOnlyUpdate: (tool: string) => string
@@ -131,8 +136,12 @@ const en: Words = {
   dropped: (ref, column) => `Dropped ${ref} in ${column}.`,
   putBack: (ref, reason) => (reason ? `${ref} is back where it was: ${reason}` : `${ref} is back where it was.`),
   notMoved: (reason) => `Not moved: ${reason}`,
-  scope: "Sync",
-  scopeMine: "Chosen users",
+  scopeWho: (also) =>
+    also === null
+      ? "downloads the deals of the users you chose"
+      : also.length === 0
+        ? "downloads your deals"
+        : `downloads your deals and those of ${also.join(", ")}`,
   scopeAll: "This CRM is set to download everyone's deals, so its sync stops. Download only yours instead.",
   scopeToMine: "Only mine",
   scopeHint:
@@ -152,6 +161,11 @@ const en: Words = {
   updated: "Last changed",
   statusOf: { open: "Open", won: "Won", lost: "Lost" },
   close: "Close",
+  tasksTitle: "Tasks of the client's contacts",
+  tasksNone: "The client's contacts have no tasks.",
+  tasksNoPeople: "No contact person on this card, so there are no tasks to show.",
+  tasksFailed: "Could not read the tasks.",
+  tasksAll: (n) => `All ${n} on the Tasks page`,
   cancel: "Cancel",
   readOnlyInstall: (tool) => `Read only: install ${tool} on the Tools page to move this CRM's cards from here.`,
   readOnlyUpdate: (tool) => `Read only: update ${tool} on the Tools page to move this CRM's cards from here.`,
@@ -226,8 +240,12 @@ const ru: Words = {
   dropped: (ref, column) => `${ref} перенесена в «${column}».`,
   putBack: (ref, reason) => (reason ? `${ref} вернулась на место: ${reason}` : `${ref} вернулась на место.`),
   notMoved: (reason) => `Не перенесено: ${reason}`,
-  scope: "Синхронизировать",
-  scopeMine: "Выбранные",
+  scopeWho: (also) =>
+    also === null
+      ? "скачиваются сделки выбранных сотрудников"
+      : also.length === 0
+        ? "скачиваются ваши сделки"
+        : `скачиваются ваши сделки и сделки: ${also.join(", ")}`,
   scopeAll: "Эта CRM настроена скачивать сделки всех, поэтому синхронизация остановлена. Скачивайте только свои.",
   scopeToMine: "Только мои",
   scopeHint:
@@ -247,6 +265,11 @@ const ru: Words = {
   updated: "Последнее изменение",
   statusOf: { open: "Открыта", won: "Выиграна", lost: "Проиграна" },
   close: "Закрыть",
+  tasksTitle: "Задачи контактов клиента",
+  tasksNone: "У контактов клиента задач нет.",
+  tasksNoPeople: "На карточке нет контактного лица, поэтому задач не показать.",
+  tasksFailed: "Не удалось прочитать задачи.",
+  tasksAll: (n) => `Все ${n} на странице «Задачи»`,
   cancel: "Отмена",
   readOnlyInstall: (tool) =>
     `Только чтение: установите ${tool} на странице «Инструменты», чтобы переносить карточки этой CRM отсюда.`,
@@ -323,8 +346,12 @@ const es: Words = {
   dropped: (ref, column) => `${ref} soltada en ${column}.`,
   putBack: (ref, reason) => (reason ? `${ref} ha vuelto a su sitio: ${reason}` : `${ref} ha vuelto a su sitio.`),
   notMoved: (reason) => `No se movió: ${reason}`,
-  scope: "Sincronizar",
-  scopeMine: "Usuarios elegidos",
+  scopeWho: (also) =>
+    also === null
+      ? "se descargan los tratos de los usuarios elegidos"
+      : also.length === 0
+        ? "se descargan tus tratos"
+        : `se descargan tus tratos y los de ${also.join(", ")}`,
   scopeAll:
     "Este CRM está configurado para descargar los tratos de todos, así que su sincronización se detiene. Descarga solo los tuyos.",
   scopeToMine: "Solo las mías",
@@ -345,6 +372,11 @@ const es: Words = {
   updated: "Último cambio",
   statusOf: { open: "Abierta", won: "Ganada", lost: "Perdida" },
   close: "Cerrar",
+  tasksTitle: "Tareas de los contactos del cliente",
+  tasksNone: "Los contactos del cliente no tienen tareas.",
+  tasksNoPeople: "Esta tarjeta no tiene persona de contacto, así que no hay tareas que mostrar.",
+  tasksFailed: "No se pudieron leer las tareas.",
+  tasksAll: (n) => `Las ${n} en la página Tareas`,
   cancel: "Cancelar",
   readOnlyInstall: (tool) =>
     `Solo lectura: instala ${tool} en la página Herramientas para mover desde aquí las tarjetas de este CRM.`,

@@ -172,3 +172,10 @@ export function placeKey(order: readonly string[], key: string, before: string |
 
 /** A claim counts while it has not lapsed. */
 export const claimActive = (until: string | null, now = Date.now()) => until !== null && Date.parse(until) > now
+
+/**
+ * The tasks of these people as the table counts them: every project and every state, since memo's search otherwise
+ * leaves closed tasks out, and refuses `assignee:` without `project:`.
+ */
+export const tasksQuery = (refs: readonly string[]) =>
+  `project:* ${setField("", "assignee", refs)} state:(${STATES.join(" OR ")})`

@@ -6,7 +6,7 @@ import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
-import { CopyButton } from "@/ui/CopyButton"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
@@ -14,7 +14,6 @@ import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
 import { savedAt } from "./labels"
 import { memoryMessages } from "./messages"
-import { findingsMessages } from "./messages-findings"
 import { useMemory } from "./store"
 
 /** One list frame and one item inset for a record's sources and a batch's findings, so the two read as one kind. */
@@ -58,26 +57,31 @@ export function SourceItem({ source: s }: { source: MemorySource }) {
     </>
   )
   if (!s.ref || s.missing)
-    return <li className={cx("flex gap-[0.8rem] border-line not-first:border-t", ITEM_PAD)}>{head}</li>
+    return (
+      <li className={cx("flex gap-[0.8rem] border-line not-first:border-t", ITEM_PAD)}>
+        {head}
+        <CopyRef value={s.ref} className="-mr-[0.4rem]" />
+      </li>
+    )
   const ref = s.ref
   return (
     <li className="border-line not-first:border-t">
-      <TextButton
-        as="div"
-        aria-expanded={open}
-        aria-controls={id}
-        aria-label={m.showContext(s.sender ?? s.title ?? ref)}
-        onClick={() => {
-          if (!open) useMemory.getState().loadContext(ref)
-          setOpen(!open)
-        }}
-        className={cx(
-          "group flex cursor-pointer gap-[0.8rem] transition-colors duration-(--motion-fast) hover:bg-app-2",
-          ITEM_PAD,
-        )}
-      >
-        {head}
-      </TextButton>
+      <div className="group flex items-start transition-colors duration-(--motion-fast) hover:bg-app-2">
+        <TextButton
+          as="div"
+          aria-expanded={open}
+          aria-controls={id}
+          aria-label={m.showContext(s.sender ?? s.title ?? ref)}
+          onClick={() => {
+            if (!open) useMemory.getState().loadContext(ref)
+            setOpen(!open)
+          }}
+          className={cx("flex min-w-0 flex-1 cursor-pointer gap-[0.8rem]", ITEM_PAD)}
+        >
+          {head}
+        </TextButton>
+        <CopyRef value={ref} className="mt-[0.7rem] mr-[0.6rem]" />
+      </div>
       <Collapse open={open} id={id}>
         <SourceContextView reference={ref} withRef />
       </Collapse>
@@ -87,7 +91,6 @@ export function SourceItem({ source: s }: { source: MemorySource }) {
 
 /** What memo reads back for a cited ref. Each kind memo cannot read says so instead of failing. */
 export function SourceContextView({ reference, withRef = false }: { reference: string; withRef?: boolean }) {
-  const f = useMessages(findingsMessages)
   return (
     <>
       {withRef && (
@@ -95,7 +98,7 @@ export function SourceContextView({ reference, withRef = false }: { reference: s
           <span className="selectable min-w-0 flex-1 font-mono text-[0.85rem] text-ink-dim [overflow-wrap:anywhere]">
             {reference}
           </span>
-          <CopyButton value={reference} label={f.copyRef} />
+          <CopyRef value={reference} />
         </p>
       )}
       <ContextBody reference={reference} />
