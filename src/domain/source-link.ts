@@ -48,3 +48,14 @@ export function accountValue(identity: string, username?: string | null): string
   if (handle) return `@${handle}`
   return sourceLink(identity, username) ?? id
 }
+
+/** A call to the phone in the owner's phone program, or null when it is not one number the desktop opens. */
+export function phoneLink(phone: string): string | null {
+  const digits = phone.replace(/[\s().-]/g, "")
+  return /^\+?\d{3,20}$/.test(digits) ? `tel:${digits}` : null
+}
+
+/** A new mail to the address, or null when it is not one bare address the desktop opens. */
+export function emailLink(email: string): string | null {
+  return EMAIL.test(email) ? `mailto:${email}` : null
+}

@@ -100,7 +100,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
       ? "blocked"
       : storageLine
         ? "storage"
-        : sync && (sync.run || !app)
+        : sync?.run
           ? "sync"
           : app
             ? "app"
@@ -112,7 +112,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
     <li data-tour="tool" className="border-line border-b last:border-b-0">
       <div
         ref={header}
-        className="grid min-h-[4.5rem] max-[999px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)] max-[999px]:gap-x-[0.9rem] min-[1000px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_10.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_11rem] xl:gap-x-[1.2rem] px-[1.3rem]"
+        className="grid min-h-[4.5rem] max-[999px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_auto] max-[999px]:gap-x-[0.9rem] min-[1000px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_10.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_11rem] xl:gap-x-[1.2rem] px-[1.3rem]"
       >
         <Lamp
           tone={severity ?? lampTone[status.kind]}
@@ -152,7 +152,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               >
                 {storageLine}
               </p>
-            ) : sync && (sync.run || !app) ? (
+            ) : sync?.run ? (
               <p className="mt-1 flex text-[0.95rem] leading-[1.55rem] text-ink-soft">
                 <RowSyncLine entry={tool} info={sync} />
               </p>
@@ -174,15 +174,12 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             )}
           </Crossfade>
         </TextButton>
-        {/* Below 1000px the three cells share a second line under the text; `contents` keeps the wide grid as it was. */}
-        <div className="max-[999px]:col-start-3 max-[999px]:flex max-[999px]:items-center max-[999px]:gap-3 max-[999px]:pb-3 min-[1000px]:contents">
-          <div
-            data-tour={sync ? "tool-sync" : undefined}
-            className="flex items-center justify-end max-[999px]:order-last"
-          >
+        {/* Below 1000px the three cells share one cell beside the text; `contents` keeps the wide grid as it was. */}
+        <div className="max-[999px]:flex max-[999px]:items-center max-[999px]:gap-3 min-[1000px]:contents">
+          <div data-tour={sync ? "tool-sync" : undefined} className="flex items-center justify-end">
             {sync && <RowSyncButton entry={tool} info={sync} />}
           </div>
-          <div className="max-[999px]:order-1 max-[999px]:min-w-0 max-[999px]:flex-1">
+          <div>
             <Version status={status} installed={installs?.[0]?.version ?? null} m={m} />
           </div>
           <div data-tour="tool-action" className="flex justify-end">

@@ -7,7 +7,7 @@
     {
       "id": "tg",
       "name": "Telegram",
-      "tagline": "Your Telegram account, for the terminal and AI agents",
+      "tagline": "Chats and channels\u00a0· search\u00a0· replies",
       "bin": "tg",
       "package": "@wirecat/tg-cli",
       "summary": "A Telegram client for the terminal and for AI agents, on your own account.",
@@ -434,7 +434,7 @@
     {
       "id": "max",
       "name": "MAX",
-      "tagline": "MAX bots and your personal account, from the terminal",
+      "tagline": "Chats and bots\u00a0· search\u00a0· replies",
       "bin": "max",
       "package": "@wirecat/max-cli",
       "summary": "MAX Messenger from the terminal: bots through the official Bot API, and your personal account.",
@@ -854,7 +854,7 @@
     {
       "id": "wa",
       "name": "WhatsApp",
-      "tagline": "Your WhatsApp account as a linked device",
+      "tagline": "Chats\u00a0· search\u00a0· replies",
       "bin": "wa",
       "package": "@wirecat/whatsapp-cli",
       "summary": "Your WhatsApp account from the terminal, as a linked device, for agents and scripts.",
@@ -1286,7 +1286,7 @@
     {
       "id": "zm",
       "name": "Zoom",
-      "tagline": "Zoom transcripts and recordings, searchable",
+      "tagline": "Meeting recordings and transcripts\u00a0· search",
       "bin": "zm",
       "package": "@wirecat/zoom-cli",
       "summary": "Keep Zoom transcripts and recordings, search meeting evidence and give your agent context for the next call.",
@@ -1459,7 +1459,7 @@
     {
       "id": "drive",
       "name": "Google Drive",
-      "tagline": "Google Drive folders as local, searchable text",
+      "tagline": "Folders and documents\u00a0· search\u00a0· editing",
       "bin": "drive",
       "package": "@wirecat/drive-cli",
       "summary": "Import selected Google folders, search documents locally and keep tags, notes and source-backed memories.",
@@ -1620,7 +1620,7 @@
     {
       "id": "gcal",
       "name": "Google Calendar",
-      "tagline": "Google Calendar events, searchable on your computer",
+      "tagline": "Events and meetings\u00a0· search\u00a0· changes",
       "bin": "gcal",
       "package": "@wirecat/gcal-cli",
       "summary": "Copy your Google Calendar events to this computer, search them offline and give your agent the context of each meeting.",
@@ -1686,7 +1686,7 @@
     {
       "id": "memo",
       "name": "Memo",
-      "tagline": "Notes, people and memories in one place for your agent",
+      "tagline": "Notes, people and memories\u00a0· search across everything",
       "bin": "memo",
       "package": "@wirecat/cli-memo",
       "summary": "Your notes and messages in one place for your AI agent: search, tags, people and memories, on your computer.",
@@ -1833,7 +1833,7 @@
         "minVersion": "0.131.71"
       },
       "people": {
-        "minVersion": "0.131.82"
+        "minVersion": "0.131.84"
       },
       "digests": {
         "minVersion": "0.131.75"
@@ -1905,7 +1905,7 @@
     {
       "id": "email",
       "name": "Email",
-      "tagline": "Your mail, searchable on your computer",
+      "tagline": "Gmail, Outlook and IMAP\u00a0· search\u00a0· whole threads",
       "bin": "mail",
       "package": "@wirecat/mail-cli",
       "summary": "Gmail, Outlook and other IMAP mail copied to your computer: search it offline, read whole threads, and see how far each sync got. Syncing never changes your mailbox.",
@@ -2146,7 +2146,7 @@
     {
       "id": "bitrix",
       "name": "Bitrix24",
-      "tagline": "Bitrix24 CRM: deals, leads, contacts and companies",
+      "tagline": "Deals, leads, contacts and companies\u00a0· changes",
       "bin": "b24",
       "package": "@wirecat/bitrix24-cli",
       "summary": "Read and change a Bitrix24 portal's CRM: deals, leads, contacts and companies, from the Clients page and your agent.",

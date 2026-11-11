@@ -71,12 +71,14 @@ pub fn for_host(cmd: &mut Command) -> &mut Command {
     cmd
 }
 
-/// An https page in the owner's browser, or a new mail to one address in their mail program. Anything else is refused.
+/// An https page in the owner's browser, a new mail to one address in their mail program, or a call to one number in
+/// their phone program. Anything else is refused.
 pub fn url(url: &str) -> Result<(), String> {
     let parsed = tauri::Url::parse(url).map_err(|_| format!("Not a web address: {url}"))?;
     match parsed.scheme() {
         "https" => {}
         "mailto" if one_address(&parsed) => {}
+        "tel" if one_number(&parsed) => {}
         _ => return Err(format!("Only https pages open from WireCat: {url}")),
     }
     open(url.as_ref())
@@ -91,6 +93,15 @@ fn one_address(parsed: &tauri::Url) -> bool {
         && !address.starts_with('@')
         && !address.ends_with('@')
         && address.bytes().all(|b| b.is_ascii_alphanumeric() || b"@.-_+".contains(&b))
+}
+
+/// Digits alone, a leading `+` allowed: nothing a phone program could read as a code to dial or a parameter.
+fn one_number(parsed: &tauri::Url) -> bool {
+    let number = parsed.path().strip_prefix('+').unwrap_or(parsed.path());
+    parsed.query().is_none()
+        && parsed.fragment().is_none()
+        && (3..=20).contains(&number.len())
+        && number.bytes().all(|b| b.is_ascii_digit())
 }
 
 /// A folder or file in the program the system chose for it.
@@ -232,6 +243,17 @@ mod tests {
         assert!(url("http://example.com").unwrap_err().contains("Only https"));
         assert!(url("file:///etc/passwd").unwrap_err().contains("Only https"));
         assert!(url("not a url").unwrap_err().contains("Not a web address"));
+    }
+
+    #[test]
+    fn tel_opens_only_one_number() {
+        let parse = |u: &str| tauri::Url::parse(u).unwrap();
+        assert!(one_number(&parse("tel:+34600000001")));
+        assert!(one_number(&parse("tel:88001234567")));
+        assert!(!one_number(&parse("tel:+34 600")));
+        assert!(!one_number(&parse("tel:*21*123#")));
+        assert!(!one_number(&parse("tel:+34600000001?call=1")));
+        assert!(!one_number(&parse("tel:12")));
     }
 
     #[test]

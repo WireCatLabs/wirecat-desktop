@@ -197,6 +197,7 @@ export const PEOPLE_REASONS = [
   "person.unknown",
   "person.no-doubt",
   "person.test-data",
+  "person.owner",
   "memo.too-old",
 ] as const
 export type PeopleReason = (typeof PEOPLE_REASONS)[number]

@@ -46,6 +46,8 @@ const account = (
   username,
   phone: null,
   email: null,
+  phones: [],
+  emails: [],
   seenIn: seen.map(([id, scope]) => ({ account: id, scope })),
   method,
   linkedAt: ago(days * DAY),
@@ -131,13 +133,19 @@ function seed(): Held[] {
     person("person:27", "! null #97365", [account("telegram:97365", null, [["1", "personal"]], "initial", 11)]),
     person("person:28", "Без имени", [account("max:5521", "Без имени", [["5", "personal"]], "initial", 7)]),
     person("person:30", "Konstantin Nikolaevich Loft Pro Max Semenov", [
-      account(
-        "bitrix24:https://northstar.example/crm/contact/details/5310/",
-        "Konstantin Nikolaevich Loft Pro Max Semenov",
-        [["acme", "work"]],
-        "initial",
-        14,
-      ),
+      {
+        ...account(
+          "bitrix24:https://northstar.example/crm/contact/details/5310/",
+          "Konstantin Nikolaevich Loft Pro Max Semenov",
+          [["acme", "work"]],
+          "initial",
+          14,
+        ),
+        // A CRM contact holds several of each, as a Bitrix24 card does.
+        phone: "+34 910 000 333",
+        phones: ["+34 910 000 333", "+34 910 000 334"],
+        emails: ["k.semenov@loft.example", "konstantin@mail.example"],
+      },
     ]),
     person("person:31", "Konstantin", [
       account("telegram:7012", "Konstantin", [["1", "personal"]], "initial", 70, "kostya_s"),
@@ -176,6 +184,7 @@ function seed(): Held[] {
       account("email:bogdan@northstar.example", "Богдан Постушенко", [["2", "work"]], "same-email", 6),
     ]),
     person("person:48", null, [account("email:test@test.test", null, [["2", "work"]], "initial", 3)]),
+    person("person:49", "Ann Lee", [account("whatsapp:11", "Ann Lee", [["7", "personal"]], "initial", 3)]),
     person("person:45", "Eky", [
       account("whatsapp:157724520243314@lid", "Claudio Тренер", [["34600000001", "personal"]], "initial", 20),
     ]),
@@ -377,6 +386,8 @@ export function peopleMock(): Pick<
   | "peopleSplitDecide"
   | "peopleDoubts"
   | "peopleKeep"
+  | "peopleTestData"
+  | "peopleTestPeople"
   | "peopleContact"
 > {
   const company: Held[] = ["pro", "b2bmail"].map((box, i) => ({
@@ -406,6 +417,8 @@ export function peopleMock(): Pick<
   let matches = scenario === "none" ? [] : scenario === "company" ? [sameCompany, ...MATCHES] : [...MATCHES]
   let splits = scenario === "none" || scenario === "calm" ? [] : [...SPLITS]
   const kept = new Set<string>()
+  // As memo: an address at a reserved test domain is hidden without asking.
+  const hidden = new Set<string>(scenario === "none" ? [] : ["person:48"])
   let next = 60
   /** As `people links check`: only while the person still holds the doubted accounts. */
   const doubts = (): Doubt[] => {
@@ -414,7 +427,7 @@ export function peopleMock(): Pick<
       people.some((p) => p.ref === ref && p.identities.length > 1 && p.identities.some((i) => i.identity === identity))
     const of = (ref: string, reason: string, ids: string[], moves: Doubt["moves"]): Doubt[] => {
       const p = people.find((x) => x.ref === ref)
-      if (!p || kept.has(ref) || !ids.every((id) => holds(ref, id))) return []
+      if (!p || kept.has(ref) || hidden.has(ref) || !ids.every((id) => holds(ref, id))) return []
       const identities = ids.map((id) => ({
         identity: id,
         name: p.identities.find((i) => i.identity === id)?.name ?? null,
@@ -426,24 +439,27 @@ export function peopleMock(): Pick<
       .slice(0, 6)
       .flatMap((p) => {
         const email = p.identities.find((i) => i.provider === "email")?.identity ?? ""
-        return of(p.ref, "test-data", [email], [])
+        return of(p.ref, "test-data", [email], [{ op: "unlink", identities: [email] }])
       })
-    return [
-      ...of("person:40", "mixed-names", ["max:7002"], [{ op: "unlink", identities: ["max:7002"] }]),
-      ...of("person:7", "shared-address", ["email:lena@example.org"], [{ op: "unmerge", merge: "merge:7-12" }]),
-      ...of("person:44", "shared-address", ["email:ops@msx.example", "telegram:4402"], []),
-      ...(people.some((p) => p.ref === "person:48")
+    // A seed name alone may be a real person's: memo asks, and the card offers test data or a real contact.
+    const seedName =
+      people.some((p) => p.ref === "person:49") && !kept.has("person:49") && !hidden.has("person:49")
         ? [
             {
-              person: "person:48",
-              name: null,
+              person: "person:49",
+              name: "Ann Lee",
               owner: false,
               reason: "test-data",
-              identities: [{ identity: "email:test@test.test", name: null }],
+              identities: [{ identity: "whatsapp:11", name: "Ann Lee" }],
               moves: [],
             },
           ]
-        : []),
+        : []
+    return [
+      ...seedName,
+      ...of("person:40", "mixed-names", ["max:7002"], [{ op: "unlink", identities: ["max:7002"] }]),
+      ...of("person:7", "shared-address", ["email:lena@example.org"], [{ op: "unmerge", merge: "merge:7-12" }]),
+      ...of("person:44", "shared-address", ["email:ops@msx.example", "telegram:4402"], []),
       ...test,
     ]
   }
@@ -701,6 +717,21 @@ export function peopleMock(): Pick<
       if (params.get("people-fail") === "keep-old") throw new Error("memo.too-old")
       if (params.get("people-fail") === "write") throw new Error("person.no-doubt")
       kept.add(reference)
+      hidden.delete(reference)
+    },
+    async peopleTestData(reference) {
+      await delay(400)
+      if (params.get("people-fail") === "keep-old") throw new Error("memo.too-old")
+      if (params.get("people-fail") === "write") throw new Error("person.unknown")
+      hidden.add(reference)
+    },
+    async peopleTestPeople() {
+      await delay(300)
+      if (fail === "read") throw new Error(BUSY)
+      const items = people
+        .filter((p) => hidden.has(p.ref))
+        .map((p) => ({ person: p.ref, name: display(p) ?? p.identities[0]?.identity.split(":")[1] ?? null }))
+      return { items, total: items.length }
     },
     async peopleContact() {
       await delay(300)
