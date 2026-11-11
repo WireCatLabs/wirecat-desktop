@@ -8,15 +8,34 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fixMessages } from "./messages"
 
 /** The agents `run_agent` can start with a prompt, and the program each runs; Rust holds the same list. */
-export const STARTABLE: Record<string, string> = { claude: "claude", codex: "codex", gemini: "gemini" }
+export const STARTABLE: Record<string, string> = {
+  claude: "claude",
+  codex: "codex",
+  gemini: "gemini",
+  cursor: "cursor-agent",
+  opencode: "opencode",
+  hermes: "hermes",
+  openclaw: "openclaw",
+}
 
 export const canStart = (agent: Agent) => agent.id in STARTABLE && agent.foundBy === "program"
 
-/** What each startable agent is called before it is found, and the command that installs it (its npm package). */
-const KNOWN: Record<string, { name: string; install: string }> = {
+/**
+ * What each startable agent is called before it is found, and the npm command that installs it. Cursor and Hermes
+ * install with a script per system, and OpenClaw's npm line depends on the npm version, so they get their install page.
+ */
+const KNOWN: Record<string, { name: string; install?: string; installPage?: string }> = {
   claude: { name: "Claude Code", install: "npm install -g @anthropic-ai/claude-code" },
   codex: { name: "Codex", install: "npm install -g @openai/codex" },
   gemini: { name: "Gemini CLI", install: "npm install -g @google/gemini-cli" },
+  cursor: { name: "Cursor", installPage: "https://cursor.com/docs/cli/installation" },
+  // https://opencode.ai/v1/docs/
+  opencode: { name: "OpenCode", install: "npm install -g opencode-ai" },
+  hermes: {
+    name: "Hermes Agent",
+    installPage: "https://hermes-agent.nousresearch.com/docs/getting-started/installation",
+  },
+  openclaw: { name: "OpenClaw", installPage: "https://docs.openclaw.ai/install" },
 }
 
 export type Launchable = { id: string; name: string; found: boolean }
@@ -61,10 +80,15 @@ export function AgentRunNote({ run, name, started }: { run: AgentRun; name: stri
         {started}
       </p>
     )
-  const install = KNOWN[run.agent]?.install
+  const known = KNOWN[run.agent]
+  const how = known?.install
+    ? ` ${m.install(name, known.install)}`
+    : known?.installPage
+      ? ` ${m.installAt(name, known.installPage)}`
+      : ""
   const why =
     run.reason === "missing"
-      ? `${m.why.missing(name, STARTABLE[run.agent] ?? run.agent)}${install ? ` ${m.install(name, install)}` : ""}`
+      ? `${m.why.missing(name, STARTABLE[run.agent] ?? run.agent)}${how}`
       : run.reason === "automation"
         ? m.why.automation
         : run.reason === "terminal"

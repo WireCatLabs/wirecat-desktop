@@ -166,9 +166,13 @@ src-tauri/src/
   terminal.rs   opening a tool's interactive setup in the user's terminal: the line runs in the user's own shell
                 (`paths::user_shell`) as a new window starts it, quoted for POSIX or fish, then `exec`s that shell so
                 the window stays open; a shell the app does not know runs the line in `/bin/sh` first.
-  agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
-                (Fix › under an error, Open in on a guide, a community tool's check); only those three programs,
-                found on PATH. One `AgentLaunch` button (`features/fix`) opens the last one used and lists the rest.
+  agent_run.rs  `run_agent`: Claude Code, Codex, Gemini CLI, Cursor (`cursor-agent`), OpenCode, Hermes Agent or
+                OpenClaw opened in a terminal with a prompt saved to a private file (Fix › under an error, Open in on a
+                guide, a community tool's check); only those programs, found on PATH, each with fixed arguments from its
+                own docs. On macOS and Linux the shell reads the file into the agent's first prompt, so the prompt never
+                enters the command line; Windows' cmd cannot, so there the agent gets a sentence naming the file.
+                Hermes reads the file itself everywhere. One `AgentLaunch` button (`features/fix`) opens the last one
+                used and lists the rest.
   drive_folders.rs Drive's folders for one profile: `folders browse` and `add` (the picker), `folders list` with each
                 name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
                 next sync drops what it copied from there.
