@@ -48,7 +48,7 @@ pub enum MailAgent {
         when: String,
         /// `30m` when memo's `when` is one of the catalog's intervals.
         every: Option<String>,
-        last: Option<LastRun>,
+        last: Option<Box<LastRun>>,
         spent_today_usd: Option<f64>,
         max_cost_usd: Option<f64>,
         max_cost_per_day_usd: Option<f64>,
@@ -117,7 +117,7 @@ fn read(src: &MailAgentSource, v: &Value, agent: Option<String>) -> MailAgent {
         agent,
         every: crate::sync_schedule::interval_of(&src.choices, &when),
         when,
-        last: last_run(&item["last"]),
+        last: last_run(&item["last"]).map(Box::new),
         spent_today_usd: item["spent_today_usd"].as_f64(),
         max_cost_usd: item["max_cost_usd"].as_f64(),
         max_cost_per_day_usd: item["max_cost_per_day_usd"].as_f64(),
@@ -251,13 +251,13 @@ mod tests {
             MailAgent::On {
                 when: "every 5m".into(),
                 every: Some("5m".into()),
-                last: Some(LastRun {
+                last: Some(Box::new(LastRun {
                     at: "2026-11-05T21:54:36Z".into(),
                     exit_code: 0,
                     reason: None,
                     failures: None,
                     skipped: None
-                }),
+                })),
                 spent_today_usd: Some(0.42),
                 max_cost_usd: None,
                 max_cost_per_day_usd: None,
