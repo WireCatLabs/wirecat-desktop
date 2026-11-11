@@ -47,7 +47,6 @@ export function TaskBoard() {
   const limits = paged.scope === scope ? paged.limits : {}
   const limitOf = (s: State) => limits[s] ?? COLUMN_PAGE
   const showUpTo = (s: State, n: number) => setPaged({ scope, limits: { ...limits, [s]: Math.max(limitOf(s), n) } })
-  useSlide(board, `${order.join()}|${tasks.map((t) => t.state).join()}`)
   const { drag, held, said, shown, onPointerDown, onClick, onKeyDown } = useBoardDrag<State>({
     columns: STATES,
     cardsIn: column,
@@ -70,6 +69,9 @@ export function TaskBoard() {
       putBack: m.putBack,
     },
   })
+
+  // Each keyboard step is a change of layout, or the drop would replay every step from before the card was picked up.
+  useSlide(board, `${order.join()}|${tasks.map((t) => t.state).join()}|${held?.to}:${held?.index}`)
 
   const dragged = drag ? byKey.get(drag.key) : undefined
   const showsClosedDefault = !/(^|[\s(-])(state|closed):/.test(query)
