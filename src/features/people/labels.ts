@@ -33,3 +33,13 @@ export function useKnownName() {
     )
   }
 }
+
+/**
+ * The person a join came from, by name while memo still lists them. Read by ref, memo answers with the person they
+ * went into, so a detail cannot say.
+ */
+export function useJoinedFromName() {
+  const known = useKnownName()
+  const people = usePeople((s) => s.people)
+  return (ref: string) => (people.some((p) => p.ref === ref) ? known(ref) : null)
+}

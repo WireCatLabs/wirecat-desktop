@@ -188,23 +188,12 @@ describe("People", () => {
     expect(await within(card).findByText("Joined into one person.")).toBeInTheDocument()
   })
 
-  it("shows a shared phone from the people's profiles when their accounts do not have it", async () => {
+  it("says the shared number is hidden when no account shows it, and never makes one up", async () => {
     answerAtOnce()
     const user = userEvent.setup()
     render(<PeoplePage />)
     const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
-    expect(await within(card).findAllByText("+34 600 111 222")).not.toHaveLength(0)
-    expect(within(card).queryByText(/number hidden/)).not.toBeInTheDocument()
-  })
-
-  it("says the shared number is hidden when no account or profile has it, and never makes one up", async () => {
-    answerAtOnce()
-    const profile = platform.peopleProfile
-    vi.spyOn(platform, "peopleProfile").mockImplementation(async (ref) => ({ ...(await profile(ref)), phones: [] }))
-    const user = userEvent.setup()
-    render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
-    expect(await within(card).findByText("number hidden: only its fingerprint is known")).toBeInTheDocument()
+    expect(await within(card).findByText("number hidden: accounts keep only its fingerprint")).toBeInTheDocument()
     expect(card).not.toHaveTextContent(/\+\d/)
   })
 

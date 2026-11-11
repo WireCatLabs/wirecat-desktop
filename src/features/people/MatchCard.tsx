@@ -1,5 +1,5 @@
 import { Mail, PanelRightOpen, Phone } from "lucide-react"
-import { useEffect, useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { seenAtWork } from "@/domain/people"
 import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
 import type { Identity, Match } from "@/platform/people-schemas"
@@ -16,7 +16,6 @@ import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { peopleMessages } from "./messages"
 import { usePicks, useUnticked } from "./picks"
-import { useProfiles } from "./profiles"
 import { accountName, SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
@@ -51,24 +50,22 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const pickList = useId()
   const details = usePeople((s) => s.details)
   const listed = usePeople((s) => s.people)
-  const profiles = useProfiles((s) => s.profiles)
   const contacts = people.map((ref) => {
     const d = details[ref]
-    const p = profiles[ref]
     return contactsOf(
       d?.state === "ready" ? d.person : null,
-      p?.state === "ready" ? p.profile : null,
+      null,
       listed.find((x) => x.ref === ref),
     )
   })
   const shared = first ? sharedValue(first, contacts) : null
-  const read = people.every((ref) => details[ref]?.state === "ready")
-  // A phone the accounts do not show may still be in a profile, as the Details dialog reads it; only then is it hidden.
-  const askProfiles = first?.signal === "phone" && shared === null && read ? people.join(" ") : ""
-  useEffect(() => {
-    if (askProfiles) for (const ref of askProfiles.split(" ")) void useProfiles.getState().load(ref)
-  }, [askProfiles])
-  const hidden = askProfiles !== "" && people.every((ref) => profiles[ref]?.state === "ready")
+  // Kept once seen: a decision drops the people's details, and the decided card still says what it said (rule 9).
+  const hidden = useRef(false)
+  hidden.current ||=
+    first?.signal === "phone" &&
+    shared === null &&
+    people.every((ref) => details[ref]?.state === "ready") &&
+    contacts.every((c) => c.phones.length === 0)
   if (!first) return null
 
   const done = open.length === 0
@@ -94,7 +91,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </h3>
         <Proposer by={first.proposer} />
       </div>
-      <Signal group={group} match={first} value={shared} hidden={hidden} names={people.map((p) => name(p))} />
+      <Signal group={group} match={first} value={shared} hidden={hidden.current} names={people.map((p) => name(p))} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}
@@ -183,7 +180,7 @@ function Signal({
   group: MatchGroup
   match: Match
   value: string | null
-  /** A phone match whose number no account and no profile shows: memo keeps only its fingerprint. */
+  /** A phone match where no account shows a number: they keep only its fingerprint. */
   hidden: boolean
   names: string[]
 }) {

@@ -63,9 +63,9 @@ const en = {
     "guest-email": "Meeting guest's email",
   } as Record<string, string>,
   same: "same",
-  phoneHidden: "number hidden: only its fingerprint is known",
+  phoneHidden: "number hidden: accounts keep only its fingerprint",
   phoneHiddenTip:
-    "Memo found the same number on both, but keeps only a fingerprint of it, not the number itself, so it cannot be shown here.",
+    "These accounts have the same phone number, but they keep only a fingerprint of it, not the number. If a profile has the number, Details shows it.",
   sameTip: {
     phone: "They have the same phone number.",
     email: "They have the same email address.",
@@ -152,7 +152,8 @@ const en = {
     reject: (other: string) => `Kept apart from ${other}.`,
     unlink: (n: number, to: string) =>
       `${plural("en", n, { one: "# account", other: "# accounts" })} moved to a new person, ${to}.`,
-    unmerge: (from: string) => `The join is undone. Those accounts are ${from} again.`,
+    unmerge: (from: string | null) =>
+      `The join is undone. Those accounts ${from ? `are ${from} again` : "went back to the person they were joined from"}.`,
   },
   writeFailed: "Could not do it:",
   reasons: {
@@ -310,9 +311,9 @@ const ru: typeof en = {
     "guest-email": "Почта гостя встречи",
   },
   same: "одинаковый",
-  phoneHidden: "номер скрыт: известен только отпечаток",
+  phoneHidden: "номер скрыт: в аккаунтах только отпечаток",
   phoneHiddenTip:
-    "Memo нашёл у обоих один и тот же номер, но хранит только его отпечаток, а не сам номер, поэтому показать его нельзя.",
+    "У этих аккаунтов один и тот же номер, но в них хранится только его отпечаток, а не сам номер. Если номер есть в профиле, его покажет «Подробнее».",
   sameTip: {
     phone: "У них один и тот же номер телефона.",
     email: "У них один и тот же адрес почты.",
@@ -412,7 +413,8 @@ const ru: typeof en = {
     reject: (other: string) => `Оставлено отдельно от ${other}.`,
     unlink: (n: number, to: string) =>
       `${plural("ru", n, { one: "# аккаунт перенесён", few: "# аккаунта перенесены", many: "# аккаунтов перенесены", other: "# аккаунта перенесены" })} в нового человека, ${to}.`,
-    unmerge: (from: string) => `Объединение отменено. Эти аккаунты снова у ${from}.`,
+    unmerge: (from: string | null) =>
+      `Объединение отменено. Эти аккаунты ${from ? `снова у ${from}` : "вернулись к человеку, от которого их присоединили"}.`,
   },
   writeFailed: "Не получилось:",
   reasons: {
@@ -558,9 +560,9 @@ const es: typeof en = {
     "guest-email": "Correo de un invitado",
   },
   same: "el mismo",
-  phoneHidden: "número oculto: solo se conoce su huella",
+  phoneHidden: "número oculto: las cuentas guardan solo su huella",
   phoneHiddenTip:
-    "Memo encontró el mismo número en ambos, pero guarda solo una huella de él, no el número, así que no se puede mostrar aquí.",
+    "Estas cuentas tienen el mismo número de teléfono, pero guardan solo una huella de él, no el número. Si un perfil tiene el número, Detalles lo muestra.",
   sameTip: {
     phone: "Tienen el mismo número de teléfono.",
     email: "Tienen la misma dirección de correo.",
@@ -647,7 +649,8 @@ const es: typeof en = {
     reject: (other: string) => `Separada de ${other}.`,
     unlink: (n: number, to: string) =>
       `${plural("es", n, { one: "# cuenta movida", other: "# cuentas movidas" })} a una persona nueva, ${to}.`,
-    unmerge: (from: string) => `La unión se deshizo. Esas cuentas vuelven a ser de ${from}.`,
+    unmerge: (from: string | null) =>
+      `La unión se deshizo. Esas cuentas ${from ? `vuelven a ser de ${from}` : "volvieron a la persona de la que se unieron"}.`,
   },
   writeFailed: "No se pudo hacer:",
   reasons: {
