@@ -3,7 +3,7 @@
 //   node scripts/layout-shift.mjs [page…] --port 1478 [--lang en|ru|es] [--slow 1] [--width 1536] [--height 1024]
 //                                 [--dark]
 //                                 [--sources 5] [--shots ms,ms,…] [--out dir] [--budget 0.01] [--grow 8]
-// Pages: tools tools-manage agents agents-revisit storage clients logs settings settings-telegram onboarding-<step> report
+// Pages: tools tools-manage tools-accounts agents agents-revisit storage clients logs settings settings-telegram onboarding-<step> report
 // (default: all).
 // Needs a local Chrome.
 // Prints the Cumulative Layout Shift (CLS: the sum of every shift's score, 0 = nothing moved) per page, and the
@@ -12,6 +12,7 @@
 // at the final size scores 0, one row too short scores that row. Below the window's edge does not count.
 // `--slow 3` stretches every mock wait; `--shots` saves a screenshot at each of those moments after the page opens.
 // Exits 1 when a page's CLS is above `--budget` or it grew more than `--grow` pixels, so it can guard a fixed page.
+// Nothing counts while index.html's boot screen still covers the window.
 import { existsSync, mkdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -45,6 +46,8 @@ const manage = '[data-tour="tool-action"] button[aria-expanded] >> nth=0'
 const PAGES = {
   tools: { query: "?onboarding=off&section=tools" },
   "tools-manage": { query: "?onboarding=off&section=tools", clicks: [manage] },
+  // Three accounts: their rows fill in while the list is on screen.
+  "tools-accounts": { query: "?onboarding=off&section=tools&account-count=3", clicks: [manage] },
   "tools-mcp": {
     query: "?onboarding=off&section=tools",
     clicks: [manage, '[data-tour="mcp-server"]'],
@@ -90,7 +93,11 @@ function observe(watch) {
   // The page's visible height every frame, from the moment it is first drawn; `main > *` is the open page, or the
   // page's own `watch` element, such as an open dialog.
   window.__heights = []
+  window.__bootGoneAt = null
   const sample = () => {
+    // index.html's boot screen is opaque until the app has laid out under it: what moves there, nobody sees.
+    if (window.__bootGoneAt === null && !document.querySelector("#boot:not([data-done])"))
+      window.__bootGoneAt = Math.round(performance.now())
     const page = document.querySelector(watch)
     if (page) {
       const box = page.getBoundingClientRect()
@@ -185,13 +192,24 @@ for (const name of pages) {
     await page.screenshot({ path: join(out, `${name}-${String(ms).padStart(5, "0")}.png`) })
   }
   await settle(page)
-  const { shifts, heights } = await page.evaluate(() => ({ shifts: window.__shifts, heights: window.__heights }))
+  const seen = await page.evaluate(() => ({
+    shifts: window.__shifts,
+    heights: window.__heights,
+    bootGoneAt: window.__bootGoneAt ?? 0,
+  }))
   await page.close()
+  const { bootGoneAt } = seen
+  const shifts = seen.shifts.filter((s) => s.at >= bootGoneAt)
+  // The height the page had when the boot screen went is the first one anybody saw.
+  const firstSeen = seen.heights.findLastIndex((x) => x.at <= bootGoneAt)
+  const heights = seen.heights.slice(Math.max(0, firstSeen))
 
   const cls = shifts.reduce((sum, s) => sum + s.value, 0)
   const grew = heights.slice(1).reduce((sum, x, i) => sum + Math.max(0, x.h - heights[i].h), 0)
   if (cls > budget || grew > growBudget) over = true
   console.log(`\n${name.padEnd(15)} CLS ${cls.toFixed(4)}  shifts ${shifts.length}  grew ${grew}px`)
+  const hidden = seen.shifts.length - shifts.length
+  if (hidden) console.log(`  boot screen  gone at ${bootGoneAt}ms; ${hidden} shift(s) under it not counted`)
   if (heights.length > 1) console.log(`  visible      ${heights.map((x) => `${x.h}px@${x.at}ms`).join(" → ")}`)
   const biggest = [...shifts].sort((a, b) => b.value - a.value).slice(0, top)
   for (const s of biggest) {

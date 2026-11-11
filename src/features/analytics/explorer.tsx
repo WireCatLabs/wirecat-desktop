@@ -220,6 +220,23 @@ export function Explorer() {
   )
 }
 
+/** The explorer while the first numbers are read: its three controls and the chart's box, as it will stand. */
+export function ExplorerSkeleton() {
+  const m = useMessages(analyticsMessages)
+  return (
+    <div className="flex flex-col gap-[1rem]">
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+        {[m.measureLabel, m.splitLabel, m.stepLabel].map((label) => (
+          <Control key={label} label={label}>
+            <Skeleton className="h-8 w-28" />
+          </Control>
+        ))}
+      </div>
+      <Skeleton className="h-[16.2rem] w-full rounded-[0.2rem]" />
+    </div>
+  )
+}
+
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">

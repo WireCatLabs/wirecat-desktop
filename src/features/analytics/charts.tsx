@@ -91,8 +91,13 @@ export function ColumnChart({
     <figure
       className={cx("m-0 flex flex-col gap-3 transition-opacity duration-(--motion-slow)", stale && "opacity-55")}
     >
-      {every.length > 1 && (
+      {/* The legend's line stays with one series too: a second source arriving later would push the plot down. */}
+      {every.length > 1 ? (
         <Legend series={every} {...(hidden ? { hidden } : {})} {...(onToggle ? { onToggle } : {})} />
+      ) : (
+        <span aria-hidden className="text-[0.9rem]">
+          {"\u00a0"}
+        </span>
       )}
       <div className="grid grid-cols-[3.6rem_minmax(0,1fr)]">
         <div aria-hidden className="relative h-[11rem] font-mono text-[0.85rem] text-ink-dim tabular-nums">

@@ -1,10 +1,11 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { findTool } from "@/domain/catalog"
+import { findTool, syncSchedules } from "@/domain/catalog"
 import type { Removal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useAccountNames } from "@/shared/account-names-store"
 import { render, screen, waitFor, within } from "@/testing/render"
+import { AccountRowPlaceholder } from "./AccountRow"
 import { AccountList } from "./Health"
 
 const tool = (id: string) => findTool(id) as NonNullable<ReturnType<typeof findTool>>
@@ -160,6 +161,64 @@ const openRemove = async (profile = "work") => {
   await userEvent.click(within(await openMenu(profile)).getByRole("menuitem", { name: "Remove account" }))
   return screen.getByRole("dialog", { name: `Remove ${profile}?` })
 }
+
+/** The classes of the boxes that set a syncing row's height, whatever fills them. */
+const frame = (row: HTMLElement) => {
+  const section = row.querySelector("section") as HTMLElement
+  const top = section.firstElementChild as HTMLElement
+  const pick = (el: Element | null | undefined) => el?.className ?? "missing"
+  return {
+    box: pick(section.parentElement),
+    section: pick(section),
+    top: pick(top),
+    nameLine: pick(top.firstElementChild?.firstElementChild),
+    status: pick(top.firstElementChild?.querySelector("p")),
+    // Below the top line: the schedule line where the tool has one; the follow-up is empty until a sync ends.
+    below: [...section.children].slice(1).flatMap((c) => [...c.querySelectorAll("p")].map((x) => x.className)),
+    parts: top.children.length,
+  }
+}
+
+describe("an account row while it loads", () => {
+  it.each([
+    ["Telegram", "tg"],
+    ["Bitrix24", "bitrix"],
+  ])("puts %s's placeholder parts in the finished row's boxes, so nothing moves when it fills in", async (name, id) => {
+    vi.spyOn(platform, "syncScheduleStatus").mockResolvedValue({ state: "off" })
+    const { container } = render(
+      <ul>
+        <AccountRowPlaceholder tool={tool(id)} />
+      </ul>,
+    )
+    const placeholder = frame(container.querySelector("li") as HTMLElement)
+    render(<AccountList tool={tool(id)} profiles={[{ name: "test", signedIn: true }]} onReload={() => undefined} />)
+    const row = screen.getByRole("listitem", { name: `${name} account test` })
+    const loading = frame(row)
+    await within(row).findByText(/Last synced|No sync recorded/)
+    if (syncSchedules(tool(id))) await within(row).findByRole("button", { name: "Sync on a schedule" })
+    const loaded = frame(row)
+    expect(placeholder).toEqual(loaded)
+    expect(loading).toEqual(loaded)
+  })
+
+  it("gives the setup's sign-in step, a row without Sync, the placeholder's line and name boxes", async () => {
+    const [id, sync] = ["tg", false]
+    const plain = (row: HTMLElement) => {
+      const line = row.querySelector(".min-h-8") as HTMLElement
+      return { box: line.parentElement?.className, line: line.className, name: line.firstElementChild?.className }
+    }
+    const { container } = render(
+      <ul>
+        <AccountRowPlaceholder tool={tool(id)} sync={sync} />
+      </ul>,
+    )
+    const placeholder = plain(container.querySelector("li") as HTMLElement)
+    render(<AccountList tool={tool(id)} profiles={signedIn} onReload={() => undefined} sync={sync} />)
+    const row = screen.getByRole("listitem", { name: `${tool(id).name} account personal` })
+    expect(row.querySelector("section")).toBeNull()
+    expect(placeholder).toEqual(plain(row))
+  })
+})
 
 describe("removing an account", () => {
   beforeEach(() => vi.spyOn(platform, "accountRemoveSupported").mockResolvedValue(true))

@@ -112,9 +112,27 @@ function AiModelBody() {
       </ErrorNotice>
     )
   ) : model === null ? (
-    <Skeleton className="h-[8rem] w-full max-w-[36rem] rounded-[0.35rem]" label={m.looking} />
+    <AiModelLoading label={m.looking} />
   ) : (
     <AiModelForm saved={model} />
+  )
+}
+
+/** The form with no model saved, the usual case, in its own boxes: label, provider list, note, Save. */
+function AiModelLoading({ label }: { label: string }) {
+  return (
+    <div className="flex max-w-[40rem] flex-col gap-[0.9rem]">
+      <div className="flex flex-col gap-[0.3rem]">
+        <span className="text-[0.9rem]">
+          <Skeleton chars={8} label={label} />
+        </span>
+        <Skeleton className="h-[2.4rem] w-full" />
+      </div>
+      <p className="text-[0.9rem]">
+        <Skeleton chars={48} />
+      </p>
+      <Skeleton className="h-8 w-20" />
+    </div>
   )
 }
 

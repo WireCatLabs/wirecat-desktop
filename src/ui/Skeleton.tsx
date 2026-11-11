@@ -9,7 +9,15 @@ import { cx } from "./cx"
  *   its line, so a version or a count can sit inside the sentence it will finish. Exact in the mono font.
  * - `label` is announced once, on the first placeholder of a group; the rest are silent.
  */
-export function Skeleton({ className, label, chars }: { className?: string; label?: string; chars?: number }) {
+export function Skeleton({
+  className,
+  label,
+  chars,
+}: {
+  className?: string
+  label?: string | undefined
+  chars?: number
+}) {
   const text = chars !== undefined
   const look = cx(text ? "skeleton-text" : "skeleton block", className)
   const style = text ? { width: `${chars}ch` } : undefined

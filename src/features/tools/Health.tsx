@@ -21,14 +21,14 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace, MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { RefreshButton } from "@/ui/RefreshButton"
-import { Skeleton } from "@/ui/Skeleton"
-import { AccountRow } from "./AccountRow"
+import { AccountRow, AccountRowPlaceholder } from "./AccountRow"
 import { useProfiles } from "./api"
 import { BotList } from "./BotList"
 import { CheckPanel, useCheck } from "./CheckResult"
 import { toolsMessages } from "./messages"
 import { accountsMessages } from "./messages-accounts"
 import { SyncControl } from "./Sync"
+import { useSync } from "./sync-store"
 import { useTerminal } from "./terminal-store"
 import { toolText } from "./tool-text"
 
@@ -86,6 +86,9 @@ function ProfileList(props: {
 }) {
   const { tool, profiles, error, onReload, reloading } = props
   const m = useMessages(toolsMessages).health
+  // The Tools row already read the names for its own line: as many placeholders as rows that will come.
+  const known = useSync((s) => s.profiles[tool.id]?.length)
+  const expected = known === undefined ? 2 : Math.max(known, 1)
   if (error) {
     return (
       <ErrorNotice
@@ -104,21 +107,7 @@ function ProfileList(props: {
       >
         <div className="flex min-w-0 flex-col gap-2">
           {profiles === undefined ? (
-            <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
-              {[0, 1].map((n) => (
-                // A profile row with its sync line is taller, so the placeholder takes that height.
-                <li
-                  key={n}
-                  className={cx(
-                    "flex box-content flex-col justify-center gap-[0.4rem] px-3 py-2",
-                    syncNeedsProfile(tool) ? "h-[3.4rem]" : "h-8",
-                  )}
-                >
-                  <Skeleton className="h-4 w-28" label={n === 0 ? m.loadingProfiles : ""} />
-                  {syncNeedsProfile(tool) && <Skeleton className="h-4 w-44" />}
-                </li>
-              ))}
-            </ul>
+            <AccountListPlaceholder tool={tool} count={expected} label={m.loadingProfiles} />
           ) : profiles && profiles.length > 0 ? (
             <AccountList tool={tool} profiles={profiles} onReload={onReload} />
           ) : (
@@ -137,6 +126,21 @@ function ProfileList(props: {
       {tool.setup && <TerminalStatus tool={tool} profiles={profiles} onCheck={onReload} checking={reloading} />}
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>
+  )
+}
+
+const ACCOUNT_LIST = "divide-y divide-line rounded-[0.45rem] border border-line bg-app"
+
+/** The account list while the tool is asked: `count` rows in the list's own box. */
+export function AccountListPlaceholder(props: { tool: CatalogTool; count: number; label: string; sync?: boolean }) {
+  const { tool, count, label, sync } = props
+  return (
+    <ul className={ACCOUNT_LIST}>
+      {Array.from({ length: count }, (_, n) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have nothing else to tell them apart
+        <AccountRowPlaceholder key={n} tool={tool} label={n === 0 ? label : undefined} sync={sync} />
+      ))}
+    </ul>
   )
 }
 
@@ -160,12 +164,7 @@ export function AccountList(props: { tool: CatalogTool; profiles: Profile[]; onR
     )
   }
   return (
-    <ul
-      ref={list}
-      tabIndex={-1}
-      aria-label={m.list(tool.name)}
-      className="divide-y divide-line rounded-[0.45rem] border border-line bg-app outline-none"
-    >
+    <ul ref={list} tabIndex={-1} aria-label={m.list(tool.name)} className={cx(ACCOUNT_LIST, "outline-none")}>
       {profiles.map((p) => (
         <AccountRow
           key={p.name}

@@ -78,7 +78,7 @@ function Tile({
       <span className="text-[0.85rem] text-ink-dim">
         {note ??
           (now === null || last === null
-            ? " "
+            ? "\u00a0"
             : last === 0
               ? m.noLastWeek
               : change === 0

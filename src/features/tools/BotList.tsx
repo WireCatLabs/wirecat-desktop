@@ -47,13 +47,18 @@ export function BotList({ tool }: { tool: CatalogTool }) {
         )}
       </div>
       {bots === undefined ? (
-        <Skeleton className="h-4 w-28" label={m.bots} />
+        // At a bot row's height (its buttons), not a line's: the first row then lands where the placeholder was.
+        <ul className={BOT_LIST}>
+          <li className="flex min-h-8 box-content items-center px-3 py-2">
+            <Skeleton chars={10} label={m.bots} />
+          </li>
+        </ul>
       ) : bots === null ? (
         <p className="text-[0.9rem] text-ink-soft">{m.botsFailed}</p>
       ) : bots.length === 0 ? (
         <p className="text-[0.9rem] text-ink-soft">{m.noBots}</p>
       ) : (
-        <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
+        <ul className={BOT_LIST}>
           {bots.map((b) => (
             <BotRow
               key={b.name}
@@ -79,6 +84,8 @@ export function BotList({ tool }: { tool: CatalogTool }) {
     </section>
   )
 }
+
+const BOT_LIST = "divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app"
 
 function BotRow(props: {
   tool: CatalogTool

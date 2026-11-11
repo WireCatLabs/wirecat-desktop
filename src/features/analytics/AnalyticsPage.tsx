@@ -46,10 +46,11 @@ export function AnalyticsPage() {
           options={WEEK_OR_MONTH.map((p) => ({ value: p, label: m.period[p] ?? p, icon: null }))}
           onChange={(p) => useAnalytics.getState().setPeriod(p)}
         />
-        <Filters />
         <ToggleChip on={hideNames} onChange={(on) => useAnalytics.getState().setHideNames(on)}>
           {m.hideNames}
         </ToggleChip>
+        {/* Last: the filters appear once the sources are read, and in last place they move nothing. */}
+        <Filters />
       </div>
       {LAYOUT.map((g) => (
         <Group key={g.id} id={g.id} title={m.groups[g.id] ?? g.id} closed={g.closed ?? false}>
