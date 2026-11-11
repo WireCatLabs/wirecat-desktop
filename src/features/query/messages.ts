@@ -8,6 +8,7 @@ const en = {
   named: "Names in this search",
   editTerm: (term: string) => `Edit ${term}`,
   removeTerm: (term: string) => `Remove ${term}`,
+  fields: { from: "from", chat: "chat" } as Record<string, string>,
 }
 
 const ru: typeof en = {
@@ -18,6 +19,7 @@ const ru: typeof en = {
   named: "Имена в этом поиске",
   editTerm: (term) => `Изменить ${term}`,
   removeTerm: (term) => `Убрать ${term}`,
+  fields: { from: "от", chat: "чат" },
 }
 
 const es: typeof en = {
@@ -28,6 +30,7 @@ const es: typeof en = {
   named: "Nombres en esta búsqueda",
   editTerm: (term) => `Editar ${term}`,
   removeTerm: (term) => `Quitar ${term}`,
+  fields: { from: "de", chat: "chat" },
 }
 
 export const queryMessages: Messages<typeof en> = { en, ru, es }

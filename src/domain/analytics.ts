@@ -156,6 +156,13 @@ const CLOSED = "state:(done OR dismissed)"
 /** The period as memo's `closed:` reads it; all time names every closed task. */
 export const closedTerm = (period: Period) => (period === "all" ? CLOSED : `${CLOSED} closed:>=${PERIOD_DAYS[period]}d`)
 
+/** Every state, since memo's `tasks counts` reads only open tasks unless told otherwise. */
+export const EVERY_STATE = "state:(open OR todo OR in_progress OR done OR dismissed)"
+
+/** The period as memo's `created:` reads it, over tasks in any state. */
+export const createdTerm = (period: Period) =>
+  period === "all" ? EVERY_STATE : `${EVERY_STATE} created:>=${PERIOD_DAYS[period]}d`
+
 type Entry = { type: string; status: string; createdAt: string; project: string | null; projectName: string | null }
 
 /** Status counts of memories and of facts, in a fixed order so the colours never move. */
@@ -490,15 +497,29 @@ type Meeting = { started_at: string | null; duration_ms: number | null; title: s
  * Meetings in the period from a tool's own list: how many, their minutes, per week, and the titles that take the most
  * time. A title stands for a series: the list names no series yet (plan, A2).
  */
+/** A meeting two signed-in Zoom accounts both have is stored once per account, each with its own id. */
+export function uniqueMeetings<T extends Meeting>(items: readonly T[]): T[] {
+  const seen = new Map<string, T>()
+  for (const m of items) {
+    const key = `${m.started_at}|${m.title?.trim() ?? ""}`
+    const had = seen.get(key)
+    if (!had || (had.duration_ms ?? 0) < (m.duration_ms ?? 0)) seen.set(key, m)
+  }
+  return [...seen.values()]
+}
+
 export function meetingStats(items: readonly Meeting[], period: Period, today: string, zone: string) {
   const days = PERIOD_DAYS[period]
   const from = days === null ? "" : addDays(today, -(days - 1))
   const dayOfStart = (at: string) => todayIn(zone, new Date(at))
-  const inside = items.filter((m) => m.started_at && dayOfStart(m.started_at) >= from)
+  const inside = uniqueMeetings(items).filter((m) => m.started_at && dayOfStart(m.started_at) >= from)
   const minutes = (m: Meeting) => Math.round((m.duration_ms ?? 0) / 60_000)
   const timed = inside.filter((m) => m.duration_ms !== null && m.duration_ms > 0)
   const rows = inside.map((m) => ({ key: dayOfStart(m.started_at ?? ""), count: 1 }))
   const minuteRows = timed.map((m) => ({ key: dayOfStart(m.started_at ?? ""), count: minutes(m) }))
+  const untimedRows = inside
+    .filter((m) => !timed.includes(m))
+    .map((m) => ({ key: dayOfStart(m.started_at ?? ""), count: 1 }))
   const series = new Map<string, { title: string; count: number; minutes: number }>()
   for (const m of inside) {
     const title = m.title?.trim() || ""
@@ -515,6 +536,7 @@ export function meetingStats(items: readonly Meeting[], period: Period, today: s
     meanMinutes: timed.length ? Math.round(total / timed.length) : null,
     rows,
     minuteRows,
+    untimedRows,
     series: [...series.values()].sort((a, b) => b.minutes - a.minutes || b.count - a.count).slice(0, 6),
   }
 }
@@ -550,7 +572,7 @@ export function meetingWeekdays(
 ): { buckets: Bucket[]; series: string[] } {
   const days = PERIOD_DAYS[period]
   const from = days === null ? "" : addDays(today, -(days - 1))
-  const inside = items.filter(
+  const inside = uniqueMeetings(items).filter(
     (m) => m.started_at && (m.duration_ms ?? 0) > 0 && todayIn(zone, new Date(m.started_at)) >= from,
   )
   const byTitle = new Map<string, number>()

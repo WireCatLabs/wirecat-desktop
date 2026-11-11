@@ -52,7 +52,8 @@ describe("Search", () => {
     await user.click(screen.getByRole("button", { name: "Search" }))
     expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
     expect(search).toHaveBeenLastCalledWith("tg", "personal", "invoice", 50, 1)
-    expect(screen.getByText(/searched 12,480 messages/)).toBeInTheDocument()
+    expect(screen.getByText("Searched 12 480 messages in 64 chats")).toBeInTheDocument()
+    expect(screen.queryByText(/never fetched/)).not.toBeInTheDocument()
     expect(screen.getAllByText("Photo").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Voice message").length).toBeGreaterThan(0)
     expect(screen.getAllByText("invoice.pdf").length).toBeGreaterThan(0)
@@ -364,15 +365,16 @@ describe("Search", () => {
       hits: [],
       hasMore: false,
       paged: true,
-      notes: ["searched 207,424 messages in 1,380 chats — 27 never fetched"],
+      notes: [],
       total: null,
+      coverage: { messages: 207_424, chats: 1380 },
     })
     render(<SearchPage />)
     await choose(user, "Tool", "MAX")
     await choose(user, "Profile", "personal")
     await user.type(screen.getByRole("combobox", { name: "Search messages" }), "zzq{Enter}")
     expect(await screen.findByText(/Nothing matches this search/)).toBeInTheDocument()
-    expect(screen.getByText(/27 never fetched/)).toBeInTheDocument()
+    expect(screen.getByText("Searched 207 424 messages in 1 380 chats")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Report this" })).not.toBeInTheDocument()
   }, 15000)
 

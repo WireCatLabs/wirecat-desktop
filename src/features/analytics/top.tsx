@@ -1,11 +1,11 @@
 import { ArrowDown, ArrowUp } from "lucide-react"
 import type { ReactNode } from "react"
 import * as v from "valibot"
-import { addDays, meetingStats, weekOf } from "@/domain/analytics"
-import { formatNumber, useLang, useMessages } from "@/i18n"
+import { addDays, meetingStats, todayIn, weekOf } from "@/domain/analytics"
+import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
 import { MailSchema, MeetingsListSchema } from "@/platform/analytics-schemas"
 import { Skeleton } from "@/ui/Skeleton"
-import { useClosedWeeks } from "./api"
+import { useTaskWeeks } from "./api"
 import { analyticsMessages } from "./messages"
 import { useAggregate, useAnalytics, useExtra } from "./store"
 
@@ -94,28 +94,41 @@ export function WeekTiles() {
   const lang = useLang()
   const today = useAnalytics((s) => s.today)
   const zone = useAnalytics((s) => s.zone)
-  const preview = useAnalytics((s) => s.preview)
+  const syncs = useAnalytics((s) => s.syncs)
   const all = useExtra({ by: "day", only: "all", previous: false, period: "30d" })
   const sent = useExtra({ by: "day", only: "sent", previous: false, period: "30d" })
   const mail = ready(useAggregate("mail", "email", true, "30d"), MailSchema)
   const meetings = ready(useAggregate("meetings", "zm", true, "30d"), MeetingsListSchema)
-  const closed = useClosedWeeks(today)
+  const tasks = useTaskWeeks(today, zone)
 
   const received = sameDays(minus(Object.values(all.bySource).flat(), Object.values(sent.bySource).flat()), today)
   const emails = sameDays(
     mail.bodies.flatMap((b) => b.rows.map((r) => ({ key: r.key, count: r.received }))),
     today,
   )
-  const minutes = sameDays(
-    meetingStats(
-      meetings.bodies.flatMap((b) => b.items),
-      "30d",
-      today,
-      zone,
-    ).minuteRows,
+  const stats = meetingStats(
+    meetings.bodies.flatMap((b) => b.items),
+    "30d",
     today,
+    zone,
   )
-  const made = preview?.taskWeeks.at(-1)?.created ?? null
+  const minutes = sameDays(stats.minuteRows, today)
+  const untimed = sameDays(stats.untimedRows, today)
+  const zoomAt =
+    syncs.state === "ready"
+      ? syncs.data
+          .flatMap((s) => (s.id === "zm" && s.at ? [s.at] : []))
+          .sort()
+          .at(-1)
+      : null
+  // Zoom loaded before this week began: the store cannot know about this week's meetings, so 0 would be a claim.
+  const zoomBehind = Boolean(zoomAt) && todayIn(zone, new Date(zoomAt ?? 0)) < weekOf(today)
+  const zoomNote = zoomBehind
+    ? m.meetingsBehind(formatDate(zoomAt ?? 0, { day: "numeric", month: "long" }, lang))
+    : minutes.last === 0 && untimed.last > 0
+      ? m.meetingsUntimed(untimed.last)
+      : null
+  const made = tasks?.now.created ?? null
   const hours = (n: number) => m.hours(new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(n / 60))
   const busy = all.loading || sent.loading
   return (
@@ -130,15 +143,16 @@ export function WeekTiles() {
       <Tile
         label={m.weekMeetingHours}
         now={meetings.loading ? null : minutes.now}
-        last={meetings.loading ? null : minutes.last}
-        format={hours}
+        last={meetings.loading || zoomBehind ? null : minutes.last}
+        format={(n) => ((zoomBehind || !meetings.bodies.length) && n === 0 ? "—" : hours(n))}
+        {...(zoomNote ? { note: zoomNote } : {})}
       />
       <Tile
         label={m.weekTasks}
-        now={closed?.now ?? null}
-        last={closed?.last ?? null}
+        now={tasks?.now.closed ?? null}
+        last={tasks?.last.closed ?? null}
         format={(n) => `${made === null ? "—" : formatNumber(made)} · ${formatNumber(n)}`}
-        {...(made === null && closed ? { note: m.madeLater } : {})}
+        {...(made === null && tasks ? { note: m.madeLater } : {})}
       />
     </section>
   )

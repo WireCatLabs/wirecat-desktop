@@ -51,11 +51,12 @@ pub async fn analytics_aggregate(
     which: String,
     profile: Option<String>,
     period: analytics::Period,
+    range: Option<analytics::Range>,
     timezone: String,
 ) -> Result<analytics::Aggregate, AppError> {
     crate::log::command("analytics_aggregate", async move {
         let tool = known_tool(&id)?;
-        attempt(move || analytics::aggregate(tool, &which, profile.as_deref(), period, &timezone)).await
+        attempt(move || analytics::aggregate(tool, &which, profile.as_deref(), period, range.as_ref(), &timezone)).await
     })
     .await
 }

@@ -1,5 +1,8 @@
 const UNITS = ["bytes", "KB", "MB", "GB", "TB"]
 
+/** Digits in threes split by a no-break space in every language: English's comma and Spanish's dot read as noise here. */
+export const groupDigits = (n: number) => String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} bytes`
   let value = bytes

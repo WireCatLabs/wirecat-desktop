@@ -310,14 +310,14 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
     const hits = Array.from({ length: Math.max(0, Math.min(limit, total - from)) }, (_, i) =>
       hit(search.what, from + i),
     )
-    const notes = search.what === "messages" ? ["searched 12,480 messages in 64 chats — 3 never fetched, 5 behind"] : []
     return {
       kind: "hits",
       hits,
       hasMore: paged && from + limit < total,
       paged,
-      notes,
+      notes: [],
       total: { value: params.get("search") === "empty" ? 0 : TOTAL, relation: "eq" },
+      coverage: search.what === "messages" ? { messages: 12_480, chats: 64 } : null,
     }
   },
 }

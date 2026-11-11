@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatBytes, linkParts } from "./format"
+import { formatBytes, groupDigits, linkParts } from "./format"
 
 describe("formatBytes", () => {
   it("picks a readable unit", () => {
@@ -28,5 +28,13 @@ describe("linkParts", () => {
     ]) {
       expect(linkParts(`see ${text}`).some((p) => p.url)).toBe(false)
     }
+  })
+})
+
+describe("groupDigits", () => {
+  it("splits thousands with a no-break space", () => {
+    expect(groupDigits(392_237)).toBe("392 237")
+    expect(groupDigits(1390)).toBe("1 390")
+    expect(groupDigits(64)).toBe("64")
   })
 })

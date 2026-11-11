@@ -601,6 +601,8 @@ export type Platform = {
     profile: string | null,
     period: Period,
     timezone: string,
+    /** Calendar days in place of the period, for a count with a date field. */
+    range?: { from: string; to: string },
   ): Promise<Aggregate>
   /** What no tool counts yet: always null in the real app, sample data in the browser build. */
   analyticsPreview(period: Period): Promise<AnalyticsPreview | null>

@@ -1,5 +1,6 @@
+import { groupDigits } from "@/domain/format"
 import type { DateMeaning, ExampleId, FieldGroup, QueryReason } from "@/domain/search"
-import { formatNumber, type Messages, plural } from "@/i18n"
+import { type Messages, plural } from "@/i18n"
 
 type What = "messages" | "meetings" | "documents" | "notes" | "mail"
 
@@ -179,7 +180,9 @@ const en = {
   results: (n: number, page: number) =>
     `${plural("en", n, { one: "# result", other: "# results" })}${page > 1 ? ` on page ${page}` : ""}`,
   shownOf: (from: number, to: number, total: number, atLeast: boolean) =>
-    `Showing ${from}–${to} of ${formatNumber(total, "en")}${atLeast ? "+" : ""} results`,
+    `Showing ${groupDigits(from)}–${groupDigits(to)} of ${groupDigits(total)}${atLeast ? "+" : ""} results`,
+  searched: (messages: number, chats: number) =>
+    `Searched ${plural("en", messages, { one: `${groupDigits(messages)} message`, other: `${groupDigits(messages)} messages` })} in ${plural("en", chats, { one: `${groupDigits(chats)} chat`, other: `${groupDigits(chats)} chats` })}`,
   bestOnly: (n: number) => `The best ${n}; this search has no further pages. Narrow the query to see others.`,
   harder: "Search harder",
   harderNote: (n: number, provider: string) => `Sends your question and the first ${n} results to ${provider}`,
@@ -419,7 +422,13 @@ const ru: typeof en = {
     profile ? `Ничего не найдено в том, что ${tool} хранит для ${profile}.` : "Ничего не найдено.",
   results: (n, page) =>
     `${plural("ru", n, { one: "# результат", few: "# результата", many: "# результатов", other: "# результата" })}${page > 1 ? ` на странице ${page}` : ""}`,
-  shownOf: (from, to, total, atLeast) => `Показаны ${from}–${to} из ${formatNumber(total, "ru")}${atLeast ? "+" : ""}`,
+  shownOf: (from, to, total, atLeast) =>
+    `Показаны ${groupDigits(from)}–${groupDigits(to)} из ${groupDigits(total)}${atLeast ? "+" : ""}`,
+  searched: (messages, chats) => {
+    const n = groupDigits(messages)
+    const c = groupDigits(chats)
+    return `Просмотрено ${plural("ru", messages, { one: `${n} сообщение`, few: `${n} сообщения`, many: `${n} сообщений`, other: `${n} сообщения` })} в ${plural("ru", chats, { one: `${c} чате`, other: `${c} чатах` })}`
+  },
   bestOnly: (n) => `Лучшие ${n}; у этого поиска нет следующих страниц. Уточните запрос, чтобы увидеть другие.`,
   harder: "Искать тщательнее",
   harderNote: (n, provider) => `Отправит ваш вопрос и первые ${n} результатов в ${provider}`,
@@ -664,7 +673,9 @@ const es: typeof en = {
   results: (n, page) =>
     `${plural("es", n, { one: "# resultado", other: "# resultados" })}${page > 1 ? ` en la página ${page}` : ""}`,
   shownOf: (from, to, total, atLeast) =>
-    `Mostrando ${from}–${to} de ${formatNumber(total, "es")}${atLeast ? "+" : ""} resultados`,
+    `Mostrando ${groupDigits(from)}–${groupDigits(to)} de ${groupDigits(total)}${atLeast ? "+" : ""} resultados`,
+  searched: (messages, chats) =>
+    `Buscado en ${plural("es", messages, { one: `${groupDigits(messages)} mensaje`, other: `${groupDigits(messages)} mensajes` })} de ${plural("es", chats, { one: `${groupDigits(chats)} chat`, other: `${groupDigits(chats)} chats` })}`,
   bestOnly: (n) => `Los ${n} mejores; esta búsqueda no tiene más páginas. Acota la consulta para ver otros.`,
   harder: "Buscar a fondo",
   harderNote: (n, provider) => `Envía tu pregunta y los primeros ${n} resultados a ${provider}`,

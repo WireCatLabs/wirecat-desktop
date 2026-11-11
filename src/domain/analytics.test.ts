@@ -332,6 +332,23 @@ describe("round 3", () => {
     expect(s.meanMinutes).toBe(45)
     expect(s.series[0]).toEqual({ title: "Weekly", count: 2, minutes: 90 })
   })
+
+  it("counts a meeting two accounts both hold once, and keeps the copy with a length", () => {
+    const at = "2026-11-02T09:00:00Z"
+    const s = meetingStats(
+      [
+        { started_at: at, duration_ms: null, title: "Weekly" },
+        { started_at: at, duration_ms: 3_600_000, title: "Weekly" },
+        { started_at: "2026-11-01T09:00:00Z", duration_ms: null, title: "1:1" },
+      ],
+      "7d",
+      TODAY,
+      "UTC",
+    )
+    expect(s.count).toBe(2)
+    expect(s.minutes).toBe(60)
+    expect(s.untimedRows).toEqual([{ key: "2026-11-01", count: 1 }])
+  })
 })
 
 describe("the last two charts", () => {

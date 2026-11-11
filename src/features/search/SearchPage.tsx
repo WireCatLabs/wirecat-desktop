@@ -1,6 +1,7 @@
 import { AlertTriangle, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
+import { groupDigits } from "@/domain/format"
 import { formatUsd } from "@/domain/mail-agent"
 import { formatWhen, parseQuery } from "@/domain/runs"
 import {
@@ -416,6 +417,11 @@ function resultsView(
       node: (
         <div className="flex flex-col gap-[0.5rem]">
           <EmptyState busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</EmptyState>
+          {hits.coverage && (
+            <p className="text-[0.9rem] text-ink-dim tabular-nums">
+              {m.searched(hits.coverage.messages, hits.coverage.chats)}
+            </p>
+          )}
           {hits.notes.map((n) => (
             <p key={n} className="selectable text-[0.9rem] text-ink-dim">
               {n}
@@ -440,6 +446,9 @@ function resultsView(
             : m.results(hits.hits.length, page)}
         </p>
         {!hits.paged && !s.harder && hits.hits.length >= LIMIT && <p className="text-ink-dim">{m.bestOnly(LIMIT)}</p>}
+        {hits.coverage && (
+          <p className="text-ink-dim tabular-nums">{m.searched(hits.coverage.messages, hits.coverage.chats)}</p>
+        )}
         {hits.notes.map((n) => (
           <p key={n} className="selectable text-ink-dim">
             {n}
@@ -614,7 +623,7 @@ function Grouped({ hits, field, now, m }: { hits: SearchHit[]; field: string; no
                   />
                 </span>
               </td>
-              <td className="pr-[0.9rem] text-right font-mono tabular-nums">{g.count}</td>
+              <td className="pr-[0.9rem] text-right font-mono tabular-nums">{groupDigits(g.count)}</td>
               <td className="truncate pr-[1.3rem] font-mono text-[0.9rem] text-ink-soft tabular-nums">
                 {g.last ? formatWhen(g.last, now, lang) : "—"}
               </td>

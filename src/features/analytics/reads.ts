@@ -7,7 +7,7 @@ import {
   TaskSourcesSchema,
 } from "@/platform/analytics-schemas"
 import type { analyticsMessages } from "./messages"
-import { failure, type Problem } from "./problems"
+import { failure, holdsNothing, type Problem } from "./problems"
 import { type AggState, useAggregate, useAnalytics } from "./store"
 
 type M = typeof analyticsMessages.en
@@ -41,14 +41,15 @@ export function readParts<T>(states: [string, AggState][], schema: v.GenericSche
         old.push(id)
         problems.push({ kind: "old", tool: id, detail: a.message })
       } else if (a.kind === "failed") {
+        if (holdsNothing(a.code)) continue
         failed.push(a.message)
-        problems.push(failure(id, p.profile, a.message, null, command))
+        problems.push(failure(id, p.profile, a.message, command))
       } else {
         const parsed = v.safeParse(schema, a.body)
         if (parsed.success) ready.push({ id, profile: p.profile, body: parsed.output })
         else {
           failed.push(parsed.issues[0]?.message ?? "")
-          problems.push(failure(id, p.profile, parsed.issues[0]?.message ?? "", null, command))
+          problems.push(failure(id, p.profile, parsed.issues[0]?.message ?? "", command))
         }
       }
     }
@@ -72,12 +73,13 @@ export function useTaskSources() {
  * Tasks found in messages and meetings, every account: `--by chat` groups them all, a meeting's under its meeting, so
  * its totals alone count each task once. null until memo answers or when it cannot.
  */
-export function useInboxTotals(): { open: number; created: number } | null {
+export function useInboxTotals(): { open: number; created: number; closed: number } | null {
   const parts = readParts([["memo", useAggregate("taskSources", "memo")]], TaskSourcesSchema).ready
   if (!parts.length) return null
   return {
     open: parts.reduce((s, p) => s + p.body.open, 0),
     created: parts.reduce((s, p) => s + p.body.created, 0),
+    closed: parts.reduce((s, p) => s + p.body.closed, 0),
   }
 }
 
@@ -119,7 +121,8 @@ export function useMeetingNumbers(): {
   const seriesState = useAggregate("meetingsSeries", "zm")
   const week = readParts([["zm", weekState]], MeetingHistorySchema)
   const series = readParts([["zm", seriesState]], MeetingHistorySchema)
-  const history = week.ready.length > 0 && !week.old.length
+  // zm counts one profile; two profiles can hold the same meeting, so they are added up from the list, where it shows.
+  const history = week.ready.length === 1 && !week.old.length
   const listState = useAggregate("meetings", "zm", !history && !week.loading)
   const list = readParts([["zm", listState]], MeetingsListSchema)
   if (weekState.state === "missing")
