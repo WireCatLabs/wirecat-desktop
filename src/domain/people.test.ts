@@ -13,7 +13,7 @@ import {
   personName,
   profilesOf,
   reasonOf,
-  seenAtWork,
+  scopesOf,
   touched,
 } from "./people"
 
@@ -33,10 +33,11 @@ describe("people", () => {
     ])
   })
 
-  it("marks an account a work account saw, never the default personal one", () => {
-    expect(seenAtWork(id("email:a", ["personal", "work", null]).seenIn)).toBe(true)
-    expect(seenAtWork(id("email:a", ["personal", null]).seenIn)).toBe(false)
-    expect(seenAtWork([])).toBe(false)
+  it("marks an account personal, work or both, and never guesses an unknown kind", () => {
+    expect(scopesOf(id("email:a", ["work", "personal", null]).seenIn)).toEqual(["personal", "work"])
+    expect(scopesOf(id("email:a", ["personal", null]).seenIn)).toEqual(["personal"])
+    expect(scopesOf(id("email:a", [null]).seenIn)).toEqual([])
+    expect(scopesOf([])).toEqual([])
   })
 
   it("splits off some accounts, never none, all, or one the person does not have", () => {

@@ -1002,9 +1002,10 @@ pub struct Unlinked {
 /// the nearest person, which here would move someone else's account.
 fn unlink_with(call: &Call, reference: &str, chosen: &[String]) -> Result<Unlinked, String> {
     let reference = person_ref(reference)?;
+    // memo names the new person after the first account given, so the order is the owner's choice of name.
     let mut chosen: Vec<&str> = chosen.iter().map(String::as_str).collect();
-    chosen.sort_unstable();
-    chosen.dedup();
+    let mut once = std::collections::HashSet::new();
+    chosen.retain(|c| once.insert(*c));
     let shown = show_with(call, reference)?;
     if chosen.is_empty() || chosen.len() >= shown.identities.len() {
         return Err("Choose some of this person's accounts to move, not all of them.".into());
@@ -1036,6 +1037,55 @@ fn unmerge_with(call: &Call, reference: &str, merge_id: &str) -> Result<Person, 
 
 pub fn unmerge(reference: &str, merge_id: &str) -> Result<Person, String> {
     with_memo(|call| unmerge_with(call, reference, merge_id))
+}
+
+/// Someone `people check` finds while a new person's name is typed; `same_name` is the very name typed.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Similar {
+    #[serde(flatten)]
+    pub person: Listed,
+    pub same_name: bool,
+}
+
+const MAX_NAME: usize = 200;
+const CHECK_LIMIT: &str = "8";
+
+fn typed_name(name: &str) -> Result<&str, String> {
+    let name = name.trim();
+    if name.is_empty() || name.chars().count() > MAX_NAME || name.chars().any(char::is_control) {
+        return Err(format!("A name is 1 to {MAX_NAME} characters on one line."));
+    }
+    Ok(name)
+}
+
+/// The name goes after `--`, so a name that starts with a dash is never read as an option.
+fn named_args(parts: &[&str], name: &str) -> Vec<String> {
+    let mut args = words(parts);
+    args.extend(["--".to_string(), name.to_string()]);
+    args
+}
+
+fn check_with(call: &Call, name: &str) -> Result<Vec<Similar>, String> {
+    let v = call(&named_args(&["people", "check", "--limit", CHECK_LIMIT], typed_name(name)?))?;
+    Ok(list(&v, "items", |p| {
+        Some(Similar { person: listed(p)?, same_name: p["same_name"].as_bool().unwrap_or(false) })
+    }))
+}
+
+/// People whose names start like the one being typed, the same name first.
+pub fn check(name: &str) -> Result<Vec<Similar>, String> {
+    with_memo(|call| check_with(call, name))
+}
+
+fn add_with(call: &Call, name: &str) -> Result<String, String> {
+    let v = call(&named_args(&["people", "add"], typed_name(name)?))?;
+    person_of(&body(&v)["ref"]).ok_or_else(|| "Memo's answer did not name the new person".into())
+}
+
+/// A new person known by name only; answers their ref.
+pub fn add(name: &str) -> Result<String, String> {
+    with_memo(|call| add_with(call, name))
 }
 
 #[cfg(test)]
@@ -1628,6 +1678,41 @@ mod tests {
             let before = f.seen().len();
             assert!(unlink_with(&call, "person:8", &strs(&bad)).is_err(), "{bad:?}");
             assert!(f.seen()[before..].iter().all(|a| a[1] == "show"), "nothing was unlinked for {bad:?}");
+        }
+    }
+
+    #[test]
+    fn the_first_account_given_stays_first_so_it_names_the_new_person() {
+        let f = Fake::new("confirm");
+        let call = |a: &[String]| f.call(a);
+        unlink_with(&call, "person:8", &strs(&["max:99", "max:66", "max:99"])).unwrap();
+        assert_eq!(f.seen()[1][2..4], strs(&["max:99", "max:66"]));
+    }
+
+    #[test]
+    fn checks_and_adds_a_typed_name_after_dashes() {
+        let seen = Mutex::new(Vec::new());
+        let call = |a: &[String]| {
+            seen.lock().unwrap().push(a.to_vec());
+            Ok(if a[1] == "check" {
+                json!({"items": [{"ref": "person:4", "name": "Ann Lee", "same_name": true},
+                    {"ref": "person:5", "name": "Ann Leeds"}, {"ref": "bad"}]})
+            } else {
+                json!({"item": {"ref": "person:12", "name": "-Ann Lee"}})
+            })
+        };
+        let found = check_with(&call, "  Ann Lee ").unwrap();
+        assert_eq!(
+            found.iter().map(|s| (s.person.reference.as_str(), s.same_name)).collect::<Vec<_>>(),
+            [("person:4", true), ("person:5", false)]
+        );
+        assert_eq!(add_with(&call, "-Ann Lee").unwrap(), "person:12");
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen[0], strs(&["people", "check", "--limit", "8", "--json", "--no-record", "--", "Ann Lee"]));
+        assert_eq!(seen[1], strs(&["people", "add", "--json", "--no-record", "--", "-Ann Lee"]));
+        drop(seen);
+        for bad in ["", "   ", "Ann\nLee", &"x".repeat(201)] {
+            assert!(add_with(&call, bad).is_err(), "{bad:?}");
         }
     }
 

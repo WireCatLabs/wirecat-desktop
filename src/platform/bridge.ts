@@ -55,6 +55,7 @@ import {
   PeopleReadSchema,
   PersonDetailSchema,
   ResolvedSchema,
+  SimilarSchema,
   TestPeopleSchema,
   UnlinkedSchema,
 } from "./people-schemas"
@@ -289,6 +290,8 @@ function createTauri(): Platform {
     },
     peopleMerge: (refs) => call(MergedSchema, "people_merge", { references: refs }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
+    peopleCheck: (name) => call(v.array(SimilarSchema), "people_check", { name }),
+    peopleAdd: (name) => call(v.string(), "people_add", { name }),
     peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),
     peopleUnmerge: (ref, merge) => call(PersonDetailSchema, "people_unmerge", { reference: ref, merge }),
     peopleProfile: (ref) => call(PersonProfileSchema, "people_profile", { reference: ref }),

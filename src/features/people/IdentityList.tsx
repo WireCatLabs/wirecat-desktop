@@ -1,6 +1,6 @@
 import { Unlink } from "lucide-react"
 import { useEffect } from "react"
-import { accountLabel, bySource, profilesOf, seenAtWork } from "@/domain/people"
+import { accountLabel, bySource, profilesOf, scopesOf } from "@/domain/people"
 import { accountValue, emailLink, phoneLink, sourceLink } from "@/domain/source-link"
 import { useGroups } from "@/features/groups"
 import { useLang, useMessages } from "@/i18n"
@@ -60,7 +60,9 @@ export function IdentityList({
                         <span className="text-ink-soft">{m.username(i.username)}</span>
                       )}
                       {i.bot && <Pill>{m.bot}</Pill>}
-                      {seenAtWork(i.seenIn) && <Pill>{m.atWork}</Pill>}
+                      {scopesOf(i.seenIn).map((k) => (
+                        <Pill key={k}>{m.scopes[k]}</Pill>
+                      ))}
                     </span>
                     <AccountAddress identity={i} />
                     <ContactLines identity={i} />

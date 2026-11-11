@@ -10,11 +10,14 @@ export function bySource<T extends IdentityLike>(identities: readonly T[]): { pr
   return [...groups].map(([provider, list]) => ({ provider, identities: list }))
 }
 
+export const SCOPES = ["personal", "work"] as const
+export type Scope = (typeof SCOPES)[number]
+
 /**
- * Whether a work account saw this one. Only work is marked: memo files every new account as personal and has no command
- * to change it, so a «personal» mark sat on every account and read as "this address is private".
+ * Which of the owner's kinds of account, personal or work, saw this one; both when both did. An account seen with no
+ * known kind gets no mark rather than a guess.
  */
-export const seenAtWork = (seenIn: readonly Seen[]) => seenIn.some((s) => s.scope === "work")
+export const scopesOf = (seenIn: readonly Seen[]): Scope[] => SCOPES.filter((k) => seenIn.some((s) => s.scope === k))
 
 /**
  * The owner's profiles an account was seen in, by the account groups' members: memo's `seen_in` names the owner's

@@ -82,6 +82,18 @@ pub async fn people_unmerge(reference: String, merge: String) -> Result<people::
         .await
 }
 
+/// People whose names start like the one typed into Add a person, the same name first.
+#[tauri::command]
+pub async fn people_check(name: String) -> Result<Vec<people::Similar>, AppError> {
+    crate::log::command("people_check", async move { attempt(move || people::check(&name)).await }).await
+}
+
+/// A new person known by name only, from Add a person; answers their ref.
+#[tauri::command]
+pub async fn people_add(name: String) -> Result<String, AppError> {
+    crate::log::command("people_add", async move { attempt(move || people::add(&name)).await }).await
+}
+
 /// The person who has exactly this account, for the page's search; `None` when no one does.
 #[tauri::command]
 pub async fn people_find(account: String) -> Result<Option<people::Person>, AppError> {

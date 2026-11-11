@@ -1,4 +1,4 @@
-import type { PeopleReason } from "@/domain/people"
+import type { PeopleReason, Scope } from "@/domain/people"
 import { type Messages, plural } from "@/i18n"
 import type { MatchFact } from "./contacts"
 
@@ -28,7 +28,7 @@ const en = {
   bot: "bot",
   unlinkAccount: "Unlink",
   unlinkLabel: (account: string) => `Unlink ${account} from this person`,
-  atWork: "work",
+  scopes: { personal: "personal account", work: "work account" } as Record<Scope, string>,
   seenNowhere: "Not seen in any account yet",
   username: (u: string) => `@${u}`,
   methods: {
@@ -44,7 +44,10 @@ const en = {
   splitTitle: "Move accounts to a new person",
   splitBody:
     "The accounts you tick become one new person. The rest stay here. WireCat will not join them back on its own.",
-  splitName: "Memo names the new person after its accounts. Another name cannot be chosen yet.",
+  splitName: "The new person takes the name of the first account ticked.",
+  splitNameLabel: "Name of the new person",
+  splitNameHelp: "Pick one of the accounts' names. A name of your own cannot be typed here yet.",
+  splitNamed: (name: string) => `The new person will be called ${name}.`,
   splitAll: "Leave at least one account here.",
   move: (n: number) => (n ? plural("en", n, { one: "Move # account", other: "Move # accounts" }) : "Move accounts"),
   cancel: "Cancel",
@@ -101,14 +104,14 @@ const en = {
   rejectWhyNeeded: "Say in a few words why they are different people.",
   joinedSome: (names: string) => `${names} are now one person.`,
   stoppedAt: (why: string) => `The rest were not joined: ${why}`,
-  peopleMore: "Memo knows more people than this page read. Search by account to find the rest.",
+  peopleMore: "There are more people than this page read. Search by account to find the rest.",
   matchesMore: "More matches wait than this page shows. Decide these, then read again.",
   nowPartOf: (name: string) => `This person is now part of ${name}.`,
   openPerson: (name: string) => `Open ${name}`,
   findAccount: "Find by account",
   searchHint: "A name, or an account such as telegram:4411 or an email address",
   accountOf: (account: string, name: string) => `${account} belongs to ${name}.`,
-  noAccount: (account: string) => `No one in Memo has ${account}.`,
+  noAccount: (account: string) => `No one has ${account}.`,
   lookingAccount: "Looking for the account…",
   kinds: {
     person: "People",
@@ -159,11 +162,11 @@ const en = {
     "organization.unnamed": "This is a free mail address, so WireCat cannot tell the company. Type its name.",
     "organization.ambiguous": "More than one company has this address. Pick the one it belongs to.",
     "identity.not-shared": "WireCat no longer sees this address as shared. Read again.",
-    "organization.not-found": "That company is not in Memo any more. Read again.",
-    "group.outside": "Memo is locked to one group of accounts, and this match is outside it.",
+    "organization.not-found": "That company is gone. Read again.",
+    "group.outside": "Contacts are limited to one group of accounts, and this match is outside it.",
     "identity.owner-only": "Only you can do this, from WireCat or at a terminal.",
     "proposal.wrong-state": "This match was already decided. Read again.",
-    "memo.old": "This Memo cannot do this yet. Update Memo on the Tools page.",
+    "memo.old": "This needs a newer version of WireCat's tools. Update them on the Tools page.",
   } as Record<string, string>,
   companyName: "Company name",
   companyOtherName: "Or type the company's name",
@@ -301,16 +304,15 @@ const en = {
   testHiddenShow: "Show",
   testHiddenHide: "Hide",
   testHiddenHelp:
-    "Memo hides accounts at test addresses, such as example.com or .test. If one of them is a real person, say so.",
+    "Accounts at test addresses, such as example.com or .test, are hidden. If one of them is a real person, say so.",
   testHiddenFailed: "Could not read the hidden test accounts.",
   copyAccount: (value: string) => `Copy ${value}`,
   tasksTitle: "Tasks",
-  tasksRefused: "Memo did not accept the search for this person's tasks.",
-  tasksNeedMemo: "Memo is missing or too old to list tasks. The Tasks page offers the fix.",
+  tasksRefused: "The search for this person's tasks was refused.",
+  tasksNeedMemo: "A tool that lists tasks is missing or too old. The Tasks page offers the fix.",
   tasksOpenPage: "Open Tasks",
   tasksFailed: "Could not read this person's tasks.",
   tasksAll: (n: number) => `All ${n} on the Tasks page`,
-  moreContacts: (n: number) => `+${n}`,
 }
 
 const ru: typeof en = {
@@ -346,7 +348,7 @@ const ru: typeof en = {
   bot: "бот",
   unlinkAccount: "Отвязать",
   unlinkLabel: (account: string) => `Отвязать ${account} от этого человека`,
-  atWork: "работа",
+  scopes: { personal: "личный аккаунт", work: "рабочий аккаунт" },
   seenNowhere: "Пока не встречался ни в одном аккаунте",
   username: (u: string) => `@${u}`,
   methods: {
@@ -362,7 +364,10 @@ const ru: typeof en = {
   splitTitle: "Перенести аккаунты в нового человека",
   splitBody:
     "Отмеченные аккаунты станут одним новым человеком. Остальные останутся здесь. Сам WireCat их обратно не объединит.",
-  splitName: "Имя новому человеку Memo даст по его аккаунтам. Выбрать другое имя пока нельзя.",
+  splitName: "Новый человек получит имя первого отмеченного аккаунта.",
+  splitNameLabel: "Имя нового человека",
+  splitNameHelp: "Выберите одно из имён аккаунтов. Своё имя здесь пока не ввести.",
+  splitNamed: (name: string) => `Новый человек будет называться «${name}».`,
   splitAll: "Оставьте здесь хотя бы один аккаунт.",
   move: (n: number) =>
     n
@@ -429,14 +434,14 @@ const ru: typeof en = {
   rejectWhyNeeded: "Напишите в двух словах, почему это разные люди.",
   joinedSome: (names: string) => `${names} теперь один человек.`,
   stoppedAt: (why: string) => `Остальных не объединили: ${why}`,
-  peopleMore: "В Memo больше людей, чем прочитала эта страница. Остальных найдёт поиск по аккаунту.",
+  peopleMore: "Людей больше, чем прочитала эта страница. Остальных найдёт поиск по аккаунту.",
   matchesMore: "Совпадений больше, чем показано. Решите эти, потом прочитайте заново.",
   nowPartOf: (name: string) => `Этот человек теперь часть ${name}.`,
   openPerson: (name: string) => `Открыть ${name}`,
   findAccount: "Найти по аккаунту",
   searchHint: "Имя или аккаунт, например telegram:4411 или адрес почты",
   accountOf: (account: string, name: string) => `${account} принадлежит: ${name}.`,
-  noAccount: (account: string) => `Ни у кого в Memo нет ${account}.`,
+  noAccount: (account: string) => `Ни у кого нет ${account}.`,
   lookingAccount: "Ищем аккаунт…",
   kinds: {
     person: "Люди",
@@ -494,11 +499,11 @@ const ru: typeof en = {
     "organization.unnamed": "Это адрес бесплатной почты, по нему не понять компанию. Введите ее название.",
     "organization.ambiguous": "Этот адрес есть у нескольких компаний. Выберите, чей он.",
     "identity.not-shared": "WireCat больше не считает этот адрес общим. Прочитайте заново.",
-    "organization.not-found": "Этой компании больше нет в Memo. Прочитайте заново.",
-    "group.outside": "Memo закрыт одной группой аккаунтов, и это совпадение вне ее.",
+    "organization.not-found": "Этой компании больше нет. Прочитайте заново.",
+    "group.outside": "Контакты ограничены одной группой аккаунтов, и это совпадение вне её.",
     "identity.owner-only": "Это можете сделать только вы, в WireCat или в терминале.",
     "proposal.wrong-state": "Это совпадение уже решено. Прочитайте заново.",
-    "memo.old": "Эта версия Memo пока так не умеет. Обновите Memo на странице Инструменты.",
+    "memo.old": "Для этого нужна новая версия инструментов WireCat. Обновите их на странице «Инструменты».",
   },
   companyName: "Название компании",
   companyOtherName: "Или введите название компании",
@@ -644,16 +649,16 @@ const ru: typeof en = {
   testHiddenShow: "показать",
   testHiddenHide: "свернуть",
   testHiddenHelp:
-    "Memo скрывает аккаунты с тестовыми адресами, например example.com или .test. Если среди них есть настоящий человек, отметьте его.",
+    "Аккаунты с тестовыми адресами, например example.com или .test, скрыты. Если среди них есть настоящий человек, отметьте его.",
   testHiddenFailed: "Не удалось прочитать скрытые тестовые аккаунты.",
   copyAccount: (value: string) => `Скопировать ${value}`,
   tasksTitle: "Задачи",
-  tasksRefused: "Memo не принял поиск задач этого человека.",
-  tasksNeedMemo: "Memo не установлен или слишком старый, чтобы показать задачи. На странице «Задачи» есть исправление.",
+  tasksRefused: "Поиск задач этого человека отклонён.",
+  tasksNeedMemo:
+    "Инструмент, который показывает задачи, не установлен или слишком старый. На странице «Задачи» есть исправление.",
   tasksOpenPage: "Открыть «Задачи»",
   tasksFailed: "Не удалось прочитать задачи этого человека.",
   tasksAll: (n: number) => `Все ${n} на странице «Задачи»`,
-  moreContacts: (n: number) => `+${n}`,
 }
 
 const es: typeof en = {
@@ -682,7 +687,7 @@ const es: typeof en = {
   bot: "bot",
   unlinkAccount: "Desvincular",
   unlinkLabel: (account: string) => `Desvincular ${account} de esta persona`,
-  atWork: "trabajo",
+  scopes: { personal: "cuenta personal", work: "cuenta de trabajo" },
   seenNowhere: "Aún no se ha visto en ninguna cuenta",
   username: (u: string) => `@${u}`,
   methods: {
@@ -698,7 +703,10 @@ const es: typeof en = {
   splitTitle: "Mover cuentas a una persona nueva",
   splitBody:
     "Las cuentas que marques serán una persona nueva. El resto se queda aquí. WireCat no las volverá a unir por su cuenta.",
-  splitName: "Memo nombra a la persona nueva por sus cuentas. Aún no se puede elegir otro nombre.",
+  splitName: "La persona nueva toma el nombre de la primera cuenta marcada.",
+  splitNameLabel: "Nombre de la persona nueva",
+  splitNameHelp: "Elige uno de los nombres de las cuentas. Aquí aún no se puede escribir un nombre propio.",
+  splitNamed: (name: string) => `La persona nueva se llamará ${name}.`,
   splitAll: "Deja al menos una cuenta aquí.",
   move: (n: number) => (n ? plural("es", n, { one: "Mover # cuenta", other: "Mover # cuentas" }) : "Mover cuentas"),
   cancel: "Cancelar",
@@ -755,14 +763,14 @@ const es: typeof en = {
   rejectWhyNeeded: "Di en pocas palabras por qué son personas distintas.",
   joinedSome: (names: string) => `${names} ahora son una persona.`,
   stoppedAt: (why: string) => `El resto no se unió: ${why}`,
-  peopleMore: "Memo conoce a más personas de las que leyó esta página. Busca por cuenta para encontrar al resto.",
+  peopleMore: "Hay más personas de las que leyó esta página. Busca por cuenta para encontrar al resto.",
   matchesMore: "Esperan más coincidencias de las que se muestran. Decide estas y lee de nuevo.",
   nowPartOf: (name: string) => `Esta persona ahora forma parte de ${name}.`,
   openPerson: (name: string) => `Abrir ${name}`,
   findAccount: "Buscar por cuenta",
   searchHint: "Un nombre, o una cuenta como telegram:4411 o un correo",
   accountOf: (account: string, name: string) => `${account} es de ${name}.`,
-  noAccount: (account: string) => `Nadie en Memo tiene ${account}.`,
+  noAccount: (account: string) => `Nadie tiene ${account}.`,
   lookingAccount: "Buscando la cuenta…",
   kinds: {
     person: "Personas",
@@ -814,11 +822,12 @@ const es: typeof en = {
       "Es una dirección de correo gratuito, así que WireCat no sabe la empresa. Escribe su nombre.",
     "organization.ambiguous": "Más de una empresa tiene esta dirección. Elige a cuál pertenece.",
     "identity.not-shared": "WireCat ya no ve esta dirección como compartida. Vuelve a leer.",
-    "organization.not-found": "Esa empresa ya no está en Memo. Vuelve a leer.",
-    "group.outside": "Memo está limitado a un grupo de cuentas, y esta coincidencia queda fuera.",
+    "organization.not-found": "Esa empresa ya no existe. Vuelve a leer.",
+    "group.outside": "Los contactos están limitados a un grupo de cuentas, y esta coincidencia queda fuera.",
     "identity.owner-only": "Solo tú puedes hacerlo, desde WireCat o en una terminal.",
     "proposal.wrong-state": "Esta coincidencia ya se decidió. Vuelve a leer.",
-    "memo.old": "Esta versión de Memo aún no puede hacerlo. Actualiza Memo en la página Herramientas.",
+    "memo.old":
+      "Esto necesita una versión más nueva de las herramientas de WireCat. Actualízalas en la página Herramientas.",
   },
   companyName: "Nombre de la empresa",
   companyOtherName: "O escribe el nombre de la empresa",
@@ -961,17 +970,16 @@ const es: typeof en = {
   testHiddenShow: "Mostrar",
   testHiddenHide: "Ocultar",
   testHiddenHelp:
-    "Memo oculta las cuentas con direcciones de prueba, como example.com o .test. Si alguna es de una persona real, dilo.",
+    "Las cuentas con direcciones de prueba, como example.com o .test, están ocultas. Si alguna es de una persona real, dilo.",
   testHiddenFailed: "No se pudieron leer las cuentas de prueba ocultas.",
   copyAccount: (value: string) => `Copiar ${value}`,
   tasksTitle: "Tareas",
-  tasksRefused: "Memo no aceptó la búsqueda de las tareas de esta persona.",
+  tasksRefused: "La búsqueda de las tareas de esta persona fue rechazada.",
   tasksNeedMemo:
-    "Memo no está instalado o es demasiado antiguo para listar tareas. La página Tareas ofrece la solución.",
+    "Falta la herramienta que lista las tareas o es demasiado antigua. La página Tareas ofrece la solución.",
   tasksOpenPage: "Abrir Tareas",
   tasksFailed: "No se pudieron leer las tareas de esta persona.",
   tasksAll: (n: number) => `Las ${n} en la página Tareas`,
-  moreContacts: (n: number) => `+${n}`,
 }
 
 export const peopleMessages: Messages<typeof en> = { en, ru, es }

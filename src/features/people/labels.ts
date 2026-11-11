@@ -1,16 +1,35 @@
-import { fullerName, handleOf, personName } from "@/domain/people"
+import { accountLabel, contactOf, fullerName, handleOf, personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
 
 /**
- * A person by name, "You" for the owner; a name with no letters falls back to a handle once the person's accounts are
- * read, and to "No name yet" until then.
+ * A person by name, "You" for the owner; a name with no letters falls back to a handle, phone or address, and to
+ * "No name yet" only when the person has none of these.
  */
 export function usePersonName() {
   const m = useMessages(peopleMessages)
   const known = useKnownName()
-  return (ref: string, listedName?: string | null) => known(ref, listedName) ?? m.noName
+  const identifier = useIdentifier()
+  return (ref: string, listedName?: string | null) => known(ref, listedName) ?? identifier(ref) ?? m.noName
+}
+
+/**
+ * A person's phone, address or handle for a name. Kept out of `useKnownName`: comparing two people by a phone shown as
+ * their name would call them namesakes.
+ */
+function useIdentifier() {
+  const people = usePeople((s) => s.people)
+  const details = usePeople((s) => s.details)
+  return (ref: string): string | null => {
+    const listed = people.find((p) => p.ref === ref)
+    const row = listed?.phone ?? listed?.email ?? (listed?.username ? `@${listed.username}` : null)
+    if (row) return row
+    const detail = details[ref]
+    if (detail?.state !== "ready") return null
+    const { identities } = detail.person
+    return identities.map(accountLabel).find(Boolean) ?? contactOf(identities)?.value ?? null
+  }
 }
 
 /** A person's real name for comparing two sides: `null` for "No name yet" and for the owner's "You". */

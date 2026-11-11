@@ -41,13 +41,13 @@ describe("Match details", () => {
       expect(dialog).not.toHaveTextContent(technical)
   })
 
-  it("does not mark the accounts on a card personal, the scope memo gives every new account", async () => {
+  it("marks the accounts on a card by the kind of account of yours that saw them", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
     const card = screen.getByRole("article", { name: "Сергей · 2 people" })
     await waitFor(() => expect(within(card).getAllByText("Bitrix24")).toHaveLength(2), { timeout: 4000 })
-    expect(card).not.toHaveTextContent("personal")
+    expect(within(card).getAllByText(/^(personal|work) account$/).length).toBeGreaterThan(0)
   })
 
   it("opens the contact on its Bitrix24 portal", async () => {
