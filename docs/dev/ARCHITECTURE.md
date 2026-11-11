@@ -133,7 +133,7 @@ src-tauri/src/
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
                 messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
-  people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
+  people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge|links resolve` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
   person_profile.rs what a match's details compare about one person: memo's `context <ref> --limit 3 --trimmed` and the
                 person's row from `people check -- <name words>`, slimmed to contacts, companies, counts and the latest
@@ -511,6 +511,8 @@ every move names the person and the accounts he chose.
   the person's own read listed, each once, and never all of them: memo matches a name it does not know exactly to the
   nearest person, and `--from` makes memo refuse an account that sits on someone else.
   Every account is shown; one whose ref cannot go back as one safe word is never offered for moving.
+- **Confirm a link** («Check links») runs `people links resolve <who> keep --from-app --json`: the owner says the
+  person's accounts are right, and the doubt goes away. A memo too old to know the command is reported as "update".
 - **Undo a join** runs `people unmerge merge:<to>-<from> --from-app`, only for a merge the person shows, behind a dialog
   that lists the accounts that go back.
 - **Search** filters the list by name; an account (`telegram:4411`, an email address) is looked up with `people show
@@ -727,7 +729,10 @@ name and username leave Rust unmasked: they are the bot's public identity, shown
 `bot list` names every bot on this computer but still wants a first word, so the catalog passes a fixed `wirecat`;
 it acts on no profile. A bot-only name is not in `account list`, so the Tools page lists bots on their own with a
 Bot badge. A WhatsApp bot's settings make `account list` show its name as a personal profile that is not signed in.
-Mock scenarios: `?bot=<tool>`, `?bot-step=token`, `?bot-fail=<tool>|old|ids`, `?bots=none`.
+Each bot row shows its status from `check`, which is `bot list --check --no-record --json`: the tool asks the messenger
+whether each saved token still works. A token that stopped working offers Reconnect, which opens the same dialog for
+that name. Remove asks first, then runs `remove`, `<profile> bot auth remove --record --json`.
+Mock scenarios: `?bot=<tool>`, `?bot-step=token`, `?bot-fail=<tool>|old|ids`, `?bots=none|stale|remove-fails`.
 
 ## The MCP server for browser apps
 
