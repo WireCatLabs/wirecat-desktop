@@ -1,13 +1,18 @@
-import { Check, ChevronDown } from "lucide-react"
-import { useId, useState } from "react"
+import { Check, UserRound } from "lucide-react"
+import { useEffect, useId, useRef, useState } from "react"
+import { cleanName, WHATSAPP_PHONE } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import type { Doubt } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
+import { keepRoom, revealIfHidden } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
-import { looksLikeEmail, WHATSAPP_PHONE } from "./contacts"
+import { looksLikeEmail } from "./contacts"
+import { useKnownName } from "./labels"
 import { peopleMessages } from "./messages"
 import { Refusal } from "./Refusal"
 import { SourceIcon, sourceOf } from "./sources"
@@ -25,75 +30,87 @@ export function LinkDoubts() {
   const [kept, setKept] = useState<string | null>(null)
   const head = useId()
   const body = useId()
+  const box = useRef<HTMLElement>(null)
+  const paging = useRef(false)
   const last = doubts?.last
+  const ready = doubts?.state !== "loading"
+  // A page of other cards is usually shorter: the panel's top comes back into view, not the page's.
+  useEffect(() => {
+    if (!ready || !paging.current) return
+    paging.current = false
+    revealIfHidden(box.current, "start")
+  }, [ready])
   if (!doubts || (!last && doubts.state !== "failed") || (last && last.items.length === 0 && doubts.page === 1))
     return null
 
   return (
     <section
+      ref={box}
       aria-labelledby={head}
-      className="flex flex-col gap-[0.75rem] rounded-[0.45rem] border border-line px-[1.1rem] py-[0.85rem]"
+      className="flex flex-col rounded-[0.45rem] border border-line px-[1.1rem] py-[0.85rem]"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <div className="min-w-0">
-          <h2 id={head} className="flex items-center gap-2 font-semibold">
-            <Lamp tone="warn" size="sm" />
-            {m.doubtsTitle}
-            {typeof last?.total === "number" && (
-              <span className="font-normal text-ink-soft tabular-nums">· {m.doubtsCount(last.total)}</span>
-            )}
-          </h2>
-          {open && <p className="mt-[0.15rem] text-[0.9rem] text-ink-soft">{m.doubtsHelp}</p>}
-        </div>
+      <div className="flex items-start justify-between gap-4">
+        <h2 id={head} className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 font-semibold">
+          <Lamp tone="warn" size="sm" />
+          {m.doubtsTitle}
+          {typeof last?.total === "number" && (
+            <span className="font-normal text-ink-soft tabular-nums">· {m.doubtsCount(last.total)}</span>
+          )}
+        </h2>
         <Button
           size="sm"
           variant="ghost"
+          className="shrink-0"
           aria-expanded={open}
           aria-controls={body}
           onClick={() => setOpen(!open)}
-          icon={<ChevronDown className={open ? "size-4 rotate-180" : "size-4"} aria-hidden />}
+          icon={<ExpandChevron open={open} />}
         >
           {open ? m.doubtsHide : m.doubtsShow}
         </Button>
       </div>
-      {open && (
-        <div id={body} className="flex flex-col gap-[0.6rem]">
-          <p role="status" className={kept ? "text-[0.9rem] text-ink-soft" : "sr-only"}>
-            {kept && m.doubtKept(kept)}
-          </p>
-          {doubts.state === "failed" && (
-            <ErrorNotice raw={doubts.error} inline>
-              {m.doubtsFailed}
-            </ErrorNotice>
-          )}
-          {last ? (
-            <ul aria-busy={doubts.state === "loading"} className="flex flex-col gap-[0.6rem]">
-              {last.items.map((doubt) => (
-                <DoubtCard key={`${doubt.person}:${doubt.reason}`} doubt={doubt} onKept={setKept} />
-              ))}
-            </ul>
-          ) : (
-            <Skeleton className="h-[3rem] w-full" />
-          )}
-          {last && (doubts.page > 1 || last.more) && (
-            <Pager
-              page={doubts.page}
-              label={m.doubtsPages}
-              onPage={(page) => void readDoubts(page)}
-              busy={doubts.state === "loading"}
-              size={DOUBTS_PAGE}
-              {...(last.total === null ? { hasMore: last.more } : { total: last.total })}
-            />
-          )}
-        </div>
-      )}
+      <Collapse open={open} id={body} className="flex flex-col gap-[0.6rem] pt-[0.4rem]">
+        <p className="text-[0.9rem] text-ink-soft">{m.doubtsHelp}</p>
+        <p role="status" className={kept ? "text-[0.9rem] text-ink-soft" : "sr-only"}>
+          {kept && m.doubtKept(kept)}
+        </p>
+        {doubts.state === "failed" && (
+          <ErrorNotice raw={doubts.error} inline>
+            {m.doubtsFailed}
+          </ErrorNotice>
+        )}
+        {last ? (
+          <ul aria-busy={doubts.state === "loading"} className="flex flex-col gap-[0.6rem]">
+            {last.items.map((doubt) => (
+              <DoubtCard key={`${doubt.person}:${doubt.reason}`} doubt={doubt} onKept={setKept} />
+            ))}
+          </ul>
+        ) : (
+          <Skeleton className="h-[3rem] w-full" />
+        )}
+        {last && (doubts.page > 1 || last.more) && (
+          <Pager
+            page={doubts.page}
+            label={m.doubtsPages}
+            onPage={(page) => {
+              paging.current = true
+              if (box.current) keepRoom(box.current)
+              void readDoubts(page)
+            }}
+            busy={doubts.state === "loading"}
+            size={DOUBTS_PAGE}
+            {...(last.total === null ? { hasMore: last.more } : { total: last.total })}
+          />
+        )}
+      </Collapse>
     </section>
   )
 }
 
 /** The account's own name, else its id only when a person can read it: an address or a phone, not a number or hash. */
 function accountLabel(i: Doubt["identities"][number]) {
-  if (i.name) return i.name
+  const name = cleanName(i.name)
+  if (name) return name
   const id = i.identity.slice(i.identity.indexOf(":") + 1)
   if (looksLikeEmail(id) && !id.endsWith(".whatsapp.net")) return id
   const phone = i.identity.startsWith("whatsapp:") ? WHATSAPP_PHONE.exec(id)?.[1] : /^\+\d{7,15}$/.exec(id)?.[0]
@@ -103,11 +120,14 @@ function accountLabel(i: Doubt["identities"][number]) {
 function DoubtCard({ doubt, onKept }: { doubt: Doubt; onKept: (name: string) => void }) {
   const m = useMessages(peopleMessages)
   const { reveal, need, askSplit, askUndo, keep } = usePeople.getState()
+  const known = useKnownName()
   const busy = usePeople((s) => s.busy[doubt.person] === "keep")
   const failed = usePeople((s) => s.failed[doubt.person])
   const unlink = doubt.moves.find((x) => x.op === "unlink")
   const unmerge = doubt.moves.find((x) => x.op === "unmerge")
-  const name = doubt.name ?? m.unknown
+  // memo's check gives the stored name, not its display_name: one with no letter («—») falls back as display_name does.
+  const name =
+    known(doubt.person) ?? cleanName(doubt.name) ?? doubt.identities.map(accountLabel).find(Boolean) ?? m.noName
   const test = doubt.reason === "test-data"
   return (
     <li className="flex flex-col gap-[0.55rem] rounded-[0.45rem] border border-line bg-app px-[1rem] py-[0.8rem]">
@@ -137,42 +157,52 @@ function DoubtCard({ doubt, onKept }: { doubt: Doubt; onKept: (name: string) => 
         </ul>
       )}
       {test && <p className="text-[0.9rem] text-ink-soft">{m.doubtTestHelp}</p>}
-      {!test && (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            aria-busy={busy || undefined}
-            icon={<Check className="size-4" aria-hidden />}
-            onClick={() => {
-              void keep(doubt.person).then((done) => done && onKept(name))
-            }}
-          >
-            {busy ? m.doubtKeeping : m.doubtKeep}
-          </Button>
-          {unlink && (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          aria-haspopup="dialog"
+          icon={<UserRound className="size-4" aria-hidden />}
+          onClick={() => reveal(doubt.person)}
+        >
+          {m.doubtOpen}
+        </Button>
+        {!test && (
+          <>
             <Button
               size="sm"
+              aria-busy={busy || undefined}
+              icon={<Check className="size-4" aria-hidden />}
               onClick={() => {
-                need(doubt.person)
-                askSplit(doubt.person, unlink.identities)
+                void keep(doubt.person).then((done) => done && onKept(name))
               }}
             >
-              {m.doubtSplit}
+              {busy ? m.doubtKeeping : m.doubtKeep}
             </Button>
-          )}
-          {unmerge && (
-            <Button
-              size="sm"
-              onClick={() => {
-                need(doubt.person)
-                askUndo({ ref: doubt.person, merge: unmerge.merge })
-              }}
-            >
-              {m.undo}
-            </Button>
-          )}
-        </div>
-      )}
+            {unlink && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  need(doubt.person)
+                  askSplit(doubt.person, unlink.identities)
+                }}
+              >
+                {m.doubtSplit}
+              </Button>
+            )}
+            {unmerge && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  need(doubt.person)
+                  askUndo({ ref: doubt.person, merge: unmerge.merge })
+                }}
+              >
+                {m.undo}
+              </Button>
+            )}
+          </>
+        )}
+      </div>
       {failed && <Refusal error={failed} />}
     </li>
   )

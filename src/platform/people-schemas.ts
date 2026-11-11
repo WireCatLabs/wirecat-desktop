@@ -72,6 +72,8 @@ const ListedSchema = v.object({
   usernameSource: v.optional(text, null),
   messagesFrom: v.optional(v.nullable(v.number()), null),
   lastContact: v.optional(text, null),
+  /** memo sorted this person with the `bot` signal: a messenger bot. */
+  bot: v.optional(v.boolean(), false),
 })
 
 const KindCountSchema = v.object({ value: v.number(), more: v.boolean() })
@@ -117,6 +119,8 @@ export const PersonDetailSchema = v.object({
       linkedAt: text,
       /** Its ref can go back to memo as one safe word; others are shown, never moved. */
       movable: v.boolean(),
+      /** False until memo's `people show` carries `is_bot`. */
+      bot: v.optional(v.boolean(), false),
     }),
   ),
   merges: v.array(

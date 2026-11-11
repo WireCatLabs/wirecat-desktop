@@ -1,8 +1,9 @@
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { useGroups } from "@/features/groups"
 import { platform } from "@/platform/bridge"
 import { answerAtOnce } from "@/testing/mock-speed"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { PeoplePage } from "./PeoplePage"
 import { usePeople } from "./store"
 
@@ -34,6 +35,7 @@ const older = {
   usernameSource: null,
   messagesFrom: null,
   lastContact: null,
+  bot: false,
 }
 
 describe("People", () => {
@@ -108,10 +110,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 124/)
+    expect(pages).toHaveTextContent(/^1–50 of 127/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 124/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 127/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -124,15 +126,16 @@ describe("People", () => {
     expect(page.mock.calls.filter(([a]) => a.query.startsWith("L")).length).toBeLessThan(4)
   })
 
-  it("stacks phone and email, shows the handle with its messenger's logo when there is neither, and a quiet dash when nothing", async () => {
+  it("keeps each contact on one line, the rest as +1, and names the messenger of an account with no number", async () => {
     render(<PeoplePage />)
     const rows = within(await table()).getAllByRole("row")
     const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
-    expect(row("Marta Gil")).toHaveTextContent(/\+34600111222.*marta@studio\.example/)
+    expect(row("Marta Gil")).toHaveTextContent(/\+34600111222\+1: marta@studio\.example/)
     expect(row("Kai Moreno")).toHaveTextContent("Telegram@kai_m")
     expect(within(row("Kai Moreno")).getByText("Telegram")).toHaveClass("sr-only")
-    expect(within(row("Kai M.")).getByText("No phone, email or handle")).toHaveClass("sr-only")
-    expect(row("Kai M.")).not.toHaveTextContent(/No contact/)
+    await waitFor(() => expect(row("Kai M.")).toHaveTextContent(/Kai M\.MAX/))
+    await waitFor(() => expect(row("Eky")).toHaveTextContent(/EkyWhatsApp/))
+    expect(row("Eky")).not.toHaveTextContent(/@lid/)
   })
 
   it("opens a person in a dialog with their accounts by source, marking only work ones", async () => {
@@ -144,6 +147,36 @@ describe("People", () => {
     expect(within(email).queryByText("personal")).not.toBeInTheDocument()
     expect(within(email).getByText(/joined by the same email address/)).toBeInTheDocument()
     expect(within(lena).getByRole("button", { name: "Undo" })).toBeInTheDocument()
+  })
+
+  it("shows each account with a readable name, its profiles and a bot mark, and unlinks one after a confirmation", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await act(() => useGroups.getState().load())
+    act(() => usePeople.getState().reveal("person:46"))
+    const dmitry = await screen.findByRole("dialog", { name: "Dmitry Volkov" }, { timeout: 4000 })
+    const telegram = await within(dmitry).findByRole("region", { name: "Telegram" })
+    await waitFor(() => expect(telegram).toHaveTextContent("Seen in: personal, work"), { timeout: 4000 })
+    const bot = within(telegram).getByText("Sirgris Personal Bot").closest("li") as HTMLElement
+    expect(within(bot).getByText("bot")).toBeInTheDocument()
+    const max = within(dmitry).getByRole("region", { name: "MAX" })
+    expect(max).toHaveTextContent("No name yet")
+    expect(within(max).queryByText(".")).not.toBeInTheDocument()
+    await user.click(within(bot).getByRole("button", { name: "Unlink Sirgris Personal Bot from this person" }))
+    const confirm = await screen.findByRole("dialog", { name: "Move accounts to a new person" })
+    await waitFor(() => expect(within(confirm).getByRole("checkbox", { name: /Sirgris Personal Bot/ })).toBeChecked())
+    expect(within(confirm).getByRole("checkbox", { name: /Dmitry/ })).not.toBeChecked()
+    expect(confirm).toHaveTextContent("Another name cannot be chosen yet")
+  })
+
+  it("lists the tasks assigned to a person in their card", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const you = await openPerson(user, "You")
+    expect(await within(you).findByRole("heading", { name: /^Tasks/ }, { timeout: 4000 })).toBeInTheDocument()
+    expect(
+      (await within(you).findAllByRole("button", { name: /^(OPS|HRB)-\d+/ }, { timeout: 4000 })).length,
+    ).toBeGreaterThan(0)
   })
 
   it("says how many matches wait, and opens them on their own screen and back", async () => {
@@ -280,6 +313,30 @@ describe("People", () => {
     await user.click(within(viktor).getByRole("button", { name: "Split" }))
     const dialog = await screen.findByRole("dialog", { name: "Move accounts to a new person" })
     await waitFor(() => expect(within(dialog).getByRole("checkbox", { name: /Mila Example/ })).toBeChecked())
+  })
+
+  it("names a doubt with no letter in its name after its accounts, and opens the person from the card", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const card = within(panel)
+      .getAllByRole("listitem")
+      .find((row) => row.textContent?.startsWith("@msx04x")) as HTMLElement
+    expect(card).toBeDefined()
+    await user.click(within(card).getByRole("button", { name: "Open" }))
+    expect(await screen.findByRole("dialog", { name: "@msx04x" })).toBeInTheDocument()
+  })
+
+  it("keeps the panel's Hide in its place and folds the help with the cards", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const toggle = within(panel).getByRole("button", { name: "Hide" })
+    const header = toggle.parentElement as HTMLElement
+    expect(within(header).getByRole("heading", { name: /Check the links/ })).toBeInTheDocument()
+    expect(header).not.toHaveTextContent(/We found people/)
+    await user.click(toggle)
+    expect(within(panel).getByRole("button", { name: "Show" })).toHaveAttribute("aria-expanded", "false")
   })
 
   it("confirms a doubtful link so it stops being listed, and says so", async () => {

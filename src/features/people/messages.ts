@@ -23,7 +23,11 @@ const en = {
   loadingPerson: "Reading this person…",
   personFailed: "Could not read this person.",
   accounts: "Accounts",
-  accountsHelp: "Each account and where it was seen. Personal and work show which side of your life saw it.",
+  accountsHelp: "Each account of this person, the profiles of yours it was seen in, and how it was joined.",
+  inProfiles: (list: string) => `Seen in: ${list}`,
+  bot: "bot",
+  unlinkAccount: "Unlink",
+  unlinkLabel: (account: string) => `Unlink ${account} from this person`,
   atWork: "work",
   seenNowhere: "Not seen in any account yet",
   username: (u: string) => `@${u}`,
@@ -40,6 +44,7 @@ const en = {
   splitTitle: "Move accounts to a new person",
   splitBody:
     "The accounts you tick become one new person. The rest stay here. WireCat will not join them back on its own.",
+  splitName: "Memo names the new person after its accounts. Another name cannot be chosen yet.",
   splitAll: "Leave at least one account here.",
   move: (n: number) => (n ? plural("en", n, { one: "Move # account", other: "Move # accounts" }) : "Move accounts"),
   cancel: "Cancel",
@@ -273,6 +278,14 @@ const en = {
   doubtsShow: "Show",
   doubtsHide: "Hide",
   doubtsPages: "Pages of people to check",
+  doubtOpen: "Open",
+  tasksTitle: "Tasks",
+  tasksRefused: "Memo did not accept the search for this person's tasks.",
+  tasksNeedMemo: "Memo is missing or too old to list tasks. The Tasks page offers the fix.",
+  tasksOpenPage: "Open Tasks",
+  tasksFailed: "Could not read this person's tasks.",
+  tasksAll: (n: number) => `All ${n} on the Tasks page`,
+  moreContacts: (n: number) => `+${n}`,
 }
 
 const ru: typeof en = {
@@ -303,7 +316,11 @@ const ru: typeof en = {
   loadingPerson: "Читаем этого человека…",
   personFailed: "Не удалось прочитать этого человека.",
   accounts: "Аккаунты",
-  accountsHelp: "Каждый аккаунт и где он встречался. Личное и рабочее показывают, какая часть вашей жизни его видела.",
+  accountsHelp: "Каждый аккаунт этого человека, в каких ваших профилях он встречался и как присоединён.",
+  inProfiles: (list: string) => `Встречался в профиле: ${list}`,
+  bot: "бот",
+  unlinkAccount: "Отвязать",
+  unlinkLabel: (account: string) => `Отвязать ${account} от этого человека`,
   atWork: "работа",
   seenNowhere: "Пока не встречался ни в одном аккаунте",
   username: (u: string) => `@${u}`,
@@ -320,6 +337,7 @@ const ru: typeof en = {
   splitTitle: "Перенести аккаунты в нового человека",
   splitBody:
     "Отмеченные аккаунты станут одним новым человеком. Остальные останутся здесь. Сам WireCat их обратно не объединит.",
+  splitName: "Имя новому человеку Memo даст по его аккаунтам. Выбрать другое имя пока нельзя.",
   splitAll: "Оставьте здесь хотя бы один аккаунт.",
   move: (n: number) =>
     n
@@ -572,6 +590,14 @@ const ru: typeof en = {
   doubtsShow: "Показать",
   doubtsHide: "Скрыть",
   doubtsPages: "Страницы людей на проверку",
+  doubtOpen: "Открыть",
+  tasksTitle: "Задачи",
+  tasksRefused: "Memo не принял поиск задач этого человека.",
+  tasksNeedMemo: "Memo не установлен или слишком старый, чтобы показать задачи. На странице «Задачи» есть исправление.",
+  tasksOpenPage: "Открыть «Задачи»",
+  tasksFailed: "Не удалось прочитать задачи этого человека.",
+  tasksAll: (n: number) => `Все ${n} на странице «Задачи»`,
+  moreContacts: (n: number) => `+${n}`,
 }
 
 const es: typeof en = {
@@ -595,7 +621,11 @@ const es: typeof en = {
   loadingPerson: "Leyendo esta persona…",
   personFailed: "No se pudo leer esta persona.",
   accounts: "Cuentas",
-  accountsHelp: "Cada cuenta y dónde se vio. Personal y trabajo indican qué parte de tu vida la vio.",
+  accountsHelp: "Cada cuenta de esta persona, en qué perfiles tuyos se vio y cómo se unió.",
+  inProfiles: (list: string) => `Vista en el perfil: ${list}`,
+  bot: "bot",
+  unlinkAccount: "Desvincular",
+  unlinkLabel: (account: string) => `Desvincular ${account} de esta persona`,
   atWork: "trabajo",
   seenNowhere: "Aún no se ha visto en ninguna cuenta",
   username: (u: string) => `@${u}`,
@@ -612,6 +642,7 @@ const es: typeof en = {
   splitTitle: "Mover cuentas a una persona nueva",
   splitBody:
     "Las cuentas que marques serán una persona nueva. El resto se queda aquí. WireCat no las volverá a unir por su cuenta.",
+  splitName: "Memo nombra a la persona nueva por sus cuentas. Aún no se puede elegir otro nombre.",
   splitAll: "Deja al menos una cuenta aquí.",
   move: (n: number) => (n ? plural("es", n, { one: "Mover # cuenta", other: "Mover # cuentas" }) : "Mover cuentas"),
   cancel: "Cancelar",
@@ -850,6 +881,15 @@ const es: typeof en = {
   doubtsShow: "Mostrar",
   doubtsHide: "Ocultar",
   doubtsPages: "Páginas de personas por revisar",
+  doubtOpen: "Abrir",
+  tasksTitle: "Tareas",
+  tasksRefused: "Memo no aceptó la búsqueda de las tareas de esta persona.",
+  tasksNeedMemo:
+    "Memo no está instalado o es demasiado antiguo para listar tareas. La página Tareas ofrece la solución.",
+  tasksOpenPage: "Abrir Tareas",
+  tasksFailed: "No se pudieron leer las tareas de esta persona.",
+  tasksAll: (n: number) => `Las ${n} en la página Tareas`,
+  moreContacts: (n: number) => `+${n}`,
 }
 
 export const peopleMessages: Messages<typeof en> = { en, ru, es }

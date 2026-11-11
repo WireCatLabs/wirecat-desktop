@@ -17,6 +17,27 @@ export function bySource<T extends IdentityLike>(identities: readonly T[]): { pr
 export const seenAtWork = (seenIn: readonly Seen[]) => seenIn.some((s) => s.scope === "work")
 
 /**
+ * The owner's profiles an account was seen in, by the account groups' members: memo's `seen_in` names the owner's
+ * account by its bare id, the groups by `<provider>:<id>` with the profiles that use it (`tg work`). The profile word
+ * is enough under the account's own source; another source's keeps its tool (`zm work`). An account no app named a
+ * profile for is shown by its id.
+ */
+export function profilesOf(
+  identity: { provider: string; seenIn: readonly Seen[] },
+  members: readonly { source: string; provider: string; profiles: readonly string[] }[],
+): string[] {
+  const names = identity.seenIn.flatMap((s) => {
+    const same = members.filter((m) => m.source.slice(m.source.indexOf(":") + 1) === s.account)
+    const member = same.find((m) => m.provider === identity.provider) ?? (same.length === 1 ? same[0] : undefined)
+    if (!member) return []
+    if (member.profiles.length === 0) return [s.account]
+    const own = member.provider === identity.provider
+    return member.profiles.map((p) => (own && p.includes(" ") ? p.slice(p.indexOf(" ") + 1) : p))
+  })
+  return [...new Set(names)]
+}
+
+/**
  * A split moves some of a person's accounts to a new person; moving all of them would only rename the person, and an
  * account memo cannot be handed back safely is never moved.
  */
@@ -83,17 +104,45 @@ export const matchesFilter = (
   return !q || words.toLocaleLowerCase().includes(q) || person.ref.includes(q)
 }
 
-/** The contact an older memo does not give, from the person's accounts: a phone, else an email, else a handle. */
+/** A WhatsApp id is a phone only as `<digits>@s.whatsapp.net` or `@c.us`, or bare digits; `@lid` is no number. */
+export const WHATSAPP_PHONE = /^(\d{7,15})(?:@s\.whatsapp\.net|@c\.us)?$/
+
+/**
+ * The contact an older memo does not give, from the person's accounts: a phone, else an email, else a handle. A person
+ * whose only account has none of these, such as a WhatsApp `@lid`, still gets its source, with no value.
+ */
 export function contactOf(
   identities: readonly { identity: string; provider: string; username: string | null }[],
-): { provider: string; value: string } | null {
+): { provider: string; value: string | null } | null {
   const id = (i: { identity: string }) => i.identity.slice(i.identity.indexOf(":") + 1)
-  const phone = identities.find((i) => i.provider === "phone" || i.provider === "whatsapp")
-  if (phone) return { provider: phone.provider, value: `+${id(phone).replace(/^\+/, "")}` }
+  const number = (i: { identity: string; provider: string }) =>
+    i.provider === "phone"
+      ? id(i).replace(/^\+/, "")
+      : i.provider === "whatsapp"
+        ? WHATSAPP_PHONE.exec(id(i))?.[1]
+        : null
+  const phone = identities.find((i) => number(i))
+  if (phone) return { provider: phone.provider, value: `+${number(phone)}` }
   const email = identities.find((i) => i.provider === "email")
   if (email) return { provider: email.provider, value: id(email) }
   const handle = identities.find((i) => i.username?.trim())
-  return handle ? { provider: handle.provider, value: `@${handle.username?.trim().replace(/^@/, "")}` } : null
+  if (handle) return { provider: handle.provider, value: `@${handle.username?.trim().replace(/^@/, "")}` }
+  const first = identities[0]
+  return first ? { provider: first.provider, value: null } : null
+}
+
+/**
+ * One account in words: its name when it has a letter (MAX gives «.» for some), else its handle, phone or address.
+ * `null` when none of these is known, so the caller shows the account id or its own word.
+ */
+export function accountLabel(i: {
+  name: string | null
+  username?: string | null
+  phone?: string | null
+  email?: string | null
+}): string | null {
+  const handle = i.username?.trim().replace(/^@/, "")
+  return cleanName(i.name) ?? (handle ? `@${handle}` : null) ?? (i.phone?.trim() || null) ?? (i.email?.trim() || null)
 }
 
 /**

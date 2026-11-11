@@ -10,6 +10,7 @@ import { IdentityList } from "./IdentityList"
 import { useJoinedFromName, usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
+import { PersonTasks } from "./PersonTasks"
 import { Refusal } from "./Refusal"
 import { usePeople } from "./store"
 
@@ -58,7 +59,12 @@ function Details({ reference }: { reference: string }) {
           <h3 className="font-medium">{m.accounts}</h3>
           <p className="text-[0.9rem] text-ink-soft">{m.accountsHelp}</p>
         </div>
-        <IdentityList identities={detail.person.identities} />
+        <IdentityList
+          identities={detail.person.identities}
+          {...(detail.person.identities.length > 1
+            ? { onUnlink: (identity: string) => usePeople.getState().askSplit(reference, [identity]) }
+            : {})}
+        />
         {detail.person.identities.filter((i) => i.movable).length > 0 && detail.person.identities.length > 1 && (
           <span>
             <Button
@@ -73,6 +79,7 @@ function Details({ reference }: { reference: string }) {
         <DoneNote reference={reference} />
         {failed && <Refusal error={failed} />}
       </div>
+      <PersonTasks reference={detail.person.ref} />
       <div className="flex min-w-0 flex-col gap-[0.9rem] empty:hidden">
         <Merges person={detail.person} />
         {groupMatches(detail.person.matches, decided).map((group) => (

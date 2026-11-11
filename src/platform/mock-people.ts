@@ -1,3 +1,4 @@
+import { WHATSAPP_PHONE } from "@/domain/people"
 import { delay } from "./mock-delay"
 import {
   type Doubt,
@@ -48,6 +49,7 @@ const account = (
   method,
   linkedAt: ago(days * DAY),
   movable: true,
+  bot: false,
 })
 
 function seed(): Held[] {
@@ -161,6 +163,32 @@ function seed(): Held[] {
     ]),
     person("person:43", "Pavel Harbour", [
       account("email:pavel@harbour.example", "Pavel Harbour", [["2", "work"]], "initial", 18),
+    ]),
+    // The owner's real data: a stored name with no letter, a WhatsApp @lid with no number, MAX's «.» and a bot.
+    person("person:44", "—", [
+      account("email:ops@msx.example", null, [["me@work.example", "work"]], "initial", 50),
+      account("telegram:4402", null, [["1001", "personal"]], "same-email", 20, "msx04x"),
+    ]),
+    person("person:45", "Eky", [
+      account("whatsapp:157724520243314@lid", "Claudio Тренер", [["34600000001", "personal"]], "initial", 20),
+    ]),
+    person("person:46", "Dmitry Volkov", [
+      account(
+        "telegram:6611",
+        "Dmitry",
+        [
+          ["1001", "personal"],
+          ["1002", "work"],
+        ],
+        "initial",
+        30,
+        "dvolkov",
+      ),
+      account("max:6610", ".", [["2001", "personal"]], "same-phone", 12),
+      {
+        ...account("telegram:6612", "Sirgris Personal Bot", [["1001", "personal"]], "manual", 2, "sirgris_bot"),
+        bot: true,
+      },
     ]),
     ...crowd(),
   ]
@@ -395,6 +423,7 @@ export function peopleMock(): Pick<
     return [
       ...of("person:40", "mixed-names", ["max:7002"], [{ op: "unlink", identities: ["max:7002"] }]),
       ...of("person:7", "shared-address", ["email:lena@example.org"], [{ op: "unmerge", merge: "merge:7-12" }]),
+      ...of("person:44", "shared-address", ["email:ops@msx.example", "telegram:4402"], []),
       ...test,
     ]
   }
@@ -442,7 +471,7 @@ export function peopleMock(): Pick<
     p.identities.find((i) => i.provider === provider)?.identity.split(":")[1]
   const contactOf = (p: Held) => {
     const value = (provider: string) => identityValue(p, provider)
-    const phone = value("whatsapp")
+    const phone = WHATSAPP_PHONE.exec(value("whatsapp") ?? "")?.[1]
     const username = p.identities.find((i) => i.username)?.username
     return phone ? `+${phone}` : (value("email") ?? (username ? `@${username}` : null))
   }
@@ -462,6 +491,7 @@ export function peopleMock(): Pick<
         usernameSource: null,
         messagesFrom: null,
         lastContact: null,
+        bot: false,
       }
     const n = rank(p)
     return {
@@ -469,12 +499,13 @@ export function peopleMock(): Pick<
       displayName: owner ? null : display(p),
       kind: KIND[p.ref] ?? "person",
       contact: contactOf(p),
-      phone: identityValue(p, "whatsapp") ? `+${identityValue(p, "whatsapp")}` : null,
+      phone: WHATSAPP_PHONE.test(identityValue(p, "whatsapp") ?? "") ? `+${identityValue(p, "whatsapp")}` : null,
       email: identityValue(p, "email") ?? null,
       username: p.identities.find((i) => i.username)?.username ?? null,
       usernameSource: p.identities.find((i) => i.username)?.provider ?? null,
       messagesFrom: owner ? null : n < 100 ? 1000 - n : (n * 37) % 410,
       lastContact: ago((n % 30) * 3_600_000 * 7),
+      bot: p.identities.length > 0 && p.identities.every((i) => i.bot),
     }
   }
   const ofKind = (kind: string) => people.map(listed).filter((p) => (p.kind ?? "person") === kind)
