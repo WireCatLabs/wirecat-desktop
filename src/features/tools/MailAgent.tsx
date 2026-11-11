@@ -2,9 +2,17 @@ import { useCallback, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { dailyCap, formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
+import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { agentName, BackgroundAgentChoice, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
+import {
+  agentName,
+  BackgroundAgentChoice,
+  costed,
+  otherAgent,
+  restricted,
+  useAgentsLoaded,
+} from "@/shared/BackgroundAgentChoice"
 import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
@@ -51,10 +59,9 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   const [failure, setFailure] = useState<Failure>(null)
   const [ask, setAsk] = useState(false)
   const agents = useAgentsLoaded()
-  const names = useMessages(backgroundAgentMessages).names
   const effective = agents?.effective ?? null
-  const installed = agents?.agents.filter((a) => a.installed).length ?? 0
-  const choose = state?.state === "off" && effective === null && installed > 1
+  const ready = agents?.agents.filter((a) => a.state === "ready").map((a) => a.id) ?? []
+  const choose = state?.state === "off" && effective === null && ready.length > 1
 
   const loadWaiting = useCallback(() => {
     platform.mailAgentWaiting(tool.id).then(setWaiting, () => setWaiting(null))
@@ -169,7 +176,8 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
           <p id={helpId} className="text-[0.875rem] text-ink-dim">
             {m.toggleHelp(
               shownEvery ? duration(shownEvery) : state?.state === "on" ? state.when : duration(every),
-              runningIn === null ? null : agentName(names, runningIn),
+              runningIn === null ? null : agentName(agents, runningIn),
+              runningIn !== null && costed(agents, runningIn),
             )}
           </p>
         </div>
@@ -196,7 +204,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
             state={state}
             m={m}
             effective={effective}
-            others={agents?.agents.filter((a) => a.installed).map((a) => a.id) ?? []}
+            agents={agents}
             busy={pending !== null}
             onRun={(agent) => change(true, shownEvery ?? every, agent)}
           />
@@ -226,13 +234,12 @@ type StatusProps = {
   m: MailAgentText
   /** The agent for background jobs; another one than the schedule's is offered, never switched to. */
   effective: string | null
-  /** Installed agents. */
-  others: string[]
+  agents: BackgroundAgents | null
   busy: boolean
   onRun: (agent: string) => void
 }
 
-function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
+function Status({ state, m, effective, agents, busy, onRun }: StatusProps) {
   const lang = useLang()
   const a = useMessages(backgroundAgentMessages)
   const { last, spentTodayUsd, trouble } = state
@@ -243,7 +250,11 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
     last.exitCode !== 0 &&
     (trouble.agent === null || state.agent === null || trouble.agent === state.agent)
   const troubled = failing ? (trouble.agent ?? state.agent) : null
-  const instead = failing ? others.find((id) => id !== troubled) : undefined
+  const other = otherAgent(agents, troubled)
+  const instead = failing ? other.instead : undefined
+  const pickOther = failing && other.pick
+  const name = (id: string) => agentName(agents, id)
+  const paid = state.agent === null || costed(agents, state.agent)
   const moved = !failing && state.agent !== null && effective !== null && effective !== state.agent
   const outcome = last ? runOutcome(last) : null
   const cap = dailyCap(state.maxCostPerDayUsd)
@@ -261,12 +272,15 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
       ) : (
         <p>{m.noRunYet}</p>
       )}
-      {spentTodayUsd !== null && state.agent !== "codex" && (
+      {spentTodayUsd !== null && paid && (
         <p className="tabular-nums">
           {m.spentToday(formatUsd(spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang))}
         </p>
       )}
-      {state.agent === "codex" && <p>{a.codexNoCap}</p>}
+      {!paid && state.agent && <p>{a.noCost(name(state.agent))}</p>}
+      {state.agent && !restricted(agents, state.agent) && (
+        <p className="text-warn-ink">{a.unrestricted(name(state.agent))}</p>
+      )}
       {failing && (
         <ErrorNotice
           inline
@@ -274,19 +288,25 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
           action={
             instead && (
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => onRun(instead)}>
-                {a.switchTo(agentName(a.names, instead))}
+                {a.switchTo(name(instead))}
               </Button>
             )
           }
         >
-          {a.trouble[trouble.kind](troubled === null ? a.theAgent : agentName(a.names, troubled))}
+          {a.trouble[trouble.kind](troubled === null ? a.theAgent : name(troubled))}
         </ErrorNotice>
+      )}
+      {pickOther && (
+        <div className="flex flex-col gap-2">
+          <p>{m.pickOther}</p>
+          <BackgroundAgentChoice />
+        </div>
       )}
       {moved && state.agent && effective && (
         <div className="flex flex-wrap items-center gap-3">
-          <p>{m.otherChosen(agentName(a.names, effective), agentName(a.names, state.agent))}</p>
+          <p>{m.otherChosen(name(effective), name(state.agent))}</p>
           <Button size="sm" variant="secondary" disabled={busy} onClick={() => onRun(effective)}>
-            {a.switchTo(agentName(a.names, effective))}
+            {a.switchTo(name(effective))}
           </Button>
         </div>
       )}

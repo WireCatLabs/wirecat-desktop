@@ -383,7 +383,7 @@ export type Diagnosis = {
 export type DigestBook = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
 /**
  *  `named`: this memo keeps digests by name (`digest list`); without it there is only `morning-digest`.
- *  `harness`: Claude Code is on PATH, so a digest can be written.
+ *  `harness`: an agent for background jobs is ready, so a new digest can be written.
  */
 { state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean; 
 /**
@@ -409,6 +409,10 @@ export type DigestItem = {
 	spentTodayUsd: number | null,
 	last: DigestRun | null,
 	nextAt: string | null,
+	/**  The agent that writes it, `None` from a memo that does not say. */
+	agent: string | null,
+	/**  Why its last run failed, when the agent's own words say: no credit, a limit, signed out. */
+	trouble: AgentTrouble | null,
 };
 
 /**  The last run, without its output: the output quotes messages and the page reads the day itself. */
@@ -430,6 +434,11 @@ export type DigestSpec = {
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
 	scheduled: boolean,
+	/**
+	 *  The agent to write it: on an edit, the digest's own unless the owner moves it; `None` on a new one is the
+	 *  agent for background jobs.
+	 */
+	agent?: string | null,
 };
 
 export type DigestTemplate = { state: "noMemo" } | 

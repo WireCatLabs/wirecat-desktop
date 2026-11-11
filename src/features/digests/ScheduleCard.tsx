@@ -526,7 +526,7 @@ export function NoHarness() {
   const m = useMessages(bookMessages).form
   return (
     <p className="text-[0.92rem] text-warn-ink">
-      {m.noHarness} <LinkButton onClick={() => useNav.getState().go("agents")}>{m.toAgents}</LinkButton>
+      {m.noHarness} <LinkButton onClick={() => useNav.getState().go("settings")}>{m.toAgents}</LinkButton>
     </p>
   )
 }

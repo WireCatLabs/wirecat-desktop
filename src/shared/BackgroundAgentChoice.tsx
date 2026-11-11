@@ -1,7 +1,7 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useMessages } from "@/i18n"
-import type { BackgroundAgents } from "@/platform/background-agent-schemas"
+import type { BackgroundAgent, BackgroundAgents } from "@/platform/background-agent-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -9,11 +9,33 @@ import { useFieldError } from "@/ui/FieldError"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { useBackgroundAgents } from "./background-agent-store"
-import { backgroundAgentMessages } from "./messages-background-agent"
+import { openTool } from "./go-tool"
+import { type BackgroundAgentText, backgroundAgentMessages } from "./messages-background-agent"
 
-export const agentName = (names: Record<string, string>, id: string) => names[id] ?? id
+/** The agent's own name from the list, or its id for one the list no longer has. */
+export const agentName = (agents: BackgroundAgents | null, id: string) =>
+  agents?.agents.find((a) => a.id === id)?.name ?? id
 
-/** Loads the agents once per page that shows them; Settings and the mail agent share the answer. */
+/** Only an agent that reports what a run costs can be held to a cap; one the list does not know, only claude. */
+export const costed = (agents: BackgroundAgents | null, id: string) =>
+  agents?.agents.find((a) => a.id === id)?.reportsCost ?? id === "claude"
+
+/** False only for an agent the list says approves every command itself; one it does not know is not warned about. */
+export const restricted = (agents: BackgroundAgents | null, id: string) =>
+  agents?.agents.find((a) => a.id === id)?.restricted ?? true
+
+/**
+ * The agent to offer when `failing` refused a run: the one chosen for background jobs, or the only other one ready.
+ * `undefined` with several others ready: the owner picks, nothing is picked for him.
+ */
+export function otherAgent(agents: BackgroundAgents | null, failing: string | null) {
+  const others = (agents?.agents ?? []).filter((a) => a.state === "ready" && a.id !== failing).map((a) => a.id)
+  const effective = agents?.effective ?? null
+  const instead = effective !== null && effective !== failing ? effective : others.length === 1 ? others[0] : undefined
+  return { instead, pick: instead === undefined && others.length > 1 }
+}
+
+/** Loads the agents once per page that shows them; Settings, the mail agent and the digests share the answer. */
 export function useAgentsLoaded(): BackgroundAgents | null {
   const agents = useBackgroundAgents((s) => s.agents)
   useEffect(() => {
@@ -22,9 +44,12 @@ export function useAgentsLoaded(): BackgroundAgents | null {
   return agents
 }
 
+const stateOf = (m: BackgroundAgentText, a: BackgroundAgent) =>
+  a.state === "ready" && a.signedIn === false ? m.notSignedIn : m.states[a.state]
+
 /**
- * The owner's pick of Claude Code or Codex. "Not chosen" stays until he picks, even with one agent listed first; with
- * only one installed, the line under the list says that one runs the jobs.
+ * The owner's pick among the agents found. Every one is listed: those that cannot run a job are greyed with the
+ * reason, never left out. "Not chosen" stays until he picks; with one ready, the line under the list says it runs.
  */
 export function BackgroundAgentChoice({ describedBy }: { describedBy?: string }) {
   const m = useMessages(backgroundAgentMessages)
@@ -49,15 +74,15 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
         <Skeleton className="h-8 w-32" />
       </div>
     )
-  const installed = agents.agents.filter((a) => a.installed)
-  if (installed.length === 0) return <p className="text-[0.95rem] text-ink-soft">{m.none}</p>
+  const ready = agents.agents.filter((a) => a.state === "ready")
   const marked = picked ?? agents.chosen
   const shown = agents.agents.find((a) => a.id === marked)
-  const only = agents.chosen === null && installed.length === 1 ? installed[0] : undefined
-  const state = (a: (typeof agents.agents)[number]) =>
-    !a.installed ? m.notInstalled : a.signedIn === false ? m.notSignedIn : m.installed
+  const only = agents.chosen === null && ready.length === 1 ? ready[0] : undefined
+  const greyed = agents.agents.some((a) => a.state !== "ready")
+  const runs = shown?.state === "ready" ? shown : only
   return (
     <div className="flex max-w-[40rem] flex-col gap-3">
+      {ready.length === 0 && <p className="text-[0.95rem] text-warn-ink">{m.none}</p>}
       <Select
         id={`${name}-agent`}
         className="w-full"
@@ -71,19 +96,32 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
           setPicked(id)
           need.clear()
         }}
-        options={agents.agents.map((a) => ({ value: a.id, label: `${agentName(m.names, a.id)} · ${state(a)}` }))}
+        options={agents.agents.map((a) => ({
+          value: a.id,
+          label: `${a.name} · ${stateOf(m, a)}`,
+          disabled: a.state !== "ready",
+        }))}
       />
       {need.hint}
-      {only && marked === null && (
-        <p className="text-[0.9rem] text-ink-soft">{m.onlyOne(agentName(m.names, only.id))}</p>
+      {only && marked === null && <p className="text-[0.9rem] text-ink-soft">{m.onlyOne(only.name)}</p>}
+      {runs && !runs.reportsCost && <p className="text-[0.9rem] text-ink-soft">{m.noCost(runs.name)}</p>}
+      {runs && !runs.restricted && <p className="text-[0.9rem] text-warn-ink">{m.unrestricted(runs.name)}</p>}
+      {greyed && <p className="text-[0.9rem] text-ink-soft">{m.greyed}</p>}
+      {!agents.listed && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-[0.9rem] text-ink-soft">{m.oldMemo}</p>
+          <Button size="sm" variant="secondary" onClick={() => openTool("memo")}>
+            {m.openMemo}
+          </Button>
+        </div>
       )}
-      {shown?.id === "codex" && <p className="text-[0.9rem] text-ink-soft">{m.codexNoCap}</p>}
       <span>
         <Button
           size="sm"
           disabled={busy}
           onClick={() => {
             if (marked === null) return need.fail(m.need)
+            if (shown?.state !== "ready") return need.fail(m.notReady)
             if (marked === agents.chosen) return need.fail(m.same)
             void useBackgroundAgents.getState().choose(marked)
           }}

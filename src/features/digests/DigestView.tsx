@@ -15,6 +15,7 @@ import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { SplitButton } from "@/ui/SplitButton"
 import { BriefCard } from "./BriefCard"
+import { DigestAgent } from "./DigestAgent"
 import { nextOf, titleOf } from "./DigestTable"
 import { FillHistory } from "./FillHistory"
 import { digestMessages } from "./messages"
@@ -68,6 +69,7 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
         </div>
         {/* Get now and Put on schedule wait for an agent: the reason stands beside them, not only in the settings. */}
         {!harness && <NoHarness />}
+        <DigestAgent item={item} title={title} />
         {working === "run" && (
           <p className="flex items-center gap-2 text-[0.92rem] text-ink-soft" aria-live="polite">
             <LoaderCircle className="size-4 animate-spin" aria-hidden /> {m.one.running}

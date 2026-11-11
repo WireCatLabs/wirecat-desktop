@@ -1,12 +1,13 @@
 import { useId } from "react"
 import { useMessages } from "@/i18n"
-import { BackgroundAgentChoice } from "@/shared/BackgroundAgentChoice"
+import { BackgroundAgentChoice, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { SectionTitle } from "@/ui/SectionTitle"
 
 /** Settings, "Agent for background jobs": Claude Code or Codex for the jobs that run on a timer. */
 export function BackgroundAgentSetting() {
   const m = useMessages(backgroundAgentMessages)
+  const agents = useAgentsLoaded()
   const head = useId()
   const help = useId()
   return (
@@ -20,7 +21,7 @@ export function BackgroundAgentSetting() {
         </p>
       </div>
       <BackgroundAgentChoice describedBy={help} />
-      <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">{m.digests}</p>
+      {agents && !agents.listed && <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">{m.digests}</p>}
     </section>
   )
 }

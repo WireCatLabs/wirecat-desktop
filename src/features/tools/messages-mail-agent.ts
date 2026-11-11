@@ -4,8 +4,8 @@ const en = {
   title: "Mail agent",
   what: "Reads new mail and proposes tasks, invoices, orders and facts for you to accept. It never sends anything and never decides for you.",
   toggle: "Run on a schedule",
-  toggleHelp: (every: string, agent: string | null) =>
-    `Checks for new mail every ${every}${agent ? ` and runs in ${agent}` : ""}.${agent === "Claude Code" ? " One run costs at most $1." : ""}`,
+  toggleHelp: (every: string, agent: string | null, capped: boolean) =>
+    `Checks for new mail every ${every}${agent ? ` and runs in ${agent}` : ""}.${capped ? " One run costs at most $1." : ""}`,
   every: "How often",
   changing: "Changing…",
   failedEvery: "Could not change how often it runs.",
@@ -15,9 +15,9 @@ const en = {
   openMemo: "Open Memo",
   old: (version: string | null, need: string) =>
     `${version ? `Memo ${version}` : "This Memo"} is too old for the mail agent. Update it to ${need} or later.`,
-  noHarness:
-    "Neither Claude Code nor Codex is installed. The agent runs in one of them: install it, then turn this on.",
-  needAgent: "Choose the agent it runs in first: Claude Code or Codex.",
+  noHarness: "No agent on this computer can run it. Install Claude Code or Codex, then turn this on.",
+  needAgent: "Choose the agent it runs in first.",
+  pickOther: "Choose another agent for background jobs, then switch the mail agent to it.",
   otherChosen: (chosen: string, running: string) =>
     `You chose ${chosen} for background jobs, but the mail agent still runs in ${running}.`,
   aboutClaude: "About Claude Code",
@@ -46,8 +46,8 @@ const ru: typeof en = {
   title: "Почтовый агент",
   what: "Читает новую почту и предлагает задачи, счета, заказы и факты, которые вы принимаете сами. Он ничего не отправляет и ничего не решает за вас.",
   toggle: "Запускать по расписанию",
-  toggleHelp: (every, agent) =>
-    `Проверяет новую почту каждые ${every}${agent ? ` и работает в ${agent}` : ""}.${agent === "Claude Code" ? " Один запуск стоит не больше $1." : ""}`,
+  toggleHelp: (every, agent, capped) =>
+    `Проверяет новую почту каждые ${every}${agent ? ` и работает в ${agent}` : ""}.${capped ? " Один запуск стоит не больше $1." : ""}`,
   every: "Как часто",
   changing: "Меняю…",
   failedEvery: "Не удалось изменить частоту запуска.",
@@ -58,8 +58,9 @@ const ru: typeof en = {
   old: (version, need) =>
     `${version ? `Memo ${version}` : "Эта версия Memo"} слишком старая для почтового агента. Обновите её до ${need} или новее.`,
   noHarness:
-    "Не установлен ни Claude Code, ни Codex. Агент работает в одном из них: установите его, затем включите агента.",
-  needAgent: "Сначала выберите, в каком агенте он работает: Claude Code или Codex.",
+    "Ни один агент на этом компьютере не может его запускать. Установите Claude Code или Codex, затем включите.",
+  needAgent: "Сначала выберите, в каком агенте он работает.",
+  pickOther: "Выберите другого агента для фоновых задач, затем переведите на него почтового агента.",
   otherChosen: (chosen, running) =>
     `Для фоновых задач вы выбрали ${chosen}, но почтовый агент пока работает в ${running}.`,
   aboutClaude: "О Claude Code",
@@ -101,8 +102,8 @@ const es: typeof en = {
   title: "Agente de correo",
   what: "Lee el correo nuevo y propone tareas, facturas, pedidos y datos para que tú los aceptes. Nunca envía nada ni decide por ti.",
   toggle: "Ejecutar con horario",
-  toggleHelp: (every, agent) =>
-    `Busca correo nuevo cada ${every}${agent ? ` y se ejecuta en ${agent}` : ""}.${agent === "Claude Code" ? " Cada ejecución cuesta como mucho 1 $." : ""}`,
+  toggleHelp: (every, agent, capped) =>
+    `Busca correo nuevo cada ${every}${agent ? ` y se ejecuta en ${agent}` : ""}.${capped ? " Cada ejecución cuesta como mucho 1 $." : ""}`,
   every: "Con qué frecuencia",
   changing: "Cambiando…",
   failedEvery: "No se pudo cambiar la frecuencia.",
@@ -112,9 +113,9 @@ const es: typeof en = {
   openMemo: "Abrir Memo",
   old: (version, need) =>
     `${version ? `Memo ${version}` : "Esta versión de Memo"} es demasiado antigua para el agente de correo. Actualízala a ${need} o posterior.`,
-  noHarness:
-    "No está instalado ni Claude Code ni Codex. El agente se ejecuta en uno de ellos: instálalo y luego enciende el agente.",
-  needAgent: "Elige primero en qué agente se ejecuta: Claude Code o Codex.",
+  noHarness: "Ningún agente de este equipo puede ejecutarlo. Instala Claude Code o Codex y luego actívalo.",
+  needAgent: "Elige primero en qué agente se ejecuta.",
+  pickOther: "Elige otro agente para las tareas en segundo plano y luego cambia el agente de correo a él.",
   otherChosen: (chosen, running) =>
     `Elegiste ${chosen} para las tareas en segundo plano, pero el agente de correo aún se ejecuta en ${running}.`,
   aboutClaude: "Acerca de Claude Code",

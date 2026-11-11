@@ -1,24 +1,36 @@
 import type { Messages } from "@/i18n"
+import type { AgentState } from "@/platform/background-agent-schemas"
 import type { TroubleKind } from "@/platform/bindings"
 
 const en = {
-  names: { claude: "Claude Code", codex: "Codex" } as Record<string, string>,
   heading: "Agent for background jobs",
-  help: "The mail agent runs in it on a schedule. With both installed, nothing runs until you choose.",
+  help: "The mail agent and the digests run in it on a schedule. With several ready, nothing runs until you choose.",
   pick: "Not chosen",
-  installed: "Installed",
-  notInstalled: "Not installed",
-  notSignedIn: "Installed, not signed in",
-  onlyOne: (name: string) => `Only ${name} is installed, so background jobs run in it.`,
+  states: {
+    ready: "Ready",
+    notInstalled: "Not installed",
+    programMissing: "Its program is not found",
+    notSupported: "Cannot run on a schedule yet",
+    needsNewerMemo: "Needs a newer Memo",
+  } as Record<AgentState, string>,
+  notSignedIn: "Ready, not signed in",
+  greyed:
+    "Greyed agents cannot run background jobs. «Its program is not found»: its settings are on this computer, but its command is not, so install it again. «Cannot run on a schedule yet»: Memo cannot start it without you.",
+  oldMemo: "This Memo knows only Claude Code and Codex. Update Memo to run background jobs in other agents.",
+  openMemo: "Open Memo",
+  onlyOne: (name: string) => `Only ${name} is ready, so background jobs run in it.`,
   use: "Use this agent",
   same: "This agent is already in use.",
   need: "Choose an agent first.",
+  notReady: "This agent cannot run background jobs. Choose a ready one.",
   chooseFailed: "Your choice was not saved.",
   failed: "Could not list the agents.",
   looking: "Looking for agents on this computer…",
-  none: "Neither Claude Code nor Codex is installed. Install one of them to run background jobs.",
-  digests: "Digests are written by Claude Code for now: they cannot run in another agent yet.",
-  codexNoCap: "Codex does not report what a run costs, so the cost limits do not stop its runs.",
+  none: "No agent on this computer can run background jobs. Install Claude Code or Codex, then come back.",
+  digests: "Digests are written by Claude Code until you update Memo.",
+  unrestricted: (name: string) =>
+    `${name} runs every command on its own, without asking. Only the read-only mode stops it from sending messages.`,
+  noCost: (name: string) => `${name} does not report what a run costs, so the cost limits do not stop its runs.`,
   trouble: {
     noCredit: (name: string) => `${name} has no credit left, so the run failed.`,
     limit: (name: string) => `${name} reached its usage limit, so the run failed.`,
@@ -26,26 +38,38 @@ const en = {
   } as Record<TroubleKind, (name: string) => string>,
   theAgent: "The agent",
   switchTo: (name: string) => `Switch to ${name}`,
+  runsIn: (name: string) => `Written by ${name}.`,
 }
 
 const ru: typeof en = {
-  names: { claude: "Claude Code", codex: "Codex" },
   heading: "Агент для фоновых задач",
-  help: "В нём по расписанию работает почтовый агент. Если установлены оба, ничего не запускается, пока вы не выберете.",
+  help: "В нём по расписанию работают почтовый агент и сводки. Если готовы несколько, ничего не запускается, пока вы не выберете.",
   pick: "Не выбран",
-  installed: "Установлен",
-  notInstalled: "Не установлен",
-  notSignedIn: "Установлен, вход не выполнен",
-  onlyOne: (name) => `Установлен только ${name}, поэтому фоновые задачи работают в нём.`,
+  states: {
+    ready: "Готов",
+    notInstalled: "Не установлен",
+    programMissing: "Не найдена его программа",
+    notSupported: "Пока не умеет работать по расписанию",
+    needsNewerMemo: "Нужна более новая Memo",
+  },
+  notSignedIn: "Готов, вход не выполнен",
+  greyed:
+    "Серые агенты не могут выполнять фоновые задачи. «Не найдена его программа»: его настройки на компьютере есть, а команды нет, поэтому установите его заново. «Пока не умеет работать по расписанию»: Memo не может запустить его без вас.",
+  oldMemo: "Эта Memo знает только Claude Code и Codex. Обновите Memo, чтобы запускать фоновые задачи в других агентах.",
+  openMemo: "Открыть Memo",
+  onlyOne: (name) => `Готов только ${name}, поэтому фоновые задачи работают в нём.`,
   use: "Использовать этого агента",
   same: "Этот агент уже используется.",
   need: "Сначала выберите агента.",
+  notReady: "Этот агент не может выполнять фоновые задачи. Выберите готового.",
   chooseFailed: "Выбор не сохранился.",
   failed: "Не удалось получить список агентов.",
   looking: "Ищем агентов на этом компьютере…",
-  none: "Не установлен ни Claude Code, ни Codex. Установите одного из них, чтобы запускать фоновые задачи.",
-  digests: "Сводки пока пишет Claude Code: запустить их в другом агенте пока нельзя.",
-  codexNoCap: "Codex не сообщает, сколько стоит запуск, поэтому лимиты расходов его запуски не останавливают.",
+  none: "Ни один агент на этом компьютере не может выполнять фоновые задачи. Установите Claude Code или Codex и вернитесь сюда.",
+  digests: "Сводки пишет Claude Code, пока вы не обновите Memo.",
+  unrestricted: (name) =>
+    `${name} выполняет любые команды сам, не спрашивая. Отправлять сообщения ему мешает только режим «только чтение».`,
+  noCost: (name) => `${name} не сообщает, сколько стоит запуск, поэтому лимиты расходов его запуски не останавливают.`,
   trouble: {
     noCredit: (name) => `У ${name} закончились деньги на счёте, поэтому запуск не удался.`,
     limit: (name) => `${name} исчерпал лимит использования, поэтому запуск не удался.`,
@@ -53,27 +77,40 @@ const ru: typeof en = {
   },
   theAgent: "Агент",
   switchTo: (name) => `Перевести на ${name}`,
+  runsIn: (name) => `Пишет ${name}.`,
 }
 
 const es: typeof en = {
-  names: { claude: "Claude Code", codex: "Codex" },
   heading: "Agente para tareas en segundo plano",
-  help: "El agente de correo se ejecuta en él con horario. Si ambos están instalados, nada se ejecuta hasta que elijas.",
+  help: "El agente de correo y los resúmenes se ejecutan en él con horario. Si hay varios listos, nada se ejecuta hasta que elijas.",
   pick: "Sin elegir",
-  installed: "Instalado",
-  notInstalled: "No instalado",
-  notSignedIn: "Instalado, sin iniciar sesión",
-  onlyOne: (name) => `Solo ${name} está instalado, así que las tareas en segundo plano se ejecutan en él.`,
+  states: {
+    ready: "Listo",
+    notInstalled: "No instalado",
+    programMissing: "No se encuentra su programa",
+    notSupported: "Aún no puede ejecutarse con horario",
+    needsNewerMemo: "Necesita un Memo más reciente",
+  },
+  notSignedIn: "Listo, sin iniciar sesión",
+  greyed:
+    "Los agentes en gris no pueden ejecutar tareas en segundo plano. «No se encuentra su programa»: su configuración está en este equipo, pero su comando no, así que vuelve a instalarlo. «Aún no puede ejecutarse con horario»: Memo no puede iniciarlo sin ti.",
+  oldMemo:
+    "Este Memo solo conoce Claude Code y Codex. Actualiza Memo para ejecutar tareas en segundo plano en otros agentes.",
+  openMemo: "Abrir Memo",
+  onlyOne: (name) => `Solo ${name} está listo, así que las tareas en segundo plano se ejecutan en él.`,
   use: "Usar este agente",
   same: "Este agente ya está en uso.",
   need: "Elige primero un agente.",
+  notReady: "Este agente no puede ejecutar tareas en segundo plano. Elige uno listo.",
   chooseFailed: "No se guardó tu elección.",
   failed: "No se pudo obtener la lista de agentes.",
   looking: "Buscando agentes en este equipo…",
-  none: "No está instalado ni Claude Code ni Codex. Instala uno de ellos para ejecutar tareas en segundo plano.",
-  digests: "Por ahora los resúmenes los escribe Claude Code: todavía no pueden ejecutarse en otro agente.",
-  codexNoCap:
-    "Codex no informa de cuánto cuesta una ejecución, así que los límites de gasto no detienen sus ejecuciones.",
+  none: "Ningún agente de este equipo puede ejecutar tareas en segundo plano. Instala Claude Code o Codex y vuelve aquí.",
+  digests: "Los resúmenes los escribe Claude Code hasta que actualices Memo.",
+  unrestricted: (name) =>
+    `${name} ejecuta cualquier comando por su cuenta, sin preguntar. Solo el modo de solo lectura le impide enviar mensajes.`,
+  noCost: (name) =>
+    `${name} no informa de cuánto cuesta una ejecución, así que los límites de gasto no detienen sus ejecuciones.`,
   trouble: {
     noCredit: (name) => `${name} no tiene saldo, así que la ejecución falló.`,
     limit: (name) => `${name} llegó a su límite de uso, así que la ejecución falló.`,
@@ -82,6 +119,7 @@ const es: typeof en = {
   },
   theAgent: "El agente",
   switchTo: (name) => `Cambiar a ${name}`,
+  runsIn: (name) => `Lo escribe ${name}.`,
 }
 
 export type BackgroundAgentText = typeof en

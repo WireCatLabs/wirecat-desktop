@@ -1,19 +1,22 @@
-//! The agent that runs the background jobs memo keeps on a timer: Claude Code or Codex, the two `schedule agent`
-//! starts. memo has no default of its own, so the owner's choice is kept here, in the app's data folder, and is never
-//! made for him: with several agents installed and none chosen, a job waits for his answer.
-//!
-//! Digests stay on Claude Code: memo's `digest add` starts claude and takes no agent yet.
+//! The agent that runs the background jobs memo keeps on a timer: the mail agent and the digests. The agents are the
+//! Agents page's own (`skills::agents`), joined with the ones memo says it can start without a person
+//! (`schedule agents`) and with memo's reader list for "signed in". Every agent found is listed; one that cannot run a
+//! job says why. memo has no default agent, so the owner's choice is kept here, in the app's data folder, and is never
+//! made for him: with several ready and none chosen, a job waits for his answer.
 //!
 //! A failed run's own files are read only to sort the failure; only the matched line, masked, leaves Rust.
 
-use crate::{memory_add, node, paths, redact};
+use crate::{digest_schedule, memory_add, node, paths, redact, skills};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
-/// `schedule agent`'s harness, and the id memo's reader list gives the same program.
-const AGENTS: [(&str, &str); 2] = [("claude", "claude-code"), ("codex", "codex")];
+const SUPPORTED: [&str; 4] = ["schedule", "agents", "list", "--json"];
+/// What a memo from before `schedule agents list` can start; only claude reports a run's cost. Both hold the agent to
+/// the CLIs' commands (claude) or folders (codex).
+const FALLBACK: [(&str, bool); 2] = [("claude", true), ("codex", false)];
 const FILE: &str = "background-agent.json";
 /// An agent prints its refusal last; the head of a long stderr is never needed for it.
 const TAIL: u64 = 64 * 1024;
@@ -22,13 +25,32 @@ const TAIL: u64 = 64 * 1024;
 const SHORT_REPORT: u64 = 2048;
 const MAX_LINE: usize = 240;
 
+/// Why an agent can or cannot run a job. None is hidden: the owner sees each agent found and the reason.
+#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum AgentState {
+    Ready,
+    NotInstalled,
+    /// Its settings folder is there, its program is not on PATH: memo cannot start it.
+    ProgramMissing,
+    /// memo cannot start it without a person.
+    NotSupported,
+    /// This memo is too old to say; a newer one may start it.
+    NeedsNewerMemo,
+}
+
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Agent {
     pub id: String,
-    pub installed: bool,
-    /// `None` where memo could not say: too old for its reader list, or not installed.
+    pub name: String,
+    pub state: AgentState,
+    /// `None` where memo's reader list does not say.
     pub signed_in: Option<bool>,
+    /// False for an agent that does not report what a run costs: the cost limits cannot stop it.
+    pub reports_cost: bool,
+    /// False for an agent that approves every command it runs without a person: only the read-only switch stops a send.
+    pub restricted: bool,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -36,8 +58,22 @@ pub struct Agent {
 pub struct BackgroundAgents {
     pub agents: Vec<Agent>,
     pub chosen: Option<String>,
-    /// The agent a new job starts: the chosen one, or the only one installed. `None` asks the owner.
+    /// The agent a new job starts: the chosen one when ready, or the only one ready. `None` asks the owner.
     pub effective: Option<String>,
+    /// False when this memo cannot list its agents: only Claude Code and Codex, and digests stay on Claude Code.
+    pub listed: bool,
+}
+
+/// One agent memo can start, as `schedule agents` lists it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Runnable {
+    pub id: String,
+    pub name: Option<String>,
+    pub programs: Vec<String>,
+    pub reports_cost: bool,
+    pub restricted: bool,
+    /// memo's own PATH check, by the programs it starts: Cursor's agent is `cursor-agent`, never the `cursor` editor.
+    pub installed: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
@@ -45,7 +81,7 @@ pub struct BackgroundAgents {
 struct Saved {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     agent: Option<String>,
-    /// The agent the mail-triage schedule was last made with here: memo's `schedule list` does not say.
+    /// The agent the mail-triage schedule was last made with here, for a memo whose `schedule list` does not say.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     mail_triage: Option<String>,
 }
@@ -67,8 +103,69 @@ pub struct AgentTrouble {
     pub line: String,
 }
 
-pub fn check(id: &str) -> Result<&'static str, String> {
-    AGENTS.iter().map(|(h, _)| *h).find(|h| *h == id).ok_or_else(|| format!("not an agent for background jobs: {id}"))
+/// An agent id becomes an argument: one word of lower-case letters, digits and dashes, never an option.
+fn id_word(id: &str) -> bool {
+    !id.is_empty()
+        && !id.starts_with('-')
+        && id.len() <= 40
+        && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+/// memo's `schedule agents`; the one place its shape is read.
+fn parse_supported(v: &Value) -> Vec<Runnable> {
+    let text = |v: &Value| v.as_str().map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
+    v["items"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|i| {
+            let id = text(&i["id"]).filter(|id| id_word(id))?;
+            let programs = i["programs"].as_array().into_iter().flatten().filter_map(text).collect();
+            // cli-core names it `reportsCost`; a `--json` answer may carry it in snake case.
+            let reports_cost = i["reports_cost"].as_bool().or_else(|| i["reportsCost"].as_bool()).unwrap_or(false);
+            Some(Runnable {
+                id,
+                name: text(&i["name"]),
+                programs,
+                reports_cost,
+                restricted: i["restricted"].as_bool().unwrap_or(false),
+                installed: i["installed"].as_bool(),
+            })
+        })
+        .collect()
+}
+
+fn fallback() -> Vec<Runnable> {
+    FALLBACK
+        .iter()
+        .map(|(id, cost)| Runnable {
+            id: (*id).into(),
+            name: None,
+            programs: vec![(*id).into()],
+            reports_cost: *cost,
+            restricted: true,
+            installed: None,
+        })
+        .collect()
+}
+
+/// What this memo can start, and whether it said so itself; an old memo, or none, gets the two every memo starts.
+pub fn supported() -> (Vec<Runnable>, bool) {
+    let Ok(Ok(memo)) = digest_schedule::memo() else { return (fallback(), false) };
+    let args: Vec<String> = SUPPORTED.iter().map(|w| (*w).to_string()).collect();
+    match skills::call(memo, &args, Duration::from_secs(30)) {
+        Ok((out, Some(v))) if out.code == Some(0) => (parse_supported(skills::body(&v)), true),
+        _ => (fallback(), false),
+    }
+}
+
+/// An id the owner or the page sent, checked against what this memo starts before it becomes an argument.
+pub fn check(id: &str) -> Result<String, String> {
+    let refused = || format!("not an agent for background jobs: {id}");
+    if !id_word(id) {
+        return Err(refused());
+    }
+    supported().0.into_iter().find(|r| r.id == id).map(|r| r.id).ok_or_else(refused)
 }
 
 fn file() -> Option<PathBuf> {
@@ -80,10 +177,7 @@ fn load_from(path: Option<&Path>) -> Saved {
         .and_then(|p| std::fs::read_to_string(p).ok())
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default();
-    Saved {
-        agent: saved.agent.filter(|a| check(a).is_ok()),
-        mail_triage: saved.mail_triage.filter(|a| check(a).is_ok()),
-    }
+    Saved { agent: saved.agent.filter(|a| id_word(a)), mail_triage: saved.mail_triage.filter(|a| id_word(a)) }
 }
 
 fn store_to(path: Option<&Path>, saved: &Saved) -> Result<(), String> {
@@ -95,62 +189,94 @@ fn store_to(path: Option<&Path>, saved: &Saved) -> Result<(), String> {
     std::fs::write(path, text).map_err(|e| format!("Could not save the choice: {e}"))
 }
 
-pub fn installed(harness: &str) -> bool {
-    !paths::find_all(harness).is_empty()
-}
-
-pub fn any_installed() -> bool {
-    AGENTS.iter().any(|(h, _)| installed(h))
-}
-
-/// The chosen agent, or the only one installed; several and none chosen is the owner's question, not a guess.
-fn effective_of(chosen: Option<&str>, installed: &[&str]) -> Option<String> {
-    match (chosen, installed) {
-        (Some(c), _) => Some(c.to_string()),
+/// The chosen agent while it is ready, else the only one ready. A chosen agent that went away asks again: another
+/// one is never taken in its place.
+fn effective_of(chosen: Option<&str>, ready: &[&str]) -> Option<String> {
+    match (chosen, ready) {
+        (Some(c), _) => ready.contains(&c).then(|| c.to_string()),
         (None, [only]) => Some((*only).to_string()),
         _ => None,
     }
 }
 
-/// The agent a job turned on now runs with.
-pub fn effective() -> Option<String> {
-    let have: Vec<&str> = AGENTS.iter().map(|(h, _)| *h).filter(|h| installed(h)).collect();
-    effective_of(load_from(file().as_deref()).agent.as_deref(), &have)
+/// The reader list names Claude Code `claude-code`; every other agent has the same id there.
+fn reader_id(id: &str) -> &str {
+    if id == "claude" { "claude-code" } else { id }
 }
 
-fn agents_with(
-    chosen: Option<String>,
+struct Seen<'a> {
+    id: &'a str,
+    name: &'a str,
+    /// `program`, `folder`, or `None`: as the Agents page says.
+    by: Option<&'a str>,
+}
+
+fn join(
+    registry: &[Seen],
+    supported: &[Runnable],
+    listed: bool,
     readers: &[memory_add::Reader],
     on_path: impl Fn(&str) -> bool,
+    chosen: Option<String>,
 ) -> BackgroundAgents {
-    let agents: Vec<Agent> = AGENTS
+    let known = registry.iter().map(|f| (f.id.to_string(), f.name.to_string(), f.by));
+    let extra = supported
         .iter()
-        .map(|(harness, reader)| {
-            let found = readers.iter().find(|r| r.id == *reader);
-            let installed = found.map_or_else(|| on_path(harness), |r| r.available || on_path(harness));
+        .filter(|r| !registry.iter().any(|f| f.id == r.id))
+        .map(|r| (r.id.clone(), r.name.clone().unwrap_or_else(|| r.id.clone()), None));
+    let agents: Vec<Agent> = known
+        .chain(extra)
+        .map(|(id, name, seen)| {
+            let runnable = supported.iter().find(|r| r.id == id);
+            // memo starts the agent by its own program names, so its answer decides; the Agents page's says only
+            // whether the agent's settings are on this computer.
+            let program = runnable.map(|r| r.installed.unwrap_or_else(|| r.programs.iter().any(|p| on_path(p))));
+            let state = match (program, seen) {
+                (Some(true), _) => AgentState::Ready,
+                (Some(false), Some(_)) => AgentState::ProgramMissing,
+                (Some(false), None) => AgentState::NotInstalled,
+                (None, _) if !listed => AgentState::NeedsNewerMemo,
+                (None, _) => AgentState::NotSupported,
+            };
+            let signed_in = readers.iter().find(|r| r.id == reader_id(&id)).and_then(|r| r.signed_in);
             Agent {
-                id: (*harness).to_string(),
-                installed,
-                signed_in: found.and_then(|r| r.signed_in).filter(|_| installed),
+                id,
+                name,
+                state,
+                signed_in: signed_in.filter(|_| state == AgentState::Ready),
+                reports_cost: runnable.is_some_and(|r| r.reports_cost),
+                restricted: runnable.is_some_and(|r| r.restricted),
             }
         })
         .collect();
-    let have: Vec<&str> = agents.iter().filter(|a| a.installed).map(|a| a.id.as_str()).collect();
-    let effective = effective_of(chosen.as_deref(), &have);
-    BackgroundAgents { agents, chosen, effective }
+    let ready: Vec<&str> = agents.iter().filter(|a| a.state == AgentState::Ready).map(|a| a.id.as_str()).collect();
+    let effective = effective_of(chosen.as_deref(), &ready);
+    BackgroundAgents { agents, chosen, effective, listed }
 }
 
-/// memo's own reader list says whether each agent is signed in; without memo, PATH alone says installed.
 pub fn list() -> BackgroundAgents {
+    let registry = skills::agents();
+    let found: Vec<Seen> = registry.iter().map(|a| Seen { id: a.id, name: a.name, by: a.found_by }).collect();
+    let (supported, listed) = supported();
     let readers = memory_add::readers().unwrap_or_default();
-    agents_with(load_from(file().as_deref()).agent, &readers, installed)
+    join(&found, &supported, listed, &readers, |p| paths::find(p).is_some(), load_from(file().as_deref()).agent)
+}
+
+/// Whether some agent can run a job now, chosen or not.
+pub fn any_ready() -> bool {
+    list().agents.iter().any(|a| a.state == AgentState::Ready)
+}
+
+/// The agent a job turned on now runs with.
+pub fn effective() -> Option<String> {
+    list().effective
 }
 
 pub fn choose(id: &str) -> Result<BackgroundAgents, String> {
     let id = check(id)?;
     let path = file();
     let mut saved = load_from(path.as_deref());
-    saved.agent = Some(id.to_string());
+    saved.agent = Some(id);
     store_to(path.as_deref(), &saved)?;
     Ok(list())
 }
@@ -192,7 +318,8 @@ const PATTERNS: [(&str, Option<&str>, TroubleKind); 21] = [
     ("api error: 401", None, TroubleKind::SignedOut),
 ];
 
-/// The first known refusal in the text, newest line first; `agent` is the one the job was started with, if known.
+/// The first known refusal in the text, newest line first; `agent` is the one the job was started with, if known. A
+/// sentence of one agent's own is never pinned on another: Gemini CLI printing "please run /login" is still Gemini.
 pub fn classify(text: &str, agent: Option<&str>) -> Option<AgentTrouble> {
     text.lines().rev().find_map(|line| {
         let said = line.to_lowercase().replace('\u{2019}', "'");
@@ -214,7 +341,8 @@ fn tail(path: &Path, most: u64) -> Option<String> {
 /// A failed run's report (`<stamp>.md`, the agent's answer) and its stderr (`<stamp>.log` beside it), as memo's
 /// `schedule list` names the report. Only a file in a `runs` folder is read.
 pub fn trouble_of_run(last: &Value, agent: Option<&str>) -> Option<AgentTrouble> {
-    if last["exit_code"].as_i64().unwrap_or(0) == 0 {
+    let failed = last["exit_code"].as_i64().is_some_and(|c| c != 0) || last["ok"].as_bool() == Some(false);
+    if !failed {
         return None;
     }
     let report = PathBuf::from(last["output"].as_str()?);
@@ -247,31 +375,84 @@ mod tests {
         }
     }
 
+    fn found<'a>(id: &'a str, found_by: Option<&'a str>) -> Seen<'a> {
+        Seen { id, name: id, by: found_by }
+    }
+
+    fn runnable(id: &str, cost: bool) -> Runnable {
+        Runnable {
+            id: id.into(),
+            name: None,
+            programs: vec![id.into()],
+            reports_cost: cost,
+            restricted: cost,
+            installed: None,
+        }
+    }
+
     #[test]
     fn never_picks_one_of_several_for_the_owner() {
         assert_eq!(effective_of(None, &["claude", "codex"]), None);
         assert_eq!(effective_of(None, &["codex"]), Some("codex".into()));
         assert_eq!(effective_of(None, &[]), None);
         assert_eq!(effective_of(Some("claude"), &["claude", "codex"]), Some("claude".into()));
+        assert_eq!(effective_of(Some("gemini"), &["codex"]), None, "a chosen agent that went away asks again");
     }
 
     #[test]
-    fn lists_both_agents_from_memos_readers() {
-        let readers =
-            [reader("claude-code", true, Some(true)), reader("codex", false, None), reader("ollama", true, None)];
-        let a = agents_with(None, &readers, |_| false);
-        assert_eq!(a.agents.len(), 2);
-        assert!(a.agents[0].installed && a.agents[0].signed_in == Some(true));
-        assert!(!a.agents[1].installed);
-        assert_eq!(a.effective.as_deref(), Some("claude"), "the only one installed");
-        let both =
-            agents_with(None, &[reader("claude-code", true, Some(true)), reader("codex", true, Some(false))], |_| {
-                false
-            });
-        assert_eq!(both.effective, None);
-        let without_memo = agents_with(Some("codex".into()), &[], |h| h == "codex");
-        assert!(without_memo.agents[1].installed && without_memo.agents[1].signed_in.is_none());
-        assert_eq!(without_memo.effective.as_deref(), Some("codex"));
+    fn reads_memos_list_of_agents_it_starts() {
+        let v = json!({"items": [
+            {"id": "claude", "name": "Claude Code", "programs": ["claude"], "reports_cost": true},
+            {"id": "grok", "name": "Grok CLI", "programs": ["grok"], "reportsCost": false, "installed": true},
+            {"id": "--all", "programs": []}, {"name": "no id"}
+        ]});
+        let r = parse_supported(&v);
+        assert_eq!(r.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), ["claude", "grok"]);
+        assert!(r[0].reports_cost && !r[1].reports_cost);
+        assert_eq!(r[1].programs, ["grok"]);
+        assert_eq!((r[0].installed, r[1].installed), (None, Some(true)));
+    }
+
+    #[test]
+    fn lists_every_agent_found_and_says_why_one_cannot_run() {
+        let registry = [
+            found("claude", Some("program")),
+            found("codex", Some("folder")),
+            found("cursor", Some("program")),
+            found("gemini", None),
+        ];
+        let supported =
+            [runnable("claude", true), runnable("codex", false), runnable("gemini", false), runnable("grok", false)];
+        let readers = [reader("claude-code", true, Some(true)), reader("codex", true, Some(false))];
+        let a = join(&registry, &supported, true, &readers, |p| p == "grok" || p == "claude", None);
+        let state = |id: &str| a.agents.iter().find(|x| x.id == id).unwrap().state;
+        assert_eq!(state("claude"), AgentState::Ready);
+        assert_eq!(state("codex"), AgentState::ProgramMissing);
+        assert_eq!(state("cursor"), AgentState::NotSupported, "found, but memo cannot start it");
+        assert_eq!(state("gemini"), AgentState::NotInstalled);
+        assert_eq!(state("grok"), AgentState::Ready, "an agent only memo knows, found by memo's program name");
+        assert_eq!(a.agents.len(), 5);
+        assert_eq!(a.effective, None, "two ready, none chosen");
+        assert_eq!(a.agents[0].signed_in, Some(true));
+        assert_eq!(a.agents[1].signed_in, None, "only a ready agent says whether it is signed in");
+
+        let old = join(&registry, &fallback(), false, &[], |p| p == "claude", Some("claude".into()));
+        assert_eq!(old.agents.iter().find(|x| x.id == "cursor").unwrap().state, AgentState::NeedsNewerMemo);
+        assert_eq!(old.effective.as_deref(), Some("claude"));
+        assert!(!old.agents.iter().find(|x| x.id == "codex").unwrap().reports_cost);
+
+        // The `cursor` editor is on PATH, the agent memo starts (`cursor-agent`) is not: memo's answer decides.
+        let cursor = Runnable { installed: Some(false), ..runnable("cursor", false) };
+        let c = join(&registry, &[cursor], true, &[], |_| true, None);
+        assert_eq!(c.agents.iter().find(|x| x.id == "cursor").unwrap().state, AgentState::ProgramMissing);
+    }
+
+    #[test]
+    fn refuses_an_id_that_could_be_an_option() {
+        assert!(!id_word("--all"));
+        assert!(!id_word("bash -c"));
+        assert!(!id_word(""));
+        assert!(id_word("gemini"));
     }
 
     #[test]
@@ -280,7 +461,7 @@ mod tests {
         let path = dir.join(FILE);
         store_to(Some(&path), &Saved { agent: Some("codex".into()), mail_triage: Some("claude".into()) }).unwrap();
         assert_eq!(load_from(Some(&path)), Saved { agent: Some("codex".into()), mail_triage: Some("claude".into()) });
-        std::fs::write(&path, r#"{"agent":"bash"}"#).unwrap();
+        std::fs::write(&path, r#"{"agent":"--all"}"#).unwrap();
         assert_eq!(load_from(Some(&path)), Saved::default());
         assert!(check("--all").is_err());
         std::fs::remove_dir_all(&dir).unwrap();

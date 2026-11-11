@@ -11,7 +11,7 @@ import type { Platform } from "./types"
 // weekly one off schedule. `?digest-memo=old` (a memo without `digest list`: the morning digest as its one row),
 // `resting` (the morning digest taken off schedule the old way: past days, no row), `tooold`, `nomemo`;
 // `?digest-claude=none`; `?digest-fail=1` makes saving fail with memo's words; `?digest-run=failed`
-// (the morning digest's last run failed). Backfill: `?backfill=old` (this memo has no `digest backfill`),
+// (the morning digest's last run failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). Backfill: `?backfill=old` (this memo has no `digest backfill`),
 // `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
 
 const iso = (d: Date) =>
@@ -242,9 +242,11 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     spentTodayUsd: null,
     last: null,
     nextAt: spec.scheduled ? nextAt(spec.times[0] ?? "08:30") : null,
+    agent: named ? (spec.agent ?? params.get("agent") ?? "claude") : null,
+    trouble: null,
     ...over,
   })
-  const failed = params.get("digest-run") === "failed"
+  const failed = params.get("digest-run") === "failed" || params.get("digest-run") === "nocredit"
   let book: DigestItem[] =
     mode === "none"
       ? []
@@ -269,6 +271,10 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
                 ok: !failed,
                 costUsd: 0.27,
               },
+              trouble:
+                params.get("digest-run") === "nocredit"
+                  ? { agent: "claude", kind: "noCredit", line: "Credit balance is too low" }
+                  : null,
             },
           ),
           ...(named
@@ -402,7 +408,11 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
         throw new Error("this needs a newer Memo")
       const old = book.find((d) => d.name === spec.name)
       if (create && old && named) throw new Error(`a digest named ${spec.name} already exists`)
-      const next = item(spec, { last: old?.last ?? null, spentTodayUsd: old?.spentTodayUsd ?? null })
+      // As memo: an edit without an agent keeps the digest's own, and the last run stays until the next.
+      const next = item(
+        { ...spec, agent: spec.agent ?? old?.agent ?? null },
+        { last: old?.last ?? null, spentTodayUsd: old?.spentTodayUsd ?? null, trouble: old?.trouble ?? null },
+      )
       book = old ? book.map((d) => (d.name === spec.name ? next : d)) : [...book, next]
       return status()
     },

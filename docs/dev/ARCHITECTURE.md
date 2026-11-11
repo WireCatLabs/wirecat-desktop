@@ -207,11 +207,16 @@ src-tauri/src/
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
                 schedule's own and turns on at the one chosen, the catalog's `every` (30m) only when none is known.
                 The agent (`{harness}`) is the one the page passes, else `background_agent.rs`'s choice.
-  background_agent.rs Claude Code or Codex for the background jobs: memo's `sources readers list` says installed and
-                signed in (PATH alone without memo); the owner's pick is kept in the app's data folder, because memo
-                has no default. Several installed and none chosen is a question, never a guess. A failed run's report
-                and stderr are matched against the agents' documented refusals (no credit, usage limit, signed out);
-                only that line, masked, reaches the page. Digests stay on Claude Code: memo's `digest add` takes no agent.
+  background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents page
+                finds (`skills::agents`) and every one memo starts (`schedule agents list`: id, name, programs,
+                `reports_cost`, `restricted`, `installed`) is listed; one that cannot run a job carries why (not
+                installed, program not found, memo cannot start it, needs a newer Memo), never hidden. memo's own PATH
+                check decides "ready", by the program it starts. A memo without the list gets Claude Code and Codex.
+                The owner's pick is kept in the app's data folder, because memo has no default; several ready and
+                none chosen is a question, never a guess, and a chosen agent that went away asks again. A failed run's
+                stderr, and its report while it is one short answer, are matched against the agents' documented
+                refusals (no credit, usage limit, signed out); only that line, masked, reaches the page. Digests take
+                it through memo's `digest add|edit --agent`; an edit names it only to move the digest.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   deep_link.rs  `wirecat://open/v1/…` links (Tauri's deep-link plugin, with single-instance first so a click reaches the
                 running window): parsed to the v1 grammar of cli-core's `links.ts`, checked against its shared fixture

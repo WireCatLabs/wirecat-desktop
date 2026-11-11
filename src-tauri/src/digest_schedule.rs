@@ -10,15 +10,12 @@
 
 use crate::catalog::{self, Tool};
 use crate::skills::{body, call, failure, too_old};
-use crate::{paths, redact, tools};
+use crate::{redact, tools};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
 
 const NAME: &str = "morning-digest";
-/// memo's `digest add` starts claude and takes no agent, so digests stay on Claude Code whatever the owner chose for
-/// background jobs (`background_agent.rs`). The older memo here could take codex, but one digest on another agent than the rest would be harder to explain.
-const HARNESS: &str = "claude";
 const PROMPT: &str = "Run memo skill show morning-digest and follow it.";
 /// The mail agent's minimum: `schedule agent` with its caps. A memo without `--deliver-to` refuses that option itself,
 /// and its words reach the page.
@@ -156,7 +153,7 @@ pub fn status() -> Result<DigestSchedules, String> {
     };
     let (out, json) = call(memo, &words(&["schedule", "list", "--no-record", "--json"]), Duration::from_secs(30))?;
     match json {
-        Some(v) if out.code == Some(0) => Ok(read(&v, !paths::find_all(HARNESS).is_empty())),
+        Some(v) if out.code == Some(0) => Ok(read(&v, crate::background_agent::effective().is_some())),
         j => Err(failure(&out, j.as_ref())),
     }
 }
@@ -271,7 +268,14 @@ fn usd(value: f64) -> String {
 }
 
 /// The words of `schedule agent` for the digest, every value checked; memo replaces a schedule of the same name.
-fn agent_args(time: &str, routes: &[String], max_cost: f64, max_cost_per_day: f64) -> Result<Vec<String>, String> {
+/// `harness`: the agent for background jobs, checked against what this memo starts.
+fn agent_args(
+    harness: &str,
+    time: &str,
+    routes: &[String],
+    max_cost: f64,
+    max_cost_per_day: f64,
+) -> Result<Vec<String>, String> {
     if !is_time(time) {
         return Err(format!("not a time of day: {time}"));
     }
@@ -285,7 +289,7 @@ fn agent_args(time: &str, routes: &[String], max_cost: f64, max_cost_per_day: f6
     if !cap(max_cost, false) || !cap(max_cost_per_day, true) {
         return Err("a cost cap is out of range".into());
     }
-    let mut args = words(&["schedule", "agent", NAME, HARNESS, PROMPT, "--at", time]);
+    let mut args = words(&["schedule", "agent", NAME, harness, PROMPT, "--at", time]);
     args.extend(["--max-cost".into(), usd(max_cost), "--max-cost-per-day".into(), usd(max_cost_per_day)]);
     args.extend(["--notify-on".into(), "always".into()]);
     for r in routes {
@@ -297,7 +301,8 @@ fn agent_args(time: &str, routes: &[String], max_cost: f64, max_cost_per_day: f6
 
 /// Makes the schedule, or replaces it with a new time or routes.
 pub fn save(time: &str, routes: &[String], max_cost: f64, max_cost_per_day: f64) -> Result<DigestSchedules, String> {
-    let args = agent_args(time, routes, max_cost, max_cost_per_day)?;
+    let harness = crate::background_agent::effective().ok_or("Choose the agent for background jobs first.")?;
+    let args = agent_args(&harness, time, routes, max_cost, max_cost_per_day)?;
     let memo = match memo()? {
         Ok(memo) => memo,
         Err(shown) => return Ok(shown),
@@ -480,17 +485,17 @@ mod tests {
     fn builds_schedule_agent_with_every_value_checked() {
         let routes = vec!["telegram-bot:personal/user:1001".to_string()];
         assert_eq!(
-            agent_args("08:30", &routes, 0.5, 1.0).unwrap().join(" "),
+            agent_args("claude", "08:30", &routes, 0.5, 1.0).unwrap().join(" "),
             "schedule agent morning-digest claude Run memo skill show morning-digest and follow it. --at 08:30 \
              --max-cost 0.5 --max-cost-per-day 1 --notify-on always --deliver-to telegram-bot:personal/user:1001 --json"
         );
-        assert!(agent_args("8:30", &routes, 0.5, 1.0).is_err());
-        assert!(agent_args("24:00", &routes, 0.5, 1.0).is_err());
-        assert!(agent_args("08:30", &["--yes".to_string()], 0.5, 1.0).is_err());
-        assert!(agent_args("08:30", &routes, 0.0, 1.0).is_err());
-        assert!(agent_args("08:30", &routes, 0.5, 0.0).is_ok(), "0 a day is no daily cap");
-        assert!(agent_args("08:30", &routes, f64::NAN, 1.0).is_err());
-        assert!(agent_args("08:30", &[], 0.5, 1.0).is_ok(), "no route is the desktop notice only");
+        assert!(agent_args("claude", "8:30", &routes, 0.5, 1.0).is_err());
+        assert!(agent_args("claude", "24:00", &routes, 0.5, 1.0).is_err());
+        assert!(agent_args("claude", "08:30", &["--yes".to_string()], 0.5, 1.0).is_err());
+        assert!(agent_args("claude", "08:30", &routes, 0.0, 1.0).is_err());
+        assert!(agent_args("claude", "08:30", &routes, 0.5, 0.0).is_ok(), "0 a day is no daily cap");
+        assert!(agent_args("claude", "08:30", &routes, f64::NAN, 1.0).is_err());
+        assert!(agent_args("claude", "08:30", &[], 0.5, 1.0).is_ok(), "no route is the desktop notice only");
     }
 
     #[test]

@@ -101,17 +101,25 @@ pub fn status(tool: &Tool) -> Result<MailAgent, String> {
     };
     let (out, json) = call(via, &src.list, Duration::from_secs(30))?;
     match json {
-        Some(v) if out.code == Some(0) => Ok(read(src, &v, background_agent::mail_triage())),
+        Some(v) if out.code == Some(0) => {
+            Ok(read(src, &v, background_agent::mail_triage(), background_agent::any_ready))
+        }
         j => Err(failure(&out, j.as_ref())),
     }
 }
 
-fn read(src: &MailAgentSource, v: &Value, agent: Option<String>) -> MailAgent {
+/// `agent` is the note kept here, for a memo whose `schedule list` does not name the agent; `ready` is asked only when
+/// the schedule is off.
+fn read(src: &MailAgentSource, v: &Value, agent: Option<String>, ready: impl FnOnce() -> bool) -> MailAgent {
     let found = v["items"].as_array().into_iter().flatten().find(|i| i["name"].as_str() == Some(src.name.as_str()));
-    let Some(item) = found else { return MailAgent::Off { harness: background_agent::any_installed() } };
+    let Some(item) = found else { return MailAgent::Off { harness: ready() } };
     let when = item["when"].as_str().unwrap_or_default().to_string();
     // A schedule made before the note: only claude's command line carries the per-run cap memo reports.
-    let agent = agent.or_else(|| item["max_cost_usd"].as_f64().map(|_| "claude".to_string()));
+    let agent = item["harness"]
+        .as_str()
+        .map(str::to_string)
+        .or(agent)
+        .or_else(|| item["max_cost_usd"].as_f64().map(|_| "claude".to_string()));
     MailAgent::On {
         trouble: background_agent::trouble_of_run(&item["last"], agent.as_deref()),
         agent,
@@ -147,7 +155,6 @@ fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str) -> Result<
     if !src.choices.iter().any(|c| c == every) {
         return Err(format!("not an interval the mail agent offers: {every}"));
     }
-    let harness = background_agent::check(harness)?;
     Ok(src
         .on
         .iter()
@@ -164,7 +171,7 @@ fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str) -> Result<
 pub fn set(tool: &Tool, on: bool, every: Option<&str>, agent: Option<&str>) -> Result<MailAgent, String> {
     let src = source(tool)?;
     let harness = match agent {
-        Some(a) => Some(a.to_string()),
+        Some(a) => Some(background_agent::check(a)?),
         None if on => Some(background_agent::effective().ok_or("Choose the agent for background jobs first.")?),
         None => None,
     };
@@ -231,7 +238,6 @@ mod tests {
         );
         assert_eq!(on_args(s, Some("15m"), "claude").unwrap()[6], "15m");
         assert_eq!(on_args(s, None, "codex").unwrap()[3], "codex");
-        assert!(on_args(s, None, "bash").is_err());
         assert!(on_args(s, Some("1m"), "claude").is_err());
         assert!(on_args(s, Some("--yes"), "claude").is_err());
         assert_eq!(s.off.join(" "), "schedule remove mail-triage --json");
@@ -247,7 +253,7 @@ mod tests {
                 "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "Invoice from Ana Ruiz", "trace_id": "t1"}}
         ]});
         assert_eq!(
-            read(src(), &v, Some("claude".into())),
+            read(src(), &v, Some("claude".into()), || true),
             MailAgent::On {
                 when: "every 5m".into(),
                 every: Some("5m".into()),
@@ -269,11 +275,12 @@ mod tests {
 
     #[test]
     fn a_missing_schedule_is_off_and_a_failed_run_keeps_its_streak() {
-        assert!(matches!(read(src(), &json!({"items": []}), None), MailAgent::Off { .. }));
+        assert!(matches!(read(src(), &json!({"items": []}), None, || true), MailAgent::Off { .. }));
         let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m", "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 1, "output": "", "reason": "provider_error (claude.exit)",
             "failures": 2}}]});
-        let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v, Some("claude".into())) else {
+        let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v, Some("claude".into()), || true)
+        else {
             panic!("on")
         };
         assert_eq!(last.reason.as_deref(), Some("provider_error (claude.exit)"));
@@ -289,7 +296,8 @@ mod tests {
             "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
             "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "cost.day-cap"}}}]});
-        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, agent, .. } = read(src(), &v, None)
+        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, agent, .. } =
+            read(src(), &v, None, || true)
         else {
             panic!("on")
         };

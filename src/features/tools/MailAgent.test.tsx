@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { LastRun, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { agentsFixture } from "@/platform/mock-background-agent"
 import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { MailAgent } from "./MailAgent"
 
@@ -26,11 +27,7 @@ const on: Extract<State, { state: "on" }> = {
   agent: "claude",
   trouble: null,
 }
-const agents = (installed: string[], chosen: string | null = null) => ({
-  agents: ["claude", "codex"].map((id) => ({ id, installed: installed.includes(id), signedIn: null })),
-  chosen,
-  effective: chosen ?? (installed.length === 1 ? (installed[0] ?? null) : null),
-})
+const agents = agentsFixture
 
 beforeEach(() => {
   vi.restoreAllMocks()
@@ -91,13 +88,13 @@ it("says it could not turn on, keeps the tool's words under Details, and leaves 
   expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "false")
 })
 
-it("keeps the switch off and says why when neither agent is installed", async () => {
+it("keeps the switch off and says why when no agent is ready", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "off", harness: false })
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents([]))
   render(<MailAgent tool={email} />)
 
   expect(await screen.findByRole("switch", { name: "Run on a schedule" })).toBeDisabled()
-  expect(screen.getByText(/Neither Claude Code nor Codex is installed/)).toBeInTheDocument()
+  expect(screen.getByText(/No agent on this computer can run it/)).toBeInTheDocument()
 })
 
 it("asks which agent to run in when both are installed and none is chosen, and never picks one", async () => {
@@ -112,7 +109,7 @@ it("asks which agent to run in when both are installed and none is chosen, and n
   expect(agent).toHaveTextContent("Not chosen")
   await user.click(screen.getByRole("switch", { name: "Run on a schedule" }))
   expect(set).not.toHaveBeenCalled()
-  expect(screen.getByText("Choose the agent it runs in first: Claude Code or Codex.")).toHaveClass("text-warn-ink")
+  expect(screen.getByText("Choose the agent it runs in first.")).toHaveClass("text-warn-ink")
 
   await user.click(agent)
   await user.click(screen.getByRole("option", { name: /^Codex/ }))
