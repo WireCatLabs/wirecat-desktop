@@ -411,7 +411,9 @@ describe("the digest history", () => {
     const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
     expect(days).toHaveTextContent("built later")
 
-    await user.click(screen.getByRole("button", { name: "Build past days…" }))
+    const fill = screen.getByRole("button", { name: "Build past days…" })
+    await waitFor(() => expect(fill).toBeEnabled(), { timeout: 8000 })
+    await user.click(fill)
     const dialog = await screen.findByRole("dialog", { name: "Build the digests of past days" })
     expect(await within(dialog).findByText(/to build/, {}, { timeout: 4000 })).toHaveTextContent(
       /4 days to build \(3 already have one\), about \$1\.08/,
