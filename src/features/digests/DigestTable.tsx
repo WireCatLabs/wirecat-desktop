@@ -3,6 +3,7 @@ import { formatUsd } from "@/domain/mail-agent"
 import { ago } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestItem } from "@/platform/bindings"
+import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { Lamp } from "@/ui/Lamp"
 import { Switch } from "@/ui/Switch"
@@ -52,9 +53,16 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
       cell: (d) => (
         <span className="flex flex-col text-ink-soft">
           <span>{m.when(d.times, d.weekdays)}</span>
-          {d.scheduled && d.nextAt && (
-            <span className="text-[0.85rem] text-ink-dim tabular-nums">{m.nextAt(nextOf(d.nextAt, lang))}</span>
-          )}
+          {/* Always takes its line: the switch must not change the row's height. */}
+          <span
+            aria-hidden={!(d.scheduled && d.nextAt)}
+            className={cx(
+              "text-[0.85rem] text-ink-dim tabular-nums transition-opacity duration-(--motion-normal)",
+              d.scheduled && d.nextAt ? "opacity-100" : "opacity-0",
+            )}
+          >
+            {d.nextAt ? m.nextAt(nextOf(d.nextAt, lang)) : " "}
+          </span>
         </span>
       ),
     },

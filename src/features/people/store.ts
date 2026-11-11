@@ -104,6 +104,8 @@ type PeopleState = {
   joinedGroup: Record<string, GroupDone>
   /** By card: a shared mailbox given to a company, or memo's refusal before any pair of it was. */
   company: Record<string, MailboxDone>
+  /** By card: the people the owner said write from its company mailbox, saved as the organization's contacts. */
+  mailboxUsers: Record<string, string[]>
   details: Record<string, Detail>
   busy: Record<string, Op>
   failed: Record<string, string>
@@ -142,6 +144,8 @@ type PeopleState = {
    * yet): the first pair finds or makes the organization, the rest go to that same one. Stops at memo's first refusal.
    */
   resolveMailbox(key: string, ids: readonly string[], to: { organization?: string; name?: string }): Promise<boolean>
+  /** Records the chosen people of a card as contacts of the organization its mailbox went to; stops at a refusal. */
+  saveMailboxUsers(key: string, organization: string, refs: readonly string[]): Promise<boolean>
   /** Joins the chosen people of a group into one; `ids` are the group's matches, kept in place as decided. */
   joinGroup(key: string, refs: string[], ids: string[]): Promise<boolean>
   /** Keeps the given pairs of a group apart, for one reason; stops at the first refusal. */
@@ -296,6 +300,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     matchOpen: null,
     joinedGroup: {},
     company: {},
+    mailboxUsers: {},
     details: {},
     busy: {},
     failed: {},
@@ -344,6 +349,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           decided: {},
           joinedGroup: {},
           company: {},
+          mailboxUsers: {},
           reading: kinded && s.reading,
           readAt: Date.now(),
           details: {},
@@ -508,6 +514,20 @@ export const usePeople = create<PeopleState>((set, get) => {
       if (!done) return false
       set((s) => ({ company: { ...s.company, [key]: done } }))
       return done.refused === null
+    },
+    async saveMailboxUsers(key, organization, refs) {
+      const saved: string[] = []
+      await run(key, "confirm", async () => {
+        try {
+          for (const ref of refs) {
+            await platform.peopleContact(ref, organization)
+            saved.push(ref)
+          }
+        } finally {
+          set((s) => ({ mailboxUsers: { ...s.mailboxUsers, [key]: saved } }))
+        }
+      })
+      return saved.length === refs.length
     },
     async joinGroup(key, refs, ids) {
       // The card stays busy until the lists are read again, so it never offers the pairs memo just folded away.

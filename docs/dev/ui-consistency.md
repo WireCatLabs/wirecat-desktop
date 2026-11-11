@@ -37,7 +37,7 @@ Ids are local to this page. "Owner" is who is editing that area now; "free" mean
 
 | Id | Job | Where (on `82c0c839` and the owned-pages PR) | Fix | Owner |
 |---|---|---|---|---|
-| C13 | Skeletons | page-local skeletons are fine (they draw the shape), but `RackSkeleton` (Memory) and `ListSkeleton` (People) draw the same rack | keep; share only when a third copy appears | — |
+| C13 | Skeletons | page-local skeletons are fine (they draw the shape). Contacts now draws its real table with `DataTable`'s `placeholders` instead of a rack of its own | keep; share only when a second rack copy appears | — |
 | C14 | Hand tables | `logs/RunsTable.tsx`, `storage/TablesExplorer.tsx`, `agents/AgentsMatrix.tsx`, `search/SearchPage.tsx` (an inline `<table>`) are record lists outside `DataTable`; analytics and storage facts are key–value or chart tables and may stay | `DataTable` (sorting, density, paging) | Logs and Storage next; Agents matrix is a grid of switches, kept |
 | C15 | Paging rule (12) | Memory loads the whole list and slices it (`MemoryPage.tsx:54`); Logs runs, Digests' two tables (digests, other schedules), Storage tables and Agents' skills have no pager | server paging; Memory needs memo paging on its reads first | Memory: the coordinator routes it to the CLI side; the others are Desktop work |
 | C19 | Text sizes | 562 uses of `text-[0.9rem]`, 291 of `text-[0.95rem]`, 58 of `text-body`; DESIGN.md says body copy is `text-body` | shared components use `text-body`; pages move as they are touched | debt, no sweep |

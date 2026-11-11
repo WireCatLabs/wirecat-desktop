@@ -402,6 +402,8 @@ export type Platform = {
   peopleDoubts(page: number, size: number): Promise<Doubts>
   /** The owner says this person's accounts in doubt belong together; they stop being listed until one moves. */
   peopleKeep(reference: string): Promise<void>
+  /** The person writes from the organization's shared mailbox: memo records them as its contact. */
+  peopleContact(reference: string, organization: string): Promise<void>
   /** Joins the chosen people of one group of matches into one, a match at a time. */
   peopleMerge(refs: string[]): Promise<Merged>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */

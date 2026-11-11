@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -18,6 +18,9 @@ import { SplitDialog } from "./SplitDialog"
 import { usePeople } from "./store"
 import { UndoMergeDialog } from "./UndoMergeDialog"
 
+/** The longest the page waits for the links check before it shows the rest. */
+const HOLD_MS = 4000
+
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/people`
 
 export function PeoplePage() {
@@ -25,6 +28,17 @@ export function PeoplePage() {
   const lang = useLang()
   const s = usePeople()
   const view = usePeople((x) => x.view)
+  // The matches and the links check stand above the table, and only their answers say whether they come. Nothing below
+  // the header shows until they are in, so the table appears where it stays. A slow check stops holding the page.
+  const read = usePeople((x) => x.read !== null)
+  const checked = usePeople((x) => x.doubts?.state !== "loading" || x.doubts.last !== null)
+  const [late, setLate] = useState(false)
+  useEffect(() => {
+    if (!read || checked) return
+    const t = setTimeout(() => setLate(true), HOLD_MS)
+    return () => clearTimeout(t)
+  }, [read, checked])
+  const settled = read && (checked || late)
   const gap = gapFromRead(s.read === "missing" || s.read === "old" ? { kind: s.read, ...s.oldVersion } : null)
   const { load, visit } = s
   useEffect(() => {
@@ -51,11 +65,11 @@ export function PeoplePage() {
         </ErrorNotice>
       ) : gap ? (
         <ToolNeeded gap={gap} />
-      ) : s.read === null ? (
-        <ListSkeleton />
       ) : (
-        <Crossfade swap={view}>
-          {view === "matches" ? (
+        <Crossfade swap={settled ? view : "waiting"}>
+          {!settled ? (
+            <Skeleton className="h-[1.3rem] w-[min(24rem,60%)]" label={m.reading} />
+          ) : view === "matches" ? (
             <Matches />
           ) : (
             <div className="flex flex-col gap-[1.2rem]">
@@ -71,18 +85,5 @@ export function PeoplePage() {
       <SplitDialog />
       <UndoMergeDialog />
     </Page>
-  )
-}
-
-function ListSkeleton() {
-  return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex h-[3.6rem] items-center gap-[0.8rem] border-line px-[1.3rem] not-first:border-t">
-          <Skeleton className="size-[1.2rem] rounded-full" />
-          <Skeleton className="h-[1rem] w-[40%]" />
-        </div>
-      ))}
-    </div>
   )
 }

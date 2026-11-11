@@ -108,6 +108,16 @@ pub async fn people_keep(reference: String) -> Result<people::Kept, AppError> {
     crate::log::command("people_keep", async move { attempt(move || people::keep(&reference)).await }).await
 }
 
+/// The owner says a person writes from a company's shared mailbox, with memo's `relationships add --role contact`.
+#[tauri::command]
+pub async fn people_contact(reference: String, organization: String) -> Result<(), AppError> {
+    crate::log::command(
+        "people_contact",
+        async move { attempt(move || people::contact(&reference, &organization)).await },
+    )
+    .await
+}
+
 /// One page of the people whose identities look wrongly joined, from memo's `people links check`.
 #[tauri::command]
 pub async fn people_doubts(page: u32, size: u32) -> Result<people::Doubts, AppError> {

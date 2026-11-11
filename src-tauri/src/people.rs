@@ -834,6 +834,22 @@ pub fn keep(reference: &str) -> Result<Kept, String> {
     with_memo(|call| keep_with(call, reference))
 }
 
+/// The owner says a person writes from a company's shared mailbox: memo records them as the organization's contact.
+/// The address stays the organization's; memo has no link between a person and one address.
+fn contact_with(call: &Call, reference: &str, organization: &str) -> Result<(), String> {
+    let reference = person_ref(reference)?;
+    let organization = organization_ref(organization).ok_or("Not an organization memo listed.")?;
+    let v = call(&decision(&["relationships", "add", reference, organization, "--role", "contact"]))?;
+    match v["error"]["message"].as_str() {
+        Some(message) => Err(message.to_string()),
+        None => Ok(()),
+    }
+}
+
+pub fn contact(reference: &str, organization: &str) -> Result<(), String> {
+    with_memo(|call| contact_with(call, reference, organization))
+}
+
 /// What joining a group did: the person they are now, the people joined and the matches memo confirmed so far, and why
 /// it stopped, if it did.
 #[derive(Serialize, Debug, PartialEq)]
@@ -1176,6 +1192,31 @@ mod tests {
         let refused = |_: &[String]| Err("person.no-doubt".to_string());
         assert_eq!(keep_with(&refused, "person:7").unwrap_err(), "person.no-doubt");
         assert!(keep_with(&refused, "--help").is_err());
+    }
+
+    #[test]
+    fn a_person_who_writes_from_a_mailbox_becomes_the_organizations_contact() {
+        let f = Fake::new("confirm");
+        let call = |a: &[String]| f.call(a);
+        contact_with(&call, "person:7", "organization:4").unwrap();
+        assert_eq!(
+            f.seen(),
+            vec![strs(&[
+                "relationships",
+                "add",
+                "person:7",
+                "organization:4",
+                "--role",
+                "contact",
+                "--from-app",
+                "--json",
+                "--no-record"
+            ])]
+        );
+        assert!(contact_with(&call, "person:7", "--help").is_err());
+        assert!(contact_with(&call, "--role", "organization:4").is_err());
+        let refused = |_: &[String]| Ok(json!({"error": {"message": "no organization:4"}}));
+        assert_eq!(contact_with(&refused, "person:7", "organization:4").unwrap_err(), "no organization:4");
     }
 
     #[test]

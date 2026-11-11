@@ -1,4 +1,4 @@
-import { handleOf, personName } from "@/domain/people"
+import { fullerName, handleOf, personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
@@ -34,12 +34,21 @@ export function useKnownName() {
     if (listed?.owner || seen[ref]?.owner) return m.you
     const detail = details[ref]
     const person = detail?.state === "ready" ? detail.person : null
+    const named = personName({
+      displayName: listedName === undefined ? (listed?.displayName ?? person?.displayName) : null,
+      name: listedName ?? listed?.name ?? person?.name,
+      contact: listed?.contact,
+    })
+    if (!person) return named
+    // A phone or address stands in only for a missing name, so an account's name goes before it.
+    const real = named && named === listed?.contact?.trim() ? null : named
     return (
-      personName({
-        displayName: listedName === undefined ? (listed?.displayName ?? person?.displayName) : null,
-        name: listedName ?? listed?.name ?? person?.name,
-        contact: listed?.contact,
-      }) ?? (person ? handleOf(person.identities) : null)
+      fullerName(
+        real,
+        person.identities.map((i) => i.name),
+      ) ??
+      named ??
+      handleOf(person.identities)
     )
   }
 }
