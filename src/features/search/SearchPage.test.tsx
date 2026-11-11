@@ -59,6 +59,10 @@ describe("Search", () => {
     expect(screen.getAllByText("Voice message").length).toBeGreaterThan(0)
     expect(screen.getAllByText("invoice.pdf").length).toBeGreaterThan(0)
 
+    const writeText = vi.spyOn(navigator.clipboard, "writeText")
+    await user.click(screen.getByRole("button", { name: "Copy id: msg:telegram/1/-1000/4000" }))
+    expect(writeText).toHaveBeenCalledWith("msg:telegram/1/-1000/4000")
+    expect(screen.queryByText("Reference")).not.toBeInTheDocument()
     await user.click(screen.getAllByRole("button", { name: "Show the whole result: Harbour flat" })[0] as HTMLElement)
     expect(await screen.findByText("msg:telegram/1/-1000/4000")).toBeInTheDocument()
     expect(screen.getByText("Reference")).toBeInTheDocument()

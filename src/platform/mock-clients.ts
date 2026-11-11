@@ -173,7 +173,15 @@ if (scenario === "long-stages") {
   )
 }
 
-const person = (name: string, role: string) => ({ name, role })
+// Dana Fox and Emma Ruiz take the ids the tasks mock assigns work to, so their deals show tasks.
+const PEOPLE: Record<string, string> = {
+  "Alice Moreno": "person:12",
+  "Bob Lee": "person:13",
+  "Dana Fox": "person:2",
+  "Emma Ruiz": "person:3",
+}
+const ORGANIZATIONS: Record<string, string> = { "Northstar Labs": "organization:1", "Acme Corp": "organization:2" }
+const person = (name: string, role: string) => ({ ref: PEOPLE[name] ?? null, name, role })
 const DAY = 86_400_000
 const ago = (days: number) => new Date(Date.now() - days * DAY).toISOString()
 
@@ -199,6 +207,7 @@ const card = (kind: CrmKind, pipe: string, stage: string, title: string, more: P
     baseStage: null,
     createdAt: ago(id),
     updatedAt: ago(id / 2),
+    organizationRef: more.organization ? (ORGANIZATIONS[more.organization] ?? null) : null,
     ...more,
   }
 }

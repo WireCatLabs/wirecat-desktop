@@ -20,7 +20,7 @@ describe("A mail findings batch", () => {
     expect(within(batch).getAllByRole("button", { name: "Open the email" }).length).toBeGreaterThan(0)
     expect(within(batch).queryByText(/msg:email/)).not.toBeInTheDocument()
     const anna = within(batch).getByRole("group", { name: /Decision on: Anna Lind/ })
-    await user.click(within(anna).getByRole("radio", { name: /Reject/ }))
+    await user.click(within(anna).getByRole("button", { name: "Reject" }))
     const confirm = vi.spyOn(platform, "memoryConfirm")
     await user.click(within(batch).getByRole("button", { name: "Save: create 2, reject 1" }))
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:12", ["t1", "i1"]))
@@ -45,7 +45,7 @@ describe("A meeting findings batch", () => {
     const batch = screen.getByText(/2 facts and 2 tasks to review/).closest("[data-row]") as HTMLElement
     await user.click(within(batch).getByRole("button", { name: "Review 4" }))
     const tom = within(batch).getByRole("group", { name: /Decision on: Ask Tom Becker for read access/ })
-    await user.click(within(tom).getByRole("radio", { name: /Reject/ }))
+    await user.click(within(tom).getByRole("button", { name: "Reject" }))
     await user.click(within(batch).getByRole("button", { name: "Save: create 3, reject 1" }))
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:7", ["f1", "f2", "f3"]))
   })

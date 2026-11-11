@@ -4,6 +4,7 @@ import type { Agent } from "@/platform/agents-schemas"
 import { useAgents } from "@/shared/agents-store"
 import { render, screen } from "@/testing/render"
 import { AgentLaunch, useAgentChoice } from "./AgentLaunch"
+import { AgentRunNote } from "./run-agent"
 
 const AGENTS: Agent[] = [
   { id: "claude", name: "Claude Code", foundBy: "program", reads: ["claude"] },
@@ -31,7 +32,9 @@ it("opens the first agent found, and lists every startable agent with how to get
   expect(items.map((i) => i.textContent)).toEqual([
     "Claude Code",
     "Codex",
-    expect.stringMatching(/^Gemini CLINot found on this computer/),
+    ...["Gemini CLI", "Cursor", "OpenCode", "Hermes Agent", "OpenClaw"].map((name) =>
+      expect.stringMatching(new RegExp(`^${name}Not found on this computer`)),
+    ),
   ])
   await user.click(items[2] as HTMLElement)
   expect(onOpen).toHaveBeenLastCalledWith(expect.objectContaining({ id: "gemini", found: false }))
@@ -48,4 +51,12 @@ it("remembers the agent picked from the menu and opens it next time", async () =
   unmount()
   launch()
   expect(screen.getByRole("button", { name: "Open in Codex" })).toBeInTheDocument()
+})
+
+it("points an agent without an npm package to its install page", () => {
+  const run = { started: false, agent: "cursor", file: "", reason: "missing", message: null } as const
+  render(<AgentRunNote run={run} name="Cursor" started="" />)
+  expect(
+    screen.getByText(/run cursor-agent: .* follow the steps on https:\/\/cursor\.com\/docs\/cli\/installation/),
+  ).toBeInTheDocument()
 })

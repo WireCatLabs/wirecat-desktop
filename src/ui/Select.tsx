@@ -4,7 +4,7 @@ import { createPortal } from "react-dom"
 import { useMessages } from "@/i18n"
 import { cx } from "./cx"
 import { uiMessages } from "./messages"
-import { useCloseOutside, useListPlacement } from "./popup-list"
+import { SEARCH_FROM, useCloseOutside, useListPlacement } from "./popup-list"
 
 export type SelectOption<T extends string> = { value: T; label: string; icon?: ReactNode; disabled?: boolean }
 export type SelectGroup<T extends string> = { label: string; options: readonly SelectOption<T>[] }
@@ -52,8 +52,20 @@ export function Select<T extends string>({
   ...aria
 }: Props<T>) {
   const m = useMessages(uiMessages)
-  const flat = options.flatMap((item) => (isGroup(item) ? item.options : [item]))
-  const selected = flat.find((o) => o.value === value)
+  const every = options.flatMap((item) => (isGroup(item) ? item.options : [item]))
+  const selected = every.find((o) => o.value === value)
+  const searchable = every.length >= SEARCH_FROM
+  const [query, setQuery] = useState("")
+  const matches = (o: SelectOption<T>) => o.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+  const shownItems: Item<T>[] = query.trim()
+    ? options.flatMap((item): Item<T>[] => {
+        if (!isGroup(item)) return matches(item) ? [item] : []
+        const kept = item.options.filter(matches)
+        return kept.length ? [{ ...item, options: kept }] : []
+      })
+    : [...options]
+  const flat = shownItems.flatMap((item) => (isGroup(item) ? item.options : [item]))
+  const field = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const [listLabel, setListLabel] = useState<string>()
@@ -80,10 +92,15 @@ export function Select<T extends string>({
   }
   const close = useCallback((refocus: boolean) => {
     setOpen(false)
+    setQuery("")
     if (refocus) button.current?.focus()
   }, [])
   const closeOutside = useCallback(() => close(false), [close])
   const inside = useMemo(() => [button, list], [])
+  // Focus moving between the button and its own search field is not leaving the select.
+  const leave = (to: EventTarget | null) => {
+    if (to !== field.current && to !== button.current) close(false)
+  }
   const pick = (i: number) => {
     const o = flat[i]
     if (!o || o.disabled || busy) return
@@ -109,7 +126,8 @@ export function Select<T extends string>({
     return -1
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    const inField = e.currentTarget === field.current
     const { key } = e
     if (busy && !open) return
     if (!open) {
@@ -120,6 +138,11 @@ export function Select<T extends string>({
         e.preventDefault()
         show(key === "Home" ? first() : last())
       } else if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (searchable) {
+          e.preventDefault()
+          setQuery(key)
+          return show(0)
+        }
         const i = typeAhead(key)
         if (i >= 0) show(i)
       }
@@ -136,12 +159,14 @@ export function Select<T extends string>({
       e.preventDefault()
       if (e.altKey) close(true)
       else setActive((a) => step(a, key === "ArrowDown" ? 1 : -1))
-    } else if (key === "Home" || key === "End" || key === "PageUp" || key === "PageDown") {
+    } else if (!inField && (key === "Home" || key === "End" || key === "PageUp" || key === "PageDown")) {
       e.preventDefault()
       setActive(key === "Home" || key === "PageUp" ? first() : last())
-    } else if (key === "Enter" || (key === " " && Date.now() - typed.current.at > 600)) {
+    } else if (key === "Enter" || (key === " " && !inField && Date.now() - typed.current.at > 600)) {
       e.preventDefault()
       pick(active)
+    } else if (inField) {
+      return
     } else if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault()
       const i = typeAhead(key)
@@ -155,6 +180,10 @@ export function Select<T extends string>({
   useEffect(() => setHost(button.current?.closest("dialog") ?? document.body), [])
   const place = useListPlacement(open, button, list)
   useCloseOutside(open, inside, closeOutside)
+
+  useEffect(() => {
+    if (open && searchable) field.current?.focus({ preventScroll: true })
+  }, [open, searchable])
 
   useEffect(() => {
     if (open && active >= 0) document.getElementById(`${base}-${active}`)?.scrollIntoView?.({ block: "nearest" })
@@ -210,7 +239,7 @@ export function Select<T extends string>({
           if (open) close(false)
           else show()
         }}
-        onBlur={() => close(false)}
+        onBlur={(e) => leave(e.relatedTarget)}
         className={cx(
           "flex min-w-0 items-center rounded-[0.35rem] border border-line-strong bg-app text-left leading-normal",
           "hover:border-ink-dim/60 aria-[invalid=true]:border-bad disabled:pointer-events-none disabled:opacity-45",
@@ -234,12 +263,9 @@ export function Select<T extends string>({
       </button>
       {host &&
         createPortal(
+          // biome-ignore lint/a11y/noStaticElementInteractions: it only keeps focus where it is while a click lands
           <div
             ref={list}
-            id={listId}
-            role="listbox"
-            aria-label={open ? (aria["aria-label"] ?? listLabel) : undefined}
-            aria-labelledby={aria["aria-labelledby"]}
             hidden={!open}
             style={place}
             onMouseDown={(e) => e.preventDefault()}
@@ -248,22 +274,53 @@ export function Select<T extends string>({
               "motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]",
             )}
           >
-            {options.map((item) =>
-              isGroup(item) ? (
-                // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role="group"; a fieldset groups form controls
-                <div key={`group-${item.label}`} role="group" aria-label={item.label} className="not-first:mt-1">
-                  <div
-                    aria-hidden
-                    className="px-1.5 pt-1.5 pb-1 text-[0.8rem] font-medium tracking-[0.06em] text-ink-dim uppercase"
-                  >
-                    {item.label}
-                  </div>
-                  {item.options.map(renderOption)}
-                </div>
-              ) : (
-                renderOption(item)
-              ),
+            {searchable && (
+              <input
+                ref={field}
+                role="combobox"
+                aria-controls={listId}
+                aria-expanded={open}
+                aria-autocomplete="list"
+                aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
+                aria-label={m.find(aria["aria-label"] ?? listLabel ?? "")}
+                placeholder={m.find(aria["aria-label"] ?? listLabel ?? "")}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setActive(0)
+                }}
+                onKeyDown={onKeyDown}
+                onBlur={(e) => leave(e.relatedTarget)}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="selectable inner-field sticky top-0 z-10 mb-[0.3rem] h-8 w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+              />
             )}
+            {searchable && flat.length === 0 && (
+              <p className="px-1.5 py-1.5 text-[0.9rem] text-ink-dim">{m.noChoice}</p>
+            )}
+            <div
+              id={listId}
+              role="listbox"
+              aria-label={open ? (aria["aria-label"] ?? listLabel) : undefined}
+              aria-labelledby={aria["aria-labelledby"]}
+            >
+              {shownItems.map((item) =>
+                isGroup(item) ? (
+                  // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role="group"; a fieldset groups form controls
+                  <div key={`group-${item.label}`} role="group" aria-label={item.label} className="not-first:mt-1">
+                    <div
+                      aria-hidden
+                      className="px-1.5 pt-1.5 pb-1 text-[0.8rem] font-medium tracking-[0.06em] text-ink-dim uppercase"
+                    >
+                      {item.label}
+                    </div>
+                    {item.options.map(renderOption)}
+                  </div>
+                ) : (
+                  renderOption(item)
+                ),
+              )}
+            </div>
           </div>,
           host,
         )}

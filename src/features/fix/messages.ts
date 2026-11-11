@@ -7,7 +7,7 @@ const en = {
   open: (agent: string) => `Open ${agent}`,
   opening: "Opening…",
   looking: "Looking for agents…",
-  none: "WireCat found no agent it can start here. It can open Claude Code, Codex and Gemini CLI.",
+  none: "WireCat found no agent it can start here. It can open Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Hermes Agent and OpenClaw.",
   started: (agent: string) =>
     `${agent} opened in a terminal with the prompt. When it says the problem is fixed, press Try again.`,
   failed: (agent: string) => `Could not start ${agent}.`,
@@ -16,6 +16,7 @@ const en = {
   notInstalled: "Not found on this computer: pick it to see how to install it",
   install: (agent: string, command: string) =>
     `To install ${agent}, run ${command} in a terminal, then restart WireCat.`,
+  installAt: (agent: string, page: string) => `To install ${agent}, follow the steps on ${page}, then restart WireCat.`,
   why: {
     missing: (agent: string, bin: string) =>
       `${agent} is not on this computer's PATH, so WireCat cannot start it. Open a new terminal and run ${bin}: if it is not found, install ${agent} again; if it starts, restart WireCat so it sees the new PATH.`,
@@ -37,7 +38,7 @@ const ru: typeof en = {
   open: (agent) => `Открыть ${agent}`,
   opening: "Открываем…",
   looking: "Ищем агентов…",
-  none: "WireCat не нашёл агента, которого может запустить. Он умеет открывать Claude Code, Codex и Gemini CLI.",
+  none: "WireCat не нашел агента, которого может запустить. Он умеет открывать Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Hermes Agent и OpenClaw.",
   started: (agent) =>
     `${agent} открыт в терминале с промптом. Когда он скажет, что всё исправлено, нажмите «Попробовать снова».`,
   failed: (agent) => `Не удалось запустить ${agent}.`,
@@ -46,6 +47,8 @@ const ru: typeof en = {
   notInstalled: "Не найден на этом компьютере: выберите, чтобы узнать, как установить",
   install: (agent, command) =>
     `Чтобы установить ${agent}, выполните в терминале ${command}, затем перезапустите WireCat.`,
+  installAt: (agent, page) =>
+    `Чтобы установить ${agent}, выполните шаги со страницы ${page}, затем перезапустите WireCat.`,
   why: {
     missing: (agent, bin) =>
       `${agent} нет в PATH этого компьютера, поэтому WireCat не может его запустить. Откройте новый терминал и выполните ${bin}: если команда не найдена, установите ${agent} заново; если запустился — перезапустите WireCat, чтобы он увидел новый PATH.`,
@@ -67,7 +70,7 @@ const es: typeof en = {
   open: (agent) => `Abrir ${agent}`,
   opening: "Abriendo…",
   looking: "Buscando agentes…",
-  none: "WireCat no encontró ningún agente que pueda iniciar aquí. Puede abrir Claude Code, Codex y Gemini CLI.",
+  none: "WireCat no encontró ningún agente que pueda iniciar aquí. Puede abrir Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Hermes Agent y OpenClaw.",
   started: (agent) =>
     `${agent} se abrió en un terminal con el prompt. Cuando diga que está arreglado, pulsa Reintentar.`,
   failed: (agent) => `No se pudo iniciar ${agent}.`,
@@ -75,6 +78,7 @@ const es: typeof en = {
   openInAgent: "Abrir en un agente",
   notInstalled: "No está en este ordenador: elígelo para ver cómo instalarlo",
   install: (agent, command) => `Para instalar ${agent}, ejecuta ${command} en una terminal y reinicia WireCat.`,
+  installAt: (agent, page) => `Para instalar ${agent}, sigue los pasos de ${page} y reinicia WireCat.`,
   why: {
     missing: (agent, bin) =>
       `${agent} no está en el PATH de este equipo, así que WireCat no puede iniciarlo. Abre un terminal nuevo y ejecuta ${bin}: si no se encuentra, instala ${agent} de nuevo; si arranca, reinicia WireCat para que vea el PATH nuevo.`,

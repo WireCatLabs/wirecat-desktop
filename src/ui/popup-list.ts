@@ -3,6 +3,8 @@ import { type CSSProperties, type RefObject, useEffect, useLayoutEffect, useStat
 const GAP = 4
 const EDGE = 8
 const MAX_HEIGHT = 288
+/** From this many choices a list gets a field to narrow it: past about eight, scrolling to find one is slow. */
+export const SEARCH_FROM = 8
 // Not `visibility: hidden`: the opener's effect that focuses the first item runs before the list is placed, and a
 // hidden element refuses focus, so the keyboard stayed on the trigger.
 const UNPLACED: CSSProperties = { opacity: 0, pointerEvents: "none" }

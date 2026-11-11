@@ -10,6 +10,7 @@ import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Task } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
+import { CopyRef } from "@/ui/CopyRef"
 import { Skeleton } from "@/ui/Skeleton"
 import { stamp, taskMessages } from "./messages"
 import { OriginMark, originOf, TaskError, useOriginName } from "./parts"
@@ -53,10 +54,13 @@ export function FoundSource({ task, dirty }: { task: Task; dirty: boolean }) {
 
   return (
     <section aria-labelledby={`${id}-source`} className="flex flex-col gap-[0.5rem]">
-      <h3 id={`${id}-source`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">
-        {origin && <OriginMark origin={origin} />}
-        {origin ? `${m.source} · ${nameOf(origin)}` : m.source}
-      </h3>
+      <div className="flex items-center gap-1">
+        <h3 id={`${id}-source`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">
+          {origin && <OriginMark origin={origin} />}
+          {origin ? `${m.source} · ${nameOf(origin)}` : m.source}
+        </h3>
+        <CopyRef value={task.source} className="-my-1" />
+      </div>
       {!target ? (
         <p className="text-[0.95rem] text-ink-soft">{task.source ? m.sourceNotMessage : m.sourceUnknown}</p>
       ) : read.isPending ? (

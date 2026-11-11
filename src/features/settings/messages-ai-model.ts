@@ -61,8 +61,8 @@ const en = {
   ollamaBeta:
     "Beta. Ollama must be running, and the model pulled with ollama pull. Nothing leaves this computer. Use a model that can read pictures, such as llava, if you want it to read them.",
   images: "Read pictures with this model",
-  imagesConsent: (host: string, ollama: boolean) =>
-    ollama
+  imagesConsent: (host: string, local: boolean) =>
+    local
       ? "Pictures you add to memory stay on this computer. The model on it reads the text in them. A model on your computer is usually slower and less accurate than Anthropic's or OpenAI's."
       : `Pictures you add to memory leave this computer and go to ${host}, so the model can read the text in them.`,
   imagesNow: (by: string | null, here: boolean) =>
@@ -155,8 +155,8 @@ const ru: typeof en = {
   ollamaBeta:
     "Бета. Ollama должна быть запущена, а модель скачана командой ollama pull. Ничего не покидает этот компьютер. Чтобы модель читала картинки, возьмите такую, что их понимает, например llava.",
   images: "Распознавать картинки этой моделью",
-  imagesConsent: (host: string, ollama: boolean) =>
-    ollama
+  imagesConsent: (host: string, local: boolean) =>
+    local
       ? "Картинки, которые вы добавляете в память, остаются на этом компьютере. Текст в них читает модель на нем. Модель на компьютере обычно работает медленнее, и точность у нее ниже, чем у Anthropic или OpenAI."
       : `Картинки, которые вы добавляете в память, уходят с этого компьютера на ${host}, чтобы модель прочитала текст в них.`,
   imagesNow: (by: string | null, here: boolean) =>
@@ -249,8 +249,8 @@ const es: typeof en = {
   ollamaBeta:
     "Beta. Ollama debe estar en marcha y el modelo descargado con ollama pull. Nada sale de este ordenador. Si quieres que lea imágenes, usa un modelo que las entienda, como llava.",
   images: "Leer imágenes con este modelo",
-  imagesConsent: (host: string, ollama: boolean) =>
-    ollama
+  imagesConsent: (host: string, local: boolean) =>
+    local
       ? "Las imágenes que añades a la memoria se quedan en este ordenador. El modelo que corre en él lee el texto que contienen. Un modelo en tu ordenador suele ser más lento y menos preciso que los de Anthropic u OpenAI."
       : `Las imágenes que añades a la memoria salen de este ordenador y van a ${host}, para que el modelo lea el texto que contienen.`,
   imagesNow: (by: string | null, here: boolean) =>

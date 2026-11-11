@@ -6,10 +6,14 @@ import { uiMessages } from "./messages"
 import { MOTION, reducedMotion } from "./motion"
 
 const CLOSE_MS = MOTION.exit
+const FOCUSABLE =
+  "button:not(:disabled),[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex='-1'])"
 
 type Props = {
   open: boolean
   title: string
+  /** Beside the title and outside it, so the dialog's name stays the title: a record's copy button. */
+  titleAside?: ReactNode
   children: ReactNode
   /** The dialog's choices. Left out when there is nothing to choose: the × closes it. */
   actions?: ReactNode
@@ -33,6 +37,7 @@ type Props = {
 export function Dialog({
   open,
   title,
+  titleAside,
   children,
   actions,
   onClose,
@@ -48,13 +53,14 @@ export function Dialog({
   // A press that starts inside (selecting text in a field) and ends on the backdrop is not a click outside.
   const pressedOutside = useRef(false)
   const titleId = useId()
+  const aside = useRef<HTMLSpanElement>(null)
   const requestClose = () => {
     if (canClose?.() !== false) onClose()
   }
   // The content stays while the dialog fades out, so it does not go blank before it goes away.
   const [closing, setClosing] = useState(false)
-  const last = useRef({ title, children, actions, footer })
-  if (open) last.current = { title, children, actions, footer }
+  const last = useRef({ title, titleAside, children, actions, footer })
+  if (open) last.current = { title, titleAside, children, actions, footer }
 
   useEffect(() => {
     const d = ref.current
@@ -71,7 +77,11 @@ export function Dialog({
         opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
         d.showModal?.()
         // showModal focuses the first focusable thing, which can be a scrolling area rather than the first field.
-        d.querySelector<HTMLElement>("[data-autofocus]")?.focus()
+        // Nor the copy button beside the title: the dialog starts on its content.
+        const first = d.querySelector<HTMLElement>("[data-autofocus]")
+        if (first) first.focus()
+        else if (aside.current?.contains(document.activeElement))
+          [...d.querySelectorAll<HTMLElement>(FOCUSABLE)].find((el) => !aside.current?.contains(el))?.focus()
       }
       return
     }
@@ -88,7 +98,7 @@ export function Dialog({
     return () => clearTimeout(t)
   }, [open])
 
-  const shown = open ? { title, children, actions, footer } : last.current
+  const shown = open ? { title, titleAside, children, actions, footer } : last.current
 
   // Last in the DOM, so showModal's first focus lands on the dialog's own content, not on the ×.
   const close = (
@@ -145,9 +155,16 @@ export function Dialog({
               tall && "h-[min(50rem,calc(100vh-2rem-2px))]",
             )}
           >
-            <h2 id={titleId} className="shrink-0 px-6 pt-6 pr-16 pb-3 text-[1.2rem] font-semibold">
-              {shown.title}
-            </h2>
+            <div className="flex shrink-0 items-center gap-1 px-6 pt-6 pr-16 pb-3">
+              <h2 id={titleId} className="min-w-0 text-[1.2rem] font-semibold">
+                {shown.title}
+              </h2>
+              {shown.titleAside && (
+                <span ref={aside} className="shrink-0">
+                  {shown.titleAside}
+                </span>
+              )}
+            </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-1 text-[0.95rem] leading-relaxed text-ink-soft">
               {shown.children}
             </div>
@@ -164,9 +181,16 @@ export function Dialog({
           </div>
         ) : (
           <div className="relative flex flex-col gap-4 p-6">
-            <h2 id={titleId} className="pr-10 text-[1.2rem] font-semibold">
-              {shown.title}
-            </h2>
+            <div className="flex items-center gap-1 pr-10">
+              <h2 id={titleId} className="min-w-0 text-[1.2rem] font-semibold">
+                {shown.title}
+              </h2>
+              {shown.titleAside && (
+                <span ref={aside} className="shrink-0">
+                  {shown.titleAside}
+                </span>
+              )}
+            </div>
             <div className="text-[0.95rem] leading-relaxed text-ink-soft">{shown.children}</div>
             {shown.actions && <div className="mt-2 flex justify-end gap-2">{shown.actions}</div>}
             {shown.footer}

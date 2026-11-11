@@ -54,3 +54,39 @@ describe("Select", () => {
     expect(box).toHaveFocus()
   })
 })
+
+const PROJECTS = Array.from({ length: 12 }, (_, i) => ({ value: `p${i}`, label: `Project ${i + 1}` }))
+
+function LongPicker() {
+  const [value, setValue] = useState("p0")
+  return (
+    <>
+      <Select aria-label="Project" value={value} onChange={setValue} options={PROJECTS} />
+      <output>{value}</output>
+    </>
+  )
+}
+
+describe("a long Select", () => {
+  it("opens on a search field that narrows its options, and Enter picks the first match", async () => {
+    const user = userEvent.setup()
+    render(<LongPicker />)
+    await user.click(screen.getByRole("combobox", { name: "Project" }))
+    const find = screen.getByRole("combobox", { name: "Find project" })
+    expect(find).toHaveFocus()
+    await user.type(find, "11")
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Project 11"])
+    await user.keyboard("{Enter}")
+    expect(screen.getByRole("status").textContent).toBe("p10")
+    expect(screen.getByRole("combobox", { name: "Project" })).toHaveFocus()
+  })
+
+  it("starts the search with the letter typed on the closed button", async () => {
+    const user = userEvent.setup()
+    render(<LongPicker />)
+    screen.getByRole("combobox", { name: "Project" }).focus()
+    await user.keyboard("9")
+    expect(screen.getByRole("combobox", { name: "Find project" })).toHaveValue("9")
+    expect(screen.getAllByRole("option")).toHaveLength(1)
+  })
+})

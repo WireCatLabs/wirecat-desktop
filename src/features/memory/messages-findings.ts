@@ -4,9 +4,9 @@ const en = {
   decision: (text: string) => `Decision on: ${text}`,
   keep: "Approve",
   drop: "Reject",
-  markAll: "Mark all:",
-  keepAll: "approve",
-  dropAll: "reject",
+  markAll: "All findings",
+  keepAll: "Approve all",
+  dropAll: "Reject all",
   kindHint: {
     fact: "Fact: something the agent wants remembered.",
     task: "Task: a task the agent proposes to create.",
@@ -27,7 +27,6 @@ const en = {
   editTask: "Edit the task",
   details: "More details",
   open: { mail: "Open the email", message: "Open in the chat" } as Record<string, string>,
-  copyRef: "Copy the reference",
   approveAllAbout: "What this button approves",
   kinds: { mail: "Email", message: "Message", meeting: "Meeting", note: "Note" } as Record<string, string>,
 }
@@ -36,9 +35,9 @@ const ru: typeof en = {
   decision: (text) => `Решение по: ${text}`,
   keep: "Одобрить",
   drop: "Отклонить",
-  markAll: "Отметить все:",
-  keepAll: "одобрить",
-  dropAll: "отклонить",
+  markAll: "Все находки",
+  keepAll: "Одобрить все",
+  dropAll: "Отклонить все",
   kindHint: {
     fact: "Факт: то, что агент предлагает запомнить.",
     task: "Задача: дело, которое агент предлагает создать.",
@@ -59,7 +58,6 @@ const ru: typeof en = {
   editTask: "Изменить задачу",
   details: "Подробнее",
   open: { mail: "Открыть письмо", message: "Открыть в чате" },
-  copyRef: "Скопировать ссылку",
   approveAllAbout: "Что одобряет эта кнопка",
   kinds: { mail: "Письмо", message: "Сообщение", meeting: "Встреча", note: "Заметка" },
 }
@@ -68,9 +66,9 @@ const es: typeof en = {
   decision: (text) => `Decisión sobre: ${text}`,
   keep: "Aprobar",
   drop: "Rechazar",
-  markAll: "Marcar todo:",
-  keepAll: "aprobar",
-  dropAll: "rechazar",
+  markAll: "Todos los hallazgos",
+  keepAll: "Aprobar todos",
+  dropAll: "Rechazar todos",
   kindHint: {
     fact: "Hecho: algo que el agente propone recordar.",
     task: "Tarea: una tarea que el agente propone crear.",
@@ -91,7 +89,6 @@ const es: typeof en = {
   editTask: "Editar la tarea",
   details: "Más detalles",
   open: { mail: "Abrir el correo", message: "Abrir en el chat" },
-  copyRef: "Copiar la referencia",
   approveAllAbout: "Qué aprueba este botón",
   kinds: { mail: "Correo", message: "Mensaje", meeting: "Reunión", note: "Nota" },
 }

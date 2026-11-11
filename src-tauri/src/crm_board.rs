@@ -160,6 +160,9 @@ pub enum CrmBaseEdit {
 
 #[derive(Serialize, Type, Debug, PartialEq)]
 pub struct CrmPerson {
+    /// `person:<id>`; the page asks memo for this person's tasks with it.
+    #[serde(rename = "ref")]
+    pub reference: Option<String>,
     pub name: Option<String>,
     /// `owner` (who is responsible), `contact`, `decision-maker` or `influencer`.
     pub role: String,
@@ -178,6 +181,8 @@ pub struct CrmCard {
     pub amount: Option<String>,
     pub currency: Option<String>,
     pub organization: Option<String>,
+    /// `organization:<id>`, for copying; memo's task search has no field to find a company's tasks by it yet.
+    pub organization_ref: Option<String>,
     pub people: Vec<CrmPerson>,
     pub close_date: Option<String>,
     pub closed_date: Option<String>,
@@ -274,7 +279,11 @@ fn pipeline(v: &Value) -> Option<CrmPipeline> {
 
 fn card(v: &Value) -> Option<CrmCard> {
     let people = v["people"].as_array().map_or_else(Vec::new, |a| {
-        a.iter().filter_map(|p| Some(CrmPerson { name: text(p, "name"), role: text(p, "role")? })).collect()
+        a.iter()
+            .filter_map(|p| {
+                Some(CrmPerson { reference: text(p, "ref"), name: text(p, "name"), role: text(p, "role")? })
+            })
+            .collect()
     });
     Some(CrmCard {
         reference: text(v, "ref")?,
@@ -285,6 +294,7 @@ fn card(v: &Value) -> Option<CrmCard> {
         amount: text(v, "amount"),
         currency: text(v, "currency"),
         organization: v.get("organization").and_then(|o| text(o, "name")),
+        organization_ref: v.get("organization").and_then(|o| text(o, "ref")),
         people,
         close_date: text(v, "close_date"),
         closed_date: text(v, "closed_date"),
@@ -500,6 +510,13 @@ mod tests {
         let moved = move_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, "deal:2", "Quote").unwrap();
         assert_eq!(moved.stage, "Quote");
         assert_eq!(seen.lock().unwrap()[0], ["deals", "move", "deal:2", "Quote", "--json", "--no-record"]);
+    }
+
+    #[test]
+    fn a_card_keeps_the_refs_of_its_people_and_company() {
+        let card = card(&deal()).unwrap();
+        assert_eq!(card.organization_ref.as_deref(), Some("organization:1"));
+        assert_eq!(card.people[0].reference.as_deref(), Some("person:2"));
     }
 
     // The shapes of cli-core #2720 (store version 60), as its `stages` commands and `deals list` answer them.

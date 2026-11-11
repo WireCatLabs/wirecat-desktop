@@ -5,7 +5,7 @@ import { CheckMark } from "./Checkbox"
 import { cx } from "./cx"
 import { ExpandChevron } from "./ExpandChevron"
 import { uiMessages } from "./messages"
-import { useCloseOutside, useListPlacement } from "./popup-list"
+import { SEARCH_FROM, useCloseOutside, useListPlacement } from "./popup-list"
 
 export type FilterOption = {
   value: string
@@ -30,9 +30,11 @@ type Props = {
   required?: boolean
   /** What the chip says once something is chosen, when the option's own label is too long for it. */
   shown?: string
+  /** A field of a form rather than a filter: the chip says this with nothing chosen, and only the names after. */
+  empty?: string
+  /** The field to narrow the list, however short it is. */
+  search?: boolean
 }
-
-const SEARCH_FROM = 7
 
 /**
  * A filter chip: a button that opens a list of choices with a count beside each. Several may be chosen; a long list
@@ -47,6 +49,8 @@ export function FilterMenu({
   single = false,
   required = false,
   shown: chipText,
+  empty,
+  search = false,
 }: Props) {
   const m = useMessages(uiMessages)
   const lang = useLang()
@@ -59,8 +63,13 @@ export function FilterMenu({
   const listbox = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLInputElement>(null)
   const base = useId()
-  const searchable = options.length >= SEARCH_FROM
-  const shown = options.filter((o) =>
+  const searchable = search || options.length >= SEARCH_FROM
+  // A long list puts what was chosen first, as it stood when the list opened: a tick never moves a row away.
+  const [first, setFirst] = useState<readonly string[]>([])
+  const ordered = searchable
+    ? [...options.filter((o) => first.includes(o.value)), ...options.filter((o) => !first.includes(o.value))]
+    : options
+  const shown = ordered.filter((o) =>
     `${o.label} ${o.hint ?? ""} ${o.terms ?? ""}`.toLocaleLowerCase().includes(text.trim().toLocaleLowerCase()),
   )
 
@@ -74,6 +83,10 @@ export function FilterMenu({
   const place = useListPlacement(open, chip, list)
   useCloseOutside(open, inside, closeOutside)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the order is taken once, when the list opens
+  useEffect(() => {
+    if (open) setFirst(selected)
+  }, [open])
   useEffect(() => {
     if (!open) return
     setActive(0)
@@ -126,6 +139,7 @@ export function FilterMenu({
           ref={button}
           type="button"
           aria-haspopup="listbox"
+          aria-label={empty === undefined ? undefined : `${label}: ${on ? names.join(", ") : empty}`}
           aria-expanded={open}
           aria-controls={listId}
           onClick={() => (open ? close(false) : setOpen(true))}
@@ -142,8 +156,12 @@ export function FilterMenu({
               : "text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",
           )}
         >
-          <span className="shrink-0">{on ? `${label}:` : label}</span>
-          {on && " "}
+          {empty === undefined ? (
+            <span className="shrink-0">{on ? `${label}:` : label}</span>
+          ) : (
+            !on && <span className="shrink-0">{empty}</span>
+          )}
+          {on && empty === undefined && " "}
           {on && (
             <span className="min-w-0 truncate font-medium text-ink">
               {chipText ?? (names.length > 2 ? m.chosen(names.length) : names.join(", "))}

@@ -76,7 +76,7 @@ export const ShellChoicesSchema = v.object({
 })
 export type ShellChoices = v.InferOutput<typeof ShellChoicesSchema>
 
-/** What `run_agent` did: the agent opened in a terminal with the prompt file, or why it could not. */
+/** What `run_agent` did: the agent opened in a terminal with the prompt (saved to `file` too), or why it could not. */
 export const AgentRunSchema = v.object({
   started: v.boolean(),
   agent: v.string(),

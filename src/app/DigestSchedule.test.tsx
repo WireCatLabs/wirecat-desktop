@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useDigestBook, useDigests } from "@/features/digests"
+import { editorMessages } from "@/features/digests/messages-editors"
 import { useTasks } from "@/features/tasks"
 import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -195,7 +196,10 @@ describe("creating a digest", () => {
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Add a time" }))
     expect(within(dialog).getByLabelText("Times 2")).toHaveValue("18:00")
-    await user.type(within(dialog).getByRole("textbox", { name: "Instructions" }), "Only HRB")
+    const instructions = within(dialog).getByRole("textbox", { name: "Instructions" })
+    expect(instructions).toHaveValue(editorMessages.en.brief.template.own)
+    await user.clear(instructions)
+    await user.type(instructions, "Only HRB")
     await user.click(create)
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
@@ -240,19 +244,20 @@ describe("editing a digest", () => {
     expect(within(settings).getByRole("alert")).toHaveTextContent("Nothing is changed yet.")
     expect(save).not.toHaveBeenCalled()
     await user.click(within(settings).getByRole("button", { name: "Add" }))
-    expect(screen.getByRole("combobox", { name: "Account" })).toHaveFocus()
-    expect(screen.getByRole("combobox", { name: "Account" })).toHaveAccessibleDescription(
-      "Choose an account and type a chat id first.",
+    expect(screen.getByRole("combobox", { name: "Bot account" })).toHaveFocus()
+    expect(screen.getByRole("combobox", { name: "Bot account" })).toHaveAccessibleDescription(
+      /Choose an account and type a chat id first\./,
     )
     await user.click(within(settings).getByRole("radio", { name: "On days" }))
     await user.click(within(settings).getByRole("button", { name: /^tue/i }))
     expect(within(settings).getByRole("button", { name: "Save" })).not.toHaveAccessibleDescription()
     await waitFor(() => expect(within(settings).queryByText("Nothing is changed yet.")).toBeNull())
-    await user.click(within(settings).getByRole("button", { name: "Mail" }))
+    await user.click(within(settings).getByRole("button", { name: "Sources: All connected sources" }))
+    await user.click(await screen.findByRole("option", { name: "Tasks" }))
 
-    await user.click(screen.getByRole("combobox", { name: "Account" }))
+    await user.click(screen.getByRole("combobox", { name: "Bot account" }))
     await user.click(await screen.findByRole("option", { name: "alerts" }))
-    await user.click(screen.getByRole("combobox", { name: "Chat id or user:id" }))
+    await user.click(screen.getByRole("combobox", { name: "Chat or person" }))
     await user.click(await screen.findByRole("option", { name: /user:1001.*you, in personal/ }))
     await user.click(screen.getByRole("button", { name: "Add" }))
     expect(screen.getByText(/alerts → user:1001/)).toBeInTheDocument()
@@ -262,7 +267,7 @@ describe("editing a digest", () => {
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({
           weekdays: ["tue"],
-          sources: ["mail"],
+          sources: ["tasks"],
           routes: expect.arrayContaining(["telegram-bot:alerts/user:1001"]),
         }),
         false,
@@ -273,9 +278,9 @@ describe("editing a digest", () => {
   it("suggests the mailboxes for an email route, the account's own address first, and keeps a typed one", async () => {
     const user = await openMorning(ready([morning]))
     const settings = screen.getByRole("region", { name: "Settings" })
-    await user.click(within(settings).getByRole("combobox", { name: "Sends it to" }))
+    await user.click(within(settings).getByRole("combobox", { name: "Where" }))
     await user.click(await screen.findByRole("option", { name: "Mail" }))
-    await user.click(within(settings).getByRole("combobox", { name: "Account" }))
+    await user.click(within(settings).getByRole("combobox", { name: "Mail account" }))
     expect((await screen.findAllByRole("option")).map((o) => o.textContent)).toEqual(["work", "personal"])
     await user.click(screen.getByRole("option", { name: "personal" }))
     const to = within(settings).getByRole("combobox", { name: "Address" })

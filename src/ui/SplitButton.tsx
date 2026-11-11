@@ -157,7 +157,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
           tabIndex={-1}
           style={place}
           onKeyDown={onMenuKey}
-          className="fixed z-50 flex w-max min-w-[11rem] flex-col rounded-[0.45rem] border border-line bg-app p-1 text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
+          className="fixed z-50 flex w-max min-w-[11rem] flex-col overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
         >
           {items.map((item) => (
             <button

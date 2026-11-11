@@ -278,6 +278,7 @@ const en = {
   sourcesCount: "Sources",
   moreActions: "More actions",
   reviewFindings: (n: number) => `Review ${n}`,
+  collapseFindings: "Collapse",
   approveShown: (n: number) => `Approve all on this page: ${n}`,
   approveShownHint: (n: number) =>
     `Approves the ${n} facts and memories shown here with these filters. Tasks, agents' findings, and rows in another tab, filtered out or in a folded group keep waiting for you.`,
@@ -541,6 +542,7 @@ const ru: typeof en = {
   sourcesCount: "Источники",
   moreActions: "Другие действия",
   reviewFindings: (n) => `Проверить ${n}`,
+  collapseFindings: "Свернуть",
   approveShown: (n) => `Одобрить все на странице: ${n}`,
   approveShownHint: (n) =>
     `Одобряет факты и воспоминания, показанные здесь с этими фильтрами: ${n}. Задачи, находки агентов и записи в другой вкладке, отфильтрованные или в свернутой группе, по-прежнему ждут решения.`,
@@ -804,6 +806,7 @@ const es: typeof en = {
   sourcesCount: "Fuentes",
   moreActions: "Más acciones",
   reviewFindings: (n) => `Revisar ${n}`,
+  collapseFindings: "Contraer",
   approveShown: (n) => `Aprobar todo en esta página: ${n}`,
   approveShownHint: (n) =>
     `Aprueba los ${n} hechos y recuerdos que se ven aquí con estos filtros. Las tareas, los hallazgos de agentes y lo que está en otra pestaña, filtrado o en un grupo plegado siguen pendientes.`,

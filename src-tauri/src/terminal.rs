@@ -9,7 +9,7 @@ use std::process::Stdio;
 /// Setup flows (QR codes, phone codes, browser sign-in) belong to the CLI, so we open them
 /// in the user's terminal instead of re-implementing them.
 pub fn open(bin: &Path, args: &[String]) -> Result<(), String> {
-    open_in_shell(bin, args, false).map_err(|e| {
+    open_in_shell(bin, args, false, None).map_err(|e| {
         let run = format!("{} {}", bin.file_name().unwrap_or_default().to_string_lossy(), args.join(" "));
         if e.kind() == std::io::ErrorKind::PermissionDenied {
             format!("{AUTOMATION} Or run this yourself: {run}")
@@ -19,9 +19,10 @@ pub fn open(bin: &Path, args: &[String]) -> Result<(), String> {
     })
 }
 
-/// Like `open`, but every argument is quoted: they can hold free text (a sentence around a file path).
-pub fn open_agent(bin: &Path, args: &[String]) -> Result<(), String> {
-    open_in_shell(bin, args, true).map_err(|e| {
+/// Like `open`, but every argument is quoted: they can hold free text (a sentence around a file path). With
+/// `prompt_file`, the shell reads that file into one last argument, so the prompt itself is never part of the line.
+pub fn open_agent(bin: &Path, args: &[String], prompt_file: Option<&Path>) -> Result<(), String> {
+    open_in_shell(bin, args, true, prompt_file).map_err(|e| {
         if e.kind() == std::io::ErrorKind::PermissionDenied {
             AUTOMATION.to_string()
         } else {
@@ -37,10 +38,31 @@ pub fn is_automation(message: &str) -> bool {
 
 /// The line runs in the shell the user's own terminal runs, not `sh`, so their rc files apply (an agent's API key
 /// exported in `.zshrc`) and the window stays in that shell when the command ends.
-fn open_in_shell(bin: &Path, args: &[String], quote_args: bool) -> std::io::Result<()> {
+fn open_in_shell(bin: &Path, args: &[String], quote_args: bool, prompt_file: Option<&Path>) -> std::io::Result<()> {
     let shell = paths::user_shell();
     let syntax = line_syntax(shell.as_deref());
-    launch(shell.as_deref(), &command_line(syntax, bin, args, quote_args, app_node_path().as_deref()), syntax)
+    let mut line = command_line(syntax, bin, args, quote_args, app_node_path().as_deref());
+    if let Some(file) = prompt_file {
+        line = format!(
+            "{line} {}",
+            file_text(syntax, file).ok_or_else(|| std::io::Error::other("cmd cannot read a file into an argument"))?
+        );
+    }
+    launch(shell.as_deref(), &line, syntax)
+}
+
+/// The file's text as one argument, trailing newlines dropped. The shell substitutes it after parsing the line, so
+/// nothing in the text is expanded. POSIX: <https://pubs.opengroup.org/onlinepubs/9799919799/utilities/V3_chap02.html#tag_19_06_03>
+/// (no field splitting inside double quotes); `command` skips an alias such as `cat=bat`. fish:
+/// <https://fishshell.com/docs/current/cmds/string-collect.html> (one argument, not split at newlines). cmd has no
+/// such form, and its 8191-character line could not hold the text anyway.
+fn file_text(syntax: Syntax, file: &Path) -> Option<String> {
+    let path = file.to_string_lossy();
+    match syntax {
+        Syntax::Posix => Some(format!("\"$(command cat {})\"", quote(syntax, &path))),
+        Syntax::Fish => Some(format!("(string collect < {})", quote(syntax, &path))),
+        Syntax::Cmd => None,
+    }
 }
 
 /// The new terminal reads the user's own PATH, where an older Node may come first; a tool installed with
@@ -319,6 +341,51 @@ mod tests {
         assert_eq!(
             shell_argv(Path::new("/usr/bin/bash"), line, Syntax::Posix),
             words(&["/usr/bin/bash", "-ic", &format!("{line}; exec '/usr/bin/bash'")])
+        );
+    }
+
+    const HOSTILE: &str = "it's \"$HOME\" $(touch /tmp/wc-pwned) `id` ${PATH} \\n \\' !! !$ %PATH% & | ; > < * ? ~\n\
+        second line\twith a tab\r\n«ünïcödé» 日本語 😀 '' '\\''";
+
+    /// The shells themselves decide, not a string compare: the line has to hand `printf` the file's exact text as one
+    /// argument, from a folder whose name is hostile too.
+    #[cfg(unix)]
+    #[test]
+    fn a_hostile_prompt_file_reaches_the_program_unchanged() {
+        let dir = std::env::temp_dir().join(format!("wc agent 'it's' $(x) {}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("1.md");
+        std::fs::write(&file, HOSTILE).unwrap();
+        let mut ran = 0;
+        for (shell, syntax) in
+            [("sh", Syntax::Posix), ("bash", Syntax::Posix), ("zsh", Syntax::Posix), ("fish", Syntax::Fish)]
+        {
+            let line = command_line(syntax, Path::new("printf"), &words(&["%s|"]), true, None);
+            let line = format!("{line} {}", file_text(syntax, &file).unwrap());
+            let Ok(out) = std::process::Command::new(shell).args(["-c", &line]).output() else { continue };
+            assert_eq!(String::from_utf8_lossy(&out.stdout), format!("{HOSTILE}|"), "{shell}");
+            ran += 1;
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(ran >= 1, "no shell ran");
+    }
+
+    #[test]
+    fn the_prompt_never_enters_the_line_and_cmd_gets_no_file_form() {
+        let file = Path::new("/home/o'neil/agent-prompts/1.md");
+        assert_eq!(file_text(Syntax::Posix, file).unwrap(), r#""$(command cat '/home/o'\''neil/agent-prompts/1.md')""#);
+        assert_eq!(file_text(Syntax::Fish, file).unwrap(), r"(string collect < '/home/o\'neil/agent-prompts/1.md')");
+        assert_eq!(file_text(Syntax::Cmd, file), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn terminal_app_types_only_the_file_path_never_the_prompt() {
+        let file = Path::new("/Users/u/Library/Application Support/dev.wirecat.desktop/agent-prompts/1.md");
+        let line = format!("'/b/claude' {}", file_text(Syntax::Posix, file).unwrap());
+        assert_eq!(
+            terminal_app_script(Some(Path::new("/bin/zsh")), &line, Syntax::Posix),
+            r#"tell application "Terminal" to do script "'/b/claude' \"$(command cat '/Users/u/Library/Application Support/dev.wirecat.desktop/agent-prompts/1.md')\"""#
         );
     }
 

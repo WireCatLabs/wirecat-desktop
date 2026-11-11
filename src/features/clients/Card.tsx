@@ -4,6 +4,7 @@ import { moneyOf, ownerOf } from "@/domain/clients"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { cardClass } from "@/ui/Board"
+import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
@@ -163,13 +164,23 @@ export function CardFacts({
       )}
       <Row label={m.pipeline}>{pipeline && label.pipeline(pipeline, card.account !== null)}</Row>
       <Row label={m.amount}>{card.amount && card.currency ? moneyOf(card.amount, card.currency, lang) : null}</Row>
-      <Row label={m.organization}>{card.organization}</Row>
+      <Row label={m.organization}>
+        {card.organization && (
+          <span className="inline-flex items-center gap-1">
+            {card.organization}
+            <CopyRef value={card.organizationRef} />
+          </span>
+        )}
+      </Row>
       <Row label={m.people}>
         {card.people.length > 0 ? (
           <ul>
             {card.people.map((p) => (
-              <li key={`${p.name}-${p.role}`}>
-                {p.name ?? m.nobody} <span className="text-ink-dim">· {m.roles[p.role] ?? p.role}</span>
+              <li key={`${p.name}-${p.role}`} className="flex items-center gap-1">
+                <span>
+                  {p.name ?? m.nobody} <span className="text-ink-dim">· {m.roles[p.role] ?? p.role}</span>
+                </span>
+                <CopyRef value={p.ref} />
               </li>
             ))}
           </ul>

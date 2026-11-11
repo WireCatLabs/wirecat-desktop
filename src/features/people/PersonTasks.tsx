@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { tasksQuery } from "@/domain/tasks"
 import { openTarget } from "@/features/links"
 import { StateText, useTasks } from "@/features/tasks"
 import { useMessages } from "@/i18n"
@@ -7,7 +8,7 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { peopleMessages } from "./messages"
-import { tasksQuery, usePeople } from "./store"
+import { usePeople } from "./store"
 
 const SHOWN = 10
 
@@ -22,7 +23,7 @@ export function PersonTasks({ reference }: { reference: string }) {
   const toTasks = () => {
     leave()
     useNav.getState().go("tasks")
-    useTasks.getState().setQuery(tasksQuery(reference))
+    useTasks.getState().setQuery(tasksQuery([reference]))
   }
 
   const read = got?.state === "ready" ? got.read : null

@@ -2,11 +2,13 @@ import type { Kind } from "@/domain/clients"
 import { useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
+import { CopyRef } from "@/ui/CopyRef"
 import { Dialog } from "@/ui/Dialog"
 import { Select } from "@/ui/Select"
 import { type Based, useBoard, useStageName } from "./api"
 import { useBaseMove } from "./base-move"
 import { CardFacts, OutcomeLamp, StageText } from "./Card"
+import { CardTasks } from "./CardTasks"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
@@ -23,6 +25,7 @@ export function CardDialog() {
     <Dialog
       open={card !== undefined}
       title={card?.title ?? ""}
+      titleAside={<CopyRef value={card?.ref} />}
       onClose={close}
       actions={
         <Button size="sm" onClick={close}>
@@ -31,11 +34,14 @@ export function CardDialog() {
       }
     >
       {card && (
-        <CardFacts
-          card={card}
-          pipeline={data?.kind === "base" ? data.pipelines.find((p) => p.ref === card.pipeline)?.name : undefined}
-          stage={data?.kind === "base" ? <StageField read={data} kind={kind} card={card} /> : undefined}
-        />
+        <div className="flex flex-col gap-[1.1rem]">
+          <CardFacts
+            card={card}
+            pipeline={data?.kind === "base" ? data.pipelines.find((p) => p.ref === card.pipeline)?.name : undefined}
+            stage={data?.kind === "base" ? <StageField read={data} kind={kind} card={card} /> : undefined}
+          />
+          <CardTasks card={card} />
+        </div>
       )}
     </Dialog>
   )

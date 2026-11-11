@@ -266,6 +266,8 @@ export type CrmCard = {
 	amount: string | null,
 	currency: string | null,
 	organization: string | null,
+	/**  `organization:<id>`, for copying; memo's task search has no field to find a company's tasks by it yet. */
+	organizationRef: string | null,
 	people: CrmPerson[],
 	closeDate: string | null,
 	closedDate: string | null,
@@ -288,6 +290,8 @@ export type CrmMovable = { kind: "yes" } |
 { kind: "no"; why: string };
 
 export type CrmPerson = {
+	/**  `person:<id>`; the page asks memo for this person's tasks with it. */
+	ref: string | null,
 	name: string | null,
 	/**  `owner` (who is responsible), `contact`, `decision-maker` or `influencer`. */
 	role: string,
