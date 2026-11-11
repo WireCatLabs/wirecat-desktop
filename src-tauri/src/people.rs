@@ -145,6 +145,8 @@ pub struct Listed {
     /// Messages and mail this person sent, every account together.
     pub messages_from: Option<u64>,
     pub last_contact: Option<String>,
+    /// memo names `bot` among the signals that sorted this person: a messenger bot, whatever kind it landed in.
+    pub bot: bool,
 }
 
 fn listed(v: &Value) -> Option<Listed> {
@@ -162,6 +164,7 @@ fn listed(v: &Value) -> Option<Listed> {
         username_source: text(v, "username_source"),
         messages_from: v["messages_from"].as_u64(),
         last_contact: text(v, "last_contact"),
+        bot: v["kind_signals"].as_array().is_some_and(|a| a.iter().any(|s| s.as_str() == Some("bot"))),
     })
 }
 
@@ -440,6 +443,8 @@ pub struct Identity {
     pub linked_at: Option<String>,
     /// It can be moved: its ref is one word memo can be handed back.
     pub movable: bool,
+    /// A messenger bot; false until memo's `people show` carries `is_bot`.
+    pub bot: bool,
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -485,6 +490,7 @@ fn identity(v: &Value) -> Option<Identity> {
         seen_in: list(v, "seen_in", |s| Some(Seen { account: id_text(&s["account"])?, scope: text(s, "scope") })),
         method: text(v, "method"),
         linked_at: text(v, "linked_at"),
+        bot: v["is_bot"].as_bool().unwrap_or(false),
     })
 }
 
@@ -1636,5 +1642,14 @@ mod tests {
         for one in [strs(&["person:1"]), strs(&["person:1", "person:1"]), strs(&["person:1", "max:2"])] {
             assert!(merge_with(&call, &one).is_err(), "{one:?}");
         }
+    }
+
+    #[test]
+    fn marks_a_bot_by_memo_s_bot_signal_and_an_account_by_is_bot() {
+        let row = listed(&json!({"ref": "person:4", "kind": "automated", "kind_signals": ["bot"]})).unwrap();
+        assert!(row.bot);
+        assert!(!listed(&json!({"ref": "person:5", "kind_signals": ["added"]})).unwrap().bot);
+        assert!(identity(&json!({"identity": "telegram:7", "is_bot": true})).unwrap().bot);
+        assert!(!identity(&json!({"identity": "telegram:8"})).unwrap().bot);
     }
 }

@@ -41,6 +41,7 @@ const older = {
   usernameSource: null,
   messagesFrom: null,
   lastContact: null,
+  bot: false,
 }
 
 describe("the People store after a write", () => {

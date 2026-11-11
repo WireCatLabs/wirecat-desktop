@@ -1,12 +1,13 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { canSplit } from "@/domain/people"
+import { accountLabel, canSplit } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
 import { useFieldError } from "@/ui/FieldError"
 import { peopleMessages } from "./messages"
+import { SourceIcon } from "./sources"
 import { usePeople } from "./store"
 
 /** Ticks the accounts that leave this person; nothing is ticked unless a doubt named them, and at least one stays. */
@@ -58,6 +59,7 @@ export function SplitDialog() {
       }
     >
       <p className="text-[0.95rem] text-ink-soft">{m.splitBody}</p>
+      <p className="mt-1 text-[0.9rem] text-ink-dim">{m.splitName}</p>
       <ul id={listId} className="mt-3 flex flex-col gap-2">
         {identities.map((i) => (
           <li key={i.identity}>
@@ -68,9 +70,10 @@ export function SplitDialog() {
                 checked={chosen.includes(i.identity)}
                 onChange={(on) => setChosen(on ? [...chosen, i.identity] : chosen.filter((c) => c !== i.identity))}
               />
-              <span>
-                <span className="font-medium">{i.name ?? i.identity}</span>
-                <span className="ml-2 font-mono text-[0.85rem] text-ink-dim">{i.identity}</span>
+              <SourceIcon provider={i.provider} labelled className="mt-[0.2rem] text-ink-soft" />
+              <span className="min-w-0">
+                <span className="font-medium">{accountLabel(i) ?? m.noName}</span>
+                <span className="ml-2 font-mono text-[0.85rem] break-all text-ink-dim">{i.identity}</span>
               </span>
             </label>
           </li>

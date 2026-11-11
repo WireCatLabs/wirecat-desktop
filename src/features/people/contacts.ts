@@ -1,3 +1,4 @@
+import { WHATSAPP_PHONE } from "@/domain/people"
 import type { Listed, Match, PersonDetail } from "@/platform/people-schemas"
 import type { PersonProfile } from "@/platform/person-profile-schemas"
 
@@ -9,8 +10,6 @@ const emailKey = (email: string) => email.trim().toLowerCase()
 export const keyOf = (signal: string | null) => (signal === "phone" ? phoneKey : emailKey)
 const looksLikePhone = (v: string) => /^\+?[\d\s().-]{7,20}$/.test(v.trim())
 export const looksLikeEmail = (v: string) => /^[^\s@:/]+@[^\s@:/]+\.[^\s@:/]+$/.test(v.trim())
-/** A WhatsApp id is a phone only as `<digits>@s.whatsapp.net` or `@c.us`, or bare digits; `@lid` is no number. */
-export const WHATSAPP_PHONE = /^(\d{7,15})(?:@s\.whatsapp\.net|@c\.us)?$/
 
 const uniqueBy = (values: string[], key: (v: string) => string) =>
   values.filter((v, i) => key(v) !== "" && values.findIndex((w) => key(w) === key(v)) === i)

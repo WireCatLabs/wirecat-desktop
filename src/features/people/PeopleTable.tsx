@@ -10,6 +10,7 @@ import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
+import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
@@ -52,7 +53,8 @@ export function PeopleTable() {
   const pages = Math.max(1, Math.ceil(count / size))
   const at = kinded ? page : Math.min(page, pages)
   const rows = kinded ? people : found.slice((at - 1) * size, at * size)
-  const onScreen = kinded ? "" : rows.map((p) => p.ref).join(" ")
+  // memo's row carries no source: a row with no phone, address or handle reads the person's accounts to show one.
+  const onScreen = (kinded ? rows.filter((p) => !p.phone && !p.email && !p.username) : rows).map((p) => p.ref).join(" ")
   // biome-ignore lint/correctness/useExhaustiveDependencies: a read drops the details, and `people` is new after it
   useEffect(() => want(onScreen ? onScreen.split(" ") : []), [onScreen, people, want])
 
@@ -217,6 +219,7 @@ function useColumns(kinded: boolean): Column<Listed>[] {
 }
 
 function Name({ person: p }: { person: Listed }) {
+  const m = useMessages(peopleMessages)
   const name = usePersonName()
   const shown = name(p.ref, p.displayName ?? p.name)
   const raw = p.name?.trim()
@@ -241,11 +244,15 @@ function Name({ person: p }: { person: Listed }) {
       >
         {shown}
       </span>
+      {p.bot && <Pill>{m.bot}</Pill>}
     </button>
   )
 }
 
-/** Phone and email one under the other; with neither, the messenger handle; with nothing, a quiet dash. */
+/**
+ * One line, so every row keeps one height: the phone, else the email, else the messenger handle, and `+1` for the rest,
+ * named on hover; the person's card lists them all. With none of them, the person's first account and its source.
+ */
 function Contact({ person: p }: { person: Listed }) {
   const m = useMessages(peopleMessages)
   const lines: { icon: ReactNode; value: string; label?: string }[] = [
@@ -264,21 +271,18 @@ function Contact({ person: p }: { person: Listed }) {
           }
         : { icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) },
     )
-  if (lines.length === 0)
-    return (
-      <span className="text-ink-dim" title={m.noContact}>
-        <span aria-hidden>—</span>
-        <span className="sr-only">{m.noContact}</span>
-      </span>
-    )
+  const [first, ...rest] = lines
+  if (!first) return <ContactFromAccounts reference={p.ref} />
   return (
-    <span className="flex min-w-0 flex-col gap-[0.15rem] text-[0.92rem] text-ink-soft">
-      {lines.map((l) => (
-        <span key={l.value} className="flex min-w-0 items-center gap-[0.45rem]" title={l.label}>
-          {l.icon}
-          <span className="selectable truncate font-mono text-[0.88rem]">{l.value}</span>
+    <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft" title={first.label}>
+      {first.icon}
+      <span className="selectable truncate font-mono text-[0.88rem]">{first.value}</span>
+      {rest.length > 0 && (
+        <span className="shrink-0 font-mono text-[0.8rem] text-ink-dim" title={rest.map((l) => l.value).join(", ")}>
+          {m.moreContacts(rest.length)}
+          <span className="sr-only">: {rest.map((l) => l.value).join(", ")}</span>
         </span>
-      ))}
+      )}
     </span>
   )
 }
@@ -295,13 +299,18 @@ function ContactFromAccounts({ reference }: { reference: string }) {
   if (!found)
     return (
       <span className="text-ink-dim" title={m.noContact}>
-        —
+        <span aria-hidden>—</span>
+        <span className="sr-only">{m.noContact}</span>
       </span>
     )
   return (
     <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft">
-      <SourceIcon provider={found.provider} className="text-ink-dim" labelled />
-      <span className="selectable truncate font-mono text-[0.88rem]">{found.value}</span>
+      <SourceIcon provider={found.provider} className="text-ink-dim" labelled={found.value !== null} />
+      {found.value ? (
+        <span className="selectable truncate font-mono text-[0.88rem]">{found.value}</span>
+      ) : (
+        <span className="truncate">{sourceOf(found.provider).name}</span>
+      )}
     </span>
   )
 }

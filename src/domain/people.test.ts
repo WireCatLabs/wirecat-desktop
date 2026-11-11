@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest"
 import {
+  accountLabel,
   bySource,
   canSplit,
   cleanName,
+  contactOf,
   filterPeople,
   handleOf,
   looksLikeAccount,
   matchesFilter,
   personName,
+  profilesOf,
   reasonOf,
   seenAtWork,
   touched,
@@ -110,5 +113,29 @@ describe("people", () => {
   it("words memo's known refusals and leaves the rest in memo's words", () => {
     expect(reasonOf("identity.stale")).toBe("identity.stale")
     expect(reasonOf("the store is busy")).toBeNull()
+  })
+
+  it("reads a WhatsApp @lid as no number, and still names the source of a person with nothing else", () => {
+    const lid = { identity: "whatsapp:157724520243314@lid", provider: "whatsapp", username: null }
+    expect(contactOf([lid])).toEqual({ provider: "whatsapp", value: null })
+    const phone = { identity: "whatsapp:34600111222@s.whatsapp.net", provider: "whatsapp", username: null }
+    expect(contactOf([lid, phone])).toEqual({ provider: "whatsapp", value: "+34600111222" })
+  })
+
+  it("treats a name with no letter as none and falls back to the handle", () => {
+    expect(accountLabel({ name: ".", username: "dvolkov" })).toBe("@dvolkov")
+    expect(accountLabel({ name: ".", username: null })).toBeNull()
+  })
+
+  it("names the owner's profiles an account was seen in from the account groups", () => {
+    const members = [
+      { source: "telegram:1001", provider: "telegram", profiles: ["tg personal"] },
+      { source: "zoom:1001", provider: "zoom", profiles: ["zm work"] },
+      { source: "email:me@work.example", provider: "email", profiles: [] },
+    ]
+    const seen = (account: string) => ({ account, scope: null })
+    expect(profilesOf({ provider: "telegram", seenIn: [seen("1001")] }, members)).toEqual(["personal"])
+    expect(profilesOf({ provider: "email", seenIn: [seen("me@work.example")] }, members)).toEqual(["me@work.example"])
+    expect(profilesOf({ provider: "telegram", seenIn: [seen("9")] }, members)).toEqual([])
   })
 })
