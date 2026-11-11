@@ -157,7 +157,7 @@ const en = {
   closeTipOld: "Private chats only for now. Groups of fewer than 10 people are counted after the messengers update.",
   mineTip: "The messages you sent, in any chat.",
   meetingsBehind: (date: string) =>
-    `Zoom last synced without errors on ${date}, so this week's meetings are not here yet. Sync Zoom and they appear.`,
+    `The newest Zoom data here is from ${date}: no meeting of this week is loaded yet. Sync Zoom and they appear.`,
   meetingsUntimed: (n: number) => `${n} on those days last week, length unknown.`,
   lastYearOnly: "For all time, the hours are from the last year.",
   whenNote: "Messages by weekday and hour, in your time zone.",
@@ -416,7 +416,7 @@ const ru: typeof en = {
   closeTipOld: "Пока только личные чаты. Группы меньше 10 человек добавятся после обновления мессенджеров.",
   mineTip: "Сообщения, которые написали вы, в любых чатах.",
   meetingsBehind: (date) =>
-    `Последняя удачная синхронизация Zoom была ${date}, поэтому встреч этой недели здесь пока нет. Синхронизируйте Zoom, и они появятся.`,
+    `Самые новые данные Zoom здесь от ${date}: встречи этой недели ещё не загружены. Синхронизируйте Zoom, и они появятся.`,
   meetingsUntimed: (n) => `В те же дни прошлой недели встреч: ${n}, длительность неизвестна.`,
   lastYearOnly: "За всё время часы взяты за последний год.",
   whenNote: "Сообщения по дням недели и часам, в вашем часовом поясе.",
@@ -677,7 +677,7 @@ const es: typeof en = {
     "Por ahora solo chats privados. Los grupos de menos de 10 personas se contarán cuando se actualicen las apps de mensajería.",
   mineTip: "Los mensajes que enviaste, en cualquier chat.",
   meetingsBehind: (date) =>
-    `La última sincronización de Zoom sin errores fue el ${date}, así que las reuniones de esta semana aún no están aquí. Sincroniza Zoom y aparecerán.`,
+    `Los datos de Zoom más nuevos aquí son del ${date}: aún no se cargó ninguna reunión de esta semana. Sincroniza Zoom y aparecerán.`,
   meetingsUntimed: (n) => `${n} en esos días de la semana pasada, sin duración conocida.`,
   lastYearOnly: "En todo el periodo, las horas son del último año.",
   whenNote: "Mensajes por día de la semana y hora, en tu zona horaria.",

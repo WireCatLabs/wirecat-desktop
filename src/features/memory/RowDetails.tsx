@@ -178,6 +178,7 @@ export function Details({ entry }: { entry: MemoryEntry }) {
             row(m.actsOn, <span className="selectable font-mono text-[0.9rem] break-all">{entry.target}</span>)}
           {entry.account &&
             entry.type !== "relationship" &&
+            entry.kind !== "mail_findings" &&
             row(m.wouldAct, <span className="selectable font-mono text-[0.9rem]">{entry.account}</span>)}
           {entry.supersedes &&
             row(m.corrects, <span className="selectable font-mono text-[0.9rem]">{entry.supersedes}</span>)}

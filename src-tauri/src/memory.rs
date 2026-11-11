@@ -251,7 +251,7 @@ fn findings_of(v: &Value) -> Vec<Finding> {
                     Some(Finding {
                         outcome: decided.and_then(|i| text(i, "status")),
                         created: decided.and_then(|i| text_field(i, "reference")),
-                        kind: text(f, "kind")?,
+                        kind: finding_kind(f)?,
                         text: finding_text(f)?,
                         reason: text(f, "reason"),
                         evidence: f["evidence"]
@@ -268,6 +268,16 @@ fn findings_of(v: &Value) -> Vec<Finding> {
 
 /// A finding's one line. Evidence batches hold facts and tasks; a mail batch also invoices, payments, orders, contacts,
 /// links, memories and task changes, and a finding left without a line would be missing from what the owner ticks.
+/// A task change's kind names what it does to the task, `task_close`, `task_due` or `task_detail`: its line alone
+/// would not say the task gets closed.
+fn finding_kind(f: &Value) -> Option<String> {
+    let kind = text(f, "kind")?;
+    Some(match (kind.as_str(), text(f, "change")) {
+        ("task_update", Some(change)) if plain(&change).is_some() => format!("task_{change}"),
+        _ => kind,
+    })
+}
+
 fn finding_text(f: &Value) -> Option<String> {
     // memo answers in snake_case; a payload it passes through unchanged may keep cli-core's camelCase.
     let get = |snake: &str, camel: &str| text(f, snake).or_else(|| text(f, camel));
@@ -300,11 +310,13 @@ fn finding_text(f: &Value) -> Option<String> {
         "order" | "order_update" => join(&[
             get("supplier_name", "supplierName"),
             text(f, "number"),
+            text(f, "status"),
             text(f, "total"),
             text(f, "currency"),
             text(f, "date").or_else(|| get("order_date", "orderDate")),
         ]),
-        _ => text(f, "statement").or_else(|| text(f, "title")),
+        // A kind memo adds later still shows, so the owner can tick it: a hidden one would be rejected unseen.
+        _ => text(f, "statement").or_else(|| text(f, "title")).or_else(|| text(f, "reason")).or(Some(kind)),
     }
 }
 
@@ -1929,7 +1941,8 @@ mod tests {
                 {"id":"i1","kind":"invoice","direction":"incoming","counterparty_name":"Acme Ltd","currency":"EUR",
                  "total":"120.00","number":"INV-7","lines":[],"reason":"An invoice is attached","evidence":[{"reference":"msg:email/owner%40example.com/5006/1"}]},
                 {"id":"c1","kind":"new_contact","address":"lena@example.com","name":"Lena Park","reason":"Signs as Lena","evidence":[]},
-                {"id":"o1","kind":"order_update","supplierName":"Shop One","number":"A-1","status":"delivered","reason":"Delivered","evidence":[]}]},
+                {"id":"o1","kind":"order_update","supplierName":"Shop One","number":"A-1","status":"delivered","reason":"Delivered","evidence":[]},
+                {"id":"u1","kind":"task_update","task":"task:5bc8","change":"close","reason":"Paid","evidence":[]}]},
             "reason":null,"status":status,"proposed_by":{"type":"bot","id":"4","name":"mail-triage"},
             "decided_by":null,"decided_at":null,"result":null,"created_at":"2026-11-10T12:19:00.000Z",
             "summary":"Mail findings","verb":"mail_findings","target_name":null,"chat_name":null,"text":null,
@@ -1942,9 +1955,16 @@ mod tests {
         let found = batch.findings.as_ref().unwrap();
         assert_eq!(
             found.iter().map(|f| f.text.as_str()).collect::<Vec<_>>(),
-            ["Send the signed lease", "INV-7 Acme Ltd 120.00 EUR", "Lena Park <lena@example.com>", "Shop One A-1"]
+            [
+                "Send the signed lease",
+                "INV-7 Acme Ltd 120.00 EUR",
+                "Lena Park <lena@example.com>",
+                "Shop One A-1 delivered",
+                "task:5bc8"
+            ]
         );
         assert_eq!(found[0].evidence, ["msg:email/owner%40example.com/5005/1"]);
+        assert_eq!(found[4].kind, "task_close");
         assert_eq!(batch.account.as_deref(), Some("email:owner@example.com"));
 
         let fake = Fake::new(|a| Ok(json!({"item": mail_batch(if a[1] == "show" { "proposed" } else { "approved" })})));
