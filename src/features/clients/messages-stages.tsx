@@ -32,6 +32,7 @@ type Words = {
   dropHere: string
   toConfirm: (n: number) => string
   toConfirmBody: string
+  toConfirmChip: (n: number) => string
   confirmStages: string
   allConfirmed: string
   failed: (reason: string) => string
@@ -94,6 +95,7 @@ const en: Words = {
       one: "# CRM stage waits for you to confirm it",
       other: "# CRM stages wait for you to confirm them",
     }),
+  toConfirmChip: (n) => plural("en", n, { one: "# stage to confirm", other: "# stages to confirm" }),
   toConfirmBody:
     "Each one already has a suggested stage of yours. Their cards already stand there, marked Not confirmed, until you confirm.",
   confirmStages: "Confirm stages",
@@ -176,6 +178,13 @@ const ru: Words = {
       many: "# этапов CRM ждут вашего подтверждения",
       other: "# этапа CRM ждут вашего подтверждения",
     }),
+  toConfirmChip: (n) =>
+    plural("ru", n, {
+      one: "# этап ждёт подтверждения",
+      few: "# этапа ждут подтверждения",
+      many: "# этапов ждут подтверждения",
+      other: "# этапа ждут подтверждения",
+    }),
   toConfirmBody:
     "Для каждого уже предложен один из ваших этапов. Карточки уже стоят там с пометкой «Не подтверждено», пока вы не подтвердите.",
   confirmStages: "Подтвердить этапы",
@@ -251,6 +260,7 @@ const es: Words = {
       one: "# etapa del CRM espera tu confirmación",
       other: "# etapas del CRM esperan tu confirmación",
     }),
+  toConfirmChip: (n) => plural("es", n, { one: "# etapa por confirmar", other: "# etapas por confirmar" }),
   toConfirmBody:
     "Cada una ya tiene una de tus etapas sugerida. Sus tarjetas ya están ahí, marcadas Sin confirmar, hasta que confirmes.",
   confirmStages: "Confirmar etapas",

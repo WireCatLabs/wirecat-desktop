@@ -106,6 +106,8 @@ type MemoryState = {
   editRelation(ref: string, role: string | null): Promise<boolean>
   /** Removes a link that holds, or rejects a proposal; the row folds away. */
   removeRelation(ref: string): Promise<void>
+  /** The owner's own role in a list; the read's roles become that list as memo answers it. Gives memo's refusal. */
+  addRole(list: string, id: string, label: string): Promise<string | null>
   load(): Promise<void>
   /** The page opened: a read unless the last one is under a minute old; what it shows stays while it runs. */
   visit(): void
@@ -281,6 +283,19 @@ export const useMemory = create<MemoryState>((set, get) => {
         failed: edited.error ? { ...s.failed, [edited.ref]: edited.error } : s.failed,
       }))
       return !edited.error
+    },
+    async addRole(list, id, label) {
+      try {
+        const listed = await platform.memoryRoleAdd(list, id, label)
+        set((s) =>
+          s.read?.kind === "ready"
+            ? { read: { ...s.read, roles: [...(s.read.roles ?? []).filter((r) => r.list !== list), ...listed] } }
+            : {},
+        )
+        return null
+      } catch (e) {
+        return message(e)
+      }
     },
     async removeRelation(ref) {
       const done = await run(ref, "remove", async () => {

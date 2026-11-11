@@ -419,7 +419,8 @@ fn read_people(v: &Value) -> Vec<Person> {
                 .filter_map(|p| {
                     let reference = text(p, "ref")?;
                     validate_person(&reference).ok()?;
-                    Some(Person { name: text(p, "name"), owner: p["owner"].as_bool().unwrap_or(false), reference })
+                    let name = text(p, "display_name").or_else(|| text(p, "name"));
+                    Some(Person { name, owner: p["owner"].as_bool().unwrap_or(false), reference })
                 })
                 .collect()
         })
@@ -427,6 +428,38 @@ fn read_people(v: &Value) -> Vec<Person> {
 }
 
 const NAMED_MAX: usize = 200;
+
+/// Words a source writes for a missing name, as the interface's `cleanName` drops them.
+const PLACEHOLDERS: [&str; 6] = ["null", "undefined", "none", "без имени", "deleted account", "удалённый аккаунт"];
+
+/// A name as the interface would show it: no wrapping quotes, no `#123` ids or placeholders, at least one letter.
+fn clean_name(name: &str) -> Option<String> {
+    let words: Vec<&str> = name
+        .split_whitespace()
+        .filter(|w| !(w.starts_with('#') && w.len() > 1 && w[1..].chars().all(|c| c.is_ascii_digit())))
+        .collect();
+    let joined = words.join(" ");
+    let s = joined.trim_matches(|c| "\"'`«»“”„‘’".contains(c)).trim().to_string();
+    let lower = s.to_lowercase();
+    (s.chars().any(char::is_alphabetic) && !PLACEHOLDERS.contains(&lower.as_str())).then_some(s)
+}
+
+/// `people show` gives no display name: a person with none of their own is named by an account's name before its
+/// handle, as memo's list names them.
+fn shown_name(person: &Value) -> Option<String> {
+    let accounts = person["identities"].as_array().map(Vec::as_slice).unwrap_or_default();
+    text(person, "name")
+        .and_then(|n| clean_name(&n))
+        .or_else(|| accounts.iter().filter_map(|i| text(i, "name")).find_map(|n| clean_name(&n)))
+        .or_else(|| {
+            accounts
+                .iter()
+                .filter_map(|i| text(i, "username"))
+                .map(|u| u.trim().trim_start_matches('@').to_string())
+                .find(|u| !u.is_empty())
+                .map(|u| format!("@{u}"))
+        })
+}
 
 /// The people the page shows, one `people show` each: `people list` costs seconds on a large store whatever its
 /// limit, and has no field to ask for given references. One after another: memo 0.131.76's command server mixes the
@@ -442,7 +475,7 @@ fn people_named_with(call: &Call, refs: &[String]) -> Vec<Person> {
             let v = call(&words(&["people", "show", r])).ok()?;
             let item = body(&v);
             let reference = text(item, "ref")?;
-            (reference == r).then(|| Person { name: text(item, "name"), owner: false, reference })
+            (reference == r).then(|| Person { name: shown_name(item), owner: false, reference })
         })
         .collect()
 }
@@ -1219,6 +1252,23 @@ mod tests {
         assert_eq!(c.agent[0].value, "hermes");
         assert_eq!(c.assignee[1], Facet { value: "person:2".into(), name: Some("Ana Ruiz".into()), count: 1 });
         assert_eq!(c.priority[0].name, None);
+    }
+
+    #[test]
+    fn names_a_nameless_person_by_an_account_name_before_its_handle() {
+        let fake = Fake::new(|a| {
+            Ok(json!({"item":{"ref":a[2],"name":null,"identities":[
+                {"name":null,"username":"Xorlov"},
+                {"name":"Ярослав Орлов","username":"Xorlov"}
+            ]}}))
+        });
+        let call = |a: &[String]| fake.call(a);
+        assert_eq!(people_named_with(&call, &strs(&["person:2297"]))[0].name.as_deref(), Some("Ярослав Орлов"));
+        let handle_only =
+            json!({"name":"!","identities":[{"name":null,"username":"  "},{"name":"12","username":"@kai_m"}]});
+        assert_eq!(shown_name(&handle_only).as_deref(), Some("@kai_m"));
+        let placeholder = json!({"name":"null #97365","identities":[{"name":"«Deleted Account»"},{"name":" 'Kai' "}]});
+        assert_eq!(shown_name(&placeholder).as_deref(), Some("Kai"));
     }
 
     #[test]

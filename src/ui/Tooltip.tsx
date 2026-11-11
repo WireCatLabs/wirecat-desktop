@@ -158,7 +158,8 @@ export function TipPanel({
   useLayoutEffect(() => {
     setHost(anchor.current?.closest("dialog") ?? document.body)
   }, [anchor])
-  const place = useTipPlacement(open, anchor, tip, side, align)
+  // Placed once the host is known, so a panel mounted already open (one per table row, mounted on demand) is placed too.
+  const place = useTipPlacement(open && host !== null, anchor, tip, side, align)
   if (!host) return null
   const shown = open && place !== null
   return createPortal(

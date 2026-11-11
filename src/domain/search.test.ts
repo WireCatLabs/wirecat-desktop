@@ -22,11 +22,17 @@ describe("hitRow", () => {
       key: "msg:1",
       when: "2026-10-30T10:00:00Z",
       where: "Family",
+      tool: null,
       who: "Ana",
       fromMe: false,
       text: "hi",
       files: [],
     })
+  })
+
+  it("names the tool a memo hit came from", () => {
+    expect(hitRow({ ref: "msg:telegram/1/-100/4000" }, 0).tool).toBe("tg")
+    expect(hitRow({ ref: "meeting:1/100" }, 0).tool).toBeNull()
   })
 
   it("names the files a hit without text carries", () => {

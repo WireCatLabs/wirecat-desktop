@@ -1,18 +1,18 @@
-import { Columns3, Handshake, ListChecks, Rows3, UserRoundPlus } from "lucide-react"
+import { Columns3, Handshake, ListChecks, Lock, Rows3, UserRoundPlus } from "lucide-react"
 import { useEffect } from "react"
 import { crmsOf } from "@/domain/base-stages"
-import { crmToolOf } from "@/domain/catalog"
+import { crmToolOf, findTool } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { gapFromRead } from "@/domain/needs"
 import { crmNeed, ToolNeeded, useNeed } from "@/features/tools"
 import { useMessages } from "@/i18n"
-import type { CrmPipeline } from "@/platform/bindings"
 import { Page, PageHeader } from "@/shared/Page"
+import { ToolIcon } from "@/shared/ToolIcon"
 import { Button } from "@/ui/Button"
-import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { type Notice, NoticeChips } from "@/ui/NoticeChips"
 import { Pill } from "@/ui/Pill"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
@@ -97,8 +97,7 @@ export function ClientsPage() {
           </>
         }
       />
-      {based && <CrmNeeded />}
-      {board.data?.kind === "base" && <StagesToConfirm read={board.data} kind={kind} />}
+      {board.data?.kind === "base" && <Notices read={board.data} kind={kind} />}
       <Body />
       <CardDialog />
       <StageMapDialog />
@@ -107,13 +106,71 @@ export function ClientsPage() {
 }
 
 /**
- * A CRM's stages are memo's guesses until the owner confirms them, and its cards wait in Unsorted until then. The first
- * read that brings such stages opens the dialog by itself, once per CRM and kind (every new CRM at once, one dialog); the notice stays until none is left.
+ * What stands between the owner and the board, one chip each so the board keeps its height: a CRM tool to install, CRM
+ * stages to confirm, a pipeline the app cannot move.
  */
-function StagesToConfirm({ read, kind }: { read: Based; kind: Kind }) {
+function Notices({ read, kind }: { read: Based; kind: Kind }) {
+  const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
+  const gap = useNeed(crmNeed())
+  const waiting = useStagePrompt(read, kind)
+  const readOnly = useReadOnly(read)
+  const notices: Notice[] = []
+  if (gap) {
+    const tool = findTool(gap.tool)?.name ?? gap.tool
+    notices.push({
+      id: "crm",
+      tone: "neutral",
+      icon: <ToolIcon id={gap.tool} className="size-4 shrink-0" />,
+      label: m.crmChip[gap.kind](tool),
+      body: (
+        <ToolNeeded gap={gap} inline>
+          {m.crmWhy}
+        </ToolNeeded>
+      ),
+    })
+  }
+  if (waiting > 0)
+    notices.push({
+      id: "stages",
+      tone: "warn",
+      icon: <ListChecks className="size-4 shrink-0" aria-hidden />,
+      label: s.toConfirmChip(waiting),
+      body: (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex max-w-[70ch] flex-col gap-1">
+            <p className="font-medium text-ink">{s.toConfirm(waiting)}</p>
+            <p className="text-ink-soft">{s.toConfirmBody}</p>
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<ListChecks className="size-4" aria-hidden />}
+            onClick={() => useClients.getState().openMap("")}
+          >
+            {s.confirmStages}
+          </Button>
+        </div>
+      ),
+    })
+  if (readOnly)
+    notices.push({
+      id: "read-only",
+      tone: "neutral",
+      icon: <Lock className="size-4 shrink-0" aria-hidden />,
+      label: m.readOnlyChip,
+      body: <p className="max-w-[80ch] text-ink-soft">{readOnly}</p>,
+    })
+  return <NoticeChips label={m.notices} notices={notices} />
+}
+
+/**
+ * A CRM's stages are memo's guesses until the owner confirms them, and its cards wait in Unsorted until then. The first
+ * read that brings such stages opens the dialog by itself, once per CRM and kind (every new CRM at once, one dialog);
+ * the chip stays until none is left. Gives how many wait.
+ */
+function useStagePrompt(read: Based, kind: Kind) {
   const crms = crmsOf(read.pipelines, read.mapping)
-  const waiting = [...crms.values()].reduce((n, c) => n + c.waiting, 0)
   const prompted = useClients((st) => st.prompted)
   const mapOn = useClients((st) => st.mapOn)
   const fresh = [...crms]
@@ -123,33 +180,24 @@ function StagesToConfirm({ read, kind }: { read: Based; kind: Kind }) {
   useEffect(() => {
     if (fresh && mapOn === null) useClients.getState().prompt(fresh.split("\n"))
   }, [fresh, mapOn])
-  if (waiting === 0) return null
-  return (
-    <ErrorNotice
-      tone="warn"
-      detail={s.toConfirmBody}
-      action={
-        <Button
-          size="sm"
-          variant="primary"
-          icon={<ListChecks className="size-4" aria-hidden />}
-          onClick={() => useClients.getState().openMap("")}
-        >
-          {s.confirmStages}
-        </Button>
-      }
-    >
-      <span className="font-medium text-ink">{s.toConfirm(waiting)}</span>
-    </ErrorNotice>
-  )
+  return [...crms.values()].reduce((n, c) => n + c.waiting, 0)
 }
 
-/** The owner's own deals work without one; a CRM is where most of them come from. */
-function CrmNeeded() {
+/**
+ * Why a CRM's cards stay put, in words: its CLI is missing or too old, or memo names none the app can run. Read from
+ * every card, not the filtered ones, so the chip does not come and go above the search box while the owner types.
+ */
+function useReadOnly(read: Based): string | null {
   const m = useMessages(clientMessages)
-  const gap = useNeed(crmNeed())
-  // The tools are found apart from memo's read, so the notice may come after the board: it opens, never pops in.
-  return <Collapse open={gap !== null}>{gap && <ToolNeeded gap={gap}>{m.crmWhy}</ToolNeeded>}</Collapse>
+  const pipeline = read.pipelines.find((p) => p.movable.kind === "no" && read.cards.some((c) => c.pipeline === p.ref))
+  if (pipeline?.movable.kind !== "no") return null
+  const why = pipeline.movable.why
+  const tool = pipeline.account ? crmToolOf(pipeline.account.provider)?.name : undefined
+  return tool && why === "crmCliMissing"
+    ? m.readOnlyInstall(tool)
+    : tool && why === "crmCliOld"
+      ? m.readOnlyUpdate(tool)
+      : m.readOnly
 }
 
 function Body() {
@@ -198,9 +246,6 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
     <>
       <BaseFilters read={read} shown={shown} />
       {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
-      <ReadOnly
-        pipeline={read.pipelines.find((p) => p.movable.kind === "no" && shown.some((c) => c.pipeline === p.ref))}
-      />
       {filtered && shown.length === 0 && (
         <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">
           {m.noMatch}{" "}
@@ -243,21 +288,6 @@ function Empty({ kind, synced }: { kind: Kind; synced: boolean }) {
       </div>
     </EmptyState>
   )
-}
-
-/** Why a CRM's cards stay put: its CLI is missing or too old, or memo names none the app can run. */
-function ReadOnly({ pipeline }: { pipeline: CrmPipeline | undefined }) {
-  const m = useMessages(clientMessages)
-  if (pipeline?.movable.kind !== "no") return null
-  const why = pipeline.movable.why
-  const tool = pipeline.account ? crmToolOf(pipeline.account.provider)?.name : undefined
-  const text =
-    tool && why === "crmCliMissing"
-      ? m.readOnlyInstall(tool)
-      : tool && why === "crmCliOld"
-        ? m.readOnlyUpdate(tool)
-        : m.readOnly
-  return <p className="-mt-[0.6rem] max-w-[80ch] text-[0.9rem] text-ink-soft">{text}</p>
 }
 
 /** The filters and the columns at their final size, so nothing below moves when memo answers. */

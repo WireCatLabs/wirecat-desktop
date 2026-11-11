@@ -7,7 +7,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { aboutOf, actionLine, authorOf, kindOf, type M, savedAt } from "./labels"
 import { memoryMessages } from "./messages"
-import { EditButton, Outcome, RelationSource } from "./RowExplain"
+import { DocumentFacts, EditButton, Outcome, RelationSource } from "./RowExplain"
 import { Findings } from "./RowFindings"
 import { ReviewAnswered, ReviewPanel } from "./RowReview"
 import { Sources } from "./RowSources"
@@ -108,6 +108,7 @@ export function Details({ entry }: { entry: MemoryEntry }) {
         <div className="flex min-w-0 flex-col gap-[1.2rem]">
           <Outcome entry={entry} />
           <EditButton entry={entry} />
+          <DocumentFacts entry={entry} />
           <RelationSource entry={entry} />
         </div>
       ) : (

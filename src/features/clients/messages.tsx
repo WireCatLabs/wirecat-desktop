@@ -14,6 +14,9 @@ type Words = {
   allAccounts: string
   readFailed: string
   crmWhy: string
+  notices: string
+  crmChip: Record<"missing" | "old" | "signedOut", (tool: string) => string>
+  readOnlyChip: string
   tryAgain: string
   none: Record<Kind, string>
   noneBody: Record<Kind, string>
@@ -88,6 +91,13 @@ const en: Words = {
   allAccounts: "Every account",
   readFailed: "Memo could not read the deals.",
   crmWhy: "Deals you add here work without one; a CRM brings in the deals and leads you keep there.",
+  notices: "Notices",
+  crmChip: {
+    missing: (tool) => `${tool} not installed`,
+    old: (tool) => `${tool} needs an update`,
+    signedOut: (tool) => `${tool}: not signed in`,
+  },
+  readOnlyChip: "Read only",
   tryAgain: "Try again",
   none: { deal: "No deals yet", lead: "No leads yet" },
   noneBody: {
@@ -174,6 +184,13 @@ const ru: Words = {
   allAccounts: "Все аккаунты",
   readFailed: "Memo не смог прочитать сделки.",
   crmWhy: "Сделки, добавленные здесь, работают и без неё; CRM приносит сделки и лиды, которые вы ведёте там.",
+  notices: "Уведомления",
+  crmChip: {
+    missing: (tool) => `${tool} не установлен`,
+    old: (tool) => `${tool} нужно обновить`,
+    signedOut: (tool) => `${tool}: вход не выполнен`,
+  },
+  readOnlyChip: "Только чтение",
   tryAgain: "Ещё раз",
   none: { deal: "Сделок пока нет", lead: "Лидов пока нет" },
   noneBody: {
@@ -264,6 +281,13 @@ const es: Words = {
   readFailed: "Memo no pudo leer las negociaciones.",
   crmWhy:
     "Las negociaciones que añades aquí funcionan sin él; un CRM trae las negociaciones y los leads que llevas allí.",
+  notices: "Avisos",
+  crmChip: {
+    missing: (tool) => `${tool} no está instalado`,
+    old: (tool) => `${tool} necesita actualizarse`,
+    signedOut: (tool) => `${tool}: sin sesión`,
+  },
+  readOnlyChip: "Solo lectura",
   tryAgain: "Reintentar",
   none: { deal: "Aún no hay negociaciones", lead: "Aún no hay prospectos" },
   noneBody: {

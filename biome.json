@@ -14,7 +14,8 @@
       "!.impeccable",
       "!.worktrees",
       "!.claude",
-      "!src/platform/bindings.ts"
+      "!src/platform/bindings.ts",
+      "!src/assets/logos/*.svg"
     ]
   },
   "css": {

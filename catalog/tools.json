@@ -1816,7 +1816,7 @@
         "config": null
       },
       "memory": {
-        "minVersion": "0.131.77",
+        "minVersion": "0.131.80",
         "revokeMinVersion": "0.131.28"
       },
       "tasks": null,
@@ -1827,7 +1827,7 @@
         "minVersion": "0.131.71"
       },
       "people": {
-        "minVersion": "0.131.79"
+        "minVersion": "0.131.82"
       },
       "digests": {
         "minVersion": "0.131.75"

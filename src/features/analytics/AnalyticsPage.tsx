@@ -2,8 +2,10 @@ import "./analytics.css"
 import { useEffect } from "react"
 import type { Period } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
-import { formatList, useMessages } from "@/i18n"
+import { useMessages } from "@/i18n"
 import { Page, PageHeader } from "@/shared/Page"
+import { ServiceIcon } from "@/shared/ServiceIcon"
+import { ToolIcon } from "@/shared/ToolIcon"
 import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
@@ -68,8 +70,7 @@ function Filters() {
   const toolsOf = new Map<string, string[]>()
   for (const x of present) {
     const s = sources[x.id]
-    for (const p of s?.state === "ready" ? s.profiles : [])
-      toolsOf.set(p, [...(toolsOf.get(p) ?? []), findTool(x.id)?.name ?? x.id])
+    for (const p of s?.state === "ready" ? s.profiles : []) toolsOf.set(p, [...(toolsOf.get(p) ?? []), x.id])
   }
   const profiles = [...toolsOf.keys()].sort()
   if (present.length === 0)
@@ -80,14 +81,29 @@ function Filters() {
     <>
       <FilterMenu
         label={m.sourceChip}
-        options={present.map((x) => ({ value: x.id, label: findTool(x.id)?.name ?? x.id }))}
+        options={present.map((x) => ({
+          value: x.id,
+          label: findTool(x.id)?.name ?? x.id,
+          icon: <ToolIcon id={x.id} className="size-4 shrink-0" />,
+        }))}
         selected={onlySources}
         onChange={(ids) => useAnalytics.getState().setOnlySources(ids)}
       />
       {profiles.length > 0 && (
         <FilterMenu
           label={m.profileChip}
-          options={profiles.map((p) => ({ value: p, label: p, hint: formatList(toolsOf.get(p) ?? []) }))}
+          options={profiles.map((p) => ({
+            value: p,
+            label: p,
+            terms: (toolsOf.get(p) ?? []).map((id) => findTool(id)?.name ?? id).join(" "),
+            icon: (
+              <span className="flex shrink-0 items-center gap-[0.3rem]">
+                {(toolsOf.get(p) ?? []).map((id) => (
+                  <ServiceIcon key={id} id={id} className="size-4" />
+                ))}
+              </span>
+            ),
+          }))}
           selected={onlyProfiles}
           onChange={(names) => useAnalytics.getState().setOnlyProfiles(names)}
         />

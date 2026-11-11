@@ -71,11 +71,17 @@ describe("people", () => {
     expect(personName({ name: "null #97365" })).toBeNull()
   })
 
-  it("falls back to a handle, then to an account name with letters", () => {
+  it("falls back to an account name with letters, then to a handle", () => {
+    expect(
+      handleOf([
+        { name: null, username: "Xorlov" },
+        { name: "Ярослав Орлов", username: "Xorlov" },
+      ]),
+    ).toBe("Ярослав Орлов")
     expect(
       handleOf([
         { name: "!", username: null },
-        { name: "x", username: "kai_m" },
+        { name: "?", username: "kai_m" },
       ]),
     ).toBe("@kai_m")
     expect(

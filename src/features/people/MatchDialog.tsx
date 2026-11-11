@@ -305,7 +305,7 @@ function Column({
               label={m.handles}
               values={handles.map((i) => (
                 <span key={i.identity} className="flex items-center gap-[0.4rem]">
-                  <SourceIcon provider={i.provider} className="text-ink-soft" />
+                  <SourceIcon provider={i.provider} className="text-ink-soft" labelled />
                   <span className="selectable">{accountName(i)}</span>
                 </span>
               ))}
@@ -376,7 +376,10 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
   const href = sourceLink(i.identity, i.username)
   return (
     <li className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.2rem]">
-      <SourceIcon provider={i.provider} className={tie ? "text-brand" : "text-ink-soft"} />
+      <SourceIcon
+        provider={i.provider}
+        className={tie ? "rounded-full text-brand ring-2 ring-brand" : "text-ink-soft"}
+      />
       <span className="text-ink">{crm ? m.contactIn(source) : source}</span>
       {extra && <span className="selectable min-w-0 truncate text-ink-soft">{extra}</span>}
       {href && (
@@ -413,7 +416,7 @@ function Recent({ items }: { items: PersonProfile["recent"] }) {
               {r.kind === "event" ? (
                 <CalendarDays className="size-4 shrink-0" aria-hidden />
               ) : (
-                <SourceIcon provider={r.provider ?? ""} />
+                <SourceIcon provider={r.provider ?? ""} labelled={Boolean(r.chat)} />
               )}
               <span className="min-w-0 truncate">{where}</span>
               {r.at && (

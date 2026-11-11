@@ -259,8 +259,8 @@ function Contact({ person: p }: { person: Listed }) {
     lines.push(
       source
         ? {
-            icon: <SourceIcon provider={p.usernameSource ?? ""} className="text-ink-dim" />,
-            value: `${source.name} @${handle}`,
+            icon: <SourceIcon provider={p.usernameSource ?? ""} className="text-ink-dim" labelled />,
+            value: `@${handle}`,
           }
         : { icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) },
     )
@@ -300,7 +300,7 @@ function ContactFromAccounts({ reference }: { reference: string }) {
     )
   return (
     <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft">
-      <SourceIcon provider={found.provider} className="text-ink-dim" />
+      <SourceIcon provider={found.provider} className="text-ink-dim" labelled />
       <span className="selectable truncate font-mono text-[0.88rem]">{found.value}</span>
     </span>
   )

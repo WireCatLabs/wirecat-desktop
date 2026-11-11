@@ -12,15 +12,27 @@ export const standingOf = (s: string | null | undefined): Standing | null =>
 export const standingTone = (s: Standing): "warn" | "brand" | "neutral" =>
   s === "proposed" ? "warn" : s === "confirmed" ? "brand" : "neutral"
 
-export type OwnerRole = { list: string; id: string; label: string | null; builtIn: boolean }
+export type OwnerRole = {
+  list: string
+  id: string
+  label: string | null
+  labels?: Readonly<Record<string, string>> | null | undefined
+  builtIn: boolean
+}
 
 /**
  * A role in the reader's language: a built-in one the app has words for, the owner's own by the label the owner gave
  * it, anything else by its id. Built-in ids are memo's (`decision-maker`), so a newer memo's role still reads.
  */
-export function roleLabel(role: string, roles: readonly OwnerRole[], words: Readonly<Record<string, string>>): string {
+export function roleLabel(
+  role: string,
+  roles: readonly OwnerRole[],
+  words: Readonly<Record<string, string>>,
+  lang?: string,
+): string {
   const own = roles.find((r) => r.id === role && !r.builtIn)?.label
-  return own ?? words[role] ?? role.replaceAll("-", " ")
+  const memo = lang ? roles.find((r) => r.id === role)?.labels?.[lang] : undefined
+  return own ?? memo ?? words[role] ?? role.replaceAll("-", " ")
 }
 
 type RelationLike = {
@@ -64,4 +76,22 @@ export type RelationParts = ReturnType<typeof relationParts>
 export function roleListFor(p: RelationParts): "organization" | "project" | "deal" | "contract" | null {
   const k = p.other.kind
   return k === "organization" || k === "project" || k === "deal" || k === "contract" ? k : null
+}
+
+/**
+ * The id memo stores for a role the owner names (`Board member` is `board-member`): lowercase Latin letters, digits and
+ * dashes. A name with none of those (`Совет директоров`) gets a short made-up id; it reads by its name anyway.
+ */
+export function roleIdOf(name: string, now = Date.now()): string {
+  const id = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+    .replace(/-+$/, "")
+  // memo takes an id only when it starts with a letter.
+  if (/^[0-9]/.test(id)) return `r-${id}`
+  return id || `own-${now.toString(36)}`
 }

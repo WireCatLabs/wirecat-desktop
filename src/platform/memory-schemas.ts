@@ -55,10 +55,21 @@ export const MemoryEntrySchema = v.object({
   standing: v.optional(text),
   /** The open review memo raised because a source changed, went or was contradicted; absent before memo had them. */
   sourceReview: v.optional(v.nullable(v.object({ id: v.string(), cause: v.string() })), null),
+  /** The role list memo offers this relationship's role from; absent before memo 0.131.80. */
+  roleList: v.optional(text),
+  /** The document at one end of a relationship: its name, folders, web address and when it last changed. */
+  document: v.optional(v.nullable(v.object({ ref: v.string(), title: text, path: text, url: text, modifiedAt: text }))),
 })
 
 /** One role of the owner's role lists (`memo relationships roles list`): built in, or the owner's own with a label. */
-export const RoleSchema = v.object({ list: v.string(), id: v.string(), label: text, builtIn: v.boolean() })
+export const RoleSchema = v.object({
+  list: v.string(),
+  id: v.string(),
+  label: text,
+  /** A built-in role's name per language memo has; the owner's own roles have only `label`. */
+  labels: v.optional(v.nullable(v.record(v.string(), v.string())), null),
+  builtIn: v.boolean(),
+})
 
 export const AgentCallSchema = v.object({
   id: v.string(),

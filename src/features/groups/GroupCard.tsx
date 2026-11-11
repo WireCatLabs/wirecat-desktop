@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from "react"
 import { toolByBin } from "@/domain/catalog"
 import { ALL, accountName, editable, isDuplicate, type Member, profileParts } from "@/domain/groups"
 import { useMessages } from "@/i18n"
+import { ServiceIcon } from "@/shared/ServiceIcon"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { cardClass } from "@/ui/Board"
 import { cx } from "@/ui/cx"
@@ -127,11 +128,16 @@ export function Profiles({ member }: { member: Member }) {
   return (
     <span className="flex min-w-0 flex-col gap-[0.2rem]">
       {member.profiles.map((p) => {
-        const { app } = profileParts(p)
+        const { app, name } = profileParts(p)
+        const tool = toolByBin(app)
         return (
           <span key={p} className="flex min-w-0 items-center gap-[0.45rem] text-[0.95rem] font-medium">
-            <ToolIcon id={toolByBin(app)?.id ?? app} className="size-4 shrink-0 text-ink-soft" />
-            <span className="truncate">{p}</span>
+            {tool ? (
+              <ServiceIcon id={tool.id} className="size-4 shrink-0" />
+            ) : (
+              <ToolIcon id={app} className="size-4 shrink-0 text-ink-soft" />
+            )}
+            <span className="truncate">{tool && name ? name : p}</span>
           </span>
         )
       })}

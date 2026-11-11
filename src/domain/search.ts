@@ -1,9 +1,12 @@
+import { toolOfProvider } from "./links"
 /** What the Search page shows of one hit. Every value is the tool's own text, shown as plain text only. */
 export type HitRow = {
   key: string
   when: string | null
   /** The chat, mailbox subject, meeting or document the hit is in. */
   where: string | null
+  /** The tool a memo hit came from (`msg:telegram/…` is `tg`); a tool's own hits are all its own, so none. */
+  tool: string | null
   who: string | null
   fromMe: boolean
   text: string | null
@@ -22,11 +25,17 @@ export function hitRow(hit: Record<string, unknown>, index: number): HitRow {
     key: str(hit.ref) ?? str(hit.id) ?? `#${index}`,
     when: str(hit.timestamp) ?? str(hit.updated_at) ?? str(hit.started_at),
     where: str(obj(hit.email).subject) ?? str(hit.chat_title) ?? str(hit.title) ?? str(hit.path),
+    tool: toolOfRef(str(hit.ref)),
     who: str(hit.sender_name),
     fromMe: hit.sender_is_me === true,
     text: str(hit.excerpt) ?? str(hit.text),
     files: hitFiles(hit),
   }
+}
+
+const toolOfRef = (ref: string | null) => {
+  const provider = ref?.match(/^msg:([a-z0-9-]+)\//)?.[1]
+  return provider ? toolOfProvider(provider) : null
 }
 
 export function hitFiles(hit: Record<string, unknown>): HitFile[] {

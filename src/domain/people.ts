@@ -60,15 +60,14 @@ export function personName(p: {
   return cleanName(p.displayName) ?? cleanName(p.name) ?? (p.contact?.trim() || null)
 }
 
-/** For a person with no usable name: their first handle, else the first account name that has letters. */
+/** For a person with no usable name: the first account name that has letters, else their first handle. */
 export function handleOf(identities: readonly { name: string | null; username: string | null }[]): string | null {
-  const username = identities.find((i) => i.username?.trim())?.username?.trim()
-  if (username) return `@${username.replace(/^@/, "")}`
   for (const i of identities) {
     const name = cleanName(i.name)
     if (name) return name
   }
-  return null
+  const username = identities.find((i) => i.username?.trim())?.username?.trim()
+  return username ? `@${username.replace(/^@/, "")}` : null
 }
 
 export const matchesFilter = (

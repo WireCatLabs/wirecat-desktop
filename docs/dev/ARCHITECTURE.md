@@ -380,8 +380,8 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.72 or newer (`memory.minVersion` in the catalog, the first memo with
-`sources` and source reviews); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.80 or newer (`memory.minVersion` in the catalog: the first memo whose
+relationships carry their role list and the document at an end, and that adds an owner's own role); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`,
 `actions list status:proposed --brief` (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list.
 `actions list` also holds People's `identity_link` and `identity_split` rows and every rejected `relationship`, and has no `kind:` field, so Rust drops them after the read, with any kind the page has no words for and no text of its own; one page reads up to four of memo's pages of what waits so they cannot push it back; a failed activity log still
@@ -462,8 +462,11 @@ it starts from (a person, an organization or a project), says the other end and 
 confirmed it) are In use, **Ended** is with what no longer holds. A proposal is `relationship:<id>`, decided through
 memo's own review as every other proposal kind: `review confirm <id> --from-app`, or `review reject <id> --reason
 "rejected in WireCat Desktop" --from-app` (memo needs a reason). A link that holds is `link:<id>` and is not changed
-here. Bulk approve leaves relationships out: each is approved in its row. A built-in role is worded by the app in the
-interface language; the owner's own role shows the label the owner gave it. The chip is `src/shared/StandingPill.tsx`,
+here. Bulk approve leaves relationships out: each is approved in its row. A built-in role reads in memo's `labels` for
+the interface language, else the app's words; the owner's own role shows the label the owner gave it. The role picker
+offers the row's `role_list`; Add a role runs `relationships roles add <list> <id> --label <name> --from-app`
+(`memory_role_add`), the id made from the name. A row whose end is a document shows that document's name, folder, last
+change and Open (its web address only) from memo's `from_document`/`to_document`. The chip is `src/shared/StandingPill.tsx`,
 its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
 ## The Contacts page
@@ -504,8 +507,9 @@ every move names the person and the accounts he chose.
   holds the person, wins for the counts, and a count neither knows shows «—». Companies are current memberships only. What they share is said in words and
   marked on each side: memo's evidence, else a phone or address two of them have; no ids. Merge and Not the same use the
   card's actions (`MatchActions.tsx`); the dialog keeps what was compared after a decision and says what happened.
-- **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only accounts the person's own
-  read listed, each once, and never all of them: memo matches a name it does not know exactly to the nearest person.
+- **Move accounts to a new person** runs `people unlink <identities…> --from person:<uid> --from-app` with only accounts
+  the person's own read listed, each once, and never all of them: memo matches a name it does not know exactly to the
+  nearest person, and `--from` makes memo refuse an account that sits on someone else.
   Every account is shown; one whose ref cannot go back as one safe word is never offered for moving.
 - **Undo a join** runs `people unmerge merge:<to>-<from> --from-app`, only for a merge the person shows, behind a dialog
   that lists the accounts that go back.
