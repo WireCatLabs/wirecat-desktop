@@ -12,7 +12,7 @@ import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { type Contacts, contactsOf, keyOf, type MatchFact, matchFacts, sameMark, sharedValue } from "./contacts"
 import type { MatchGroup } from "./groups"
-import { usePersonName } from "./labels"
+import { useComparableName, usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { peopleMessages } from "./messages"
 import { usePicks, useUnticked } from "./picks"
@@ -39,6 +39,7 @@ export const tieOf = (matches: readonly Match[], ref: string) => {
 export function MatchCard({ group, from }: { group: MatchGroup; from?: string }) {
   const m = useMessages(peopleMessages)
   const name = usePersonName()
+  const comparable = useComparableName()
   const decided = usePeople((s) => s.decided)
   const { openMatch } = usePeople.getState()
   const open = group.matches.filter((x) => !decided[x.id])
@@ -67,7 +68,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
     people.every((ref) => details[ref]?.state === "ready") &&
     contacts.every((c) => c.phones.length === 0)
   const names = people.map((p) => name(p))
-  const facts = first ? matchFacts(first, names, contacts) : []
+  const facts = first ? matchFacts(first, people.map(comparable), contacts) : []
   if (!first) return null
 
   const done = open.length === 0
@@ -103,6 +104,9 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </p>
       )}
       {first.reason && first.proposer?.kind !== "rule" && <p className="selectable text-[0.95rem]">{first.reason}</p>}
+      {first.proposer?.kind === "rule" && first.signal !== "name" && !m.signalNames[first.signal ?? ""] && (
+        <p className="text-[0.95rem]">{m.ruleFallback}</p>
+      )}
       {picking && <p className="text-[0.9rem] text-ink-soft">{m.pickHelp}</p>}
       <div id={pickList} className={cx("grid gap-[0.6rem] md:grid-cols-2", people.length > 2 && "xl:grid-cols-3")}>
         {people.map((ref) => (

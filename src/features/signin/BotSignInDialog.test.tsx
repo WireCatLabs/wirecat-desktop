@@ -5,7 +5,7 @@ import { platform } from "@/platform/bridge"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
-import { act, render, screen, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { BotList } from "../tools/BotList"
 import { ToolRow } from "../tools/ToolRow"
 import { BotSignInDialog } from "./BotSignInDialog"
@@ -204,6 +204,37 @@ describe("finding the bot sign-in from elsewhere", () => {
     await user.click(within(plan).getByRole("button", { name: "Add a bot instead" }))
     expect(await screen.findByRole("textbox", { name: "Bot name on this computer" })).toBeInTheDocument()
     expect(useSignIn.getState().tool).toBeNull()
+  })
+
+  it("asks only for the token when a bot with saved settings reconnects", async () => {
+    render(<BotSignInDialog />)
+    act(() => useBotSignIn.getState().reconnect("wa", "shop"))
+    expect((await screen.findAllByLabelText(/token/i)).length).toBeGreaterThan(0)
+    expect(screen.queryByRole("textbox", { name: /Phone number ID/i })).not.toBeInTheDocument()
+  })
+
+  it("shows no status for a bot the tool could not check without its profile", async () => {
+    vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "shop", source: "keyring", bot: null, problem: null }])
+    vi.spyOn(platform, "checkBots").mockResolvedValue([
+      { name: "shop", source: "keyring", bot: null, problem: "configuration_error" },
+    ])
+    render(<BotList tool={tool("wa")} />)
+    const row = await screen.findByRole("listitem", { name: /shop/ })
+    await waitFor(() => expect(useBotSignIn.getState().checked.wa).toBeDefined())
+    expect(within(row).queryByText("Works")).not.toBeInTheDocument()
+    expect(within(row).queryByText("Not checked")).not.toBeInTheDocument()
+  })
+
+  it("keeps the newest check of the bots when an older one answers last", async () => {
+    let older: (list: never[]) => void = () => {}
+    vi.spyOn(platform, "checkBots")
+      .mockImplementationOnce(() => new Promise((done) => (older = done)))
+      .mockResolvedValueOnce([{ name: "sales", source: "keyring", bot: "new_bot", problem: null }])
+    const first = useBotSignIn.getState().checkBots("tg")
+    await useBotSignIn.getState().checkBots("tg")
+    older([])
+    await first
+    expect(useBotSignIn.getState().checked.tg?.[0]?.bot).toBe("new_bot")
   })
 
   it("leaves adding a bot to the accounts section, off the Tools page row", () => {

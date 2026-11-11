@@ -8,9 +8,9 @@ const phoneKey = (phone: string) => phone.replace(/\D/g, "").slice(-10)
 const emailKey = (email: string) => email.trim().toLowerCase()
 export const keyOf = (signal: string | null) => (signal === "phone" ? phoneKey : emailKey)
 const looksLikePhone = (v: string) => /^\+?[\d\s().-]{7,20}$/.test(v.trim())
-const looksLikeEmail = (v: string) => /^[^\s@:/]+@[^\s@:/]+\.[^\s@:/]+$/.test(v.trim())
+export const looksLikeEmail = (v: string) => /^[^\s@:/]+@[^\s@:/]+\.[^\s@:/]+$/.test(v.trim())
 /** A WhatsApp id is a phone only as `<digits>@s.whatsapp.net` or `@c.us`, or bare digits; `@lid` is no number. */
-const WHATSAPP_PHONE = /^(\d{7,15})(?:@s\.whatsapp\.net|@c\.us)?$/
+export const WHATSAPP_PHONE = /^(\d{7,15})(?:@s\.whatsapp\.net|@c\.us)?$/
 
 const uniqueBy = (values: string[], key: (v: string) => string) =>
   values.filter((v, i) => key(v) !== "" && values.findIndex((w) => key(w) === key(v)) === i)
@@ -100,12 +100,14 @@ const inCommon = (lists: string[][], key: (v: string) => string) =>
 
 /**
  * What a match rests on, worked out from the two sides the card shows. memo gives only an English sentence for a name
- * match, and the kind of evidence is not in its answer (DEBT-314).
+ * match, and the kind of evidence is not in its answer (DEBT-314). A name not known, or the owner's "You", is `null`.
  */
-export function matchFacts(match: Match, names: string[], contacts: Contacts[]): MatchFact[] {
+export function matchFacts(match: Match, names: (string | null)[], contacts: Contacts[]): MatchFact[] {
   const facts: MatchFact[] = []
-  const name = names[0]
-  if (name && names.length > 1 && (match.signal === "name" || names.every((n) => nameKey(n) === nameKey(name))))
+  const known = names.filter((n) => n !== null)
+  const name = known[0] ?? null
+  const allSame = name !== null && known.length === names.length && known.every((n) => nameKey(n) === nameKey(name))
+  if (name !== null && names.length > 1 && (match.signal === "name" || allSame))
     facts.push({ kind: "name", value: name })
   // A phone or address match says its own value on the card's line above these.
   if (match.signal === "phone" || match.signal === "email" || match.signal === "guest-email") return facts

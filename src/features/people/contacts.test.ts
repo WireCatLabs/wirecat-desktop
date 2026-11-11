@@ -49,4 +49,10 @@ describe("what a match rests on", () => {
   it("leaves a phone match's value to the line above", () => {
     expect(matchFacts(match({ signal: "phone" }), ["A", "B"], [of([], ["1"]), of([], ["1"])])).toEqual([])
   })
+
+  it("does not call two unnamed people the same name", () => {
+    const none = { phones: [], emails: [] }
+    const facts = matchFacts(match({ signal: "account" }), [null, null], [none, none])
+    expect(facts.filter((f) => f.kind === "name")).toEqual([])
+  })
 })

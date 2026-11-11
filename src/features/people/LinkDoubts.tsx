@@ -7,6 +7,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
+import { looksLikeEmail, WHATSAPP_PHONE } from "./contacts"
 import { peopleMessages } from "./messages"
 import { Refusal } from "./Refusal"
 import { SourceIcon, sourceOf } from "./sources"
@@ -90,11 +91,13 @@ export function LinkDoubts() {
   )
 }
 
-/** The account's own name, else the part of its id a person can read: an address, never a CRM's URL. */
+/** The account's own name, else its id only when a person can read it: an address or a phone, not a number or hash. */
 function accountLabel(i: Doubt["identities"][number]) {
   if (i.name) return i.name
   const id = i.identity.slice(i.identity.indexOf(":") + 1)
-  return id.includes("/") ? null : id
+  if (looksLikeEmail(id) && !id.endsWith(".whatsapp.net")) return id
+  const phone = i.identity.startsWith("whatsapp:") ? WHATSAPP_PHONE.exec(id)?.[1] : /^\+\d{7,15}$/.exec(id)?.[0]
+  return phone ?? null
 }
 
 function DoubtCard({ doubt, onKept }: { doubt: Doubt; onKept: (name: string) => void }) {

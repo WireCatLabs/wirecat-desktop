@@ -19,6 +19,8 @@ type BotSignInState = {
   bots: Record<string, BotProfile[] | null | undefined>
   /** What the messenger answered about each bot; undefined while it is being asked, null when it could not be. */
   checked: Record<string, BotProfile[] | null | undefined>
+  /** A new token only: the bot's saved settings stay, so the form does not ask for them. */
+  reconnecting: boolean
   run: number
   onFinish: (() => void) | null
   open(tool: string, onFinish?: () => void): void
@@ -39,6 +41,7 @@ type BotSignInState = {
 const closed = {
   tool: null,
   step: "name" as BotStep,
+  reconnecting: false,
   profile: "",
   fields: {},
   checking: false,
@@ -46,6 +49,8 @@ const closed = {
   failure: null,
   onFinish: null,
 }
+
+const checkSeq: Record<string, number> = {}
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -59,15 +64,19 @@ export const useBotSignIn = create<BotSignInState>()((set, get) => ({
     void get().loadBots(tool)
   },
   reconnect(tool, profile) {
-    set({ ...closed, tool, profile, step: "token", run: get().run + 1 })
+    set({ ...closed, tool, profile, step: "token", reconnecting: true, run: get().run + 1 })
   },
   async checkBots(tool) {
+    const seq = (checkSeq[tool] ?? 0) + 1
+    checkSeq[tool] = seq
+    const answer = (list: BotProfile[] | null) => {
+      if (checkSeq[tool] === seq) set((s) => ({ checked: { ...s.checked, [tool]: list } }))
+    }
     set((s) => ({ checked: { ...s.checked, [tool]: undefined } }))
     try {
-      const list = await platform.checkBots(tool)
-      set((s) => ({ checked: { ...s.checked, [tool]: list } }))
+      answer(await platform.checkBots(tool))
     } catch {
-      set((s) => ({ checked: { ...s.checked, [tool]: null } }))
+      answer(null)
     }
   },
   async removeBot(tool, profile) {
@@ -86,7 +95,7 @@ export const useBotSignIn = create<BotSignInState>()((set, get) => ({
     set({ profile, step: "token", failure: null })
   },
   back() {
-    if (!get().checking) set({ step: "name", failure: null })
+    if (!get().checking) set({ step: "name", reconnecting: false, failure: null })
   },
   setField(key, value) {
     set((s) => ({ fields: { ...s.fields, [key]: value.trim() } }))

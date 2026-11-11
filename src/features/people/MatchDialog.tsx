@@ -16,7 +16,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
 import { type Contacts, contactsOf, keyOf, matchFacts, sameMark, sharedValue } from "./contacts"
 import { groupMatches, type MatchGroup } from "./groups"
-import { usePersonName } from "./labels"
+import { useComparableName, usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { MatchFacts, moveWords, tieOf } from "./MatchCard"
 import { peopleMessages } from "./messages"
@@ -45,6 +45,7 @@ const withRow = (profile: PersonProfile, row: Listed | undefined): PersonProfile
 export function MatchDialog() {
   const m = useMessages(peopleMessages)
   const name = usePersonName()
+  const comparable = useComparableName()
   const matches = usePeople((s) => s.matches)
   const decided = usePeople((s) => s.decided)
   const key = usePeople((s) => s.matchOpen)
@@ -137,17 +138,14 @@ export function MatchDialog() {
       {group && match && (
         <div className="flex flex-col gap-[1.1rem] pb-[0.4rem]">
           <SharedSignal match={match} value={shared} />
-          <MatchFacts
-            facts={matchFacts(
-              match,
-              people.map((p) => name(p)),
-              contacts,
-            )}
-          />
+          <MatchFacts facts={matchFacts(match, people.map(comparable), contacts)} />
           {moving && (
             <p className="text-ink-soft">
               {m.moveHeading(moveWords(match, m.anAccount), name(match.persons[1] ?? ""))} {m.moveHelp}
             </p>
+          )}
+          {match.proposer?.kind === "rule" && match.signal !== "name" && !m.signalNames[match.signal ?? ""] && (
+            <p className="text-ink-soft">{m.ruleFallback}</p>
           )}
           {match.reason && match.proposer?.kind !== "rule" && (
             <p className="selectable max-w-[70ch] text-ink-soft">“{match.reason}”</p>

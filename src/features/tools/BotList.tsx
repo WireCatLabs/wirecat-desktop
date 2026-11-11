@@ -90,7 +90,9 @@ function BotRow(props: {
   const { tool, bot: b, checked, onRemove } = props
   const m = useMessages(botMessages)
   const refused = checked?.problem === "authentication_error"
-  const unknown = checked === null || (checked?.problem && !refused)
+  // WhatsApp's check needs a profile's ids that `bot list` does not have, so that answer says nothing of the token.
+  const unchecked = checked?.problem === "configuration_error" && (tool.bot?.fields.length ?? 0) > 0
+  const unknown = checked === null || (checked?.problem && !refused && !unchecked)
   // A token from the environment is not this computer's to replace or forget.
   const managed = b.source !== "env"
   return (
@@ -105,7 +107,7 @@ function BotRow(props: {
             <Pill tone="warn">{m.statusRefused}</Pill>
           ) : unknown ? (
             <Pill>{m.statusUnknown}</Pill>
-          ) : (
+          ) : unchecked ? null : (
             <span className="inline-flex items-center gap-1.5 text-[0.875rem] text-ink-soft">
               <Lamp tone="ok" size="sm" />
               {m.statusOk}

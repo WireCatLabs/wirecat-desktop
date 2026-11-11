@@ -147,7 +147,8 @@ pub fn connect(
     let shape = source(tool)?.token;
     let token = token.trim();
     validate_token(shape, token)?;
-    let settings = field_args(tool, profile, fields)?;
+    // A reconnect replaces only the token: the settings the bot was added with stay.
+    let settings = if fields.is_empty() { Vec::new() } else { field_args(tool, profile, fields)? };
     let set = set_args(tool, profile)?;
     let Some(bin) = crate::tools::program(&tool.bin) else {
         return Ok(failed(format!("{} is not installed.", tool.name), None, None));

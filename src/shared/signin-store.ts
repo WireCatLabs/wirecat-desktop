@@ -82,6 +82,8 @@ type SignInState = {
   hintPage: string | null
   run: number
   onFinish: (() => void) | null
+  /** When each account last finished a sign-in here; survives the dialog closing. */
+  signedInAt: Record<string, number>
   /** Without `method` it opens on the plan, and `begin` runs it; with one (a switch, a retry) it runs at once. */
   start(tool: string, profile: string, onFinish?: () => void, method?: string, reuse?: boolean): void
   /** Saves the owner's own app id first when one is typed, then runs the sign-in. */
@@ -240,6 +242,14 @@ const stopInBackground = (tool: string) => {
   platform.signInStop(tool).catch(() => {})
 }
 
+/** A failure older than the account's last sign-in here says nothing about the sign-in any more. */
+export const signedInSince = (
+  s: Pick<SignInState, "signedInAt">,
+  tool: string,
+  profile: string | null,
+  at: number | null,
+) => at !== null && (s.signedInAt[`${tool}:${profile}`] ?? 0) > at
+
 export const useSignIn = create<SignInState>()((set, get) => {
   const apply = (e: SignInEvent) => {
     // Any step after a question means the tool has its answer, or no longer waits for one.
@@ -299,7 +309,16 @@ export const useSignIn = create<SignInState>()((set, get) => {
       }
       case "done":
         forget()
-        set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false, switchingTo: null })
+        set((s) => ({
+          ...next,
+          phase: "done",
+          done: e,
+          qr: null,
+          url: null,
+          stopping: false,
+          switchingTo: null,
+          signedInAt: { ...s.signedInAt, [`${s.tool}:${s.profile}`]: Date.now() },
+        }))
         return get().onFinish?.()
       case "failed": {
         const s = get()
@@ -335,6 +354,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
   return {
     ...closed,
     run: 0,
+    signedInAt: {},
     start(tool, profile, onFinish, method, reuse = false) {
       const entry = findTool(tool)
       const chosen = method ?? (entry ? signInMethods(entry)[0]?.id : undefined) ?? "qr"

@@ -302,7 +302,7 @@ describe("People", () => {
     render(<PeoplePage />)
     const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
     await user.click(within(panel).getAllByRole("button", { name: "These belong together" })[0] as HTMLElement)
-    expect(await within(panel).findByText(/Update them on the Tools page/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/If the Tools page offers no update yet/)).toBeInTheDocument()
   })
 
   it("shows three people who share a phone as one card, joins the two the owner ticks, then keeps the third apart", async () => {

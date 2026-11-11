@@ -149,6 +149,7 @@ const en = {
   companyDone: (mailbox: string) =>
     `${mailbox} is a company's mailbox now. The people stay apart and are not suggested again on it.`,
   companyFailed: "It was not saved.",
+  ruleFallback: "These look like the same person. Compare the details below.",
   companyReasons: {
     "organization.unnamed": "This is a free mail address, so WireCat cannot tell the company. Type its name.",
     "organization.ambiguous": "More than one company has this address. Pick the one it belongs to.",
@@ -193,7 +194,8 @@ const en = {
     "person.unknown": "This person is gone: they were joined with someone or removed. Read the list again.",
     "person.no-doubt": "There is no doubt about this person any more. Read the list again.",
     "person.test-data": "These accounts look like test data, so they cannot be confirmed. Open the card to check them.",
-    "memo.too-old": "Confirming needs a newer version of WireCat's tools. Update them on the Tools page.",
+    "memo.too-old":
+      "Confirming needs a newer version of WireCat's tools. If the Tools page offers no update yet, it comes with the next one.",
     "proposal.wrong-state": "This match was already decided. Read again.",
   } satisfies Record<PeopleReason, string>,
   merge: "Merge",
@@ -444,6 +446,7 @@ const ru: typeof en = {
   companyDone: (mailbox: string) =>
     `${mailbox} теперь ящик компании. Люди остаются раздельно, и WireCat больше не предложит их по этому адресу.`,
   companyFailed: "Это не сохранилось.",
+  ruleFallback: "Похоже, это один человек. Сравните данные ниже.",
   companyReasons: {
     "organization.unnamed": "Это адрес бесплатной почты, по нему не понять компанию. Введите ее название.",
     "organization.ambiguous": "Этот адрес есть у нескольких компаний. Выберите, чей он.",
@@ -490,7 +493,8 @@ const ru: typeof en = {
     "person.no-doubt": "Сомнений в этом человеке больше нет. Прочитайте список заново.",
     "person.test-data":
       "Эти аккаунты похожи на тестовые данные, поэтому их нельзя подтвердить. Откройте карточку, чтобы проверить.",
-    "memo.too-old": "Для подтверждения нужна новая версия инструментов WireCat. Обновите их на странице «Инструменты».",
+    "memo.too-old":
+      "Для подтверждения нужна новая версия инструментов WireCat. Если на странице «Инструменты» обновления ещё нет, оно придёт со следующим.",
     "proposal.wrong-state": "По этому совпадению уже решили. Прочитайте заново.",
   },
   merge: "Объединить",
@@ -717,6 +721,7 @@ const es: typeof en = {
   companyDone: (mailbox: string) =>
     `${mailbox} es ahora el buzón de una empresa. Las personas siguen separadas y no se sugieren de nuevo por él.`,
   companyFailed: "No se guardó.",
+  ruleFallback: "Parece la misma persona. Compara los datos de abajo.",
   companyReasons: {
     "organization.unnamed":
       "Es una dirección de correo gratuito, así que WireCat no sabe la empresa. Escribe su nombre.",
@@ -764,7 +769,7 @@ const es: typeof en = {
     "person.test-data":
       "Estas cuentas parecen datos de prueba, así que no se pueden confirmar. Abre la ficha para revisarlas.",
     "memo.too-old":
-      "Para confirmar hace falta una versión más nueva de las herramientas de WireCat. Actualízalas en la página Herramientas.",
+      "Para confirmar hace falta una versión más nueva de las herramientas de WireCat. Si en Herramientas aún no hay actualización, llegará con la próxima.",
     "proposal.wrong-state": "Esta coincidencia ya se decidió. Lee de nuevo.",
   },
   merge: "Unir",

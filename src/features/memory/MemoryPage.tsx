@@ -46,7 +46,9 @@ const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 function ReadFailedActions({ what, error }: { what: string; error: string }) {
   const m = useMessages(memoryMessages)
   const reading = useMemory((s) => s.reading)
-  const outdated = useTools((s) => toolStatus(s.installs.memo, s.latest?.memo ?? null).kind === "outdated")
+  const outdated = useTools(
+    (s) => toolStatus(s.installs.memo, s.latest?.memo ?? null, s.sessions.memo).kind === "outdated",
+  )
   return (
     <>
       <Button
@@ -62,7 +64,7 @@ function ReadFailedActions({ what, error }: { what: string; error: string }) {
           size="sm"
           variant="secondary"
           onClick={() => {
-            void useTools.getState().install("memo")
+            void useTools.getState().install("memo", { check: true })
             openTool("memo")
           }}
         >
