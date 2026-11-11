@@ -354,10 +354,10 @@ const EXAMPLES: &[Example] = &[
     Example {
         needs: &["from", "has", "date"],
         words: "photos Ana sent last week about the flat",
-        query: r#"flat from:"Ana" has:photo date>=7d"#,
+        query: "flat from:*Ana* has:photo date>=7d",
     },
     Example {
-        needs: &["from"], words: "как купить велосипед у Милы", query: r#"купить велосипед from:"Мила""#
+        needs: &["from"], words: "как купить велосипед у Милы", query: "купить велосипед from:*Мила*"
     },
     Example {
         needs: &["from", "has"],
@@ -367,33 +367,33 @@ const EXAMPLES: &[Example] = &[
     Example {
         needs: &["chat", "has", "date"],
         words: "ссылки из чата Дизайн за последний месяц",
-        query: r#"chat:"Дизайн" has:link date>=30d"#,
+        query: "chat:*Дизайн* has:link date>=30d",
     },
     Example {
         needs: &["from", "date"],
         words: "что Оля писала вчера про отпуск",
-        query: r#"отпуск from:"Оля" date:yesterday"#,
+        query: "отпуск from:*Оля* date:yesterday",
     },
     Example {
         needs: &["from"],
         words: "anything about rent or the deposit, but not from Marco",
-        query: r#"(rent OR deposit) NOT from:"Marco""#,
+        query: "(rent OR deposit) NOT from:*Marco*",
     },
     Example {
         needs: &["from", "date"],
         words: "el presupuesto que mandó Lucía en febrero",
-        query: r#"presupuesto from:"Lucía" date:[2026-02-01 TO 2026-02-28]"#,
+        query: "presupuesto from:*Lucía* date:[2026-02-01 TO 2026-02-28]",
     },
-    Example { needs: &["from", "has"], words: "the invoice pdf Kai sent", query: r#"invoice from:"Kai" has:file"# },
+    Example { needs: &["from", "has"], words: "the invoice pdf Kai sent", query: "invoice from:*Kai* has:file" },
     Example {
         needs: &["from", "date"],
         words: "письма от Stripe про возврат за эту неделю",
-        query: r#"возврат from:"Stripe" date>=7d"#,
+        query: "возврат from:*Stripe* date>=7d",
     },
     Example {
         needs: &["from", "filename"],
         words: "the contract Ana mailed as an attachment",
-        query: r#"contract from:"Ana" filename:contract"#,
+        query: "contract from:*Ana* filename:*contract*",
     },
     Example {
         needs: &["title", "author"],
@@ -437,11 +437,17 @@ fn rules(names: &[&str]) -> Vec<&'static str> {
     ];
     if has_names {
         rules.push(
-            "Names of people and chats go into their key in the dictionary form, nominative case: \"у Милы\" is \
-             from:\"Мила\", \"от Сергея Иванова\" is from:\"Сергей Иванов\". Keep the person's own spelling and \
-             alphabet; never transliterate. Quote every name.",
+            "A person or a chat is part of the name between two *, in the dictionary form, nominative case: \"у \
+             Милы\" is from:*Мила*, \"чат Дизайн\" is chat:*Дизайн*. Only a full name, first and last, goes exactly \
+             and quoted: \"от Сергея Иванова\" is from:\"Сергей Иванов\"; an id given in digits goes as it is: \
+             from:123456. Never put a value with * in quotes; a space inside one is written \\ followed by the \
+             space: from:*Анна\\ Мария*. Keep the person's own spelling and alphabet; never transliterate.",
         );
-        rules.push("Several people or chats: (from:\"Маша\" OR from:\"Петя\").");
+        rules.push("Several people or chats: (from:*Маша* OR from:*Петя*).");
+        rules.push(
+            "A file's name or a mail folder: part of it between two *, as filename:*договор*. A mail's subject: the \
+             start of a word, as subject:отчет*. Keys with listed values take those values only.",
+        );
     } else {
         rules.push(
             "Names of people are plain words in the dictionary form, nominative case: \"с Милой\" is Мила. Keep the \
@@ -589,11 +595,13 @@ mod tests {
         let tg = system_prompt(catalog::tool("tg").unwrap()).unwrap();
         assert!(tg.contains("- has: what it holds besides text. Example: has:photo. Only these values: photo, file"));
         assert!(tg.contains("date:[YYYY-MM-DD TO YYYY-MM-DD]"));
-        assert!(tg.contains(r#"from:"Мила""#));
+        assert!(tg.contains("from:*Мила*") && tg.contains("filename:*договор*"));
+        assert!(!tg.contains("аренд*"), "word starts wait for the messenger tools' cli-core");
         assert_eq!(tg.matches("\nQuery: ").count(), 8);
         assert!(!tg.contains("chats, contacts"), "a store list's name is not a value");
         let zm = system_prompt(catalog::tool("zm").unwrap()).unwrap();
         assert!(zm.contains("This tool has no keys") && !zm.contains("from:") && !zm.contains("date>="));
+        assert!(!zm.contains("*"), "a meeting search takes no patterns");
         let notes = system_prompt(catalog::tool("memo").unwrap()).unwrap();
         assert!(notes.contains(r#"author:"Ana""#) && !notes.contains("has:"));
     }

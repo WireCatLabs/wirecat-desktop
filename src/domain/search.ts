@@ -198,6 +198,27 @@ export const quoteValue = (value: string) =>
     ? value
     : `"${value.replace(/[\\"]/g, (c) => `\\${c}`)}"`
 
+// These take * and ? in every cli-core the app runs with; a pattern elsewhere needs a newer one.
+const ALWAYS_PATTERNS = new Set(["text", "exact", "body", "filename", "mime"])
+
+/**
+ * A written query as a tool on an older cli-core reads it: a part-of-name or part-of-value pattern (`from:*Мила*`,
+ * `subject:отчет*`) becomes the plain value (`from:Мила`; such a tool reads it as part of a name only when nobody is
+ * named exactly that). A word's start (`аренд*`) stays. Null when nothing changes, so the caller does not ask twice.
+ */
+export function withoutPatterns(query: string): string | null {
+  const term = /(^|[\s(])(-?)(?:([\p{L}_][\p{L}\p{N}_]*):)?((?:\\.|[^\s()"\\:])*[*?](?:\\.|[^\s()"\\])*)/gu
+  let changed = false
+  const out = query.replace(term, (whole, lead: string, minus: string, field: string | undefined, value: string) => {
+    if (!field || ALWAYS_PATTERNS.has(field)) return whole
+    const plain = value.replace(/\\(.)|[*?]/gu, (_, kept: string | undefined) => kept ?? "")
+    changed = true
+    if (!plain) return lead
+    return `${lead}${minus}${field}:${quoteValue(plain)}`
+  })
+  return changed ? out.replace(/\s{2,}/g, " ").trim() : null
+}
+
 /**
  * One value a field can take: `value` goes in the query; `label` and `detail` (an @username) are what the row shows;
  * `count` (messages from that person or in that chat) puts the most used first.

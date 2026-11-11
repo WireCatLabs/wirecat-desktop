@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react"
 import { useId, useRef, useState } from "react"
-import { type NameChoices, nameChoices, type ValueOption } from "@/domain/search"
+import { type NameChoices, nameChoices, queryReason, type ValueOption, withoutPatterns } from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { QueryDraft as Draft, QueryWriter, SearchAnswer } from "@/platform/search-schemas"
@@ -102,12 +102,24 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
         const draft = await platform.searchDraft(tool, asked)
         if (draft.kind !== "query") return setState(draft)
         setState({ kind: "checking", by: draft.by })
-        const answer = await check(draft.query).catch(
-          (e: unknown): SearchAnswer => ({ kind: "old", message: e instanceof Error ? e.message : String(e) }),
-        )
-        const checked = checkedBy(draft.query, answer, known.current)
+        const tried = (query: string) =>
+          check(query).catch(
+            (e: unknown): SearchAnswer => ({ kind: "old", message: e instanceof Error ? e.message : String(e) }),
+          )
+        let query = draft.query
+        let answer = await tried(query)
+        // A tool on an older cli-core refuses part-of-name patterns; its plain values still match part of a name.
+        const plain =
+          answer.kind === "queryError" && queryReason(answer.reason) === "unsupported-operator"
+            ? withoutPatterns(query)
+            : null
+        if (plain) {
+          query = plain
+          answer = await tried(query)
+        }
+        const checked = checkedBy(query, answer, known.current)
         if (checked === "retry" && answer.kind === "queryError" && attempt === 0) {
-          asked = retryRequest(request.trim(), draft.query, answer)
+          asked = retryRequest(request.trim(), query, answer)
           setState({ kind: "writing" })
           continue
         }
@@ -115,8 +127,8 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
           checked === "retry"
             ? { kind: "refused", message: answer.kind === "queryError" ? answer.message : "" }
             : checked
-        setState({ kind: "query", query: draft.query, by: draft.by, checked: final })
-        if (final.kind === "found" || final.kind === "unchecked") onWritten(draft.query)
+        setState({ kind: "query", query, by: draft.by, checked: final })
+        if (final.kind === "found" || final.kind === "unchecked") onWritten(query)
         return
       }
     } catch (e) {

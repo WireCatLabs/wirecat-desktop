@@ -12,6 +12,7 @@ import {
   quoteValue,
   suggestSearch,
   toggleSearchTerm,
+  withoutPatterns,
 } from "./search"
 
 describe("hitRow", () => {
@@ -262,6 +263,20 @@ describe("nameChoices", () => {
     expect(nameChoices("chat:design", "matches 2 chats", refused, {})?.options.map((o) => o.query)).toEqual([
       'chat:"-1001"',
     ])
+  })
+})
+
+describe("withoutPatterns", () => {
+  it("turns name and value patterns into plain values and keeps word starts and file patterns", () => {
+    expect(withoutPatterns("купи* велосипед* from:*Мила*")).toBe("купи* велосипед* from:Мила")
+    expect(withoutPatterns("from:*Анна\\ Мария* has:photo")).toBe('from:"Анна Мария" has:photo')
+    expect(withoutPatterns("(rent OR deposit*) -chat:Диз*")).toBe("(rent OR deposit*) -chat:Диз")
+    expect(withoutPatterns("filename:*договор* subject:*отчет*")).toBe("filename:*договор* subject:отчет")
+    expect(withoutPatterns("from:* invoice")).toBe("invoice")
+  })
+  it("says nothing changed when there is no pattern to take out", () => {
+    expect(withoutPatterns("аренд* has:photo date>=7d")).toBeNull()
+    expect(withoutPatterns('from:"Сергей Иванов"')).toBeNull()
   })
 })
 
