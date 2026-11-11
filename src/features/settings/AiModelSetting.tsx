@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { hostOfOrigin, isLocalHost, providerHost, staysHere } from "@/domain/ai-model"
+import { hostOfOrigin, isLocalHost, modelOnThisComputer, providerHost, staysHere } from "@/domain/ai-model"
 import { REFUSED, tooOldFor } from "@/domain/memory-add"
 import type { Gap } from "@/domain/needs"
 import { useMessages } from "@/i18n"
@@ -83,6 +83,7 @@ export function AiModelSetting() {
           {m.heading}
         </SectionTitle>
         <p className="mt-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.intro}</p>
+        <p className="mt-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.shared}</p>
       </div>
       {/* Without memo there is nothing to set, and asking would start a failing run on every visit. */}
       {memo ? <AiModelBody /> : gap && <ToolNeeded gap={gap} inline />}
@@ -207,8 +208,8 @@ function AiModelForm({ saved }: { saved: AiModel }) {
             ? m.listNeedsKey(docs.company)
             : m.listOtherAddress
   const savedHost = saved.provider === null ? "" : hostOfOrigin(saved.origin)
-  // memo refuses a picture when the key is missing, whatever the consent says.
-  const reads = saved.images && (saved.provider === "ollama" || saved.key.stored)
+  // memo refuses a picture when the key is missing, whatever the consent says, unless the model is on this computer.
+  const reads = saved.images && (modelOnThisComputer(saved) || saved.key.stored)
   const keyHere = saved.key.stored && saved.provider === provider
   const keyLine = keyHere
     ? [
@@ -219,7 +220,9 @@ function AiModelForm({ saved }: { saved: AiModel }) {
             ? m.keyFromEnvironment
             : m.keyHelp,
       ].join(" ")
-    : `${m.keyNone} ${m.keyHelp}`
+    : provider !== null && staysHere(provider, provider === "openai" ? draft.baseUrl : null)
+      ? m.keyNotNeeded
+      : `${m.keyNone} ${m.keyHelp}`
 
   return (
     <form

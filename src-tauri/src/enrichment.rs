@@ -17,7 +17,9 @@ const REVOKE: Duration = Duration::from_mins(2);
 #[serde(rename_all = "camelCase")]
 pub struct EnrichmentSource {
     pub show: Vec<String>,
-    /// `set {provider} --model {model}` without `--yes`: what would be sent and what it costs; changes nothing.
+    /// The first memo that takes `set … --base-url`; `None` until one is released, which counts as too old.
+    pub base_url: Gate,
+    /// `set {provider} --model {model} {baseUrl}` without `--yes`: what would be sent and what it costs; changes nothing.
     pub preview: Vec<String>,
     pub on: Vec<String>,
     pub off: Vec<String>,
@@ -26,6 +28,29 @@ pub struct EnrichmentSource {
     /// `models keys set {provider}`: the key goes on stdin, never as an argument.
     pub key_set: Vec<String>,
     pub key_remove: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Gate {
+    pub min_version: Option<String>,
+}
+
+impl Gate {
+    pub fn open(&self, version: Option<&str>) -> bool {
+        self.min_version.as_deref().is_some_and(|need| !tools::older(version, need))
+    }
+}
+
+/// memo's reasons the window words itself: an address that is plain http to another computer, and local only.
+const WORDED: [&str; 2] = ["model.address-refused", "local-only.refused"];
+
+/// memo's refusal: one of `WORDED` as its id, anything else in memo's own words, masked.
+pub(crate) fn refusal_of(out: &run::Output, json: Option<&Value>) -> String {
+    match json.and_then(|v| v["error"]["reason"].as_str()) {
+        Some(reason) if WORDED.contains(&reason) => reason.to_string(),
+        _ => failure(out, json),
+    }
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
@@ -56,6 +81,8 @@ pub struct EnrichmentTarget {
     pub provider: String,
     pub model: String,
     pub endpoint_host: String,
+    /// The address when the owner gave one (a server on this computer, `OpenRouter`…), so the form can show it again.
+    pub base_url: Option<String>,
     pub key: EnrichmentKey,
     pub price_known: bool,
 }
@@ -97,6 +124,8 @@ pub struct EnrichmentStatus {
     pub measured: Option<EnrichmentMeasured>,
     /// Whether this memo stores a provider key itself (`models keys`); without it the window names the variable.
     pub keys: bool,
+    /// Whether this memo takes a model address (`set … --base-url`); without it only memo's offers are shown.
+    pub addresses: bool,
     /// Only after revoke: how many records' model text memo deleted.
     pub deleted: Option<u64>,
 }
@@ -161,12 +190,16 @@ fn text(v: &Value) -> Option<String> {
     v.as_str().map(str::to_string)
 }
 
+// cli-core's `DEFAULT_BASE_URLS`: an endpoint other than these is an address the owner gave.
+const DEFAULT_ENDPOINTS: [&str; 2] = ["https://api.openai.com/v1", "https://api.anthropic.com"];
+
 fn target_of(t: &Value) -> Option<EnrichmentTarget> {
     let key = &t["key"];
     Some(EnrichmentTarget {
         provider: text(&t["provider"])?,
         model: text(&t["model"])?,
         endpoint_host: text(&t["endpoint_host"])?,
+        base_url: text(&t["endpoint"]).filter(|e| !DEFAULT_ENDPOINTS.contains(&e.as_str())),
         key: EnrichmentKey {
             present: key["present"].as_bool().unwrap_or(false),
             source: text(&key["source"]),
@@ -216,6 +249,7 @@ fn status_of(v: &Value) -> Option<EnrichmentStatus> {
         offered: item["offered"].as_array().into_iter().flatten().filter_map(offer_of).collect(),
         measured: measured_of(&item["measured"]),
         keys: false,
+        addresses: false,
         deleted: item["deleted"].as_u64(),
     })
 }
@@ -228,7 +262,7 @@ fn ask(tool: &Tool, args: &[String], timeout: Duration) -> Result<Result<Enrichm
         if unknown_command(&out, json.as_ref()) {
             return Ok(Err(()));
         }
-        return Err(failure(&out, json.as_ref()));
+        return Err(refusal_of(&out, json.as_ref()));
     }
     json.as_ref().and_then(status_of).map(Ok).ok_or_else(|| "memo gave an answer the app cannot read".to_string())
 }
@@ -241,15 +275,55 @@ fn too_old(tool: &Tool) -> String {
     format!("{} is too old to rewrite records for search", too_old_name(tool))
 }
 
-fn with_choice(words: &[String], provider: &str, model: &str) -> Vec<String> {
-    words
-        .iter()
-        .map(|w| match w.as_str() {
-            "{provider}" => provider.to_string(),
-            "{model}" => model.to_string(),
-            _ => w.clone(),
-        })
-        .collect()
+/// What the owner picks: one of memo's offers, or a model at an address he gives.
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct EnrichmentChoice {
+    pub provider: String,
+    pub model: String,
+    pub base_url: Option<String>,
+}
+
+impl EnrichmentChoice {
+    fn address(&self) -> Option<&str> {
+        self.base_url.as_deref().map(str::trim).filter(|u| !u.is_empty())
+    }
+}
+
+fn with_choice(words: &[String], provider: &str, model: &str, base_url: Option<&str>) -> Vec<String> {
+    let mut out = Vec::with_capacity(words.len() + 2);
+    for w in words {
+        match w.as_str() {
+            "{provider}" => out.push(provider.to_string()),
+            "{model}" => out.push(model.to_string()),
+            "{baseUrl}" => out.extend(base_url.into_iter().flat_map(|u| ["--base-url".to_string(), u.to_string()])),
+            _ => out.push(w.clone()),
+        }
+    }
+    out
+}
+
+/// The words for this choice. memo's own offer goes as it is; a model at an address is checked here, as search harder
+/// checks one, since memo lists no models for it and nothing the interface sends may become an option.
+fn choice_words(
+    tool: &Tool,
+    src: &EnrichmentSource,
+    words: &[String],
+    c: &EnrichmentChoice,
+) -> Result<Vec<String>, String> {
+    let Some(address) = c.address() else {
+        offered(tool, &c.provider, &c.model)?;
+        return Ok(with_choice(words, &c.provider, &c.model, None));
+    };
+    if !src.base_url.open(installed_version(tool).as_deref()) {
+        return Err("This memo cannot use a model address yet. It comes with a memo update.".into());
+    }
+    if c.provider != "openai" {
+        return Err("A model address is for an OpenAI-compatible API.".into());
+    }
+    let model = crate::search_harder::checked_model(&c.model)?;
+    let address = crate::search_harder::checked_base_url(address)?;
+    Ok(with_choice(words, &c.provider, model, Some(&address)))
 }
 
 /// The pair goes to memo only when memo's own `show` offers it, so nothing the interface sends becomes an option.
@@ -264,6 +338,7 @@ fn offered(tool: &Tool, provider: &str, model: &str) -> Result<(), String> {
 
 fn with_keys(tool: &Tool, src: &EnrichmentSource, mut status: EnrichmentStatus) -> EnrichmentStatus {
     status.keys = call(tool, &src.keys_probe, CALL).is_ok_and(|(out, _)| knows_keys(&out));
+    status.addresses = src.base_url.open(installed_version(tool).as_deref());
     status
 }
 
@@ -279,19 +354,19 @@ pub fn status(tool: &Tool) -> Result<Enrichment, String> {
     })
 }
 
-/// What turning it on with this provider and model would send and cost. Changes nothing.
-pub fn preview(tool: &Tool, provider: &str, model: &str) -> Result<EnrichmentStatus, String> {
-    offered(tool, provider, model)?;
+/// What turning it on with this choice would send and cost. Changes nothing.
+pub fn preview(tool: &Tool, choice: &EnrichmentChoice) -> Result<EnrichmentStatus, String> {
     let src = source(tool)?;
-    let status = ask(tool, &with_choice(&src.preview, provider, model), CALL)?.map_err(|()| too_old(tool))?;
+    let args = choice_words(tool, src, &src.preview, choice)?;
+    let status = ask(tool, &args, CALL)?.map_err(|()| too_old(tool))?;
     Ok(with_keys(tool, src, status))
 }
 
 /// The owner agreed in the window; memo records when.
-pub fn turn_on(tool: &Tool, provider: &str, model: &str) -> Result<EnrichmentStatus, String> {
-    offered(tool, provider, model)?;
+pub fn turn_on(tool: &Tool, choice: &EnrichmentChoice) -> Result<EnrichmentStatus, String> {
     let src = source(tool)?;
-    let status = ask(tool, &with_choice(&src.on, provider, model), CALL)?.map_err(|()| too_old(tool))?;
+    let args = choice_words(tool, src, &src.on, choice)?;
+    let status = ask(tool, &args, CALL)?.map_err(|()| too_old(tool))?;
     Ok(with_keys(tool, src, status))
 }
 
@@ -328,7 +403,7 @@ pub fn set_key(tool: &Tool, provider: &str, key: &str) -> Result<EnrichmentStatu
     let key = checked_key(key)?;
     offered_provider(tool, src, provider)?;
     let bin = tools::program(&tool.bin).ok_or("the tool is not installed")?;
-    let args = with_choice(&src.key_set, provider, "");
+    let args = with_choice(&src.key_set, provider, "", None);
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(&bin, &refs, Some(&crate::paths::search_path()));
     let (mut stdout, mut stderr) = (String::new(), String::new());
@@ -361,7 +436,7 @@ pub fn set_key(tool: &Tool, provider: &str, key: &str) -> Result<EnrichmentStatu
 pub fn remove_key(tool: &Tool, provider: &str) -> Result<EnrichmentStatus, String> {
     let src = source(tool)?;
     offered_provider(tool, src, provider)?;
-    let (out, json) = call(tool, &with_choice(&src.key_remove, provider, ""), CALL)?;
+    let (out, json) = call(tool, &with_choice(&src.key_remove, provider, "", None), CALL)?;
     if out.code != Some(0) {
         return Err(failure(&out, json.as_ref()));
     }
@@ -416,16 +491,57 @@ mod tests {
         let src = memo_source();
         assert_eq!(src.show.join(" "), "models consents show --no-record --json");
         assert_eq!(
-            with_choice(&src.preview, "openai", "gpt-4o-mini").join(" "),
+            with_choice(&src.preview, "openai", "gpt-4o-mini", None).join(" "),
             "models consents set openai --model gpt-4o-mini --no-record --json"
         );
         assert_eq!(
-            with_choice(&src.on, "anthropic", "claude-haiku-5-5").join(" "),
+            with_choice(&src.on, "anthropic", "claude-haiku-5-5", None).join(" "),
             "models consents set anthropic --model claude-haiku-5-5 --yes --record --json"
         );
         assert_eq!(src.off.join(" "), "models consents revoke --record --json");
         assert!(!src.preview.contains(&"--yes".to_string()));
         assert!(source(catalog::tool("tg").unwrap()).is_err());
+    }
+
+    #[test]
+    fn a_model_at_an_address_goes_as_one_checked_flag_and_only_from_a_released_memo() {
+        let src = memo_source();
+        assert_eq!(
+            with_choice(&src.on, "openai", "llama3.1:8b", Some("http://localhost:11434/v1")).join(" "),
+            "models consents set openai --model llama3.1:8b --base-url http://localhost:11434/v1 --yes --record --json"
+        );
+        // memo's first release with `--base-url` is not on npm yet.
+        assert_eq!(src.base_url.min_version, None);
+        assert!(!src.base_url.open(Some("9.0.0")));
+        let gate = Gate { min_version: Some("0.132.0".into()) };
+        assert!(!gate.open(Some("0.131.84")));
+        assert!(gate.open(Some("0.132.0")));
+        let choice = |base_url: &str| EnrichmentChoice {
+            provider: "openai".into(),
+            model: "m".into(),
+            base_url: Some(base_url.into()),
+        };
+        assert_eq!(choice("  ").address(), None);
+        assert_eq!(choice(" http://localhost:1234/v1 ").address(), Some("http://localhost:1234/v1"));
+    }
+
+    #[test]
+    fn words_memos_address_and_local_only_refusals_and_passes_the_rest_on() {
+        let refused = |reason: &str| {
+            json!({"error": {"code": "validation_error", "reason": reason,
+                "message": "this address is not allowed: use https, or http only on this computer"}})
+        };
+        let out = output(2, "", "");
+        assert_eq!(refusal_of(&out, Some(&refused("model.address-refused"))), "model.address-refused");
+        assert_eq!(refusal_of(&out, Some(&refused("local-only.refused"))), "local-only.refused");
+        assert!(refusal_of(&out, Some(&refused("input.invalid"))).starts_with("this address is not allowed"));
+    }
+
+    #[test]
+    fn reads_the_address_the_owner_gave_and_not_a_providers_own() {
+        assert_eq!(status_of(&parse(SHOW_OFF)).unwrap().target.unwrap().base_url, None);
+        let on = status_of(&parse(SHOW_ON)).unwrap().target.unwrap();
+        assert_eq!(on.base_url.as_deref(), Some("http://127.0.0.1:18765/v1"));
     }
 
     #[test]
@@ -488,10 +604,10 @@ mod tests {
         assert!(!knows_keys(&old));
         assert!(!knows_keys(&output(1, "Usage: memo models keys set", "")));
         let src = memo_source();
-        assert_eq!(with_choice(&src.key_set, "openai", "").join(" "), "models keys set openai --record --json");
+        assert_eq!(with_choice(&src.key_set, "openai", "", None).join(" "), "models keys set openai --record --json");
         assert!(!src.key_set.iter().any(|w| w.contains("key=") || w == "{key}"));
         assert_eq!(
-            with_choice(&src.key_remove, "anthropic", "").join(" "),
+            with_choice(&src.key_remove, "anthropic", "", None).join(" "),
             "models keys remove anthropic --record --json"
         );
     }
@@ -551,13 +667,18 @@ mod e2e {
         assert!(!target.key.present);
         assert!(status.offered.iter().any(|o| o.provider == "anthropic"));
 
-        let other = preview(memo, "anthropic", "claude-haiku-5-5").unwrap();
+        let pick = |provider: &str, model: &str| EnrichmentChoice {
+            provider: provider.into(),
+            model: model.into(),
+            base_url: None,
+        };
+        let other = preview(memo, &pick("anthropic", "claude-haiku-5-5")).unwrap();
         assert!(!other.on);
         assert_eq!(other.target.unwrap().endpoint_host, "api.anthropic.com");
         assert!(other.estimate.usd.is_some());
-        assert!(preview(memo, "openai", "--yes").unwrap_err().contains("does not offer"));
+        assert!(preview(memo, &pick("openai", "--yes")).unwrap_err().contains("does not offer"));
 
-        let on = turn_on(memo, "openai", "gpt-4o-mini").unwrap();
+        let on = turn_on(memo, &pick("openai", "gpt-4o-mini")).unwrap();
         assert!(on.on && on.consented_at.is_some());
         let off = turn_off(memo).unwrap();
         assert_eq!((off.on, off.deleted), (false, Some(0)));

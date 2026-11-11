@@ -156,6 +156,9 @@ export type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress }
 /** The provider, model and address the owner picks for search harder; a null model is memo's default. */
 export type HarderChoice = { provider: string; model: string | null; baseUrl: string | null }
 
+/** One of memo's enrichment offers, or a model at an address the owner gives (`baseUrl`, OpenAI-compatible only). */
+export type EnrichmentChoice = { provider: string; model: string; baseUrl: string | null }
+
 export type Platform = {
   kind: "tauri" | "mock"
   os: "linux" | "macos" | "windows"
@@ -585,10 +588,13 @@ export type Platform = {
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */
   enrichmentStatus(id: string): Promise<Enrichment>
-  /** What turning it on with one of memo's offers sends and costs (`consents set` without `--yes`); changes nothing. */
-  enrichmentPreview(id: string, provider: string, model: string): Promise<EnrichmentStatus>
-  /** Turns it on with that offer; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
-  enrichmentOn(id: string, provider: string, model: string): Promise<EnrichmentStatus>
+  /**
+   * What turning it on with one of memo's offers, or a model at an address, sends and costs (`consents set` without
+   * `--yes`); changes nothing. memo's refusal of the address comes back as `model.address-refused` or `local-only.refused`.
+   */
+  enrichmentPreview(id: string, choice: EnrichmentChoice): Promise<EnrichmentStatus>
+  /** Turns it on with that choice; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
+  enrichmentOn(id: string, choice: EnrichmentChoice): Promise<EnrichmentStatus>
   /**
    * memo's `models keys set`: Rust hands the key to memo on stdin, and memo keeps it in the system keyring (a private file
    * when none answers). The app never stores it; the answer says only whether a key is found and where.

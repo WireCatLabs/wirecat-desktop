@@ -11,6 +11,7 @@ const target = (provider: string, model: string, host: string, present = false):
   provider,
   model,
   endpointHost: host,
+  baseUrl: null,
   key: present
     ? { present: true, source: "keyring", envVar: "OPENAI_API_KEY" }
     : { present: false, source: null, envVar: provider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY" },
@@ -38,6 +39,7 @@ const off: EnrichmentStatus = {
   ],
   measured: { rewordedOff: 0.62, rewordedOn: 0.79, ownWordsFirstOff: 0.54, ownWordsFirstOn: 0.48 },
   keys: true,
+  addresses: false,
   deleted: null,
 }
 const on: EnrichmentStatus = {
@@ -77,7 +79,7 @@ it("turns on only after the consent step shows what is sent, to whom, how many, 
   fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
 
   const consent = await screen.findByRole("region", { name: "What turning it on sends" })
-  expect(preview).toHaveBeenCalledWith("memo", "openai", "gpt-4o-mini")
+  expect(preview).toHaveBeenCalledWith("memo", { provider: "openai", model: "gpt-4o-mini", baseUrl: null })
   expect(await within(consent).findByText(/from every account: 10,444 records now/)).toBeInTheDocument()
   expect(within(consent).getByText("It goes to OpenAI (api.openai.com), model gpt-4o-mini.")).toBeInTheDocument()
   expect(
@@ -91,7 +93,7 @@ it("turns on only after the consent step shows what is sent, to whom, how many, 
   fireEvent.click(within(consent).getByRole("button", { name: "Send 10,444 records to OpenAI and turn on" }))
 
   expect(await screen.findByText(/Search rewriting is on/)).toBeInTheDocument()
-  expect(turnOn).toHaveBeenCalledWith("memo", "openai", "gpt-4o-mini")
+  expect(turnOn).toHaveBeenCalledWith("memo", { provider: "openai", model: "gpt-4o-mini", baseUrl: null })
 })
 
 it("asks memo again for the other offer, and turns on with that one", async () => {
@@ -99,7 +101,7 @@ it("asks memo again for the other offer, and turns on with that one", async () =
   const anthropic = { ...off, target: target("anthropic", "claude-haiku-5-5", "api.anthropic.com", true) }
   const preview = vi
     .spyOn(platform, "enrichmentPreview")
-    .mockImplementation(async (_id, provider) => (provider === "anthropic" ? anthropic : off))
+    .mockImplementation(async (_id, choice) => (choice.provider === "anthropic" ? anthropic : off))
   const turnOn = vi.spyOn(platform, "enrichmentOn").mockResolvedValue(on)
   render(<Enrichment tool={memo} />)
 
@@ -109,11 +111,11 @@ it("asks memo again for the other offer, and turns on with that one", async () =
   expect(
     await screen.findByText("It goes to Anthropic (api.anthropic.com), model claude-haiku-5-5."),
   ).toBeInTheDocument()
-  expect(preview).toHaveBeenLastCalledWith("memo", "anthropic", "claude-haiku-5-5")
+  expect(preview).toHaveBeenLastCalledWith("memo", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
   expect(screen.getByText("Memo found your API key (in the system keyring).")).toBeInTheDocument()
   fireEvent.click(screen.getByRole("button", { name: "Send 10,444 records to Anthropic and turn on" }))
   await screen.findByText(/Search rewriting is on/)
-  expect(turnOn).toHaveBeenCalledWith("memo", "anthropic", "claude-haiku-5-5")
+  expect(turnOn).toHaveBeenCalledWith("memo", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
 })
 
 it("cancelling the consent step sends nothing", async () => {
@@ -382,4 +384,68 @@ it("words a sync's reason by its id in the window's language", async () => {
     await screen.findByText("Last sync could not rewrite: the provider refused the API key; save a new one"),
   ).toBeInTheDocument()
   expect(screen.queryByText(/HTTP 401/)).toBeNull()
+})
+
+it("turns on with a model at an address on this computer, and asks it for no key", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: { ...off, addresses: true } })
+  const local = {
+    ...off,
+    estimate: { ...off.estimate, usd: null },
+    target: { ...target("openai", "llama3.1:8b", "localhost:11434"), baseUrl: "http://localhost:11434/v1" },
+  }
+  const preview = vi.spyOn(platform, "enrichmentPreview").mockResolvedValue(local)
+  const turnOn = vi
+    .spyOn(platform, "enrichmentOn")
+    .mockResolvedValue({ ...local, on: true, consentedAt: on.consentedAt })
+  render(<Enrichment tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
+  await screen.findByText(/10,444 records now/)
+  fireEvent.click(screen.getByRole("radio", { name: /Another model at an address/ }))
+  expect(screen.getByText(/Type the model's name and the address/)).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText("Model"), { target: { value: "llama3.1:8b" } })
+  fireEvent.change(screen.getByLabelText("Address (base URL)"), { target: { value: "http://localhost:11434/v1" } })
+
+  const choice = { provider: "openai", model: "llama3.1:8b", baseUrl: "http://localhost:11434/v1" }
+  expect(
+    await screen.findByText("It stays on this computer: model llama3.1:8b at localhost:11434."),
+  ).toBeInTheDocument()
+  expect(preview).toHaveBeenLastCalledWith("memo", choice)
+  expect(screen.getByText("The model is on this computer, so it needs no API key.")).toBeInTheDocument()
+  expect(screen.queryByText(/No API key found/)).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Send 10,444 records to localhost:11434 and turn on" }))
+  expect(await screen.findByText(/On since .*: model llama3\.1:8b at localhost:11434\./)).toBeInTheDocument()
+  expect(turnOn).toHaveBeenCalledWith("memo", choice)
+})
+
+it("says in plain words why memo refuses plain http to another computer, and what to do", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: { ...off, addresses: true } })
+  vi.spyOn(platform, "enrichmentPreview").mockImplementation(async (_id, c) => {
+    if (c.baseUrl) throw new Error("model.address-refused")
+    return off
+  })
+  const turnOn = vi.spyOn(platform, "enrichmentOn")
+  render(<Enrichment tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
+  fireEvent.click(await screen.findByRole("radio", { name: /Another model at an address/ }))
+  fireEvent.change(screen.getByLabelText("Model"), { target: { value: "llama3.1:8b" } })
+  fireEvent.change(screen.getByLabelText("Address (base URL)"), { target: { value: "http://192.168.1.20:11434/v1" } })
+
+  expect(
+    await screen.findByText(/Memo refused this address\. It is plain http to another computer/),
+  ).toBeInTheDocument()
+  expect(screen.getByText(/Use an https address, or a server on this computer/)).toBeInTheDocument()
+  expect(screen.queryByText("model.address-refused")).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Turn on" }))
+  expect(turnOn).not.toHaveBeenCalled()
+})
+
+it("offers no address on a memo that cannot take one", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
+  vi.spyOn(platform, "enrichmentPreview").mockResolvedValue(off)
+  render(<Enrichment tool={memo} />)
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
+  await screen.findByText(/10,444 records now/)
+  expect(screen.queryByRole("radio", { name: /Another model at an address/ })).toBeNull()
 })

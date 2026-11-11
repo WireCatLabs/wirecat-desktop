@@ -14,10 +14,19 @@ const en = {
   offer: (provider: string, model: string) => `${provider} ${model}`,
   offerPrice: (input: string, output: string) => `${input} in, ${output} out per million tokens`,
   memoDefault: "memo's default",
+  ownOffer: "Another model at an address",
+  ownOfferNote: "A server on this computer (Ollama, LM Studio) or an OpenAI-compatible service",
+  ownModelHelp: "Name the model as the server names it, for example llama3.1:8b.",
+  addressLabel: "Address (base URL)",
+  addressHelp:
+    "For example http://localhost:11434/v1 for Ollama on this computer, or https://openrouter.ai/api/v1. A server on another computer needs https.",
+  ownNeeds: "Type the model's name and the address. Memo then says what would be sent.",
   counting: "Counting the records and the cost…",
   sends: (records: string) =>
     `The text of every note, document and email in Memo's storage, from every account: ${records} now, and each record added or changed later, at every sync.`,
   to: (provider: string, host: string, model: string) => `It goes to ${provider} (${host}), model ${model}.`,
+  toHere: (host: string, model: string) => `It stays on this computer: model ${model} at ${host}.`,
+  toAddress: (host: string, model: string) => `It goes to ${host}, model ${model}.`,
   cost: (usd: string, input: string, output: string) =>
     `Rewriting what is here now costs about ${usd} (${input} input and ${output} output tokens).`,
   costUnknown: (input: string, output: string) =>
@@ -34,6 +43,7 @@ const en = {
     `Search rewriting is on. The next syncs send the records to ${provider}, and search then finds them by the model's words too.`,
   onSince: (when: string, provider: string, model: string, host: string) =>
     `On since ${when}: ${provider} ${model} (${host}).`,
+  onSinceAt: (when: string, model: string, host: string) => `On since ${when}: model ${model} at ${host}.`,
   progress: (enriched: string, records: string) => `${enriched} of ${records} rewritten.`,
   waiting: (records: string, syncs: number, usd: string | null) =>
     `${records} wait: they are rewritten ${syncs === 1 ? "at the next sync" : plural("en", syncs, { other: "over the next # syncs" })}${usd ? `, for about ${usd}` : ""}.`,
@@ -63,6 +73,8 @@ const en = {
     "enrichment.bad-replies": "the model's replies could not be read; those records wait for the next sync",
     "enrichment.cancelled": "the sync was stopped",
     "enrichment.error": "something went wrong; the records wait for the next sync",
+    "enrichment.local-only": "“Only this computer” is on and the model is elsewhere, so nothing was sent",
+    "enrichment.address-refused": "the model's address needs https or a server on this computer, so nothing was sent",
   } as Record<string, string>,
   readFailed: "Could not read the setting.",
   previewFailed: "Could not count what would be sent.",
@@ -84,10 +96,19 @@ const ru: typeof en = {
   offer: (provider, model) => `${provider} ${model}`,
   offerPrice: (input, output) => `${input} за вход, ${output} за выход на миллион токенов`,
   memoDefault: "по умолчанию в memo",
+  ownOffer: "Другая модель по адресу",
+  ownOfferNote: "Сервер на этом компьютере (Ollama, LM Studio) или сервис, совместимый с OpenAI",
+  ownModelHelp: "Название модели, как его пишет сервер, например llama3.1:8b.",
+  addressLabel: "Адрес (base URL)",
+  addressHelp:
+    "Например, http://localhost:11434/v1 для Ollama на этом компьютере или https://openrouter.ai/api/v1. Серверу на другом компьютере нужен https.",
+  ownNeeds: "Введите название модели и адрес. Тогда Memo скажет, что отправится.",
   counting: "Считаю записи и стоимость…",
   sends: (records) =>
     `Текст каждой заметки, документа и письма в хранилище Memo, из всех аккаунтов: сейчас ${records}, а потом каждая новая или изменённая запись, при каждой синхронизации.`,
   to: (provider, host, model) => `Он уходит в ${provider} (${host}), модель ${model}.`,
+  toHere: (host, model) => `Он остается на этом компьютере: модель ${model} по адресу ${host}.`,
+  toAddress: (host, model) => `Он уходит на ${host}, модель ${model}.`,
   cost: (usd, input, output) =>
     `Переписать то, что есть сейчас, стоит около ${usd} (${input} входных и ${output} выходных токенов).`,
   costUnknown: (input, output) => `Memo не знает цену этой модели: ${input} входных и ${output} выходных токенов.`,
@@ -104,6 +125,7 @@ const ru: typeof en = {
   turnedOn: (provider) =>
     `Переписывание включено. Следующие синхронизации отправят записи в ${provider}, и поиск будет находить их и по словам модели.`,
   onSince: (when, provider, model, host) => `Включено с ${when}: ${provider} ${model} (${host}).`,
+  onSinceAt: (when, model, host) => `Включено с ${when}: модель ${model} по адресу ${host}.`,
   progress: (enriched, records) => `Переписано ${enriched} из ${records}.`,
   waiting: (records, syncs, usd) =>
     `Ждут: ${records}. Они перепишутся ${syncs === 1 ? "при следующей синхронизации" : `за ${plural("ru", syncs, { one: "# синхронизацию", few: "# синхронизации", many: "# синхронизаций", other: "# синхронизации" })}`}${usd ? `, примерно за ${usd}` : ""}.`,
@@ -139,6 +161,10 @@ const ru: typeof en = {
     "enrichment.bad-replies": "ответы модели не удалось прочитать; эти записи ждут следующей синхронизации",
     "enrichment.cancelled": "синхронизацию остановили",
     "enrichment.error": "что-то пошло не так; записи ждут следующей синхронизации",
+    "enrichment.local-only":
+      "включено «Только этот компьютер», а модель на другом компьютере, поэтому ничего не отправлено",
+    "enrichment.address-refused":
+      "адресу модели нужен https или сервер на этом компьютере, поэтому ничего не отправлено",
   },
   readFailed: "Не удалось прочитать настройку.",
   previewFailed: "Не удалось посчитать, что отправится.",
@@ -160,10 +186,19 @@ const es: typeof en = {
   offer: (provider, model) => `${provider} ${model}`,
   offerPrice: (input, output) => `${input} de entrada, ${output} de salida por millón de tokens`,
   memoDefault: "predeterminado de memo",
+  ownOffer: "Otro modelo en una dirección",
+  ownOfferNote: "Un servidor en este ordenador (Ollama, LM Studio) o un servicio compatible con OpenAI",
+  ownModelHelp: "Escribe el modelo como lo nombra el servidor, por ejemplo llama3.1:8b.",
+  addressLabel: "Dirección (base URL)",
+  addressHelp:
+    "Por ejemplo http://localhost:11434/v1 para Ollama en este ordenador, o https://openrouter.ai/api/v1. Un servidor en otro ordenador necesita https.",
+  ownNeeds: "Escribe el nombre del modelo y la dirección. Memo dirá entonces qué se enviaría.",
   counting: "Contando los registros y el coste…",
   sends: (records) =>
     `El texto de cada nota, documento y correo del almacenamiento de Memo, de todas las cuentas: ${records} ahora, y cada registro nuevo o cambiado después, en cada sincronización.`,
   to: (provider, host, model) => `Va a ${provider} (${host}), modelo ${model}.`,
+  toHere: (host, model) => `Se queda en este ordenador: modelo ${model} en ${host}.`,
+  toAddress: (host, model) => `Va a ${host}, modelo ${model}.`,
   cost: (usd, input, output) =>
     `Reescribir lo que hay ahora cuesta unos ${usd} (${input} tokens de entrada y ${output} de salida).`,
   costUnknown: (input, output) =>
@@ -180,6 +215,7 @@ const es: typeof en = {
   turnedOn: (provider) =>
     `La reescritura está activada. Las próximas sincronizaciones envían los registros a ${provider}, y la búsqueda los encuentra también por las palabras del modelo.`,
   onSince: (when, provider, model, host) => `Activado desde ${when}: ${provider} ${model} (${host}).`,
+  onSinceAt: (when, model, host) => `Activado desde ${when}: modelo ${model} en ${host}.`,
   progress: (enriched, records) => `${enriched} de ${records} reescritos.`,
   waiting: (records, syncs, usd) =>
     `${records} en espera: se reescriben ${syncs === 1 ? "en la próxima sincronización" : `en ${plural("es", syncs, { other: "# sincronizaciones" })}`}${usd ? `, por unos ${usd}` : ""}.`,
@@ -211,6 +247,9 @@ const es: typeof en = {
       "no se pudieron leer las respuestas del modelo; esos registros esperan a la próxima sincronización",
     "enrichment.cancelled": "se detuvo la sincronización",
     "enrichment.error": "algo salió mal; los registros esperan a la próxima sincronización",
+    "enrichment.local-only": "«Solo este ordenador» está activado y el modelo está en otro, así que no se envió nada",
+    "enrichment.address-refused":
+      "la dirección del modelo necesita https o un servidor en este ordenador, así que no se envió nada",
   },
   readFailed: "No se pudo leer el ajuste.",
   previewFailed: "No se pudo contar lo que se enviaría.",

@@ -2,7 +2,10 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { Enrichment, SearchHarder } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { Background, BackgroundAction } from "@/platform/sync-schemas"
-import type { HarderChoice } from "@/platform/types"
+import type { EnrichmentChoice, HarderChoice } from "@/platform/types"
+
+export type { EnrichmentChoice }
+
 import { profilesQuery } from "@/shared/query"
 
 export const toolKeys = {
@@ -89,19 +92,16 @@ export function useEnrichment(id: string) {
   return useQuery({ queryKey: toolKeys.enrichment(id), queryFn: () => platform.enrichmentStatus(id) })
 }
 
-export type EnrichmentChoice = { provider: string; model: string }
-
 /** What turning it on sends and costs. A mutation, not a query: it runs only when the owner opens the consent step. */
 export function useEnrichmentPreview(id: string) {
-  return useMutation({ mutationFn: (c: EnrichmentChoice) => platform.enrichmentPreview(id, c.provider, c.model) })
+  return useMutation({ mutationFn: (c: EnrichmentChoice) => platform.enrichmentPreview(id, c) })
 }
 
 /** `null` turns it off; a choice turns it on with that offer. */
 export function useSetEnrichment(id: string) {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (c: EnrichmentChoice | null) =>
-      c ? platform.enrichmentOn(id, c.provider, c.model) : platform.enrichmentOff(id),
+    mutationFn: (c: EnrichmentChoice | null) => (c ? platform.enrichmentOn(id, c) : platform.enrichmentOff(id)),
     onSuccess: (status) =>
       client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
   })

@@ -24,6 +24,8 @@ type Props = {
   /** What a missing key means for the caller's setting. */
   missing: string
   onChanged?: (() => void) | undefined
+  /** The model's address is on this computer: memo asks no key of it, so a missing one is no warning. */
+  local?: boolean
 }
 
 function KeyLine({ found, missing }: Pick<Props, "found" | "missing">) {
@@ -43,7 +45,13 @@ function KeyLine({ found, missing }: Pick<Props, "found" | "missing">) {
  * keeps one. What is typed lives only in this field until Save hands it to Rust; the field and the request state are
  * cleared at once, so a failed save asks for it again. A memo without `models keys` gets the caller's words only.
  */
-export function ProviderKey({ toolId, provider, found, keys, missing, onChanged }: Props) {
+export function ProviderKey({ local = false, ...props }: Props) {
+  const m = useMessages(providerKeyMessages)
+  if (local && !props.found.present) return <p className="text-ink-soft">{m.keyNotNeeded}</p>
+  return <KeyForm {...props} />
+}
+
+function KeyForm({ toolId, provider, found, keys, missing, onChanged }: Omit<Props, "local">) {
   const m = useMessages(providerKeyMessages)
   const change = useEnrichmentKey(toolId)
   const [draft, setDraft] = useState("")

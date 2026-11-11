@@ -1,10 +1,11 @@
+import { modelOnThisComputer } from "@/domain/ai-model"
 import type { AiModel } from "./ai-model-schemas"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // Settings "AI model" stand-in for memo's `models ai` commands. `?ai=none` (default: nothing set), `?ai=anthropic`,
-// `?ai=openrouter`, `?ai=ollama` (set, pictures allowed), `?ai=noimages` (set, pictures not allowed), `?ai=old` (a memo
+// `?ai=openrouter`, `?ai=ollama` (set, pictures allowed), `?ai=lmstudio` (an OpenAI-compatible server on this computer, no key), `?ai=noimages` (set, pictures not allowed), `?ai=old` (a memo
 // before `models ai`), `?ai-check=<reason>` (what Check answers, `ai.ok` by default), `?ai-fail=set` (the save is refused
 // because the address is not allowed), `?ai-list=fail|empty` (the model list cannot be read, or has nothing). A picture
 // added with `?file=image` is read, or not, by this state.
@@ -44,6 +45,14 @@ const SEEDS: Record<string, Partial<AiModel>> = {
     images: true,
     key: { stored: true, source: "file" },
   },
+  lmstudio: {
+    provider: "openai",
+    model: "qwen2.5-vl-7b",
+    baseUrl: "http://localhost:1234/v1",
+    origin: "http://localhost:1234",
+    images: true,
+    key: { stored: false, source: null },
+  },
   ollama: {
     provider: "ollama",
     model: "llava",
@@ -69,7 +78,7 @@ export function imageOutcome(): { read: string; image: { readBy: string | null; 
     ? "ai.not-set"
     : !state.images
       ? "ai.images-not-allowed"
-      : !state.key.stored && state.provider !== "ollama"
+      : !state.key.stored && !modelOnThisComputer(state)
         ? "ai.key-missing"
         : null
   return reason

@@ -323,6 +323,29 @@ describe("AI model", () => {
     expect(await screen.findByText(/Now no model reads pictures/)).toBeInTheDocument()
   })
 
+  it("asks no key of a server on this computer and lets it read pictures without one", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue({
+      ...ANTHROPIC,
+      provider: "openai",
+      model: "qwen2.5-vl-7b",
+      baseUrl: "http://localhost:1234/v1",
+      origin: "http://localhost:1234",
+      key: { stored: false, source: null },
+    })
+    render(<AiModelSetting />)
+    expect(await screen.findByText("Now qwen2.5-vl-7b, a model on this computer, reads pictures.")).toBeInTheDocument()
+    expect(screen.getByText(/usually needs no key/)).toBeInTheDocument()
+    expect(screen.queryByText(/No key is saved yet/)).not.toBeInTheDocument()
+  })
+
+  it("says linking, replies and OCR use this model when they have none of their own", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(NONE)
+    render(<AiModelSetting />)
+    expect(
+      await screen.findByText(/reply drafts and reading text in attachments \(OCR\) use this model/),
+    ).toBeInTheDocument()
+  })
+
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react"
+import { isLocalHost } from "@/domain/ai-model"
 import type { CatalogTool } from "@/domain/catalog"
 import { formatUsd } from "@/domain/mail-agent"
 import { formatDate, useLang, useMessages } from "@/i18n"
@@ -11,9 +12,9 @@ import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { fieldClass } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { useSearchHarder, useSearchHarderPreview, useSetSearchHarder } from "./api"
+import { ModelAddressFields, useRefusalText } from "./ModelAddressFields"
 import { type SearchHarderText, searchHarderMessages } from "./messages-search-harder"
 import { ProviderKey, providerName } from "./ProviderKey"
 
@@ -47,6 +48,7 @@ export function SearchHarder({ tool }: { tool: CatalogTool }) {
   const headingId = useId()
   const state = useSearchHarder(tool.id)
   const change = useSetSearchHarder(tool.id)
+  const refusalText = useRefusalText()
   const [consenting, setConsenting] = useState(consentByScenario)
   const [done, setDone] = useState<"on" | "off" | null>(null)
 
@@ -135,7 +137,9 @@ export function SearchHarder({ tool }: { tool: CatalogTool }) {
       <Collapse open={change.isError}>
         <ErrorNotice inline>
           {change.isError &&
-            (change.variables ? m.failedOn(messageOf(change.error)) : m.failedOff(messageOf(change.error)))}
+            (change.variables
+              ? (refusalText(change.error) ?? m.failedOn(messageOf(change.error)))
+              : m.failedOff(messageOf(change.error)))}
         </ErrorNotice>
       </Collapse>
     </section>
@@ -160,11 +164,8 @@ function Consent(props: {
   const { m, toolId, start, proposed, busy, onAgree, onCancel } = props
   const titleId = useId()
   const groupName = useId()
-  const modelId = useId()
-  const modelHelpId = useId()
-  const addressId = useId()
-  const addressHelpId = useId()
   const preview = useSearchHarderPreview(toolId)
+  const refused = useRefusalText()(preview.error)
   const [draft, setDraft] = useState(start)
   // The last answer stays on screen, dimmed, while memo is asked about a new choice, so the list does not jump.
   const [last, setLast] = useState<{ key: string; status: HarderStatus } | null>(null)
@@ -216,50 +217,27 @@ function Consent(props: {
           ))}
         </div>
       </fieldset>
-      <div className="flex flex-col gap-1">
-        <label htmlFor={modelId} className="text-[0.9rem] font-medium text-ink">
-          {m.modelLabel}
-          {draft.model === null && shown && <span className="font-normal text-ink-dim"> · {m.memoDefault}</span>}
-        </label>
-        <input
-          id={modelId}
-          className={`${fieldClass} max-w-[24rem] font-mono`}
-          value={modelValue}
-          disabled={busy}
-          spellCheck={false}
-          autoComplete="off"
-          aria-describedby={modelHelpId}
-          onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-        />
-        <p id={modelHelpId} className="text-[0.8rem] text-ink-dim">
-          {m.modelHelp}
-        </p>
-      </div>
-      <Collapse open={draft.provider === "openai"}>
-        <div className="flex flex-col gap-1">
-          <label htmlFor={addressId} className="text-[0.9rem] font-medium text-ink">
-            {m.addressLabel}
-          </label>
-          <input
-            id={addressId}
-            type="url"
-            className={`${fieldClass} max-w-[28rem] font-mono`}
-            value={draft.baseUrl}
-            disabled={busy}
-            spellCheck={false}
-            autoComplete="off"
-            aria-describedby={addressHelpId}
-            onChange={(e) => setDraft({ ...draft, baseUrl: e.target.value })}
-          />
-          <p id={addressHelpId} className="text-[0.8rem] text-ink-dim">
-            {m.addressHelp}
-          </p>
-        </div>
-      </Collapse>
+      <ModelAddressFields
+        model={modelValue}
+        onModel={(model) => setDraft({ ...draft, model })}
+        modelLabel={
+          <>
+            {m.modelLabel}
+            {draft.model === null && shown && <span className="font-normal text-ink-dim"> · {m.memoDefault}</span>}
+          </>
+        }
+        modelHelp={m.modelHelp}
+        address={draft.baseUrl}
+        onAddress={(baseUrl) => setDraft({ ...draft, baseUrl })}
+        addressLabel={m.addressLabel}
+        addressHelp={m.addressHelp}
+        withAddress={draft.provider === "openai"}
+        disabled={busy}
+      />
       {!shown && !preview.isError && <Skeleton className="h-[6.5rem] w-full" label={m.checking} />}
       <Collapse open={preview.isError}>
         <ErrorNotice
-          raw={preview.isError ? messageOf(preview.error) : null}
+          raw={preview.isError && !refused ? messageOf(preview.error) : null}
           inline
           action={
             <Button
@@ -271,7 +249,7 @@ function Consent(props: {
             </Button>
           }
         >
-          {preview.isError && m.previewFailed}
+          {preview.isError && (refused ?? m.previewFailed)}
         </ErrorNotice>
       </Collapse>
       {shown && (
@@ -293,6 +271,7 @@ function Consent(props: {
               found={shown.key}
               keys
               missing={m.keyMissing(shown.key.envVar)}
+              local={isLocalHost(shown.endpointHost)}
               onChanged={() => ask(choice, { onSuccess: (status) => setLast({ key, status }) })}
             />
           </li>
@@ -340,6 +319,7 @@ function On(props: {
         found={status.key}
         keys
         missing={m.keyMissing(status.key.envVar)}
+        local={isLocalHost(status.endpointHost)}
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="secondary" disabled={busy} onClick={onChange}>

@@ -520,6 +520,8 @@ export type EnrichmentStatus = {
 	measured: EnrichmentMeasured | null,
 	/**  Whether this memo stores a provider key itself (`models keys`); without it the window names the variable. */
 	keys: boolean,
+	/**  Whether this memo takes a model address (`set … --base-url`); without it only memo's offers are shown. */
+	addresses: boolean,
 	/**  Only after revoke: how many records' model text memo deleted. */
 	deleted: number | null,
 };
@@ -529,6 +531,8 @@ export type EnrichmentTarget = {
 	provider: string,
 	model: string,
 	endpointHost: string,
+	/**  The address when the owner gave one (a server on this computer, `OpenRouter`…), so the form can show it again. */
+	baseUrl: string | null,
 	key: EnrichmentKey,
 	priceKnown: boolean,
 };
