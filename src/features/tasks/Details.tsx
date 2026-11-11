@@ -12,6 +12,7 @@ import { InfoTip } from "@/ui/InfoTip"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { Comments } from "./Comments"
 import { AgentCell, AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
+import { FoundSource } from "./FoundSource"
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { personName, StateLamp, TaskError, TaskLink, taskTitle } from "./parts"
@@ -35,8 +36,11 @@ function value(field: string, v: unknown, m: TaskWords, known: Known, lang: Lang
   return null
 }
 
+/** memo's rule that finds tasks in messages signs them "rule"; the owner knows it as Memo. */
+const named = (name: string | null | undefined) => (name === "rule" ? "Memo" : name)
+
 export function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang): string[] {
-  const who = e.by?.owner ? m.you : (e.by?.name ?? m.someone)
+  const who = e.by?.owner ? m.you : (named(e.by?.name) ?? m.someone)
   if (e.kind === "created" || e.changes.length === 0)
     return [e.kind === "created" ? m.created(who) : `${who}: ${e.kind}`]
   return e.changes.map((c) => {
@@ -67,7 +71,7 @@ const writesDone = (key: string) =>
 const isAgent = (by: TaskEvent["by"]) => Boolean(by && !by.owner && !by.ref?.startsWith("person:"))
 
 /** "You", a person's name, or the agent's. */
-export const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (c.name ?? m.someone))
+export const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (named(c.name) ?? m.someone))
 
 function Who({ by }: { by: TaskEvent["by"] }) {
   const m = useMessages(taskMessages)
@@ -203,7 +207,7 @@ export function Details({
     history?.state === "ready"
       ? ([...history.events].reverse().find((e) => e.changes.some((c) => c.field === "description")) ?? made)
       : undefined
-  const writer = wrote?.by ? (wrote.by.owner ? m.you : (wrote.by.name ?? m.someone)) : null
+  const writer = wrote?.by ? (wrote.by.owner ? m.you : (named(wrote.by.name) ?? m.someone)) : null
   const holdsUp = all.filter((t) => !closed(t.state) && t.blockedBy.some((b) => b.key === task.key))
 
   return (
@@ -322,6 +326,7 @@ export function Details({
           <StaleLine taskKey={task.key} />
           {stale && changed && <p className="text-[0.875rem] text-ink-soft">{m.draftKept}</p>}
         </form>
+        {fromMessages(task) && <FoundSource task={task} dirty={changed || commenting} />}
         <Comments taskKey={task.key} onDirty={setCommenting} />
         <section aria-labelledby={`${id}-waits`} className="flex flex-col gap-[0.4rem]">
           <h3 id={`${id}-waits`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">

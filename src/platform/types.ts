@@ -457,7 +457,8 @@ export type Platform = {
   taskChats(): Promise<ChatTasks>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
   taskCounts(query: string): Promise<TaskCounts>
-  taskShow(key: string): Promise<Task>
+  /** `account` reads a task memo found in messages, which memo shows only with its account. */
+  taskShow(key: string, account?: string | null): Promise<Task>
   /** Who changed the task, what and when, oldest first. */
   taskHistory(key: string): Promise<TaskEvent[]>
   taskCreate(task: NewTask): Promise<TaskWrite>

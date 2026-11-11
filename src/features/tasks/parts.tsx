@@ -167,7 +167,7 @@ export function SourceMark({ task }: { task: Task }) {
   return (
     <span title={m.fromMessages} className="inline-flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] text-ink-soft">
       <Icon className="size-[0.85rem] shrink-0" aria-hidden />
-      <span className="truncate">{mail ? m.mail : providerName(provider, archive)}</span>
+      <span className="truncate">{m.foundIn(mail ? m.mail : providerName(provider, archive))}</span>
     </span>
   )
 }

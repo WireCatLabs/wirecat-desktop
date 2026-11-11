@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { useNav } from "@/shared/nav"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { personName } from "./parts"
 import { useSource } from "./source"
@@ -97,7 +98,15 @@ describe("Tasks", () => {
       moved: [],
     })
     await user.click(within(chat).getByRole("combobox", { name: "Status of INDBB44DA4-7" }))
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Open", "Done", "Dismissed"])
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Open",
+      "Done",
+      "Dismissed",
+      "Todo",
+      "Progress",
+    ])
+    expect(screen.getByRole("option", { name: "Todo" })).toHaveAttribute("aria-disabled", "true")
+    expect(screen.getByRole("group", { name: "Project tasks only" })).toBeInTheDocument()
     await user.click(screen.getByRole("option", { name: "Dismissed" }))
     expect(close).toHaveBeenCalledWith("INDBB44DA4-7", 1, { state: "dismissed", account: "telegram:220195113" })
     // A closed found task stays closed, so its status is text again.
@@ -160,7 +169,7 @@ describe("Tasks", () => {
     const dialog = await screen.findByRole("dialog", { name: "Task Q-1" })
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("")
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveAttribute("placeholder", "Untitled question")
-    expect(dialog).toHaveTextContent("you can close it as Done or Dismissed. Other statuses, priority, type")
+    expect(dialog).toHaveTextContent("three statuses: Open, Done and Dismissed. Priority, type, AI agent and project")
     const update = vi.spyOn(platform, "taskUpdate").mockImplementation(async (_key, _revision, edit) => {
       if (edit.account !== "telegram:1") throw new Error("give --account — the stored accounts: --account telegram:1")
       return {
@@ -179,7 +188,8 @@ describe("Tasks", () => {
     )
     expect(within(dialog).queryByRole("alert")).toBeNull()
     await user.keyboard("{Escape}")
-    expect(within(column).getByRole("button", { name: "Q-1 Hand over the keys" })).not.toHaveAttribute(
+    // A found task's card is carried too: memo closes it when it is dropped on Done or Dismissed.
+    expect(within(column).getByRole("button", { name: "Q-1 Hand over the keys" })).toHaveAttribute(
       "aria-roledescription",
     )
 
@@ -187,6 +197,92 @@ describe("Tasks", () => {
     await user.click(screen.getByRole("option", { name: /Projects/ }))
     await waitFor(() => expect(within(column).queryByRole("button", { name: /^Q-1 / })).toBeNull())
     expect(cards().length).toBe(total - 96)
+  })
+
+  it("shows where a found task came from, who has it, and that a filter leaves tasks from messages out", async () => {
+    const user = userEvent.setup()
+    const found = {
+      key: "Q-9",
+      project: "IN0BB44DA4",
+      projectName: "telegram:1",
+      createdBy: { type: "bot", name: "rule", owner: false },
+      title: "Can you send the lease by Friday?",
+      description: null,
+      kind: "question",
+      state: "open" as const,
+      priority: null,
+      priorityLabel: null,
+      agent: null,
+      revision: 2,
+      parent: null,
+      dueAt: null,
+      closedAt: null,
+      claimedBy: null,
+      claimedUntil: null,
+      assignees: [],
+      ready: null,
+      blockedBy: [],
+      createdAt: "2026-11-08T09:12:00.000Z",
+      updatedAt: null,
+      account: "telegram:1",
+      source: "msg:telegram/1/2/15",
+    }
+    // memo lists a found task with no assignees; only `tasks show` with its account names them.
+    vi.spyOn(platform, "taskChats").mockResolvedValue({ tasks: [found], more: false })
+    const show = vi
+      .spyOn(platform, "taskShow")
+      .mockImplementation(async (_key, account) =>
+        account === "telegram:1" ? { ...found, assignees: ["person:1"] } : Promise.reject(new Error("give --source")),
+      )
+    vi.spyOn(platform, "taskHistory").mockResolvedValue([
+      { at: found.createdAt, kind: "created", by: { ref: "bot:1", name: "rule", owner: false }, changes: [] },
+    ])
+    vi.spyOn(platform, "taskComments").mockResolvedValue([])
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("Q-9")).getByRole("button", { name: /^Q-9 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task Q-9" })
+    expect(show).toHaveBeenCalledWith("Q-9", "telegram:1")
+    await waitFor(() =>
+      expect(within(dialog).getByRole("combobox", { name: "Assignee of Q-9" })).toHaveTextContent("You"),
+    )
+    expect(dialog).toHaveTextContent("No project")
+    expect(await within(dialog).findByText("Memo created it")).toBeInTheDocument()
+    expect(dialog).not.toHaveTextContent("rule")
+    expect(within(dialog).getByText("Question")).toBeInTheDocument()
+    const source = within(dialog).getByRole("region", { name: "Source" })
+    expect(await within(source).findByText("Lease team")).toBeInTheDocument()
+    expect(within(source).getByText("Ana Sample")).toBeInTheDocument()
+    expect(source).toHaveTextContent("Answer it in the chat, then mark the task Done")
+    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "!")
+    await user.click(within(source).getByRole("button", { name: "Open in the chat" }))
+    expect(within(source).getByRole("alert")).toHaveTextContent("Save or cancel your changes to the task first.")
+    expect(useNav.getState().active).not.toBe("conversation")
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    await user.click(within(source).getByRole("button", { name: "Open in the chat" }))
+    expect(useNav.getState().active).toBe("conversation")
+    expect(useTasks.getState().open).toBeNull()
+
+    useNav.getState().go("tasks")
+    const counts = vi.spyOn(platform, "taskCounts")
+    await user.click(await screen.findByRole("button", { name: "Only mine" }))
+    expect(await screen.findByText(/1 task from messages is not shown/)).toBeInTheDocument()
+    await waitFor(() => expect(row("Q-9")).toBeNull())
+    expect(counts).toHaveBeenCalledWith(expect.stringMatching(/assignee:"?person:1/))
+  })
+
+  it("counts the filters again after an edit", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await waitFor(() => expect(useTasks.getState().counts).not.toBeNull())
+    const count = (ref: string) => useTasks.getState().counts?.assignee.find((f) => f.value === ref)?.count ?? 0
+    const mine = count("person:1")
+    await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
+    await user.click(within(dialog).getByRole("combobox", { name: "Assignee of HRB-12" }))
+    await user.click(screen.getByRole("option", { name: "Nobody" }))
+    await waitFor(() => expect(count("person:1")).toBe(mine - 1))
   })
 
   it("writes a filter into the search, which memo answers", async () => {
@@ -613,6 +709,101 @@ describe("Tasks", () => {
     )
     const todo = screen.getByRole("region", { name: /^Todo, 3 tasks/ })
     expect(within(todo).getAllByRole("button", { name: /^(OPS|HRB)-\d+ / })[0]).toHaveAccessibleName(/^OPS-3/)
+  })
+
+  it("moves a card to another column by pointer, saves its status, and counts the columns again", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    const move = vi.spyOn(platform, "taskMove")
+    render(<TasksPage />)
+    const card = await screen.findByRole("button", { name: /^HOME-2 / }, { timeout: 4000 })
+    const progress = document.querySelector('[data-column="in_progress"]') as HTMLElement
+    const label = () => screen.getByRole("region", { name: /^Progress, / }).getAttribute("aria-label") ?? ""
+    const counted = () => Number(/(\d+) tasks?/.exec(label())?.[1])
+    const before = counted()
+    document.elementsFromPoint = () => [progress]
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
+      { target: card, coords: { clientX: 400, clientY: 60 } },
+      { keys: "[/MouseLeft]", target: card },
+    ])
+    await waitFor(() =>
+      expect(move).toHaveBeenCalledWith(
+        "HOME-2",
+        expect.any(Number),
+        expect.objectContaining({ state: "in_progress" }),
+      ),
+    )
+    await waitFor(() => expect(counted()).toBe(before + 1))
+  })
+
+  it("closes a found task dropped on Done, and says why it cannot go to Progress", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    const found = {
+      key: "Q-3",
+      project: "IN0BB44DA4",
+      projectName: null,
+      createdBy: null,
+      title: "Can you send the lease?",
+      description: null,
+      kind: "question",
+      state: "open" as const,
+      priority: null,
+      priorityLabel: null,
+      agent: null,
+      revision: 1,
+      parent: null,
+      dueAt: null,
+      closedAt: null,
+      claimedBy: null,
+      claimedUntil: null,
+      assignees: [],
+      ready: null,
+      blockedBy: [],
+      createdAt: "2026-11-08T09:12:00.000Z",
+      updatedAt: null,
+      account: "telegram:1",
+    }
+    vi.spyOn(platform, "taskChats").mockResolvedValue({ tasks: [found], more: false })
+    const move = vi.spyOn(platform, "taskMove")
+    const update = vi
+      .spyOn(platform, "taskUpdate")
+      .mockRejectedValueOnce(new Error("another memo process holds the store; try again in a minute"))
+      .mockResolvedValue({
+        kind: "saved",
+        task: { ...found, state: "done", revision: 2 },
+        label: null,
+        renumbered: [],
+        moved: [],
+      })
+    render(<TasksPage />)
+    await screen.findByRole("button", { name: /^Q-3 / }, { timeout: 4000 })
+    // A card that changes column is a new element.
+    const card = () => screen.getByRole("button", { name: /^Q-3 / })
+    const carry = async (to: string) => {
+      const column = document.querySelector(`[data-column="${to}"]`) as HTMLElement
+      document.elementsFromPoint = () => [column]
+      await user.pointer([
+        { keys: "[MouseLeft>]", target: card(), coords: { clientX: 20, clientY: 20 } },
+        { target: card(), coords: { clientX: 400, clientY: 60 } },
+        { keys: "[/MouseLeft]", target: card() },
+      ])
+    }
+    await carry("in_progress")
+    expect(
+      await screen.findByText(/Memo only closes a task from messages: drop it on Done or Dismissed/),
+    ).toBeInTheDocument()
+    expect(update).not.toHaveBeenCalled()
+    await carry("done")
+    await waitFor(() => expect(card()).toHaveTextContent(/Not moved, the card is back/))
+    expect(card().closest("[data-column]")).toHaveAttribute("data-column", "open")
+    await carry("done")
+    await waitFor(() => expect(update).toHaveBeenLastCalledWith("Q-3", 1, { state: "done", account: "telegram:1" }))
+    expect(move).not.toHaveBeenCalled()
+    expect(await screen.findByRole("region", { name: /^Done, \d+ tasks/ })).toContainElement(
+      screen.getByRole("button", { name: /^Q-3 / }),
+    )
   })
 
   it("opens a card on a click, never at the end of a drag", async () => {

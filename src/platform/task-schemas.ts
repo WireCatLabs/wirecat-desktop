@@ -36,6 +36,8 @@ export const TaskSchema = v.object({
   updatedAt: v.nullable(v.string()),
   /** `provider:account` of a task memo found in a chat, mail or note: it belongs to no project. */
   account: v.optional(v.nullable(v.string())),
+  /** The message, note or document memo found the task in: `msg:telegram/1/2/3`. */
+  source: v.optional(v.nullable(v.string())),
 })
 
 export const ChatTasksSchema = v.object({ tasks: v.array(TaskSchema), more: v.boolean() })

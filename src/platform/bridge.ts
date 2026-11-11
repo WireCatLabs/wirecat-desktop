@@ -308,7 +308,7 @@ function createTauri(): Platform {
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskChats: () => call(ChatTasksSchema, "task_chats"),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
-    taskShow: (key) => call(TaskSchema, "task_show", { key }),
+    taskShow: (key, account) => call(TaskSchema, "task_show", { key, account: account ?? null }),
     taskHistory: (key) => call(v.array(TaskEventSchema), "task_history", { key }),
     taskCreate: (task) => call(TaskWriteSchema, "task_create", { task }),
     taskUpdate: (key, revision, edit) => call(TaskWriteSchema, "task_update", { key, revision, edit }),

@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { addDays, closed, fromMessages, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
@@ -5,10 +6,11 @@ import type { Task, TaskKind } from "@/platform/task-schemas"
 import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
 import { cx } from "@/ui/cx"
 import { fieldFocus } from "@/ui/field"
+import { InfoTip } from "@/ui/InfoTip"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
 import { PersonFinder } from "./PersonFinder"
-import { DueText, personName, priorityLabel, SourceMark, StateLamp } from "./parts"
+import { DueText, personName, priorityLabel, StateLamp } from "./parts"
 import { useTasks } from "./store"
 
 // A cell reads as text and takes a wash on hover; it is a Select underneath, so keys and screen readers work as there.
@@ -37,14 +39,26 @@ const BAR: Record<string, [number, string]> = {
 }
 
 /**
- * A found task's value that memo keeps for project tasks only: text, not a control that refuses every click. The
- * dialog says why beside it.
+ * A found task's field that memo keeps for project tasks only. It looks like the field and opens on a click, so the
+ * owner learns why it does not change and what to do, rather than meeting a bare dash.
  */
-function Fixed({ children }: { children: ReactNode }) {
+function Locked({ task, field, why, children }: { task: Task; field: string; why?: string; children: ReactNode }) {
+  const m = useMessages(taskMessages)
   return (
-    <span className="flex min-h-[1.9rem] min-w-0 items-center gap-[0.45rem] text-[0.9rem] text-ink-soft">
-      {children}
-    </span>
+    <InfoTip
+      label={m.cell(field, task.key)}
+      align="end"
+      className="w-full [&>button]:w-full"
+      trigger={
+        <span className="-ml-[0.45rem] flex h-8 w-full min-w-0 items-center gap-1.5 rounded-[0.35rem] pr-1.5 pl-[0.45rem] text-[0.875rem] text-ink-soft hover:bg-app-3">
+          <span className="min-w-0 flex-1 truncate text-left">{children}</span>
+          <span className="sr-only">{m.cell(field, task.key)}</span>
+          <ChevronDown className="size-4 shrink-0 text-ink-dim" aria-hidden />
+        </span>
+      }
+    >
+      {why ?? m.projectOnlyField(field)}
+    </InfoTip>
   )
 }
 
@@ -55,11 +69,25 @@ export function StatusCell({ task, label }: { task: Task; label?: string }) {
   // memo only closes a found task, and a closed one stays closed.
   if (found && closed(task.state))
     return (
-      <Fixed>
-        <StateLamp state={task.state} /> {m.states[task.state]}
-      </Fixed>
+      <Locked task={task} field={m.status} why={m.foundClosed}>
+        <span className="flex items-center gap-[0.45rem]">
+          <StateLamp state={task.state} /> {m.states[task.state]}
+        </span>
+      </Locked>
     )
-  const states: readonly State[] = found ? [task.state, "done", "dismissed"] : STATES
+  const option = (s: State, disabled = false) => ({
+    value: s,
+    label: m.states[s],
+    icon: <StateLamp state={s} />,
+    disabled,
+  })
+  // The steps memo keeps for project tasks stay in sight, under a heading that says why they cannot be picked.
+  const options = found
+    ? [
+        ...[task.state, "done" as const, "dismissed" as const].map((s) => option(s)),
+        { label: m.projectOnlyStates, options: (["todo", "in_progress"] as const).map((s) => option(s, true)) },
+      ]
+    : STATES.map((s) => option(s))
   return (
     <Select
       size="sm"
@@ -67,7 +95,7 @@ export function StatusCell({ task, label }: { task: Task; label?: string }) {
       value={task.state}
       busy={busy}
       onChange={(state: State) => void useTasks.getState().update(task.key, { state })}
-      options={states.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
+      options={options}
       className={BARE}
     />
   )
@@ -77,7 +105,12 @@ export function PriorityCell({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const current = priorityLabel(task) ?? "none"
-  if (fromMessages(task)) return <Fixed>{current === "none" ? "—" : m.labels[current]}</Fixed>
+  if (fromMessages(task))
+    return (
+      <Locked task={task} field={m.priority}>
+        {current === "none" ? "—" : m.labels[current]}
+      </Locked>
+    )
   // The closed cell shows the bars alone, and nothing for no priority; the words stay in the list and the tooltip.
   return (
     <span className="flex w-full" title={current === "none" ? undefined : m.priorityIs(m.labels[current])}>
@@ -157,7 +190,12 @@ export function KindCell({ task }: { task: Task }) {
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const kinds: TaskKind[] = ["feature", "bug", "chore"]
   const current = kinds.find((k) => k === task.kind)
-  if (fromMessages(task)) return <Fixed>{m.kinds[task.kind ?? ""] ?? task.kind ?? "—"}</Fixed>
+  if (fromMessages(task))
+    return (
+      <Locked task={task} field={m.kind}>
+        {m.kinds[task.kind ?? ""] ?? task.kind ?? "—"}
+      </Locked>
+    )
   return (
     <Select<TaskKind | "other">
       size="sm"
@@ -184,11 +222,12 @@ export function ProjectCell({ task }: { task: Task }) {
   const keys = [...new Set([task.project, ...projects.map((p) => p.key)])]
   const nameOf = (key: string) =>
     (key === task.project ? task.projectName : null) ?? projects.find((p) => p.key === key)?.name ?? null
+  // memo keeps a found task in an inbox named after its account, which is no project of the owner's.
   if (fromMessages(task))
     return (
-      <Fixed>
-        <SourceMark task={task} />
-      </Fixed>
+      <Locked task={task} field={m.project}>
+        {m.noProject}
+      </Locked>
     )
   return (
     <Select
@@ -209,7 +248,12 @@ export function AgentCell({ task }: { task: Task }) {
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const [agent, setAgent] = useState(task.agent ?? "")
   useEffect(() => setAgent(task.agent ?? ""), [task.agent])
-  if (fromMessages(task)) return <Fixed>—</Fixed>
+  if (fromMessages(task))
+    return (
+      <Locked task={task} field={m.agentField}>
+        —
+      </Locked>
+    )
   const save = () => {
     const name = agent.trim()
     if (name !== (task.agent ?? "")) void useTasks.getState().update(task.key, { agent: name || "none" })

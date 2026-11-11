@@ -51,8 +51,17 @@ export function TaskBoard() {
     columns: STATES,
     cardsIn: column,
     columnOf: (key) => byKey.get(key)?.state,
-    // memo moves only project tasks on the board; a found task's card opens it instead.
-    canDrop: (key) => !fromMessages(byKey.get(key) ?? {}),
+    // memo only closes a found task, and keeps no order among them: a drop anywhere else says why.
+    canDrop: (key, to) => {
+      const t = byKey.get(key)
+      if (!t || !fromMessages(t)) return true
+      if (to === t.state) return false
+      if (closed(t.state)) return m.foundClosed
+      return closed(to) ? true : m.foundDrop(m.states[to])
+    },
+    onRefuse: (key, _to, reason) => {
+      if (reason) useTasks.setState({ note: { key, label: null, column: null, text: reason } })
+    },
     onDrop: ({ key, to, before }) => {
       const keys = column(to).filter((k) => k !== key)
       // Dropped below the last card shown, it lands there, not after the cards "Show more" still hides.
@@ -109,10 +118,8 @@ export function TaskBoard() {
                       task={t}
                       ghost={drag?.key === k}
                       held={held?.key === k}
-                      onPointerDown={fromMessages(t) ? undefined : (e) => onPointerDown(e, k)}
-                      onKeyDown={(e) => {
-                        if (!fromMessages(t) || e.key === "Enter") onKeyDown(e, k)
-                      }}
+                      onPointerDown={(e) => onPointerDown(e, k)}
+                      onKeyDown={(e) => onKeyDown(e, k)}
                       onOpen={() => onClick(k)}
                     />
                   </li>
@@ -162,7 +169,7 @@ function Card(props: {
   const { task, ghost, held } = props
   const m = useMessages(taskMessages)
   const failed = useTasks((s) => s.failed[moveSlot(task.key)])
-  const movable = !fromMessages(task)
+  const movable = !closed(task.state) || !fromMessages(task)
   return (
     // biome-ignore lint/a11y/useSemanticElements: a card holds a picker, so it cannot be a button itself
     <div
@@ -204,7 +211,7 @@ function CardBody({ task }: { task: Task }) {
   const found = fromMessages(task)
   return (
     <div className="flex flex-col gap-[0.45rem] px-[0.9rem] py-[0.7rem]">
-      {!found && (
+      {!(found && closed(task.state)) && (
         <GripVertical
           className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
           aria-hidden

@@ -90,6 +90,25 @@ type Words = {
   agentField: string
   agentTip: string
   foundOnly: string
+  noProject: string
+  sourceUnknown: string
+  sourceNotMessage: string
+  sourceReading: string
+  sourceFailed: string
+  sourceNoAccount: string
+  sourceOldMemo: string
+  sourceNotHere: string
+  /** What the owner does next with a found task, by memo's kind of it. */
+  nextStep: Record<string, string>
+  openChat: string
+  openMail: string
+  saveBeforeOpen: string
+  foundHidden: (n: number) => string
+  projectOnlyField: (field: string) => string
+  projectOnlyStates: string
+  foundClosed: string
+  foundIn: (source: string) => string
+  foundDrop: (state: string) => string
   agentNone: string
   waitsHeading: string
   nothingBlocks: string
@@ -269,7 +288,37 @@ const en: Words = {
   agentTip:
     "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
   foundOnly:
-    "Memo found this task in your messages. Its title, notes, due date and assignee change here, and you can close it as Done or Dismissed. Other statuses, priority, type, agent and project belong to project tasks.",
+    "Memo found this task in your messages, so it is not in a project. For such a task Memo keeps only the title, notes, due date and assignee, and three statuses: Open, Done and Dismissed. Priority, type, AI agent and project are kept for project tasks only, and Memo cannot move a task from messages into a project yet. To give it any of them, make a project task with New task and close this one as Done.",
+  noProject: "No project",
+  sourceUnknown: "Memo did not keep the message it found this task in.",
+  sourceNotMessage: "Memo found this task in a note or a document, not in a chat.",
+  sourceReading: "Reading the message…",
+  sourceFailed: "Could not read the message.",
+  sourceNoAccount:
+    "The message is in an account no profile on this computer is signed in to. Sign in to it on the Tools page.",
+  sourceOldMemo: "To show the message here, install or update Memo on the Tools page.",
+  sourceNotHere: "The message is not on this computer: it was deleted, or its chat is not synced yet.",
+  nextStep: {
+    question:
+      "Someone asked a question. Answer it in the chat, then mark the task Done. If no answer is needed, mark it Dismissed.",
+    request:
+      "Someone asked you to do something. Do it or answer in the chat, then mark the task Done. If it is not for you, mark it Dismissed.",
+    promise: "You promised something here. Do it, then mark the task Done.",
+    mention: "Someone mentioned you. Read the message; if nothing is needed, mark the task Dismissed.",
+  },
+  openChat: "Open in the chat",
+  openMail: "Open the email",
+  saveBeforeOpen: "Save or cancel your changes to the task first.",
+  projectOnlyField: (field) =>
+    `${field}: Memo keeps it for project tasks only, and this task was found in your messages. To set it, make a project task with New task and close this one as Done.`,
+  projectOnlyStates: "Project tasks only",
+  foundClosed:
+    "Memo keeps a task from messages closed once it is closed. If it needs work again, make a project task with New task.",
+  foundIn: (source) => `From messages: ${source}`,
+  foundDrop: (state) =>
+    `Memo only closes a task from messages: drop it on Done or Dismissed. ${state} is for project tasks.`,
+  foundHidden: (n) =>
+    `${plural("en", n, { one: "# task from messages is", other: "# tasks from messages are" })} not shown: Memo applies search and filters to project tasks only. Clear the search to see them.`,
   agentNone: "No agent",
   waitsHeading: "Waits for",
   nothingBlocks: "Nothing. It can start now.",
@@ -325,7 +374,16 @@ const en: Words = {
   commentFailed: "The comment was not added. Your text is still here.",
   key: "Key",
   kind: "Type",
-  kinds: { bug: "Bug", feature: "Feature", chore: "Chore", task: "Task" },
+  kinds: {
+    bug: "Bug",
+    feature: "Feature",
+    chore: "Chore",
+    task: "Task",
+    question: "Question",
+    request: "Request",
+    promise: "Promise",
+    mention: "Mention",
+  },
   parent: "Part of",
   createdAt: "Created",
   createdBy: (when, who) => `${when} by ${who}`,
@@ -462,7 +520,37 @@ const ru: Words = {
   agentTip:
     "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
   foundOnly:
-    "Memo нашел эту задачу в ваших сообщениях. Здесь меняются название, заметки, срок и исполнитель, а закрыть ее можно как «Готово» или «Отклонено». Другие статусы, приоритет, тип, агент и проект есть только у задач проекта.",
+    "Memo нашел эту задачу в ваших сообщениях, поэтому она не входит в проект. У таких задач Memo хранит только название, заметки, срок и исполнителя и три статуса: «Новые», «Готово» и «Отклонено». Приоритет, тип, ИИ-агент и проект есть только у задач проекта, а перенести задачу из сообщений в проект Memo пока не умеет. Если это нужно, создайте задачу проекта кнопкой «Новая задача» и закройте эту как «Готово».",
+  noProject: "Без проекта",
+  sourceUnknown: "Memo не сохранил, в каком сообщении нашел эту задачу.",
+  sourceNotMessage: "Memo нашел эту задачу в заметке или документе, а не в чате.",
+  sourceReading: "Читаю сообщение…",
+  sourceFailed: "Не удалось прочитать сообщение.",
+  sourceNoAccount:
+    "Сообщение в аккаунте, в который не вошел ни один профиль на этом компьютере. Войдите в него на странице «Инструменты».",
+  sourceOldMemo: "Чтобы показать сообщение здесь, установите или обновите Memo на странице «Инструменты».",
+  sourceNotHere: "Сообщения нет на этом компьютере: его удалили, или его чат еще не синхронизирован.",
+  nextStep: {
+    question:
+      "Вам задали вопрос. Ответьте в чате, затем отметьте задачу «Готово». Если отвечать не нужно, отметьте «Отклонено».",
+    request:
+      "Вас о чем-то попросили. Сделайте это или ответьте в чате, затем отметьте задачу «Готово». Если просьба не к вам, отметьте «Отклонено».",
+    promise: "Здесь вы что-то пообещали. Сделайте это, затем отметьте задачу «Готово».",
+    mention: "Вас упомянули. Прочитайте сообщение; если делать ничего не нужно, отметьте задачу «Отклонено».",
+  },
+  openChat: "Открыть в чате",
+  openMail: "Открыть письмо",
+  saveBeforeOpen: "Сначала сохраните или отмените изменения в задаче.",
+  projectOnlyField: (field) =>
+    `${field}: Memo хранит это только у задач проекта, а эта задача найдена в ваших сообщениях. Чтобы задать это, создайте задачу проекта кнопкой «Новая задача» и закройте эту как «Готово».`,
+  projectOnlyStates: "Только у задач проекта",
+  foundClosed:
+    "Закрытая задача из сообщений остается закрытой: Memo не открывает ее снова. Если по ней снова нужна работа, создайте задачу проекта кнопкой «Новая задача».",
+  foundIn: (source) => `Из сообщений: ${source}`,
+  foundDrop: (state) =>
+    `Задачу из сообщений Memo может только закрыть: перенесите ее в «Готово» или «Отклонено». Статус «${state}» есть только у задач проекта.`,
+  foundHidden: (n) =>
+    `Задачи из сообщений (${formatNumber(n, "ru")}) не показаны: Memo применяет поиск и фильтры только к задачам проектов. Очистите поиск, чтобы их увидеть.`,
   agentNone: "Без агента",
   waitsHeading: "Ждёт",
   nothingBlocks: "Ничего. Можно начинать.",
@@ -524,7 +612,16 @@ const ru: Words = {
   commentFailed: "Комментарий не добавлен. Ваш текст остался.",
   key: "Ключ",
   kind: "Тип",
-  kinds: { bug: "Ошибка", feature: "Функция", chore: "Рутина", task: "Задача" },
+  kinds: {
+    bug: "Ошибка",
+    feature: "Функция",
+    chore: "Рутина",
+    task: "Задача",
+    question: "Вопрос",
+    request: "Просьба",
+    promise: "Обещание",
+    mention: "Упоминание",
+  },
   parent: "Часть задачи",
   createdAt: "Создана",
   createdBy: (when, who) => `${when}, автор: ${who}`,
@@ -656,7 +753,37 @@ const es: Words = {
   agentTip:
     "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
   foundOnly:
-    "Memo encontró esta tarea en tus mensajes. Aquí cambian su título, notas, fecha límite y responsable, y puedes cerrarla como Hecha o Descartada. Los demás estados, la prioridad, el tipo, el agente y el proyecto son de las tareas de un proyecto.",
+    "Memo encontró esta tarea en tus mensajes, así que no está en un proyecto. De estas tareas Memo guarda solo el título, las notas, la fecha límite y el responsable, y tres estados: Abiertas, Hechas y Descartadas. La prioridad, el tipo, el agente de IA y el proyecto son solo de las tareas de un proyecto, y Memo aún no puede mover una tarea de los mensajes a un proyecto. Si lo necesitas, crea una tarea de proyecto con Nueva tarea y cierra esta como Hecha.",
+  noProject: "Sin proyecto",
+  sourceUnknown: "Memo no guardó el mensaje en el que encontró esta tarea.",
+  sourceNotMessage: "Memo encontró esta tarea en una nota o un documento, no en un chat.",
+  sourceReading: "Leyendo el mensaje…",
+  sourceFailed: "No se pudo leer el mensaje.",
+  sourceNoAccount:
+    "El mensaje está en una cuenta en la que ningún perfil de este ordenador ha iniciado sesión. Inicia sesión en Herramientas.",
+  sourceOldMemo: "Para ver el mensaje aquí, instala o actualiza Memo en Herramientas.",
+  sourceNotHere: "El mensaje no está en este ordenador: se borró, o su chat aún no está sincronizado.",
+  nextStep: {
+    question:
+      "Te hicieron una pregunta. Respóndela en el chat y marca la tarea como Hecha. Si no hace falta responder, márcala como Descartada.",
+    request:
+      "Te pidieron algo. Hazlo o responde en el chat y marca la tarea como Hecha. Si no es para ti, márcala como Descartada.",
+    promise: "Aquí prometiste algo. Hazlo y marca la tarea como Hecha.",
+    mention: "Te mencionaron. Lee el mensaje; si no hace falta nada, marca la tarea como Descartada.",
+  },
+  openChat: "Abrir en el chat",
+  openMail: "Abrir el correo",
+  saveBeforeOpen: "Primero guarda o cancela los cambios de la tarea.",
+  projectOnlyField: (field) =>
+    `${field}: Memo lo guarda solo en las tareas de un proyecto, y esta tarea se encontró en tus mensajes. Para ponerlo, crea una tarea de proyecto con Nueva tarea y cierra esta como Hecha.`,
+  projectOnlyStates: "Solo tareas de proyecto",
+  foundClosed:
+    "Memo mantiene cerrada una tarea de los mensajes una vez cerrada. Si necesita trabajo otra vez, crea una tarea de proyecto con Nueva tarea.",
+  foundIn: (source) => `De los mensajes: ${source}`,
+  foundDrop: (state) =>
+    `Memo solo cierra una tarea de los mensajes: suéltala en Hechas o Descartadas. ${state} es para tareas de proyecto.`,
+  foundHidden: (n) =>
+    `Las tareas de los mensajes (${formatNumber(n, "es")}) no se muestran: Memo aplica la búsqueda y los filtros solo a las tareas de proyectos. Borra la búsqueda para verlas.`,
   agentNone: "Sin agente",
   waitsHeading: "Espera a",
   nothingBlocks: "Nada. Se puede empezar ya.",
@@ -713,7 +840,16 @@ const es: Words = {
   commentFailed: "No se ha añadido el comentario. Tu texto sigue aquí.",
   key: "Clave",
   kind: "Tipo",
-  kinds: { bug: "Error", feature: "Función", chore: "Mantenimiento", task: "Tarea" },
+  kinds: {
+    bug: "Error",
+    feature: "Función",
+    chore: "Mantenimiento",
+    task: "Tarea",
+    question: "Pregunta",
+    request: "Petición",
+    promise: "Promesa",
+    mention: "Mención",
+  },
   parent: "Parte de",
   createdAt: "Creada",
   createdBy: (when, who) => `${when}, por ${who}`,

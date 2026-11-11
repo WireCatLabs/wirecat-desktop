@@ -155,7 +155,9 @@ export function TipPanel({
 }) {
   const tip = useRef<HTMLSpanElement>(null)
   const [host, setHost] = useState<Element | null>(null)
-  useLayoutEffect(() => {
+  // Not a layout effect: when the anchor wraps this panel, React sets the anchor's ref after the panel's layout
+  // effects, so the dialog was not found and the tip opened under the modal, unseen.
+  useEffect(() => {
     setHost(anchor.current?.closest("dialog") ?? document.body)
   }, [anchor])
   // Placed once the host is known, so a panel mounted already open (one per table row, mounted on demand) is placed too.

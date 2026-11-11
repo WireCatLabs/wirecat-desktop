@@ -188,7 +188,7 @@ describe("Add to memory", () => {
     await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }))
     expect(await within(panel).findByText("Choose in Settings what reads sources for facts.")).toBeInTheDocument()
     await user.click(within(panel).getByRole("combobox", { name: "Reading for facts" }))
-    await user.click(within(panel).getByRole("option", { name: "Ollama" }))
+    await user.click(screen.getByRole("option", { name: "Ollama" }))
     await user.click(within(panel).getByRole("button", { name: "Use this reader" }))
     expect(choose).toHaveBeenCalledWith("ollama")
     expect(await within(panel).findByRole("button", { name: "Suggest facts" })).toBeEnabled()

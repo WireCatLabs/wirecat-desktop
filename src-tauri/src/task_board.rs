@@ -173,6 +173,8 @@ pub struct Task {
     pub updated_at: Option<String>,
     /// `provider:account` of a task found in a chat, mail or note; such a task belongs to no project.
     pub account: Option<String>,
+    /// The message, note or document a task was found in (`msg:telegram/1/2/3`).
+    pub source: Option<String>,
 }
 
 /// Who made a task: the owner, another person or an agent.
@@ -237,6 +239,8 @@ fn task(v: &Value) -> Option<Task> {
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
         account: text(v, "account"),
+        // `tasks list` says `source_message`; `tasks show` and the writes say `source`.
+        source: text(v, "source_message").or_else(|| text(v, "source")),
     })
 }
 
@@ -648,10 +652,6 @@ fn shown(v: &Value) -> Result<Task, Failure> {
     })
 }
 
-fn show_with(call: &Call, key: &str) -> Result<Task, Failure> {
-    show_in(call, key, None)
-}
-
 /// memo reads a found task only with the account it belongs to; the answer leaves the account out, so it is put back.
 fn show_in(call: &Call, key: &str, account: Option<&str>) -> Result<Task, Failure> {
     let Some(a) = account else { return shown(&call(&words(&["tasks", "show", key]))?) };
@@ -667,9 +667,10 @@ fn validate_id(id: &str) -> Result<&str, String> {
 }
 
 /// Reads one task by its key or, from the Memory page, by the id an approved action or finding names.
-pub fn show(key: &str) -> Result<Task, String> {
+pub fn show(key: &str, account: Option<&str>) -> Result<Task, String> {
     let key = validate_key(key).or_else(|_| validate_id(key))?;
-    with_memo(READ, |call| show_with(call, key))
+    let account = account.map(validate_account).transpose()?;
+    with_memo(READ, |call| show_in(call, key, account))
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -1148,6 +1149,7 @@ mod tests {
         let t = &read.tasks[0];
         assert_eq!((t.key.as_str(), t.project.as_str()), ("INDBB44DA4-7", "INDBB44DA4"));
         assert_eq!(t.account.as_deref(), Some("telegram:220195113"));
+        assert_eq!(t.source.as_deref(), Some("msg:telegram/220195113/-1001/55"));
         assert!(!read.more);
         assert_eq!(fake.seen()[0], strs(&["tasks", "list", "--limit", "500", "--json", "--no-record"]));
     }
@@ -1383,6 +1385,21 @@ mod tests {
         let out = assign_with(&|a: &[String]| fake.call(a), "Q-1", 4, Some("person:5"), Some("telegram:1")).unwrap();
         assert_eq!(fake.seen()[0], strs(&["tasks", "show", "Q-1", "--source=telegram:1", "--json", "--no-record"]));
         let Write::Saved { task, .. } = out else { panic!("not saved") };
+        assert_eq!(task.account.as_deref(), Some("telegram:1"));
+    }
+
+    #[test]
+    fn a_found_task_is_shown_with_its_assignees_and_its_message() {
+        let fake = Fake::new(|_| {
+            let mut item = card(4, &["person:1"]);
+            item["key"] = json!("Q-1");
+            item["source"] = json!("msg:telegram/1/-1001/55");
+            Ok(json!({ "item": item }))
+        });
+        let task = show_in(&|a: &[String]| fake.call(a), "Q-1", Some("telegram:1")).unwrap();
+        assert_eq!(fake.seen()[0], strs(&["tasks", "show", "Q-1", "--source=telegram:1", "--json", "--no-record"]));
+        assert_eq!(task.assignees, vec!["person:1".to_string()]);
+        assert_eq!(task.source.as_deref(), Some("msg:telegram/1/-1001/55"));
         assert_eq!(task.account.as_deref(), Some("telegram:1"));
     }
 
@@ -1682,9 +1699,9 @@ mod tests {
         assert_eq!(done.priority, None);
         // An agent renewing its claim is not a change a person could overwrite: the revision stays.
         call(&words(&["tasks", "claim", &b.key, "--holder", "probe"])).unwrap();
-        let held = show_with(&call, &b.key).unwrap();
+        let held = show_in(&call, &b.key, None).unwrap();
         call(&words(&["tasks", "claim", &b.key, "--holder", "probe"])).unwrap();
-        assert_eq!(show_with(&call, &b.key).unwrap().revision, held.revision);
+        assert_eq!(show_in(&call, &b.key, None).unwrap().revision, held.revision);
         let owner = people_search_with(&call, "").unwrap().into_iter().find(|p| p.owner).unwrap();
         let Write::Saved { task: mine, .. } =
             assign_with(&call, &done.key, done.revision, Some(&owner.reference), None).unwrap()
@@ -1707,7 +1724,7 @@ mod tests {
             put("history", serde_json::to_value(history_with(&call, &a.key).unwrap()).unwrap());
             put("people", serde_json::to_value(people_search_with(&call, "").unwrap()).unwrap());
             put("projects", serde_json::to_value(projects_with(&call).unwrap()).unwrap());
-            put("show", serde_json::to_value(show_with(&call, &a.key).unwrap()).unwrap());
+            put("show", serde_json::to_value(show_in(&call, &a.key, None).unwrap()).unwrap());
             let stale = edit_args(&a.key, 1, &Edit { title: Some("x".into()), ..Edit::default() }).unwrap();
             put("stale", serde_json::to_value(write_with(&call, &a.key, &stale).unwrap()).unwrap());
             put(
@@ -1777,7 +1794,7 @@ mod tests {
         let Write::Saved { task: gone, .. } = edit(&task, &away) else { panic!("not moved") };
         assert_eq!(gone.project, "OPS");
         assert!(gone.key.starts_with("OPS-"));
-        assert_eq!(show_with(&call, &task.key).unwrap().key, gone.key, "the old key still finds it");
+        assert_eq!(show_in(&call, &task.key, None).unwrap().key, gone.key, "the old key still finds it");
         // A store with a found task (one memo took from a stored message) closes it as its account.
         if let Some(found) = chats_with(&call).unwrap().tasks.into_iter().find(|t| t.state == "open") {
             let account = found.account.clone().unwrap();

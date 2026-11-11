@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { useMessages } from "@/i18n"
 import { cx } from "./cx"
 import { uiMessages } from "./messages"
@@ -148,6 +149,10 @@ export function Select<T extends string>({
     }
   }
 
+  // Outside the page's boxes, in the open dialog when the select is in one: a sticky table cell makes its own layer,
+  // and the next row's cell painted over a list opened inside it.
+  const [host, setHost] = useState<Element | null>(null)
+  useEffect(() => setHost(button.current?.closest("dialog") ?? document.body), [])
   const place = useListPlacement(open, button, list)
   useCloseOutside(open, inside, closeOutside)
 
@@ -227,37 +232,41 @@ export function Select<T extends string>({
           aria-hidden
         />
       </button>
-      <div
-        ref={list}
-        id={listId}
-        role="listbox"
-        aria-label={open ? (aria["aria-label"] ?? listLabel) : undefined}
-        aria-labelledby={aria["aria-labelledby"]}
-        hidden={!open}
-        style={place}
-        onMouseDown={(e) => e.preventDefault()}
-        className={cx(
-          "fixed z-50 max-w-[min(24rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 font-sans text-ink shadow-panel",
-          "motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]",
+      {host &&
+        createPortal(
+          <div
+            ref={list}
+            id={listId}
+            role="listbox"
+            aria-label={open ? (aria["aria-label"] ?? listLabel) : undefined}
+            aria-labelledby={aria["aria-labelledby"]}
+            hidden={!open}
+            style={place}
+            onMouseDown={(e) => e.preventDefault()}
+            className={cx(
+              "fixed z-50 max-w-[min(24rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 font-sans text-ink shadow-panel",
+              "motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]",
+            )}
+          >
+            {options.map((item) =>
+              isGroup(item) ? (
+                // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role="group"; a fieldset groups form controls
+                <div key={`group-${item.label}`} role="group" aria-label={item.label} className="not-first:mt-1">
+                  <div
+                    aria-hidden
+                    className="px-1.5 pt-1.5 pb-1 text-[0.8rem] font-medium tracking-[0.06em] text-ink-dim uppercase"
+                  >
+                    {item.label}
+                  </div>
+                  {item.options.map(renderOption)}
+                </div>
+              ) : (
+                renderOption(item)
+              ),
+            )}
+          </div>,
+          host,
         )}
-      >
-        {options.map((item) =>
-          isGroup(item) ? (
-            // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role="group"; a fieldset groups form controls
-            <div key={`group-${item.label}`} role="group" aria-label={item.label} className="not-first:mt-1">
-              <div
-                aria-hidden
-                className="px-1.5 pt-1.5 pb-1 text-[0.8rem] font-medium tracking-[0.06em] text-ink-dim uppercase"
-              >
-                {item.label}
-              </div>
-              {item.options.map(renderOption)}
-            </div>
-          ) : (
-            renderOption(item)
-          ),
-        )}
-      </div>
     </>
   )
 }
