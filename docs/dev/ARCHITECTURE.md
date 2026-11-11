@@ -610,8 +610,9 @@ would take: nothing is drawn over a term. Every value is quoted by
 the rule of cli-base's parser (`quoteValue` in `src/domain/search.ts`). A name that fits several chats or people is
 refused with `details.candidates`, and one that fits nobody with `from:X — nobody matches "X"` or `no chat matches
 "X"`. cli-core's `pickPerson` took only the exact names when there were any, so `from:"Ярослав"` listed only the
-people called exactly that; from cli-core 0.640 it also lists those whose name contains it. The page (`nameChoices`) offers every person or chat whose name, @username or alias contains
-the typed text, from the tool's candidates, its lists and the message counts below, most messages first, each as a
+people called exactly that; from the cli-core release with name patterns (WireCatLabs/cli-core#2861) it also lists
+those whose name contains it. The page (`nameChoices`) offers every person or chat whose name, @username or alias
+contains the typed text, from the tool's candidates, its lists and the message counts below, most messages first, each as a
 button that puts its id in place of that term. `scripts/search-fields-check.mjs` runs every field, value form and
 date against the installed tools through the same Rust code (`cargo test real_batch`).
 
