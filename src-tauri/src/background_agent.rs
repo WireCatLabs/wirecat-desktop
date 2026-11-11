@@ -426,14 +426,14 @@ mod tests {
     fn reads_memos_list_of_agents_it_starts() {
         let v = json!({"items": [
             {"id": "claude", "name": "Claude Code", "programs": ["claude"], "reports_cost": true},
-            {"id": "grok", "name": "Grok CLI", "programs": ["grok"], "reports_cost": false, "installed": true,
-             "restricted": false, "restricted_reason": "approves every command in print mode"},
+            {"id": "kimi", "name": "Kimi CLI", "programs": ["kimi"], "reports_cost": false, "installed": true,
+             "restricted": false, "restricted_reason": "approves every command in print mode", "path": "/usr/bin/kimi"},
             {"id": "--all", "programs": []}, {"name": "no id"}
         ]});
         let r = parse_supported(&v);
-        assert_eq!(r.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), ["claude", "grok"]);
+        assert_eq!(r.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), ["claude", "kimi"]);
         assert!(r[0].reports_cost && !r[1].reports_cost);
-        assert_eq!(r[1].programs, ["grok"]);
+        assert_eq!(r[1].programs, ["kimi"]);
         assert_eq!((r[0].installed, r[1].installed), (None, Some(true)));
         assert!(!r[1].restricted && r[1].reason.as_deref() == Some("approves every command in print mode"));
     }
