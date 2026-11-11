@@ -1,6 +1,13 @@
 import { Sparkles } from "lucide-react"
 import { useId, useRef, useState } from "react"
-import { type NameChoices, nameChoices, queryReason, type ValueOption, withoutPatterns } from "@/domain/search"
+import {
+  type NameChoices,
+  nameChoices,
+  queryReason,
+  type ValueOption,
+  withoutLeadingStars,
+  withoutPatterns,
+} from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { QueryDraft as Draft, QueryWriter, SearchAnswer } from "@/platform/search-schemas"
@@ -108,11 +115,16 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
           )
         let query = draft.query
         let answer = await tried(query)
-        // A tool on an older cli-core refuses part-of-name patterns; its plain values still match part of a name.
-        const plain =
-          answer.kind === "queryError" && queryReason(answer.reason) === "unsupported-operator"
-            ? withoutPatterns(query)
-            : null
+        const refused = (...reasons: string[]) =>
+          answer.kind === "queryError" && reasons.includes(queryReason(answer.reason) ?? "")
+        // A large store's word list is too long to read for *word*, and an older cli-core takes only word* there.
+        const started = refused("too-large", "unsupported-operator") ? withoutLeadingStars(query) : null
+        if (started) {
+          query = started
+          answer = await tried(query)
+        }
+        // An older cli-core refuses part-of-name patterns; its plain values still match part of a name.
+        const plain = refused("unsupported-operator") ? withoutPatterns(query) : null
         if (plain) {
           query = plain
           answer = await tried(query)

@@ -219,9 +219,9 @@ describe("Search", () => {
     const user = userEvent.setup()
     const draft = vi
       .spyOn(platform, "searchDraft")
-      .mockResolvedValue({ kind: "query", query: "аренд* from:*Мила*", by: "claude-code" })
+      .mockResolvedValue({ kind: "query", query: "*аренд* from:*Мила*", by: "claude-code" })
     const search = vi.spyOn(platform, "searchStore").mockImplementation(async (_id, _profile, query) =>
-      query.includes("from:*")
+      /(^|\s)\*|:\*/.test(query)
         ? {
             kind: "queryError",
             reason: "query.unsupported-operator",
@@ -236,12 +236,42 @@ describe("Search", () => {
     await user.type(screen.getByLabelText("Describe what you're looking for"), "аренда у Милы{Enter}")
     await waitFor(
       () => expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("аренд* from:Мила"),
-      {
-        timeout: 4000,
-      },
+      { timeout: 4000 },
     )
     expect(draft).toHaveBeenCalledTimes(1)
-    expect(search.mock.calls.map((call) => call[2])).toEqual(["аренд* from:*Мила*", "аренд* from:Мила"])
+    expect(search.mock.calls.map((call) => call[2])).toEqual([
+      "*аренд* from:*Мила*",
+      "аренд* from:*Мила*",
+      "аренд* from:Мила",
+    ])
+  }, 15000)
+
+  it("searches a word by its start when the store's word list is too long for *word*, and shows that query", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchDraft").mockResolvedValue({
+      kind: "query",
+      query: "*аренд* from:*Мила*",
+      by: "claude-code",
+    })
+    const search = vi.spyOn(platform, "searchStore").mockImplementation(async (_id, _profile, query) =>
+      query.startsWith("*")
+        ? {
+            kind: "queryError",
+            reason: "query.too-large",
+            message: "search: *аренд* matches more than 10000 indexed words, the term expansions budget",
+            span: { start: 0, end: 7 },
+          }
+        : { kind: "hits", hits: [], hasMore: false, paged: false, notes: [], total: { value: 2, relation: "eq" } },
+    )
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "аренда у Милы{Enter}")
+    await waitFor(
+      () => expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("аренд* from:*Мила*"),
+      { timeout: 4000 },
+    )
+    expect(search.mock.calls.map((call) => call[2])).toEqual(["*аренд* from:*Мила*", "аренд* from:*Мила*"])
   }, 15000)
 
   it("puts the query in the box when the store could not try it, and says why under Details", async () => {

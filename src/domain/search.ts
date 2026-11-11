@@ -201,21 +201,47 @@ export const quoteValue = (value: string) =>
 // These take * and ? in every cli-core the app runs with; a pattern elsewhere needs a newer one.
 const ALWAYS_PATTERNS = new Set(["text", "exact", "body", "filename", "mime"])
 
+const PATTERN_TERM = /(^|[\s(])(-?)(?:([\p{L}_][\p{L}\p{N}_]*):)?((?:\\.|[^\s()"\\:])*[*?](?:\\.|[^\s()"\\])*)/gu
+
+const WORD_FIELDS = new Set(["text", "exact", "subject", "content", "transcript", "title"])
+
+/**
+ * Topic words by their start (`*договор*` → `договор*`), for a tool that refuses a pattern starting with * in its
+ * words: a large store's word list is too long to read whole, and an older cli-core takes only a start there. Names
+ * and other keys keep their patterns. Null when no word starts with *.
+ */
+export function withoutLeadingStars(query: string): string | null {
+  let changed = false
+  const out = query.replace(
+    PATTERN_TERM,
+    (whole, lead: string, minus: string, field: string | undefined, value: string) => {
+      if ((field && !WORD_FIELDS.has(field)) || !value.startsWith("*")) return whole
+      const rest = value.replace(/^\*+/u, "")
+      if (!/[\p{L}\p{N}]/u.test(rest)) return whole
+      changed = true
+      return `${lead}${minus}${field ? `${field}:` : ""}${/[*?]$/u.test(rest) ? rest : `${rest}*`}`
+    },
+  )
+  return changed ? out : null
+}
+
 /**
  * A written query as a tool on an older cli-core reads it: a part-of-name or part-of-value pattern (`from:*Мила*`,
  * `subject:отчет*`) becomes the plain value (`from:Мила`; such a tool reads it as part of a name only when nobody is
  * named exactly that). A word's start (`аренд*`) stays. Null when nothing changes, so the caller does not ask twice.
  */
 export function withoutPatterns(query: string): string | null {
-  const term = /(^|[\s(])(-?)(?:([\p{L}_][\p{L}\p{N}_]*):)?((?:\\.|[^\s()"\\:])*[*?](?:\\.|[^\s()"\\])*)/gu
   let changed = false
-  const out = query.replace(term, (whole, lead: string, minus: string, field: string | undefined, value: string) => {
-    if (!field || ALWAYS_PATTERNS.has(field)) return whole
-    const plain = value.replace(/\\(.)|[*?]/gu, (_, kept: string | undefined) => kept ?? "")
-    changed = true
-    if (!plain) return lead
-    return `${lead}${minus}${field}:${quoteValue(plain)}`
-  })
+  const out = query.replace(
+    PATTERN_TERM,
+    (whole, lead: string, minus: string, field: string | undefined, value: string) => {
+      if (!field || ALWAYS_PATTERNS.has(field)) return whole
+      const plain = value.replace(/\\(.)|[*?]/gu, (_, kept: string | undefined) => kept ?? "")
+      changed = true
+      if (!plain) return lead
+      return `${lead}${minus}${field}:${quoteValue(plain)}`
+    },
+  )
   return changed ? out.replace(/\s{2,}/g, " ").trim() : null
 }
 
