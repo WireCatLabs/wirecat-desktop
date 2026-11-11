@@ -41,7 +41,7 @@ describe("an account row", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
-    ).toEqual(["Check", "Settings", "Sign in again", "Rename", "Sign out", "Remove account"])
+    ).toEqual(["Check", "Sign in again", "Rename", "Sign out", "Remove account"])
   })
 
   it("gives Bitrix24 the same actions as every tool", async () => {

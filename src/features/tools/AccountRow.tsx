@@ -2,7 +2,6 @@ import { LogIn } from "lucide-react"
 import { useId, useState } from "react"
 import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
-import { openSettingsAt } from "@/features/config"
 import { useMessages } from "@/i18n"
 import type { Profile } from "@/platform/schemas"
 import { ACCOUNT_NAME_MAX, nameOf, useAccountNames } from "@/shared/account-names-store"
@@ -49,7 +48,6 @@ export function AccountRow(props: {
       ? [{ label: check.running ? m.checking : m.check, disabled: check.running, onSelect: () => check.run(p.name) }]
       : []),
     ...(tool.folderPicker && p.signedIn === true ? [{ label: m.folders, onSelect: () => setFolders(true) }] : []),
-    ...(tool.settings?.perProfile ? [{ label: m.settings, onSelect: () => openSettingsAt(tool.id, p.name) }] : []),
     ...(tool.setup
       ? [
           {
