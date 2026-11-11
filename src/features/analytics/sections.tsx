@@ -49,14 +49,11 @@ type M = typeof analyticsMessages.en
 export function Panel({
   id,
   title,
-  source,
   badge,
   children,
 }: {
   id: string
   title: string
-  /** The tool command the numbers come from, so a reader can trace them. */
-  source: string
   badge?: ReactNode
   children: ReactNode
 }) {
@@ -67,7 +64,6 @@ export function Panel({
           {title}
           {badge}
         </SectionTitle>
-        <code className="font-mono text-[0.85rem] text-ink-dim">{source}</code>
       </div>
       <div className="flex flex-col gap-[1.3rem] px-[1.3rem] py-[1.1rem]">{children}</div>
     </section>
@@ -121,7 +117,7 @@ export function Overview() {
   const m = useMessages(analyticsMessages)
   const volume = useAnalytics((s) => s.volume)
   return (
-    <Panel id="an-overview" title={m.overview} source="store info">
+    <Panel id="an-overview" title={m.overview}>
       {volume.state === "loading" ? (
         <>
           <StatsSkeleton n={6} label={m.overview} />
@@ -152,7 +148,7 @@ export function StorageBreakdown() {
   const volume = useAnalytics((s) => s.volume)
   const sourceName = useSourceName()
   return (
-    <Panel id="an-breakdown" title={m.bySource} source="store info">
+    <Panel id="an-breakdown" title={m.bySource}>
       {volume.state === "loading" ? (
         <Skeleton className="h-[19rem] w-full rounded-[0.2rem]" label={m.bySource} />
       ) : volume.state !== "ready" || volume.data === null || !volume.data.breakdown ? (
@@ -288,7 +284,7 @@ export function Activity() {
   )
 
   return (
-    <Panel id="an-activity" title={m.activity} source="stats messages show · tasks counts · memories list">
+    <Panel id="an-activity" title={m.activity}>
       {none ? (
         <Note>{m.noMessengers}</Note>
       ) : loading && ready.length === 0 ? (
@@ -372,7 +368,7 @@ export function People() {
   const names = (n: string | null) => (n === null ? m.unnamed : hide ? initials(n) : n)
 
   return (
-    <Panel id="an-people" title={m.people} source={`stats messages show --by ${by === "senders" ? "sender" : "chat"}`}>
+    <Panel id="an-people" title={m.people}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Segmented<"senders" | "chats">
@@ -464,7 +460,7 @@ export function Projects() {
   const head = [m.open, m.overdue, m.closed, m.memoryCol]
 
   return (
-    <Panel id="an-projects" title={m.projects} source="tasks counts · stats projects show">
+    <Panel id="an-projects" title={m.projects}>
       {tasks.state === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
@@ -573,7 +569,7 @@ export function Tasks() {
   const unsorted = inbox?.open ?? null
   const grain = taskGrain(period)
   return (
-    <Panel id="an-tasks" title={m.tasks} source="tasks counts · stats tasks show">
+    <Panel id="an-tasks" title={m.tasks}>
       {tasks.state === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
@@ -672,7 +668,7 @@ export function Memory() {
   const grain = grainOf(period)
   const palette = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)"]
   return (
-    <Panel id="an-memory" title={m.memory} source="memories list · facts list">
+    <Panel id="an-memory" title={m.memory}>
       {memory.state === "loading" ? (
         <>
           <Skeleton className="h-[5.5rem] w-full rounded-[0.2rem]" label={m.memory} />
@@ -759,7 +755,7 @@ export function Helps() {
     ) : null
   return (
     <>
-      <Panel id="an-helps" title={m.helps} source="runs list">
+      <Panel id="an-helps" title={m.helps}>
         {waiting ??
           (h && (
             <div className="reveal flex flex-col gap-[1.3rem]">
@@ -772,7 +768,7 @@ export function Helps() {
             </div>
           ))}
       </Panel>
-      <Panel id="an-helps-by" title={m.byAgent} source="runs list">
+      <Panel id="an-helps-by" title={m.byAgent}>
         {waiting ??
           (h &&
             (h.agentRuns === 0 ? (
@@ -820,7 +816,7 @@ export function MemoryWeeks() {
   const grain = period === "7d" ? "day" : "week"
   const palette = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)"]
   return (
-    <Panel id="an-fact-weeks" title={m.factWeeksTitle} source="facts list">
+    <Panel id="an-fact-weeks" title={m.factWeeksTitle}>
       {memory.state === "loading" ? (
         <ChartSkeleton />
       ) : memory.state === "error" ? (
