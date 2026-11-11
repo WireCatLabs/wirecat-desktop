@@ -94,7 +94,18 @@ it("shows no switch on a guide whose words are the same for every messenger", ()
   openGuide("Remember what someone prefers")
   const box = guide("Remember what someone prefers")
   expect(within(box).queryByRole("group", { name: "Messenger" })).not.toBeInTheDocument()
-  expect(within(box).getByText(/^Uses memory, Telegram,? and WhatsApp$/)).toBeInTheDocument()
+  expect(within(box).getByText(/^Uses memory: everything synced from Telegram and WhatsApp$/)).toBeInTheDocument()
+})
+
+it("says a guide that only asks memo reads every synced source, not one messenger", () => {
+  installed("tg", "max", "zm", "memo")
+  render(<GuidesPage />)
+  openGuide("Find where something was decided")
+  expect(
+    within(guide("Find where something was decided")).getByText(
+      /^Uses memory: everything synced from Telegram, MAX,? and Zoom$/,
+    ),
+  ).toBeInTheDocument()
 })
 
 it("asks for a messenger when none is installed", () => {

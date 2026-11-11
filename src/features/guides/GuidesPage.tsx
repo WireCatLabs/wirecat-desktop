@@ -1,9 +1,9 @@
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
-import { Check, ChevronDown, Copy, Search, ShieldCheck, SquareTerminal, X } from "lucide-react"
+import { Check, ChevronDown, Copy, Search, ShieldCheck, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
-import { AgentRunNote, runAgent, useStartableAgents } from "@/features/fix"
+import { AgentLaunch, AgentRunNote, runAgent, useLaunchable } from "@/features/fix"
 import { openTool } from "@/features/tools"
 import { formatList, LANGS, type Lang, useLang, useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
@@ -54,6 +54,9 @@ export function startOrder(fits: Map<string, Fit>): string[] {
 
 // The first guide here that the owner's tools can run is the one the page offers first.
 const START_ORDER = ["catch-up", "plan-the-day", "where-decided", "meeting-prep", "drive-brief", "call-follow-up"]
+
+/** The tools whose data memo reads: every one that syncs into the store. */
+const SOURCES = tools.filter((t) => t.sync !== null && t.id !== "memo").map((t) => t.id)
 
 const nameOf = (id: string, m: Text) => (id === "memo" ? m.memory : (tools.find((t) => t.id === id)?.name ?? id))
 const orList = (items: string[], lang: Lang) => new Intl.ListFormat(lang, { type: "disjunction" }).format(items)
@@ -366,9 +369,10 @@ function GuideBody(props: {
     if (scrollTo) box.current?.scrollIntoView({ block: "start" })
   }, [scrollTo])
   // Every agent WireCat can start and found on this computer gets its own Open; any other agent takes the copy.
-  const launchers = useStartableAgents() ?? []
+  const agents = useLaunchable() ?? []
+  const launchers = agents.filter((a) => a.found)
   const [run, setRun] = useState<{ agent: string; result: AgentRun | null } | null>(null)
-  const launch = launchers.find((a) => a.id === run?.agent) ?? null
+  const launch = agents.find((a) => a.id === run?.agent) ?? null
   const shownRun = launch ? run : null
   const open = async (id: string) => {
     setRun({ agent: id, result: null })
@@ -436,19 +440,12 @@ function GuideBody(props: {
           <p className="text-[0.9rem] text-ink-dim">{launchers.length > 0 ? m.askHintOpen : m.askHint}</p>
           <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
             <CopyButton text={prompt} m={m} primary={!quiet && known && fit.ready} />
-            {launchers.map((a) => {
-              const opening = shownRun?.agent === a.id && !shownRun.result
-              return (
-                <Button
-                  key={a.id}
-                  disabled={shownRun !== null && shownRun.result === null}
-                  onClick={() => open(a.id)}
-                  icon={<SquareTerminal className="size-4 text-ink-dim" aria-hidden />}
-                >
-                  <StableText value={opening ? m.opening : m.openIn(a.name)} variants={[m.opening, m.openIn(a.name)]} />
-                </Button>
-              )
-            })}
+            <AgentLaunch
+              label={m.openIn}
+              openingLabel={m.opening}
+              opening={shownRun && !shownRun.result ? shownRun.agent : null}
+              onOpen={(a) => open(a.id)}
+            />
           </div>
           <p className="text-[0.9rem] text-ink-soft">{m.pasteAny}</p>
           <div aria-live="polite">
@@ -508,13 +505,17 @@ function GuideBody(props: {
 function Needs(props: { guide: Guide; fit: Fit; messenger: string | null; ctx: Ctx }) {
   const { guide: g, fit, messenger, ctx } = props
   const { m, lang, known } = ctx
+  // memo answers from everything WireCat synced, so a guide that only asks memo reads every source the owner has.
+  const everySource = (g.needs.all ?? []).includes("memo") && !variesByMessenger(g)
   // A guide whose words do not change with the messenger reads from every installed one.
-  const reads = variesByMessenger(g)
-    ? messenger && fit.messengers.includes(messenger)
-      ? [messenger]
-      : []
-    : fit.messengers
-  const uses = [...(g.needs.all ?? []), ...reads, ...fit.extras]
+  const reads = everySource
+    ? SOURCES.filter((id) => ctx.has(id))
+    : variesByMessenger(g)
+      ? messenger && fit.messengers.includes(messenger)
+        ? [messenger]
+        : []
+      : fit.messengers
+  const uses = [...new Set([...(g.needs.all ?? []), ...reads, ...fit.extras])]
   const link = "text-[0.92rem] font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
   if (!known || fit.ready)
     return (
@@ -524,12 +525,19 @@ function Needs(props: { guide: Guide; fit: Fit; messenger: string | null; ctx: C
             <ToolIcon key={id} id={id} className="size-[1.1rem] text-ink-soft" />
           ))}
         </span>
-        {m.uses(
-          formatList(
-            uses.map((id) => nameOf(id, m)),
-            lang,
-          ),
-        )}
+        {everySource
+          ? m.usesEvery(
+              formatList(
+                uses.filter((id) => id !== "memo").map((id) => nameOf(id, m)),
+                lang,
+              ),
+            )
+          : m.uses(
+              formatList(
+                uses.map((id) => nameOf(id, m)),
+                lang,
+              ),
+            )}
       </p>
     )
   const messengerMissing = fit.missing.length === 0

@@ -4,7 +4,15 @@ import { cx } from "./cx"
 import { ExpandChevron } from "./ExpandChevron"
 import { useCloseOutside, useListPlacement } from "./popup-list"
 
-export type MenuItem = { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean }
+export type MenuItem = {
+  label: string
+  onSelect: () => void
+  danger?: boolean
+  disabled?: boolean
+  icon?: ReactNode
+  /** A second, quieter line under the label. */
+  note?: string
+}
 
 type Props = {
   /** The main action; without one, only the menu button shows. */
@@ -162,11 +170,20 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
                 item.onSelect()
               }}
               className={cx(
-                "flex h-[2.2rem] w-full items-center rounded-[0.3rem] px-[0.7rem] text-left text-[0.95rem] whitespace-nowrap hover:bg-app-3 focus-visible:bg-app-3 disabled:opacity-45",
+                "flex w-full items-center gap-[0.6rem] rounded-[0.3rem] px-[0.7rem] text-left text-[0.95rem] whitespace-nowrap hover:bg-app-3 focus-visible:bg-app-3 disabled:opacity-45",
+                item.note ? "py-[0.4rem]" : "h-[2.2rem]",
                 item.danger ? "text-bad" : "text-ink",
               )}
             >
-              {item.label}
+              {item.icon}
+              {item.note ? (
+                <span className="flex flex-col">
+                  {item.label}
+                  <span className="text-[0.85rem] text-ink-dim">{item.note}</span>
+                </span>
+              ) : (
+                item.label
+              )}
             </button>
           ))}
         </div>

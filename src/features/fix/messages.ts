@@ -11,6 +11,11 @@ const en = {
   started: (agent: string) =>
     `${agent} opened in a terminal with the prompt. When it says the problem is fixed, press Try again.`,
   failed: (agent: string) => `Could not start ${agent}.`,
+  pick: "Choose the agent",
+  openInAgent: "Open in an agent",
+  notInstalled: "Not found on this computer: pick it to see how to install it",
+  install: (agent: string, command: string) =>
+    `To install ${agent}, run ${command} in a terminal, then restart WireCat.`,
   why: {
     missing: (agent: string, bin: string) =>
       `${agent} is not on this computer's PATH, so WireCat cannot start it. Open a new terminal and run ${bin}: if it is not found, install ${agent} again; if it starts, restart WireCat so it sees the new PATH.`,
@@ -36,6 +41,11 @@ const ru: typeof en = {
   started: (agent) =>
     `${agent} открыт в терминале с промптом. Когда он скажет, что всё исправлено, нажмите «Попробовать снова».`,
   failed: (agent) => `Не удалось запустить ${agent}.`,
+  pick: "Выбрать агента",
+  openInAgent: "Открыть в агенте",
+  notInstalled: "Не найден на этом компьютере: выберите, чтобы узнать, как установить",
+  install: (agent, command) =>
+    `Чтобы установить ${agent}, выполните в терминале ${command}, затем перезапустите WireCat.`,
   why: {
     missing: (agent, bin) =>
       `${agent} нет в PATH этого компьютера, поэтому WireCat не может его запустить. Откройте новый терминал и выполните ${bin}: если команда не найдена, установите ${agent} заново; если запустился — перезапустите WireCat, чтобы он увидел новый PATH.`,
@@ -61,6 +71,10 @@ const es: typeof en = {
   started: (agent) =>
     `${agent} se abrió en un terminal con el prompt. Cuando diga que está arreglado, pulsa Reintentar.`,
   failed: (agent) => `No se pudo iniciar ${agent}.`,
+  pick: "Elegir el agente",
+  openInAgent: "Abrir en un agente",
+  notInstalled: "No está en este ordenador: elígelo para ver cómo instalarlo",
+  install: (agent, command) => `Para instalar ${agent}, ejecuta ${command} en una terminal y reinicia WireCat.`,
   why: {
     missing: (agent, bin) =>
       `${agent} no está en el PATH de este equipo, así que WireCat no puede iniciarlo. Abre un terminal nuevo y ejecuta ${bin}: si no se encuentra, instala ${agent} de nuevo; si arranca, reinicia WireCat para que vea el PATH nuevo.`,
