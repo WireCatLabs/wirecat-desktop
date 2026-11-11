@@ -76,9 +76,15 @@ export function mailAgentMock(
     async mailAgentSet(_id, turnOn, every = "30m", agent) {
       await delay(900)
       if (turnOn && params.get("mail-agent-fail")) throw new Error("claude is not on PATH")
+      // As memo: a new agent replaces the schedule, but its last run and that run's refusal stay until the next run.
       const kept =
-        state.state === "on" && !agent
-          ? { last: state.last, spentTodayUsd: state.spentTodayUsd, agent: state.agent, trouble: state.trouble }
+        state.state === "on"
+          ? {
+              last: state.last,
+              spentTodayUsd: state.spentTodayUsd,
+              agent: agent ?? state.agent,
+              trouble: state.trouble,
+            }
           : { last: null, spentTodayUsd: 0, agent: agent ?? "claude", trouble: null }
       state = turnOn ? on({ ...kept, when: `every ${every}`, every }) : { state: "off", harness: true }
       return state

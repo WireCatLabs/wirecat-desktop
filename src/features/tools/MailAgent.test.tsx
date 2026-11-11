@@ -130,7 +130,14 @@ it("names the agent with no credit, keeps its words under Details and offers the
     last: failed,
     trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
   })
-  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, agent: "codex" })
+  const choose = vi.spyOn(platform, "backgroundAgentChoose").mockResolvedValue(agents(["claude", "codex"], "codex"))
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({
+    ...on,
+    agent: "codex",
+    last: failed,
+    spentTodayUsd: 0,
+    trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
+  })
   const user = userEvent.setup()
   render(<MailAgent tool={email} />)
 
@@ -138,8 +145,14 @@ it("names the agent with no credit, keeps its words under Details and offers the
   await user.click(screen.getByRole("button", { name: "Details" }))
   expect(screen.getByText("Credit balance is too low")).toBeInTheDocument()
   expect(set).not.toHaveBeenCalled()
-  await user.click(screen.getByRole("button", { name: "Run through Codex" }))
+  await user.click(screen.getByRole("button", { name: "Switch to Codex" }))
   expect(set).toHaveBeenCalledWith("email", true, "30m", "codex")
+  await vi.waitFor(() => expect(choose).toHaveBeenCalledWith("codex"))
+  // The failed run was Claude's: once the job runs in Codex it is history, and Codex reports no cost.
+  expect(await screen.findByText(/runs in Codex/)).toBeInTheDocument()
+  expect(screen.queryByText(/has no credit left/)).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
+  expect(screen.queryByText(/Spent today/)).not.toBeInTheDocument()
 })
 
 it("offers no other agent when only the failing one is installed", async () => {
@@ -151,7 +164,7 @@ it("offers no other agent when only the failing one is installed", async () => {
   render(<MailAgent tool={email} />)
 
   expect(await screen.findByText("Claude Code reached its usage limit, so the run failed.")).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /Run through/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
 })
 
 it("offers Memo instead of a switch when memo is not installed", async () => {

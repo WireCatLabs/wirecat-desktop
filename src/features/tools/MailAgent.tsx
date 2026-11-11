@@ -5,6 +5,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { agentName, BackgroundAgentChoice, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
+import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
@@ -88,6 +89,8 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
         if (s.state === "on" && s.every) setEvery(s.every)
         setPending(null)
         loadWaiting()
+        // The mail agent is the one job that can change agent, so the owner's click here is his choice for all.
+        if (pick && agents?.chosen !== pick) void useBackgroundAgents.getState().choose(pick)
       },
       (e) => {
         setPending(null)
@@ -233,7 +236,12 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
   const lang = useLang()
   const a = useMessages(backgroundAgentMessages)
   const { last, spentTodayUsd, trouble } = state
-  const failing = trouble !== null && last !== null && last.exitCode !== 0
+  // After a switch the last run is still the old agent's: its refusal no longer says anything about the job.
+  const failing =
+    trouble !== null &&
+    last !== null &&
+    last.exitCode !== 0 &&
+    (trouble.agent === null || state.agent === null || trouble.agent === state.agent)
   const troubled = failing ? (trouble.agent ?? state.agent) : null
   const instead = failing ? others.find((id) => id !== troubled) : undefined
   const moved = !failing && state.agent !== null && effective !== null && effective !== state.agent
@@ -253,7 +261,7 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
       ) : (
         <p>{m.noRunYet}</p>
       )}
-      {spentTodayUsd !== null && (
+      {spentTodayUsd !== null && state.agent !== "codex" && (
         <p className="tabular-nums">
           {m.spentToday(formatUsd(spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang))}
         </p>
@@ -266,7 +274,7 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
           action={
             instead && (
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => onRun(instead)}>
-                {a.runVia(agentName(a.names, instead))}
+                {a.switchTo(agentName(a.names, instead))}
               </Button>
             )
           }
@@ -278,7 +286,7 @@ function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
         <div className="flex flex-wrap items-center gap-3">
           <p>{m.otherChosen(agentName(a.names, effective), agentName(a.names, state.agent))}</p>
           <Button size="sm" variant="secondary" disabled={busy} onClick={() => onRun(effective)}>
-            {a.runVia(agentName(a.names, effective))}
+            {a.switchTo(agentName(a.names, effective))}
           </Button>
         </div>
       )}

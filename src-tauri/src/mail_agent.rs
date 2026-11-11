@@ -110,6 +110,8 @@ fn read(src: &MailAgentSource, v: &Value, agent: Option<String>) -> MailAgent {
     let found = v["items"].as_array().into_iter().flatten().find(|i| i["name"].as_str() == Some(src.name.as_str()));
     let Some(item) = found else { return MailAgent::Off { harness: background_agent::any_installed() } };
     let when = item["when"].as_str().unwrap_or_default().to_string();
+    // A schedule made before the note: only claude's command line carries the per-run cap memo reports.
+    let agent = agent.or_else(|| item["max_cost_usd"].as_f64().map(|_| "claude".to_string()));
     MailAgent::On {
         trouble: background_agent::trouble_of_run(&item["last"], agent.as_deref()),
         agent,
@@ -287,8 +289,7 @@ mod tests {
             "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
             "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "cost.day-cap"}}}]});
-        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } =
-            read(src(), &v, Some("claude".into()))
+        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, agent, .. } = read(src(), &v, None)
         else {
             panic!("on")
         };
@@ -297,6 +298,7 @@ mod tests {
             Some(Skipped { at: "2026-11-05T22:04:36Z".into(), why: why.into(), reason: Some("cost.day-cap".into()) })
         );
         assert_eq!((max_cost_usd, max_cost_per_day_usd), (Some(1.0), Some(5.0)));
+        assert_eq!(agent.as_deref(), Some("claude"), "only claude's command line has a per-run cap");
     }
 
     #[test]

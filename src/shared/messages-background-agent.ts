@@ -25,7 +25,7 @@ const en = {
     signedOut: (name: string) => `${name} is not signed in, so the run failed. Sign in to it in a terminal.`,
   } as Record<TroubleKind, (name: string) => string>,
   theAgent: "The agent",
-  runVia: (name: string) => `Run through ${name}`,
+  switchTo: (name: string) => `Switch to ${name}`,
 }
 
 const ru: typeof en = {
@@ -52,7 +52,7 @@ const ru: typeof en = {
     signedOut: (name) => `В ${name} не выполнен вход, поэтому запуск не удался. Войдите в него в терминале.`,
   },
   theAgent: "Агент",
-  runVia: (name) => `Запустить через ${name}`,
+  switchTo: (name) => `Перевести на ${name}`,
 }
 
 const es: typeof en = {
@@ -81,7 +81,7 @@ const es: typeof en = {
       `${name} no tiene la sesión iniciada, así que la ejecución falló. Inicia sesión en una terminal.`,
   },
   theAgent: "El agente",
-  runVia: (name) => `Ejecutar con ${name}`,
+  switchTo: (name) => `Cambiar a ${name}`,
 }
 
 export type BackgroundAgentText = typeof en

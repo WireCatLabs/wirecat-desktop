@@ -15,8 +15,11 @@ use std::path::{Path, PathBuf};
 /// `schedule agent`'s harness, and the id memo's reader list gives the same program.
 const AGENTS: [(&str, &str); 2] = [("claude", "claude-code"), ("codex", "codex")];
 const FILE: &str = "background-agent.json";
-/// An agent prints its refusal last; the head of a long report is never needed for it.
+/// An agent prints its refusal last; the head of a long stderr is never needed for it.
 const TAIL: u64 = 64 * 1024;
+/// A refusal in the report is the whole answer, one sentence. A longer report is the agent's work, which may quote
+/// mail that talks about credits or logins, so it is never matched.
+const SHORT_REPORT: u64 = 2048;
 const MAX_LINE: usize = 240;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -199,10 +202,10 @@ pub fn classify(text: &str, agent: Option<&str>) -> Option<AgentTrouble> {
     })
 }
 
-fn tail(path: &Path) -> Option<String> {
+fn tail(path: &Path, most: u64) -> Option<String> {
     let mut f = std::fs::File::open(path).ok()?;
     let len = f.metadata().ok()?.len();
-    f.seek(SeekFrom::Start(len.saturating_sub(TAIL))).ok()?;
+    f.seek(SeekFrom::Start(len.saturating_sub(most))).ok()?;
     let mut bytes = Vec::new();
     f.read_to_end(&mut bytes).ok()?;
     Some(String::from_utf8_lossy(&bytes).into_owned())
@@ -219,8 +222,10 @@ pub fn trouble_of_run(last: &Value, agent: Option<&str>) -> Option<AgentTrouble>
     if !report.is_absolute() || !in_runs || report.extension().is_none_or(|e| e != "md") {
         return None;
     }
-    let errors = report.with_extension("log");
-    [errors, report].iter().filter_map(|p| tail(p)).find_map(|t| classify(&t, agent))
+    let errors = tail(&report.with_extension("log"), TAIL);
+    let short = std::fs::metadata(&report).is_ok_and(|m| m.len() <= SHORT_REPORT);
+    let answer = if short { tail(&report, SHORT_REPORT) } else { None };
+    [errors, answer].into_iter().flatten().find_map(|t| classify(&t, agent))
 }
 
 #[cfg(test)]
@@ -320,6 +325,17 @@ mod tests {
         let elsewhere = runs.parent().unwrap().join("1.md");
         std::fs::write(&elsewhere, "Credit balance is too low").unwrap();
         assert_eq!(trouble_of_run(&json!({"exit_code": 1, "output": elsewhere.to_string_lossy()}), None), None);
+        let long = runs.join("2.md");
+        std::fs::write(&long, format!("{}\nFwd: Your workspace is out of credits.\n", "Invoice due. ".repeat(400)))
+            .unwrap();
+        assert_eq!(trouble_of_run(&json!({"exit_code": 1, "output": long.to_string_lossy()}), None), None);
+        std::fs::write(runs.join("2.log"), "ERROR: You've hit your usage limit. Try again later.").unwrap();
+        let t = trouble_of_run(&json!({"exit_code": 1, "output": long.to_string_lossy()}), None).unwrap();
+        assert_eq!(
+            (t.agent.as_deref(), t.kind),
+            (Some("codex"), TroubleKind::Limit),
+            "stderr is read whatever its size"
+        );
         std::fs::remove_dir_all(runs.parent().unwrap()).unwrap();
     }
 }
