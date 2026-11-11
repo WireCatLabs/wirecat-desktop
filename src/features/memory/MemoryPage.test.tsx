@@ -71,6 +71,41 @@ describe("Memory", () => {
     expect(screen.getByText("Long list fact 39")).toBeInTheDocument()
   })
 
+  it("pages by what is on screen: a folded group is one line, its header, and its rows take no page", async () => {
+    const user = userEvent.setup()
+    const read = await platform.memoryRead()
+    if (read.kind !== "ready") throw new Error("the mock memory is not ready")
+    const one = read.entries.find((e) => e.type === "fact" && e.status === "proposed") ?? read.entries[0]
+    if (!one) throw new Error("the mock memory has no entries")
+    const none = { subject: null, subjectName: null, subjectIsOwner: false, project: null, projectName: null }
+    const ana = { ...one, ...none, ref: "fact:8999", text: "Ana fact", subject: "person:1", subjectName: "Ana Ruiz" }
+    const loose = Array.from({ length: 60 }, (_, i) => ({
+      ...one,
+      ...none,
+      ref: `fact:${9100 + i}`,
+      text: `Loose ${i}`,
+    }))
+    vi.spyOn(platform, "memoryRead").mockResolvedValueOnce({ ...read, entries: [ana, ...loose] })
+    useMemory.setState(useMemory.getInitialState(), true)
+    render(<MemoryPage />)
+    await rack()
+    expect(screen.getByText("1–20 of 61")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Next page" }))
+    expect(screen.getByText("Loose 19")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /^Not about anyone in particular/, expanded: true }))
+    const region = await rack()
+    expect(screen.getByText("Ana fact")).toBeInTheDocument()
+    expect(within(region).getByRole("heading", { name: /^Not about anyone in particular/ })).toHaveTextContent(/60/)
+    expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Approve all on this page: 1" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /^Not about anyone in particular/, expanded: false }))
+    expect(await screen.findByText("Loose 18")).toBeInTheDocument()
+    expect(screen.queryByText("Loose 19")).not.toBeInTheDocument()
+    expect(screen.getByText("1–20 of 61")).toBeInTheDocument()
+  })
+
   it("groups rows under the project or person they are about", async () => {
     render(<MemoryPage />)
     const region = await rack()
