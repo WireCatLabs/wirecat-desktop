@@ -85,6 +85,35 @@ export function personName(p: {
   return cleanName(p.displayName) ?? cleanName(p.name) ?? (p.contact?.trim() || null)
 }
 
+const letters = (s: string) => s.match(/\p{L}/gu)?.length ?? 0
+/** A name of one or two letters, such as «Вр»: the person's accounts may know them better. */
+export const isFragment = (name: string | null | undefined) => {
+  const clean = cleanName(name)
+  return clean !== null && letters(clean) <= 2
+}
+const wordsOf = (s: string) =>
+  s
+    .toLocaleLowerCase()
+    .split(/[\s.,]+/)
+    .filter(Boolean)
+
+/**
+ * The fullest of a person's name and their accounts' names. A fragment of one or two letters («Вр») gives way to the
+ * longest account name, and a name gives way to an account name that holds all its words and more («Ярослав» to
+ * «Ярослав Орлов»). Any other name is kept: accounts of one person may carry someone else's name.
+ */
+export function fullerName(name: string | null, accountNames: readonly (string | null | undefined)[]): string | null {
+  const names = accountNames.map(cleanName).filter((n): n is string => n !== null && letters(n) > 2)
+  if (!name || letters(name) <= 2)
+    return names.reduce<string | null>((best, n) => (!best || letters(n) > letters(best) ? n : best), null) ?? name
+  const own = wordsOf(name)
+  const longer = names.filter((n) => {
+    const words = wordsOf(n)
+    return words.length > own.length && own.every((w) => words.includes(w))
+  })
+  return longer.reduce((best, n) => (letters(n) > letters(best) ? n : best), name)
+}
+
 /** For a person with no usable name: the first account name that has letters, else their first handle. */
 export function handleOf(identities: readonly { name: string | null; username: string | null }[]): string | null {
   for (const i of identities) {

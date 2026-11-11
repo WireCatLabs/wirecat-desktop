@@ -6,6 +6,7 @@ import {
   cleanName,
   contactOf,
   filterPeople,
+  fullerName,
   handleOf,
   looksLikeAccount,
   matchesFilter,
@@ -137,5 +138,16 @@ describe("people", () => {
     expect(profilesOf({ provider: "telegram", seenIn: [seen("1001")] }, members)).toEqual(["personal"])
     expect(profilesOf({ provider: "email", seenIn: [seen("me@work.example")] }, members)).toEqual(["me@work.example"])
     expect(profilesOf({ provider: "telegram", seenIn: [seen("9")] }, members)).toEqual([])
+  })
+
+  it("gives a fragment of a name way to the fullest account name", () => {
+    expect(fullerName("Вр", ["Богдан Постушенко", null, "Богдан"])).toBe("Богдан Постушенко")
+    expect(fullerName(null, ["Богдан"])).toBe("Богдан")
+    expect(fullerName("Ярослав", ["Ярослав Орлов", "Орлов"])).toBe("Ярослав Орлов")
+  })
+
+  it("keeps a full name that an account does not extend", () => {
+    expect(fullerName("Лена Ортис", ["Kai M.", "Лена"])).toBe("Лена Ортис")
+    expect(fullerName("Вр", ["Ли"])).toBe("Вр")
   })
 })

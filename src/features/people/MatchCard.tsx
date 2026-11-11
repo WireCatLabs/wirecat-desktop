@@ -89,7 +89,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
             onClick={() => openMatch(group.key)}
             className="rounded-[0.2rem] text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
           >
-            {people.map((p) => name(p)).join(" · ")}
+            {titleOf(names, m.everyone)}
           </button>
         </h3>
         <Proposer by={first.proposer} />
@@ -133,7 +133,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         from={from}
         chosen={chosen}
         pickId={pickList}
-        confirmLabel={picking && !all ? m.joinPicked(chosen.length) : m.confirm}
+        confirmLabel={picking ? (all ? m.mergeAll(people.length) : m.joinPicked(chosen.length)) : m.confirm}
         hint={picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
         lead={
           <Button
@@ -148,6 +148,12 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
       />
     </article>
   )
+}
+
+/** Each name once, whatever its case: «Билайн бизнес · билайн бизнес» says nothing the count does not. */
+export function titleOf(names: readonly string[], count: (n: number) => string) {
+  const unique = names.filter((n, i) => names.findIndex((x) => x.toLocaleLowerCase() === n.toLocaleLowerCase()) === i)
+  return unique.length < names.length ? `${unique.join(" · ")} · ${count(names.length)}` : unique.join(" · ")
 }
 
 /** What the two sides have in common, each with its value: "Name  Beeline business", "Domain  beeline.ru". */

@@ -278,6 +278,9 @@ function createTauri(): Platform {
     peopleKeep: async (reference) => {
       await invoke("people_keep", { reference })
     },
+    peopleContact: async (reference, organization) => {
+      await invoke("people_contact", { reference, organization })
+    },
     peopleMerge: (refs) => call(MergedSchema, "people_merge", { references: refs }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
     peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),

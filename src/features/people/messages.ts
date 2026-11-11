@@ -169,6 +169,12 @@ const en = {
   companyOtherName: "Or type the company's name",
   companyNameNeeded: "Type the company's name.",
   companySave: "Give it to this company",
+  mailboxUsersAsk: "Who of them writes from this address?",
+  mailboxUsersHelp:
+    "Optional. They stay separate people and are saved as the company's contacts. The address stays the company's.",
+  mailboxUsersSave: "Save as the company's contacts",
+  mailboxUsersNone: "Tick at least one person.",
+  mailboxUsersSaved: (names: string) => `Saved: ${names} write for this company.`,
   matchDetails: "Match details",
   reviewMatches: "Review matches",
   backToPeople: "All contacts",
@@ -279,6 +285,21 @@ const en = {
   doubtsHide: "Hide",
   doubtsPages: "Pages of people to check",
   doubtOpen: "Open",
+  doubtTestSeparateHelp:
+    "This person has real accounts too. Separate the test ones: they move to a card of their own, and the real ones stay here.",
+  doubtTestOnlyHelp:
+    "Every account here is test data. Memo cannot remove test data yet, so you can only put the card aside on this computer.",
+  doubtSeparateTest: "Separate test accounts",
+  doubtSetAside: "Put aside",
+  doubtSeparated: (name: string) => `The test accounts left ${name} for a card of their own.`,
+  doubtPutAside: (name: string) => `${name} is put aside on this computer.`,
+  doubtsAside: (n: number) =>
+    plural("en", n, {
+      one: "# test data card is put aside on this computer.",
+      other: "# test data cards are put aside on this computer.",
+    }),
+  doubtsShowAside: "Show them",
+  copyAccount: (value: string) => `Copy ${value}`,
   tasksTitle: "Tasks",
   tasksRefused: "Memo did not accept the search for this person's tasks.",
   tasksNeedMemo: "Memo is missing or too old to list tasks. The Tasks page offers the fix.",
@@ -479,6 +500,12 @@ const ru: typeof en = {
   companyOtherName: "Или введите название компании",
   companyNameNeeded: "Введите название компании.",
   companySave: "Отдать этой компании",
+  mailboxUsersAsk: "Кто из них пишет с этого адреса?",
+  mailboxUsersHelp:
+    "Необязательно. Они останутся отдельными людьми и сохранятся как контакты компании. Адрес остается за компанией.",
+  mailboxUsersSave: "Сохранить как контакты компании",
+  mailboxUsersNone: "Отметьте хотя бы одного человека.",
+  mailboxUsersSaved: (names: string) => `Сохранено: ${names} пишут от имени компании.`,
   matchDetails: "Подробности совпадения",
   reviewMatches: "Разобрать совпадения",
   backToPeople: "Все контакты",
@@ -591,6 +618,23 @@ const ru: typeof en = {
   doubtsHide: "Скрыть",
   doubtsPages: "Страницы людей на проверку",
   doubtOpen: "Открыть",
+  doubtTestSeparateHelp:
+    "У этого человека есть и настоящие аккаунты. Отделите тестовые: они уйдут в свою карточку, а настоящие останутся здесь.",
+  doubtTestOnlyHelp:
+    "Здесь только тестовые аккаунты. Memo пока не умеет удалять тестовые данные, поэтому карточку можно только убрать с глаз на этом компьютере.",
+  doubtSeparateTest: "Отделить тестовые",
+  doubtSetAside: "Убрать с глаз",
+  doubtSeparated: (name: string) => `Тестовые аккаунты отделены от ${name} в свою карточку.`,
+  doubtPutAside: (name: string) => `${name}: карточка убрана на этом компьютере.`,
+  doubtsAside: (n: number) =>
+    plural("ru", n, {
+      one: "# карточка с тестовыми данными убрана на этом компьютере.",
+      few: "# карточки с тестовыми данными убраны на этом компьютере.",
+      many: "# карточек с тестовыми данными убрано на этом компьютере.",
+      other: "# карточки с тестовыми данными убраны на этом компьютере.",
+    }),
+  doubtsShowAside: "Показать",
+  copyAccount: (value: string) => `Скопировать ${value}`,
   tasksTitle: "Задачи",
   tasksRefused: "Memo не принял поиск задач этого человека.",
   tasksNeedMemo: "Memo не установлен или слишком старый, чтобы показать задачи. На странице «Задачи» есть исправление.",
@@ -768,6 +812,12 @@ const es: typeof en = {
   companyOtherName: "O escribe el nombre de la empresa",
   companyNameNeeded: "Escribe el nombre de la empresa.",
   companySave: "Dársela a esta empresa",
+  mailboxUsersAsk: "¿Quién de ellos escribe desde esta dirección?",
+  mailboxUsersHelp:
+    "Opcional. Siguen siendo personas distintas y se guardan como contactos de la empresa. La dirección sigue siendo de la empresa.",
+  mailboxUsersSave: "Guardar como contactos de la empresa",
+  mailboxUsersNone: "Marca al menos a una persona.",
+  mailboxUsersSaved: (names: string) => `Guardado: ${names} escriben en nombre de la empresa.`,
   matchDetails: "Detalles de la coincidencia",
   reviewMatches: "Revisar coincidencias",
   backToPeople: "Todos los contactos",
@@ -882,6 +932,21 @@ const es: typeof en = {
   doubtsHide: "Ocultar",
   doubtsPages: "Páginas de personas por revisar",
   doubtOpen: "Abrir",
+  doubtTestSeparateHelp:
+    "Esta persona también tiene cuentas reales. Separa las de prueba: pasan a una ficha propia y las reales se quedan aquí.",
+  doubtTestOnlyHelp:
+    "Todas las cuentas son datos de prueba. Memo aún no puede borrarlos, así que solo puedes apartar la ficha en este ordenador.",
+  doubtSeparateTest: "Separar las de prueba",
+  doubtSetAside: "Apartar",
+  doubtSeparated: (name: string) => `Las cuentas de prueba salieron de ${name} a una ficha propia.`,
+  doubtPutAside: (name: string) => `${name} queda apartada en este ordenador.`,
+  doubtsAside: (n: number) =>
+    plural("es", n, {
+      one: "# ficha con datos de prueba está apartada en este ordenador.",
+      other: "# fichas con datos de prueba están apartadas en este ordenador.",
+    }),
+  doubtsShowAside: "Mostrarlas",
+  copyAccount: (value: string) => `Copiar ${value}`,
   tasksTitle: "Tareas",
   tasksRefused: "Memo no aceptó la búsqueda de las tareas de esta persona.",
   tasksNeedMemo:

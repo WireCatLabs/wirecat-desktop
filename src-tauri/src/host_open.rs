@@ -71,13 +71,26 @@ pub fn for_host(cmd: &mut Command) -> &mut Command {
     cmd
 }
 
-/// An https page in the owner's browser. Anything else is refused: the interface opens only web pages.
+/// An https page in the owner's browser, or a new mail to one address in their mail program. Anything else is refused.
 pub fn url(url: &str) -> Result<(), String> {
     let parsed = tauri::Url::parse(url).map_err(|_| format!("Not a web address: {url}"))?;
-    if parsed.scheme() != "https" {
-        return Err(format!("Only https pages open from WireCat: {url}"));
+    match parsed.scheme() {
+        "https" => {}
+        "mailto" if one_address(&parsed) => {}
+        _ => return Err(format!("Only https pages open from WireCat: {url}")),
     }
     open(url.as_ref())
+}
+
+/// A bare address: no query, since some mail programs take `?attach=` and would send a local file.
+fn one_address(parsed: &tauri::Url) -> bool {
+    let address = parsed.path();
+    parsed.query().is_none()
+        && parsed.fragment().is_none()
+        && address.matches('@').count() == 1
+        && !address.starts_with('@')
+        && !address.ends_with('@')
+        && address.bytes().all(|b| b.is_ascii_alphanumeric() || b"@.-_+".contains(&b))
 }
 
 /// A folder or file in the program the system chose for it.
@@ -219,5 +232,16 @@ mod tests {
         assert!(url("http://example.com").unwrap_err().contains("Only https"));
         assert!(url("file:///etc/passwd").unwrap_err().contains("Only https"));
         assert!(url("not a url").unwrap_err().contains("Not a web address"));
+    }
+
+    #[test]
+    fn mailto_opens_only_one_bare_address() {
+        let parse = |u: &str| tauri::Url::parse(u).unwrap();
+        assert!(one_address(&parse("mailto:lena.o+work@example.com")));
+        assert!(!one_address(&parse("mailto:lena@example.com?attach=/etc/passwd")));
+        assert!(!one_address(&parse("mailto:a@example.com,b@example.com")));
+        assert!(!one_address(&parse("mailto:a%0A@example.com")));
+        assert!(!one_address(&parse("mailto:example.com")));
+        assert!(url("mailto:a@example.com?body=x").unwrap_err().contains("Only https"));
     }
 }

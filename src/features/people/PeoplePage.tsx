@@ -7,7 +7,6 @@ import { ReportThis } from "@/shared/ReportThis"
 import { Crossfade } from "@/ui/Crossfade"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
-import { Skeleton } from "@/ui/Skeleton"
 import { LinkDoubts } from "./LinkDoubts"
 import { MatchDialog } from "./MatchDialog"
 import { Matches, MatchesWaiting } from "./Matches"
@@ -25,6 +24,8 @@ export function PeoplePage() {
   const lang = useLang()
   const s = usePeople()
   const view = usePeople((x) => x.view)
+  // The first check of the links lands above the table: the page waits for it, so the table never moves down.
+  const settled = usePeople((x) => x.read !== null && (x.doubts?.state !== "loading" || x.doubts.last !== null))
   const gap = gapFromRead(s.read === "missing" || s.read === "old" ? { kind: s.read, ...s.oldVersion } : null)
   const { load, visit } = s
   useEffect(() => {
@@ -51,11 +52,11 @@ export function PeoplePage() {
         </ErrorNotice>
       ) : gap ? (
         <ToolNeeded gap={gap} />
-      ) : s.read === null ? (
-        <ListSkeleton />
       ) : (
-        <Crossfade swap={view}>
-          {view === "matches" ? (
+        <Crossfade swap={settled ? view : "waiting"}>
+          {!settled ? (
+            <PeopleTable skeleton />
+          ) : view === "matches" ? (
             <Matches />
           ) : (
             <div className="flex flex-col gap-[1.2rem]">
@@ -71,18 +72,5 @@ export function PeoplePage() {
       <SplitDialog />
       <UndoMergeDialog />
     </Page>
-  )
-}
-
-function ListSkeleton() {
-  return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex h-[3.6rem] items-center gap-[0.8rem] border-line px-[1.3rem] not-first:border-t">
-          <Skeleton className="size-[1.2rem] rounded-full" />
-          <Skeleton className="h-[1rem] w-[40%]" />
-        </div>
-      ))}
-    </div>
   )
 }

@@ -1,10 +1,13 @@
 import { Unlink } from "lucide-react"
 import { useEffect } from "react"
 import { accountLabel, bySource, profilesOf, seenAtWork } from "@/domain/people"
+import { accountValue, sourceLink } from "@/domain/source-link"
 import { useGroups } from "@/features/groups"
 import { useLang, useMessages } from "@/i18n"
 import type { Identity } from "@/platform/people-schemas"
+import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
+import { CopyButton } from "@/ui/CopyButton"
 import { Pill } from "@/ui/Pill"
 import { peopleMessages } from "./messages"
 import { SourceIcon, sourceOf } from "./sources"
@@ -59,7 +62,7 @@ export function IdentityList({
                       {i.bot && <Pill>{m.bot}</Pill>}
                       {seenAtWork(i.seenIn) && <Pill>{m.atWork}</Pill>}
                     </span>
-                    <span className="selectable font-mono text-[0.85rem] break-all text-ink-dim">{i.identity}</span>
+                    <AccountAddress identity={i} />
                     <span className="text-[0.85rem] text-ink-soft">
                       {i.seenIn.length === 0
                         ? m.seenNowhere
@@ -94,5 +97,28 @@ export function IdentityList({
         </section>
       ))}
     </div>
+  )
+}
+
+/** Where the account lives, as a link when its service has a page for it, and a copy of what a person would type. */
+function AccountAddress({ identity: i }: { identity: Identity }) {
+  const m = useMessages(peopleMessages)
+  const href = sourceLink(i.identity, i.username)
+  const value = accountValue(i.identity, i.username)
+  const shown = href
+    ? href.replace(/^(?:https:\/\/|mailto:)/, "").replace(/\/$/, "")
+    : i.identity.slice(i.identity.indexOf(":") + 1)
+  const text = "font-mono text-[0.85rem]"
+  return (
+    <span className="flex min-w-0 items-center gap-[0.25rem]">
+      {href ? (
+        <ExtLink href={href} className={text}>
+          {shown}
+        </ExtLink>
+      ) : (
+        <span className={`selectable min-w-0 break-all text-ink-dim ${text}`}>{shown}</span>
+      )}
+      <CopyButton value={value} label={m.copyAccount(value)} className="size-7" />
+    </span>
   )
 }

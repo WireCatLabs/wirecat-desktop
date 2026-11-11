@@ -169,6 +169,12 @@ function seed(): Held[] {
       account("email:ops@msx.example", null, [["me@work.example", "work"]], "initial", 50),
       account("telegram:4402", null, [["1001", "personal"]], "same-email", 20, "msx04x"),
     ]),
+    // A stored name of two letters while the CRM knows the whole one, and a person made of test data alone.
+    person("person:47", "Вр", [
+      account("bitrix24:northstar.example/user/3327", "Богдан Постушенко", [["acme", "work"]], "initial", 6),
+      account("email:bogdan@northstar.example", "Богдан Постушенко", [["2", "work"]], "same-email", 6),
+    ]),
+    person("person:48", null, [account("email:test@test.test", null, [["2", "work"]], "initial", 3)]),
     person("person:45", "Eky", [
       account("whatsapp:157724520243314@lid", "Claudio Тренер", [["34600000001", "personal"]], "initial", 20),
     ]),
@@ -370,6 +376,7 @@ export function peopleMock(): Pick<
   | "peopleSplitDecide"
   | "peopleDoubts"
   | "peopleKeep"
+  | "peopleContact"
 > {
   const company: Held[] = ["pro", "b2bmail"].map((box, i) => ({
     ref: `person:${90 + i}`,
@@ -424,6 +431,18 @@ export function peopleMock(): Pick<
       ...of("person:40", "mixed-names", ["max:7002"], [{ op: "unlink", identities: ["max:7002"] }]),
       ...of("person:7", "shared-address", ["email:lena@example.org"], [{ op: "unmerge", merge: "merge:7-12" }]),
       ...of("person:44", "shared-address", ["email:ops@msx.example", "telegram:4402"], []),
+      ...(people.some((p) => p.ref === "person:48")
+        ? [
+            {
+              person: "person:48",
+              name: null,
+              owner: false,
+              reason: "test-data",
+              identities: [{ identity: "email:test@test.test", name: null }],
+              moves: [],
+            },
+          ]
+        : []),
       ...test,
     ]
   }
@@ -681,6 +700,10 @@ export function peopleMock(): Pick<
       if (params.get("people-fail") === "keep-old") throw new Error("memo.too-old")
       if (params.get("people-fail") === "write") throw new Error("person.no-doubt")
       kept.add(reference)
+    },
+    async peopleContact() {
+      await delay(300)
+      if (params.get("people-fail") === "write") throw new Error("person.unknown")
     },
     async peopleDoubts(page, size) {
       await delay(450)

@@ -1,6 +1,6 @@
 import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
-import { cleanName, contactOf, filterPeople, looksLikeAccount } from "@/domain/people"
+import { cleanName, contactOf, filterPeople, isFragment, looksLikeAccount } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
@@ -27,7 +27,11 @@ const KIND_ICONS: Record<PersonKind, ReactNode> = {
   unsorted: <Inbox className="size-4" aria-hidden />,
 }
 
-export function PeopleTable() {
+/** Placeholder rows while the first page comes: enough to fill a window, at the real row height. */
+const WAITING_ROWS = 12
+
+/** `skeleton` draws the same table, inert and with placeholder rows, so nothing moves when the first answer lands. */
+export function PeopleTable({ skeleton = false }: { skeleton?: boolean }) {
   const m = useMessages(peopleMessages)
   const people = usePeople((s) => s.people)
   const more = usePeople((s) => s.peopleMore)
@@ -36,7 +40,8 @@ export function PeopleTable() {
   const named = usePeople((s) => s.named)
   const page = usePeople((s) => s.page)
   const size = usePeople((s) => s.pageSize)
-  const kinded = usePeople((s) => s.kinded)
+  // A memo older than kinds is rare now: the skeleton draws the current table.
+  const kinded = usePeople((s) => s.kinded) || skeleton
   const kind = usePeople((s) => s.kind)
   const kinds = usePeople((s) => s.kinds)
   const reading = usePeople((s) => s.reading)
@@ -53,8 +58,13 @@ export function PeopleTable() {
   const pages = Math.max(1, Math.ceil(count / size))
   const at = kinded ? page : Math.min(page, pages)
   const rows = kinded ? people : found.slice((at - 1) * size, at * size)
-  // memo's row carries no source: a row with no phone, address or handle reads the person's accounts to show one.
-  const onScreen = (kinded ? rows.filter((p) => !p.phone && !p.email && !p.username) : rows).map((p) => p.ref).join(" ")
+  // memo's row carries no source: a row with no phone, address or handle reads the person's accounts to show one, and
+  // so does a row named by a fragment, whose accounts may have the full name.
+  const onScreen = (
+    kinded ? rows.filter((p) => (!p.phone && !p.email && !p.username) || isFragment(p.displayName ?? p.name)) : rows
+  )
+    .map((p) => p.ref)
+    .join(" ")
   // biome-ignore lint/correctness/useExhaustiveDependencies: a read drops the details, and `people` is new after it
   useEffect(() => want(onScreen ? onScreen.split(" ") : []), [onScreen, people, want])
 
@@ -67,7 +77,12 @@ export function PeopleTable() {
 
   if (people.length === 0 && !kinded) return <EmptyState title={m.emptyTitle}>{m.emptyBody}</EmptyState>
   return (
-    <section aria-label={m.rows} className="flex flex-col gap-[0.8rem]">
+    <section
+      aria-label={skeleton ? m.reading : m.rows}
+      aria-busy={skeleton || undefined}
+      inert={skeleton}
+      className="flex flex-col gap-[0.8rem]"
+    >
       {tabs}
       <form
         onSubmit={(e) => {
@@ -108,14 +123,16 @@ export function PeopleTable() {
         </FilterBar>
       </form>
       <AccountResult account={query.trim()} />
-      {found.length === 0 && !reading ? (
+      {found.length === 0 && !reading && !skeleton ? (
         <p className="text-[0.95rem] text-ink-soft">{query.trim() ? m.noMatch : m.emptyKind}</p>
       ) : (
         <DataTable
           key={kind}
-          label={m.rows}
-          busy={reading}
-          rows={rows}
+          label={skeleton ? m.reading : m.rows}
+          busy={reading && !skeleton}
+          rows={skeleton ? [] : rows}
+          placeholders={skeleton ? WAITING_ROWS : 0}
+          {...(skeleton ? { loading: m.reading } : {})}
           rowKey={(p) => p.ref}
           columns={columns}
           density="compact"
