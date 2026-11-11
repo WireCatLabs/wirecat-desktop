@@ -43,7 +43,8 @@ const en = {
   move: (n: number) => (n ? plural("en", n, { one: "Move # account", other: "Move # accounts" }) : "Move accounts"),
   cancel: "Cancel",
   merges: "Joined into this person",
-  mergeLine: (from: string, method: string | null) => `From ${from}${method ? `, ${method}` : ""}`,
+  mergeLine: (from: string | null, method: string | null) =>
+    `${from ? `From ${from}` : "From another person"}${method ? `, ${method}` : ""}`,
   undoMerge: "Undo",
   undoTitle: "Undo this join?",
   undoBody: (from: string) =>
@@ -290,12 +291,13 @@ const ru: typeof en = {
       : "Перенести аккаунты",
   cancel: "Отмена",
   merges: "Объединено в этого человека",
-  mergeLine: (from: string, method: string | null) => `Из ${from}${method ? `, ${method}` : ""}`,
+  mergeLine: (from: string | null, method: string | null) =>
+    `${from ? `Из ${from}` : "Из другого человека"}${method ? `, ${method}` : ""}`,
   undoMerge: "Отменить",
   undoTitle: "Отменить это объединение?",
   undoBody: (from: string) => `Эти аккаунты вернутся к ${from}, как до объединения. Сам WireCat их снова не объединит.`,
   undoBodyUnnamed:
-    "Эти аккаунты вернутся к человеку, с которым их объединили, как до объединения. Сам WireCat их снова не объединит.",
+    "Эти аккаунты вернутся к человеку, от которого их присоединили, как до объединения. Сам WireCat их снова не объединит.",
   undo: "Отменить объединение",
   moveHeading: (account: string, to: string) => `Переносит ${account} к ${to}.`,
   moveHelp: "Переносится только этот аккаунт. Остальное у этого человека не меняется.",
@@ -459,7 +461,7 @@ const ru: typeof en = {
   splitHeading: "Отделить аккаунты от",
   unmergeHeading: "Отменить объединение у",
   becomeNew: "Эти аккаунты станут новым человеком:",
-  goBack: "Эти аккаунты вернутся к человеку, с которым их объединили:",
+  goBack: "Эти аккаунты вернутся к человеку, от которого их присоединили:",
   goBackTo: (name: string) => `Эти аккаунты вернутся к ${name}:`,
   agentSays: "Агент пишет:",
   restsOn: "Основание:",
@@ -536,7 +538,8 @@ const es: typeof en = {
   move: (n: number) => (n ? plural("es", n, { one: "Mover # cuenta", other: "Mover # cuentas" }) : "Mover cuentas"),
   cancel: "Cancelar",
   merges: "Unido a esta persona",
-  mergeLine: (from: string, method: string | null) => `De ${from}${method ? `, ${method}` : ""}`,
+  mergeLine: (from: string | null, method: string | null) =>
+    `${from ? `De ${from}` : "De otra persona"}${method ? `, ${method}` : ""}`,
   undoMerge: "Deshacer",
   undoTitle: "¿Deshacer esta unión?",
   undoBody: (from: string) =>

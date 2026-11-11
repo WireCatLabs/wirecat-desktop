@@ -188,8 +188,19 @@ describe("People", () => {
     expect(await within(card).findByText("Joined into one person.")).toBeInTheDocument()
   })
 
-  it("says the shared number is hidden when memo knows only its fingerprint, and never makes one up", async () => {
+  it("shows a shared phone from the people's profiles when their accounts do not have it", async () => {
     answerAtOnce()
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
+    expect(await within(card).findByText("+34 600 111 222")).toBeInTheDocument()
+    expect(within(card).queryByText(/number hidden/)).not.toBeInTheDocument()
+  })
+
+  it("says the shared number is hidden when no account or profile has it, and never makes one up", async () => {
+    answerAtOnce()
+    const profile = platform.peopleProfile
+    vi.spyOn(platform, "peopleProfile").mockImplementation(async (ref) => ({ ...(await profile(ref)), phones: [] }))
     const user = userEvent.setup()
     render(<PeoplePage />)
     const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
@@ -340,10 +351,10 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const lena = await openPerson(user, "Lena Ortiz")
-    expect(await within(lena).findByText(/From Lena Ortiz, joined by the same email address/)).toBeInTheDocument()
+    expect(await within(lena).findByText(/From another person, joined by the same email address/)).toBeInTheDocument()
     await user.click(within(lena).getByRole("button", { name: "Undo" }))
     const dialog = screen.getByRole("dialog", { name: "Undo this join?" })
-    expect(dialog).toHaveTextContent("These accounts go back to Lena Ortiz")
+    expect(dialog).toHaveTextContent("These accounts go back to the person they were joined from")
     expect(dialog).not.toHaveTextContent("No name yet")
     expect(within(dialog).getByRole("listitem")).toHaveTextContent(/Email.*Lena Ortiz/)
     await user.click(within(dialog).getByRole("button", { name: "Undo the join" }))

@@ -16,6 +16,7 @@ import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { peopleMessages } from "./messages"
 import { usePicks, useUnticked } from "./picks"
+import { useProfiles } from "./profiles"
 import { accountName, SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
@@ -50,17 +51,25 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const pickList = useId()
   const details = usePeople((s) => s.details)
   const listed = usePeople((s) => s.people)
-  if (!first) return null
+  const profiles = useProfiles((s) => s.profiles)
   const contacts = people.map((ref) => {
     const d = details[ref]
+    const p = profiles[ref]
     return contactsOf(
       d?.state === "ready" ? d.person : null,
-      null,
+      p?.state === "ready" ? p.profile : null,
       listed.find((x) => x.ref === ref),
     )
   })
-  const shared = sharedValue(first, contacts)
+  const shared = first ? sharedValue(first, contacts) : null
   const read = people.every((ref) => details[ref]?.state === "ready")
+  // A phone the accounts do not show may still be in a profile, as the Details dialog reads it; only then is it hidden.
+  const askProfiles = first?.signal === "phone" && shared === null && read ? people.join(" ") : ""
+  useEffect(() => {
+    if (askProfiles) for (const ref of askProfiles.split(" ")) void useProfiles.getState().load(ref)
+  }, [askProfiles])
+  const hidden = askProfiles !== "" && people.every((ref) => profiles[ref]?.state === "ready")
+  if (!first) return null
 
   const done = open.length === 0
   const moving = first.joins === "identity" && first.identity
@@ -85,7 +94,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </h3>
         <Proposer by={first.proposer} />
       </div>
-      <Signal group={group} match={first} value={shared} read={read} names={people.map((p) => name(p))} />
+      <Signal group={group} match={first} value={shared} hidden={hidden} names={people.map((p) => name(p))} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}
@@ -168,14 +177,14 @@ function Signal({
   group,
   match,
   value,
-  read,
+  hidden,
   names,
 }: {
   group: MatchGroup
   match: Match
   value: string | null
-  /** Every side's accounts are read, so a missing number is not just still loading. */
-  read: boolean
+  /** A phone match whose number no account and no profile shows: memo keeps only its fingerprint. */
+  hidden: boolean
   names: string[]
 }) {
   const m = useMessages(peopleMessages)
@@ -189,9 +198,15 @@ function Signal({
       <span className="text-[0.92rem] font-medium text-ink-soft">{m.signalNames[signal] ?? signal}</span>
       {value ? (
         <span className="selectable font-mono text-[1.05rem] font-semibold text-ink tabular-nums">{value}</span>
-      ) : signal === "phone" && read ? (
+      ) : hidden ? (
         <InfoTip label={m.phoneHiddenTip} trigger={<Pill>{m.phoneHidden}</Pill>}>
           {m.phoneHiddenTip}
+          {match.evidence.length > 0 && (
+            <>
+              {" "}
+              {m.evidence} <span className="selectable font-mono text-ink">{match.evidence.join(", ")}</span>
+            </>
+          )}
         </InfoTip>
       ) : (
         sameTip && (

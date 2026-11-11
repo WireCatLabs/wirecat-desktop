@@ -15,17 +15,17 @@ import { DEFAULT_CAPS, MORNING, useDigestBook } from "./schedule-store"
 
 export type Template = "daily" | "weekly" | "own"
 
-/** A name memo keys files by, from the template; `-2`, `-3` when it is taken. */
-export function freeName(base: string, taken: readonly string[]): string {
-  if (!taken.includes(base)) return base
-  for (let n = 2; ; n++) if (!taken.includes(`${base}-${n}`)) return `${base}-${n}`
+function freeLabel(base: string, taken: readonly string[], sep: string): string {
+  const used = new Set(taken.map((t) => t.toLowerCase()))
+  if (!used.has(base.toLowerCase())) return base
+  for (let n = 2; ; n++) if (!used.has(`${base}${sep}${n}`.toLowerCase())) return `${base}${sep}${n}`
 }
 
+/** A name memo keys files by, from the template; `-2`, `-3` when it is taken. */
+export const freeName = (base: string, taken: readonly string[]) => freeLabel(base, taken, "-")
+
 /** A template's title, with " 2", " 3" when a digest already has it, so two rows from one template read apart. */
-export function freeTitle(base: string, taken: readonly string[]): string {
-  if (!taken.includes(base)) return base
-  for (let n = 2; ; n++) if (!taken.includes(`${base} ${n}`)) return `${base} ${n}`
-}
+export const freeTitle = (base: string, taken: readonly string[]) => freeLabel(base, taken, " ")
 
 export function draftOf(template: Template, digests: readonly DigestItem[], m: BookText): DigestSpec {
   const taken = digests.map((d) => d.name)
