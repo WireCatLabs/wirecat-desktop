@@ -16,7 +16,8 @@ function Harness() {
     }))
   const { onPointerDown } = useBoardDrag<"a" | "b">({
     columnOf: (key) => (columns.a.includes(key) ? "a" : "b"),
-    onDrop: ({ key, to }) => place(key, to),
+    onDrop: ({ key, to, copy }) => (copy ? setColumns((c) => ({ ...c, b: [...c.b, `${key} copy`] })) : place(key, to)),
+    copyable: true,
   })
   useSlide(board, JSON.stringify(columns))
   return (
@@ -77,6 +78,21 @@ describe("useSlide after a drop", () => {
     const own = slides.filter((s) => s.el.textContent === "one")
     expect(own.map((s) => s.from)).toEqual(["translate(30px, 0px) rotate(1.2deg)"])
     expect(slides.find((s) => s.el.textContent === "two")?.from).toBe("translate(0px, 100px)")
+  })
+
+  it("leaves the card in place when the drop made a copy of it", async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const card = screen.getByText("one")
+    await user.keyboard("{Alt>}")
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
+      { target: card, coords: { clientX: 350, clientY: 120 } },
+      { keys: "[/MouseLeft]", target: card, coords: { clientX: 350, clientY: 120 } },
+    ])
+    await user.keyboard("{/Alt}")
+    expect(screen.getByText("one copy")).toBeInTheDocument()
+    expect(slides).toEqual([])
   })
 
   it("still slides a card moved without the pointer from where it stood", () => {

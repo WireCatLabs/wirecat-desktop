@@ -110,8 +110,6 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
     const before = last.current
     last.current = next
     if (!before || reducedMotion() || typeof grid.animate !== "function") return
-    const landed = landing && next.cards.has(landing.key) ? landing : null
-    if (landed) landing = null
     const shift = (from: Places, to: Places, key: string) => {
       const a = from.get(key)
       const b = to.get(key)
@@ -130,12 +128,18 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
       else if (before.columns.size > 0) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MOVE_MS })
     }
     for (const el of grid.querySelectorAll<HTMLElement>("[data-card]")) {
-      if (landed && el.dataset.card === landed.key && performance.now() - landed.at < LANDING_MS) {
-        settle(el.closest<HTMLElement>("[data-slide]") ?? el, landed, grid)
-        continue
-      }
-      const d = shift(before.cards, next.cards, el.dataset.card ?? "")
+      const key = el.dataset.card ?? ""
+      const d = shift(before.cards, next.cards, key)
       if (!d) continue
+      // A copy leaves the card it was made from in place, so only a card that moved has landed.
+      if (landing?.key === key && (Math.abs(d.dx) >= 1 || Math.abs(d.dy) >= 1)) {
+        const from = landing
+        landing = null
+        if (performance.now() - from.at < LANDING_MS) {
+          settle(el.closest<HTMLElement>("[data-slide]") ?? el, from, grid)
+          continue
+        }
+      }
       const column = el.closest<HTMLElement>("[data-column]")?.dataset.column ?? ""
       const carried = shift(before.columns, next.columns, column) ?? { dx: 0, dy: 0 }
       slide(el.closest<HTMLElement>("[data-slide]") ?? el, d.dx - carried.dx, d.dy - carried.dy)
