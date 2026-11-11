@@ -511,6 +511,13 @@ export const useTasks = create<TasksState>((set, get) => {
           order: before.order,
           tasks: s.tasks.map((x) => (x.key === key ? { ...x, state: before.state } : x)),
         }))
+      if (t.account) {
+        // memo keeps no board order for a found task and only closes it, with its account.
+        if (state === t.state) return undo()
+        const found = { state, account: t.account }
+        await settle(key, () => platform.taskUpdate(key, t.revision, found), undo, moveSlot(key))
+        return
+      }
       const place = { ...(state !== t.state ? { state } : {}), ...anchor }
       if (!place.state && !place.before && !place.after) return
       const out = await settle(key, () => platform.taskMove(key, t.revision, place), undo, moveSlot(key))

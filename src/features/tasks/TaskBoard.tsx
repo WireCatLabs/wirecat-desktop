@@ -63,10 +63,6 @@ export function TaskBoard() {
       if (reason) useTasks.setState({ note: { key, label: null, column: null, text: reason } })
     },
     onDrop: ({ key, to, before }) => {
-      if (fromMessages(byKey.get(key) ?? {})) {
-        void useTasks.getState().update(key, { state: to })
-        return
-      }
       const keys = column(to).filter((k) => k !== key)
       // Dropped below the last card shown, it lands there, not after the cards "Show more" still hides.
       const index = before ? keys.indexOf(before) : Math.min(keys.length, limitOf(to))

@@ -767,22 +767,27 @@ describe("Tasks", () => {
     }
     vi.spyOn(platform, "taskChats").mockResolvedValue({ tasks: [found], more: false })
     const move = vi.spyOn(platform, "taskMove")
-    const update = vi.spyOn(platform, "taskUpdate").mockResolvedValue({
-      kind: "saved",
-      task: { ...found, state: "done", revision: 2 },
-      label: null,
-      renumbered: [],
-      moved: [],
-    })
+    const update = vi
+      .spyOn(platform, "taskUpdate")
+      .mockRejectedValueOnce(new Error("another memo process holds the store; try again in a minute"))
+      .mockResolvedValue({
+        kind: "saved",
+        task: { ...found, state: "done", revision: 2 },
+        label: null,
+        renumbered: [],
+        moved: [],
+      })
     render(<TasksPage />)
-    const card = await screen.findByRole("button", { name: /^Q-3 / }, { timeout: 4000 })
+    await screen.findByRole("button", { name: /^Q-3 / }, { timeout: 4000 })
+    // A card that changes column is a new element.
+    const card = () => screen.getByRole("button", { name: /^Q-3 / })
     const carry = async (to: string) => {
       const column = document.querySelector(`[data-column="${to}"]`) as HTMLElement
       document.elementsFromPoint = () => [column]
       await user.pointer([
-        { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
-        { target: card, coords: { clientX: 400, clientY: 60 } },
-        { keys: "[/MouseLeft]", target: card },
+        { keys: "[MouseLeft>]", target: card(), coords: { clientX: 20, clientY: 20 } },
+        { target: card(), coords: { clientX: 400, clientY: 60 } },
+        { keys: "[/MouseLeft]", target: card() },
       ])
     }
     await carry("in_progress")
@@ -791,7 +796,10 @@ describe("Tasks", () => {
     ).toBeInTheDocument()
     expect(update).not.toHaveBeenCalled()
     await carry("done")
-    await waitFor(() => expect(update).toHaveBeenCalledWith("Q-3", 1, { state: "done", account: "telegram:1" }))
+    await waitFor(() => expect(card()).toHaveTextContent(/Not moved, the card is back/))
+    expect(card().closest("[data-column]")).toHaveAttribute("data-column", "open")
+    await carry("done")
+    await waitFor(() => expect(update).toHaveBeenLastCalledWith("Q-3", 1, { state: "done", account: "telegram:1" }))
     expect(move).not.toHaveBeenCalled()
     expect(await screen.findByRole("region", { name: /^Done, \d+ tasks/ })).toContainElement(
       screen.getByRole("button", { name: /^Q-3 / }),
