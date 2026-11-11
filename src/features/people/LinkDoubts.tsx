@@ -129,8 +129,7 @@ function DoubtCard({ doubt, onKept }: { doubt: Doubt; onKept: (name: string) => 
             const source = sourceOf(provider).name
             return (
               <li key={i.identity} className="flex min-w-0 items-center gap-[0.4rem] text-[0.9rem]">
-                <SourceIcon provider={provider} className="text-ink-soft" />
-                <span className="sr-only">{source}:</span>
+                <SourceIcon provider={provider} labelled />
                 <span className="selectable min-w-0 truncate">{accountLabel(i) ?? m.anAccount(source)}</span>
               </li>
             )

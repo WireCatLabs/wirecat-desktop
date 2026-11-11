@@ -51,14 +51,12 @@ function ReadFailedActions({ what, error }: { what: string; error: string }) {
   )
   return (
     <>
-      <Button
-        size="sm"
-        variant="secondary"
-        aria-busy={reading || undefined}
+      <RefreshButton
+        busy={reading}
         onClick={() => void useMemory.getState().load()}
-      >
-        {m.readAgain}
-      </Button>
+        label={m.readAgain}
+        busyLabel={m.reading}
+      />
       {outdated && (
         <Button
           size="sm"

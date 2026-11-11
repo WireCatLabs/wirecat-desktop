@@ -275,7 +275,8 @@ describe("People", () => {
       .getAllByRole("listitem")
       .find((row) => row.textContent?.startsWith("Viktor Example")) as HTMLElement
     expect(viktor).toHaveTextContent("The accounts carry different names.")
-    expect(viktor).toHaveTextContent("MAX:Mila Example")
+    expect(viktor).toHaveTextContent("Mila Example")
+    expect(within(viktor).getByText("MAX")).toHaveClass("sr-only")
     await user.click(within(viktor).getByRole("button", { name: "Split" }))
     const dialog = await screen.findByRole("dialog", { name: "Move accounts to a new person" })
     await waitFor(() => expect(within(dialog).getByRole("checkbox", { name: /Mila Example/ })).toBeChecked())

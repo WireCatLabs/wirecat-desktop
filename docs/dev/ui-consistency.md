@@ -19,7 +19,7 @@ on 2026-11-10. A row is removed once its fix is merged; a row half done lists on
 | Pager | `Pager` with `PAGE_SIZES` (Memory's taller rows: `MEMORY_PAGE_SIZES`, 20 first), pages from the server | slicing a list loaded whole |
 | Empty state and "nothing matches" | `EmptyState` (`src/ui/EmptyState.tsx`) | a bordered `div` per page |
 | Loading | `Skeleton` in the shape of what comes; `PageSkeleton` for a page | a spinner where the shape is known |
-| Error | `ErrorNotice` | a red box by hand |
+| Error | `ErrorNotice`: a plain translated sentence, and the tool's own text in `raw`, folded under "Details" | a red box by hand; a raw error appended to the sentence |
 | Several notices above a page's content (a tool to install, things to confirm, read only) | `NoticeChips` (`src/ui/NoticeChips.tsx`): one line of chips, a chip opens its full text and action under the line; Clients uses it | stacked `ErrorNotice` boxes that push the content down |
 | A service's name in front of data ("Telegram @kai_m") | `ServiceIcon` (`src/shared/ServiceIcon.tsx`): the logo with the name on hover and for screen readers; beside a visible name, `ToolIcon` | the word repeated in every row; keep the word in headings, explanations and first-run |
 | Warning or notice banner | `ErrorNotice` with a `tone` (`bad` by default, `warn`), extended rather than a second component | `border-warn/40 bg-warn/10` by hand |
