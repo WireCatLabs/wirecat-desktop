@@ -7,6 +7,8 @@ const en = {
   others: (tools: readonly string[]) => `${or(tools, "en")} would do as well.`,
   old: (tool: string, version: string | null, need: string) =>
     `This page needs ${tool} ${need} or newer; this computer has ${version ?? "an older one"}.`,
+  newer: (tool: string, version: string | null) =>
+    `This page needs a newer ${tool} than ${version ?? "the one on this computer"}.`,
   signedOut: (tool: string) => `Sign in to ${tool} so this page can read your account.`,
   install: (tool: string) => `Install ${tool}`,
   update: (tool: string) => `Update ${tool}`,
@@ -15,9 +17,10 @@ const en = {
 
 const ru: typeof en = {
   missing: (tool) => `Этой странице нужен ${tool}, а он не установлен.`,
-  others: (tools) => `Подойдёт и ${or(tools, "ru")}.`,
+  others: (tools) => `Подойдет и ${or(tools, "ru")}.`,
   old: (tool, version, need) =>
-    `Этой странице нужен ${tool} ${need} или новее; на этом компьютере ${version ?? "версия старше"}.`,
+    `Этой странице нужен ${tool} ${need} или новее. На этом компьютере ${version ?? "версия старше"}.`,
+  newer: (tool, version) => `Этой странице нужен ${tool} новее, чем ${version ?? "на этом компьютере"}.`,
   signedOut: (tool) => `Войдите в ${tool}, чтобы эта страница видела ваш аккаунт.`,
   install: (tool) => `Установить ${tool}`,
   update: (tool) => `Обновить ${tool}`,
@@ -29,6 +32,7 @@ const es: typeof en = {
   others: (tools) => `También sirve ${or(tools, "es")}.`,
   old: (tool, version, need) =>
     `Esta página necesita ${tool} ${need} o posterior; este equipo tiene ${version ?? "una anterior"}.`,
+  newer: (tool, version) => `Esta página necesita un ${tool} más nuevo que ${version ?? "el de este equipo"}.`,
   signedOut: (tool) => `Inicia sesión en ${tool} para que esta página lea tu cuenta.`,
   install: (tool) => `Instalar ${tool}`,
   update: (tool) => `Actualizar ${tool}`,

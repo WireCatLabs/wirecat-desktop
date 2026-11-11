@@ -2,11 +2,11 @@ import type { ReactNode } from "react"
 import { findTool } from "@/domain/catalog"
 import type { Gap } from "@/domain/needs"
 import { useMessages } from "@/i18n"
-import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
-import { openTool, openToolAt } from "./go"
+import { openTool, openToolAt } from "./go-tool"
 import { needsMessages } from "./messages-needs"
+import { useTools } from "./tools-store"
 
 const nameOf = (id: string) => findTool(id)?.name ?? id
 
@@ -28,7 +28,7 @@ export function ToolNeeded({ gap, inline, children }: { gap: Gap; inline?: boole
         ]
       : gap.kind === "old"
         ? [
-            m.old(tool, gap.version, gap.need),
+            gap.need ? m.old(tool, gap.version, gap.need) : m.newer(tool, gap.version),
             m.update(tool),
             () => {
               void install(gap.tool)

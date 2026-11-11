@@ -19,7 +19,7 @@ function Edge({ side, more }: { side: "older" | "newer"; more: boolean }) {
       <div className="px-[0.9rem] py-2">
         <ErrorNotice
           inline
-          detail={paging.error}
+          raw={paging.error}
           action={
             <Button size="sm" onClick={() => void useConversation.getState().more(side)}>
               {m.tryAgain}

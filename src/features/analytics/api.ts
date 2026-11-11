@@ -181,8 +181,12 @@ async function tasksIn(from: string, to: string, zone: string) {
   return { closed: closed.total + (chats?.closed ?? 0), created: chats ? made.total + chats.created : null }
 }
 
-/** Tasks made and closed this week and on the same days last week; null until they answer. */
+/**
+ * Tasks made and closed this week and on the same days last week; null until they answer, `missing` without memo and
+ * `failed` when memo did not answer, so the tile never waits for a number that is not coming.
+ */
 export function useTaskWeeks(today: string, zone: string) {
+  const memo = useTools((s) => s.installs.memo)
   const q = useQuery({
     queryKey: ["analytics", "taskWeeks", today, zone],
     queryFn: async () => {
@@ -193,7 +197,10 @@ export function useTaskWeeks(today: string, zone: string) {
       ])
       return { now, last }
     },
+    enabled: memo === undefined || memo.length > 0,
     ...SESSION,
   })
+  if (memo?.length === 0) return "missing"
+  if (q.isError) return "failed"
   return q.data ?? null
 }

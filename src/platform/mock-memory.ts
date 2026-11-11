@@ -8,6 +8,7 @@ import type {
   SourceReview,
 } from "./memory-schemas"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import { memoryAddMock } from "./mock-memory-add"
 import { TASK_IDS } from "./mock-tasks"
 import type { Platform } from "./types"
@@ -18,8 +19,8 @@ import type { Platform } from "./types"
 // (another sync holds the store), `?memory-fail=write` fails every write the same way.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-const scenario = params.get("memory")
-const fail = params.get("memory-fail")
+const scenario = params.get("memory") ?? memoDefault({ missing: "missing", old: "old" })
+const fail = params.get("memory-fail") ?? memoDefault({ failing: "read" })
 const BUSY = "another process holds the store (store.busy); try again in a minute"
 
 const HOUR = 3_600_000

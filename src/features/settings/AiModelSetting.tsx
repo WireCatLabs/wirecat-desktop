@@ -2,11 +2,13 @@ import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { hostOfOrigin, isLocalHost, providerHost, staysHere } from "@/domain/ai-model"
 import { REFUSED, tooOldFor } from "@/domain/memory-add"
+import type { Gap } from "@/domain/needs"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import { useAiModel } from "@/shared/ai-model-store"
 import { externalHref } from "@/shared/external-href"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -67,22 +69,13 @@ const draftOf = (m: AiModel): Draft => ({
 
 /** Settings, "AI model": one model for reading sources and pictures. A key goes to memo once and is never shown back. */
 export function AiModelSetting() {
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  // Without memo there is nothing to set, and asking would start a failing run on every visit.
-  return memo ? <AiModelSection /> : null
-}
-
-function AiModelSection() {
   const m = useMessages(aiModelMessages)
-  const model = useAiModel((s) => s.model)
-  const error = useAiModel((s) => s.error)
+  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
+  // Known missing only from a finished detection (kept from the last run): Settings starts no scan of its own.
+  const known = useTools((s) => s.installs.memo !== undefined)
+  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
   const head = useId()
-
-  useEffect(() => {
-    void useAiModel.getState().load()
-    return () => useAiModel.setState({ actionError: null, failed: null, turnedOff: false, checked: null })
-  }, [])
-
+  if (!memo && !gap) return null
   return (
     <section id="ai-model" aria-labelledby={head} className="flex scroll-mt-4 flex-col gap-3">
       <div>
@@ -91,22 +84,37 @@ function AiModelSection() {
         </SectionTitle>
         <p className="mt-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.intro}</p>
       </div>
-      {error ? (
-        tooOldFor(error) ? (
-          <p className="text-[0.95rem] text-ink-soft">{m.tooOld}</p>
-        ) : error === REFUSED ? (
-          <ErrorNotice inline>{m.refused}</ErrorNotice>
-        ) : (
-          <ErrorNotice raw={error} inline>
-            {m.failed}
-          </ErrorNotice>
-        )
-      ) : model === null ? (
-        <Skeleton className="h-[8rem] w-full max-w-[36rem] rounded-[0.35rem]" label={m.looking} />
-      ) : (
-        <AiModelForm saved={model} />
-      )}
+      {/* Without memo there is nothing to set, and asking would start a failing run on every visit. */}
+      {memo ? <AiModelBody /> : gap && <ToolNeeded gap={gap} inline />}
     </section>
+  )
+}
+
+function AiModelBody() {
+  const m = useMessages(aiModelMessages)
+  const model = useAiModel((s) => s.model)
+  const error = useAiModel((s) => s.error)
+  const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
+
+  useEffect(() => {
+    void useAiModel.getState().load()
+    return () => useAiModel.setState({ actionError: null, failed: null, turnedOff: false, checked: null })
+  }, [])
+
+  return error ? (
+    tooOldFor(error) ? (
+      <ToolNeeded gap={{ kind: "old", tool: "memo", version, need: null }} inline />
+    ) : error === REFUSED ? (
+      <ErrorNotice inline>{m.refused}</ErrorNotice>
+    ) : (
+      <ErrorNotice raw={error} inline>
+        {m.failed}
+      </ErrorNotice>
+    )
+  ) : model === null ? (
+    <Skeleton className="h-[8rem] w-full max-w-[36rem] rounded-[0.35rem]" label={m.looking} />
+  ) : (
+    <AiModelForm saved={model} />
   )
 }
 

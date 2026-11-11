@@ -125,9 +125,20 @@ describe("Reading for facts", () => {
     expect(readers).not.toHaveBeenCalled()
   })
 
+  it("says memo is needed, and asks memo nothing, once the tools show it is not installed", () => {
+    useTools.setState({ installs: { memo: [] } })
+    const readers = vi.spyOn(platform, "memoryReaders")
+    render(<ReadersSetting />)
+    expect(screen.getByRole("region", { name: "Reading for facts" })).toHaveTextContent(
+      "This page reads Memo, which is not installed.",
+    )
+    expect(readers).not.toHaveBeenCalled()
+  })
+
   it("says an older memo cannot do it yet", async () => {
     vi.spyOn(platform, "memoryReaders").mockRejectedValue(new Error("error: unknown command 'readers'"))
     render(<ReadersSetting />)
-    expect(await screen.findByText(/cannot read sources for facts yet/)).toBeInTheDocument()
+    expect(await screen.findByText(/This page needs a newer Memo than/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
   })
 })

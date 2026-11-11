@@ -1,5 +1,6 @@
 import type { MailAgent } from "./bindings"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // Email's mail agent: off at first. `?mail-agent=on` starts on, every 30 minutes, with a run 12 minutes ago, `?mail-agent=capped` on
@@ -10,7 +11,7 @@ import type { Platform } from "./types"
 export function mailAgentMock(
   params: URLSearchParams,
 ): Pick<Platform, "mailAgentStatus" | "mailAgentSet" | "mailAgentWaiting"> {
-  const scenario = params.get("mail-agent")
+  const scenario = params.get("mail-agent") ?? memoDefault({ missing: "nomemo", old: "old" })
   const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString()
   const on = (over: Partial<Extract<MailAgent, { state: "on" }>> = {}): MailAgent => ({
     state: "on",

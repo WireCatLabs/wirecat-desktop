@@ -1,5 +1,6 @@
 import type { NotesFolder, NotesProblem, NotesSetup } from "./bindings"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // memo's first run. `?memo=fresh` has no folder and no search model, `?memo=ready` a folder and the model in use
@@ -42,7 +43,7 @@ export function notesSetupMock(
   | "notesModelStop"
   | "notesModelUse"
 > {
-  const scenario = params.get("memo")
+  const scenario = params.get("memo") ?? memoDefault({ old: "old" })
   const fail = params.get("memo-fail")
   const counts = params.get("notes-progress") !== "old"
   const folders: NotesFolder[] =

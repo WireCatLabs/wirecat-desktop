@@ -21,6 +21,7 @@ import { groupsMock } from "./mock-groups"
 import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
+import { memoState, OLD_MEMO } from "./mock-memo"
 import { memoryMock } from "./mock-memory"
 import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
@@ -308,6 +309,8 @@ export function createMock(os: Platform["os"]): Platform {
   )
   const memo = params.get("memo-version")
   if (memo) installed.set("memo", memo)
+  if (memoState === "missing") installed.delete("memo")
+  if (memoState === "old") installed.set("memo", OLD_MEMO)
   if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
   if (params.has("sync-schedule") || params.get("sync-recovered") === "email") installed.set("email", "0.22.0")
   if (params.get("clients")?.startsWith("import-")) installed.set("bitrix", LATEST.bitrix ?? "1.0.0")

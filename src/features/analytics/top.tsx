@@ -7,6 +7,7 @@ import { MailSchema, MeetingsListSchema } from "@/platform/analytics-schemas"
 import { Skeleton } from "@/ui/Skeleton"
 import { useTaskWeeks } from "./api"
 import { analyticsMessages } from "./messages"
+import { problemMessages } from "./messages-problems"
 import { useAggregate, useAnalytics, useExtra } from "./store"
 
 /** This week so far (Monday to today) and the same days of last week. */
@@ -91,6 +92,7 @@ function Tile({
 /** This week against the same days of last week: messages, emails, meeting hours, tasks. */
 export function WeekTiles() {
   const m = useMessages(analyticsMessages)
+  const p = useMessages(problemMessages)
   const lang = useLang()
   const today = useAnalytics((s) => s.today)
   const zone = useAnalytics((s) => s.zone)
@@ -137,7 +139,8 @@ export function WeekTiles() {
     : minutes.last === 0 && untimed.last > 0
       ? m.meetingsUntimed(untimed.last)
       : null
-  const made = tasks?.now.created ?? null
+  const weeks = typeof tasks === "string" ? null : tasks
+  const made = weeks?.now.created ?? null
   const hours = (n: number) => m.hours(new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(n / 60))
   const busy = all.loading || sent.loading
   return (
@@ -156,13 +159,23 @@ export function WeekTiles() {
         format={(n) => ((zoomBehind || !meetings.bodies.length) && n === 0 ? "—" : hours(n))}
         {...(zoomNote ? { note: zoomNote } : {})}
       />
-      <Tile
-        label={m.weekTasks}
-        now={tasks?.now.closed ?? null}
-        last={tasks?.last.closed ?? null}
-        format={(n) => `${made === null ? "—" : formatNumber(made)} · ${formatNumber(n)}`}
-        {...(made === null && tasks ? { note: m.madeLater } : {})}
-      />
+      {typeof tasks === "string" ? (
+        <Tile
+          label={m.weekTasks}
+          now={0}
+          last={null}
+          format={() => "—"}
+          note={tasks === "missing" ? p.missing("Memo") : p.failed("Memo", null)}
+        />
+      ) : (
+        <Tile
+          label={m.weekTasks}
+          now={weeks?.now.closed ?? null}
+          last={weeks?.last.closed ?? null}
+          format={(n) => `${made === null ? "—" : formatNumber(made)} · ${formatNumber(n)}`}
+          {...(made === null && weeks ? { note: m.madeLater } : {})}
+        />
+      )}
     </section>
   )
 }

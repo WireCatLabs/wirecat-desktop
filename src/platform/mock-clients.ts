@@ -1,5 +1,6 @@
 import type { CrmAccount, CrmBaseEdit, CrmCard, CrmKind, CrmRead, CrmStageMap, CrmWritesWith } from "./bindings"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 
 // The Clients page's stand-in for memo, with made-up companies and people only (Acme, Northstar). The owner's own
@@ -21,7 +22,7 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // Drops of the portal's cards need crm-write or crm-profiles.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-const scenario = params.get("clients") ?? "default"
+const scenario = params.get("clients") ?? memoDefault({ missing: "missing", old: "old", failing: "fail" }) ?? "default"
 const BUSY = "another process holds the store (store.busy); try again in a minute"
 
 export const NORTHSTAR: CrmAccount = { provider: "bitrix24", account: "northstar.example" }

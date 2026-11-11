@@ -1,5 +1,6 @@
 import type { ChatHeader, ChatMessage, Conversation } from "./bindings"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // Every name, address and line here is made up, so screenshots of the browser build show no one's real messages.
@@ -92,7 +93,7 @@ function threadOf(provider: string, account: string, chat: string, start: number
  * `?conversation=nomemo|old|failed|thread` shows the other states.
  */
 export function conversationMock(params: URLSearchParams): Pick<Platform, "conversationRead"> {
-  const mode = params.get("conversation")
+  const mode = params.get("conversation") ?? memoDefault({ missing: "nomemo", old: "old", failing: "failed" })
   const start = Date.now() - 4 * 60 * MINUTE
   return {
     async conversationRead(place, ask) {

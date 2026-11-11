@@ -2,11 +2,13 @@ import { LoaderCircle, TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { readerOff, tooOldFor } from "@/domain/memory-add"
+import type { Gap } from "@/domain/needs"
 import { isNewer } from "@/domain/status"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { goAiModel } from "@/shared/go-ai-model"
 import { useReaders } from "@/shared/readers-store"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -28,11 +30,15 @@ const KEYED = new Set(["key", "openai", "anthropic"])
  */
 export function ReadersSetting() {
   const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
+  // Known missing only from a finished detection (kept from the last run): Settings starts no scan of its own.
+  const known = useTools((s) => s.installs.memo !== undefined)
+  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  if (!memo && !gap) return null
   // Without memo there is nothing to choose, and asking would start a failing run on every visit.
-  return memo ? <Readers /> : null
+  return <Readers gap={memo ? null : gap} />
 }
 
-function Readers() {
+function Readers({ gap }: { gap: Gap | null }) {
   const m = useMessages(readersMessages)
   const readers = useReaders((s) => s.readers)
   const error = useReaders((s) => s.error)
@@ -44,8 +50,8 @@ function Readers() {
   const help = useId()
 
   useEffect(() => {
-    void useReaders.getState().load()
-  }, [])
+    if (!gap) void useReaders.getState().load()
+  }, [gap])
 
   return (
     <section aria-labelledby={head} className="flex flex-col gap-3">
@@ -57,9 +63,11 @@ function Readers() {
           {m.help}
         </p>
       </div>
-      {error ? (
+      {gap ? (
+        <ToolNeeded gap={gap} inline />
+      ) : error ? (
         tooOldFor(error) ? (
-          <p className="text-[0.95rem] text-ink-soft">{m.tooOld}</p>
+          <ToolNeeded gap={{ kind: "old", tool: "memo", version, need: null }} inline />
         ) : (
           <ErrorNotice raw={error} inline>
             {m.failed}

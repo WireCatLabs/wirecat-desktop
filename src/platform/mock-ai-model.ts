@@ -1,5 +1,6 @@
 import type { AiModel } from "./ai-model-schemas"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // Settings "AI model" stand-in for memo's `models ai` commands. `?ai=none` (default: nothing set), `?ai=anthropic`,
@@ -9,7 +10,7 @@ import type { Platform } from "./types"
 // added with `?file=image` is read, or not, by this state.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-const scenario = params.get("ai") ?? "none"
+const scenario = params.get("ai") ?? memoDefault({ old: "old" }) ?? "none"
 
 const NONE: AiModel = {
   provider: null,

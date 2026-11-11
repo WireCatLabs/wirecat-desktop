@@ -3,7 +3,8 @@ import { type ReactNode, useEffect, useRef } from "react"
 import { findTool } from "@/domain/catalog"
 import type { ConversationTarget } from "@/domain/conversation"
 import { referenceOf, toolOfProvider } from "@/domain/links"
-import { openToolAt } from "@/features/tools"
+import type { Gap } from "@/domain/needs"
+import { openToolAt, ToolNeeded } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ChatHeader } from "@/platform/bindings"
 import { useNav } from "@/shared/nav"
@@ -11,7 +12,9 @@ import { Page, PageHeader } from "@/shared/Page"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
+import { Disclosure } from "@/ui/Disclosure"
 import { EmptyState } from "@/ui/EmptyState"
+import { uiMessages } from "@/ui/messages"
 import { focusInPlace } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
 import { MessageList } from "./MessageList"
@@ -66,20 +69,47 @@ function Calm(props: {
   action?: ReactNode
   detail?: string
 }) {
-  const m = useMessages(conversationMessages)
-  const reference = referenceOf(props.target)
   return (
     <EmptyState title={<h2>{props.title}</h2>} action={props.action}>
       {props.body && <p>{props.body}</p>}
-      {props.detail && <p className="mt-2 font-mono text-[0.85rem] break-words text-ink-dim">{props.detail}</p>}
-      <div className="mt-3 flex min-w-0 items-center gap-2">
-        <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
-        <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
-          {reference}
-        </code>
-        <CopyButton value={reference} label={m.copyReference} />
-      </div>
+      {props.detail && <Detail text={props.detail} />}
+      <Reference target={props.target} />
     </EmptyState>
+  )
+}
+
+function Detail({ text }: { text: string }) {
+  const u = useMessages(uiMessages)
+  return (
+    <div className="mt-2">
+      <Disclosure summary={u.details}>
+        <p className="selectable font-mono text-[0.85rem] break-words text-ink-dim">{text}</p>
+      </Disclosure>
+    </div>
+  )
+}
+
+function Reference({ target }: { target: ConversationTarget }) {
+  const m = useMessages(conversationMessages)
+  const reference = referenceOf(target)
+  return (
+    <div className="mt-3 flex min-w-0 items-center gap-2">
+      <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
+      <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
+        {reference}
+      </code>
+      <CopyButton value={reference} label={m.copyReference} />
+    </div>
+  )
+}
+
+/** Memo missing or too old reads as on every other page that needs it, with the link's reference kept to copy. */
+function MemoGate({ gap, target, detail }: { gap: Gap; target: ConversationTarget; detail?: string }) {
+  return (
+    <ToolNeeded gap={gap}>
+      {detail && <Detail text={detail} />}
+      <Reference target={target} />
+    </ToolNeeded>
   )
 }
 
@@ -130,9 +160,15 @@ function Body({ shown, target }: { shown: Shown; target: ConversationTarget }) {
         />
       )
     case "noMemo":
-      return <Calm title={m.noMemoTitle} body={m.noMemoBody} target={target} action={tools} />
+      return <MemoGate gap={{ kind: "missing", tool: "memo", others: [] }} target={target} />
     case "old":
-      return <Calm title={m.oldTitle} body={m.oldBody} target={target} detail={shown.message} action={tools} />
+      return (
+        <MemoGate
+          gap={{ kind: "old", tool: "memo", version: null, need: null }}
+          target={target}
+          detail={shown.message}
+        />
+      )
     case "failed":
       return (
         <Calm

@@ -40,11 +40,6 @@ const en = {
   allHoldsEvery: "All always holds every account",
   refused: (message: string) => `Memo did not change the groups: ${message}`,
   unresolved: (entries: string) => `Saved entries that name no account any more: ${entries}`,
-  missing: "Install Memo on the Tools page to group accounts.",
-  old: (version: string | null) =>
-    version
-      ? `Memo ${version} has no account groups yet. They arrive with the next Memo update.`
-      : "This Memo has no account groups yet. They arrive with the next Memo update.",
   readFailed: "Could not list the groups.",
   retry: "Try again",
   dismiss: "Dismiss",
@@ -100,11 +95,6 @@ const ru: typeof en = {
   allHoldsEvery: "в «Все» всегда есть каждый аккаунт",
   refused: (message: string) => `Memo не изменил группы: ${message}`,
   unresolved: (entries: string) => `Сохранённые записи, которые больше не называют аккаунт: ${entries}`,
-  missing: "Установите Memo на странице «Инструменты», чтобы группировать аккаунты.",
-  old: (version: string | null) =>
-    version
-      ? `В Memo ${version} ещё нет групп аккаунтов. Они появятся со следующим обновлением Memo.`
-      : "В этой версии Memo ещё нет групп аккаунтов. Они появятся со следующим обновлением Memo.",
   readFailed: "Не удалось показать группы.",
   retry: "Повторить",
   dismiss: "Скрыть",
@@ -158,11 +148,6 @@ const es: typeof en = {
   allHoldsEvery: "Todas siempre tiene cada cuenta",
   refused: (message: string) => `Memo no cambió los grupos: ${message}`,
   unresolved: (entries: string) => `Entradas guardadas que ya no nombran ninguna cuenta: ${entries}`,
-  missing: "Instala Memo en la página Herramientas para agrupar cuentas.",
-  old: (version: string | null) =>
-    version
-      ? `Memo ${version} aún no tiene grupos de cuentas. Llegan con la próxima actualización de Memo.`
-      : "Este Memo aún no tiene grupos de cuentas. Llegan con la próxima actualización de Memo.",
   readFailed: "No se pudieron listar los grupos.",
   retry: "Reintentar",
   dismiss: "Cerrar",

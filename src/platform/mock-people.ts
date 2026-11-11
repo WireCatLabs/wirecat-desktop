@@ -1,5 +1,6 @@
 import { WHATSAPP_PHONE } from "@/domain/people"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import {
   type Doubt,
   type Identity,
@@ -22,8 +23,8 @@ import type { Platform } from "./types"
 // matches and eight people look wrongly joined (`people links check`); `?people=calm` has neither.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-const scenario = params.get("people")
-const fail = params.get("people-fail")
+const scenario = params.get("people") ?? memoDefault({ missing: "missing", old: "old" })
+const fail = params.get("people-fail") ?? memoDefault({ failing: "read" })
 const BUSY = "another process holds the store (store.busy); try again in a minute"
 
 const DAY = 86_400_000

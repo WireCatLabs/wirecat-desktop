@@ -6,7 +6,7 @@ export type Need = { anyOf: readonly string[]; minVersion?: string | null; signe
 /** What stands between the page and its need, said about one tool the owner can act on. */
 export type Gap =
   | { kind: "missing"; tool: string; others: readonly string[] }
-  | { kind: "old"; tool: string; version: string | null; need: string }
+  | { kind: "old"; tool: string; version: string | null; need: string | null }
   | { kind: "signedOut"; tool: string }
 
 /**
@@ -39,10 +39,11 @@ export function gapOf(need: Need, facts: ToolFacts): Gap | null | "unknown" {
 
 /** A page's own read already says Memo is missing or too old; it is the same gap, in the same words. */
 export function gapFromRead(
-  read: { kind: string; version?: string | null; need?: string } | null | undefined,
+  read: { kind: string; version?: string | null; need?: string | null } | null | undefined,
   tool = "memo",
 ): Gap | null {
   if (read?.kind === "missing") return { kind: "missing", tool, others: [] }
-  if (read?.kind === "old" && read.need) return { kind: "old", tool, version: read.version ?? null, need: read.need }
+  // A read that cannot name the version it needs still says memo is too old.
+  if (read?.kind === "old") return { kind: "old", tool, version: read.version ?? null, need: read.need ?? null }
   return null
 }
