@@ -2,9 +2,10 @@
 //! are memo's `schedule agent` and `schedule remove`; memo writes the systemd timer, launchd agent or scheduled task.
 //! Nothing here writes a timer.
 
+use crate::background_agent::{self, AgentTrouble};
 use crate::catalog::{self, Tool};
 use crate::skills::{body, call, failure, too_old};
-use crate::{paths, redact, tools};
+use crate::{redact, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -17,10 +18,8 @@ pub struct MailAgentSource {
     pub min_version: String,
     /// The schedule's name, as `schedule list` shows it.
     pub name: String,
-    /// The agent program the schedule starts; memo refuses the schedule when it is not on PATH.
-    pub harness: String,
     pub list: Vec<String>,
-    /// `schedule agent`'s words; `{every}` is the interval the owner chose.
+    /// `schedule agent`'s words; `{every}` is the interval the owner chose, `{harness}` the agent for background jobs.
     pub on: Vec<String>,
     /// The interval when the owner has not chosen one: never a guess that would change a schedule he set.
     pub every: String,
@@ -37,7 +36,7 @@ pub enum MailAgent {
         version: Option<String>,
         need: String,
     },
-    /// `harness`: whether the agent program is on PATH, so turning it on can work.
+    /// `harness`: whether Claude Code or Codex is on PATH, so turning it on can work.
     #[serde(rename_all = "camelCase")]
     Off {
         harness: bool,
@@ -53,6 +52,8 @@ pub enum MailAgent {
         spent_today_usd: Option<f64>,
         max_cost_usd: Option<f64>,
         max_cost_per_day_usd: Option<f64>,
+        agent: Option<String>,
+        trouble: Option<AgentTrouble>,
     },
 }
 
@@ -100,16 +101,18 @@ pub fn status(tool: &Tool) -> Result<MailAgent, String> {
     };
     let (out, json) = call(via, &src.list, Duration::from_secs(30))?;
     match json {
-        Some(v) if out.code == Some(0) => Ok(read(src, &v)),
+        Some(v) if out.code == Some(0) => Ok(read(src, &v, background_agent::mail_triage())),
         j => Err(failure(&out, j.as_ref())),
     }
 }
 
-fn read(src: &MailAgentSource, v: &Value) -> MailAgent {
+fn read(src: &MailAgentSource, v: &Value, agent: Option<String>) -> MailAgent {
     let found = v["items"].as_array().into_iter().flatten().find(|i| i["name"].as_str() == Some(src.name.as_str()));
-    let Some(item) = found else { return MailAgent::Off { harness: !paths::find_all(&src.harness).is_empty() } };
+    let Some(item) = found else { return MailAgent::Off { harness: background_agent::any_installed() } };
     let when = item["when"].as_str().unwrap_or_default().to_string();
     MailAgent::On {
+        trouble: background_agent::trouble_of_run(&item["last"], agent.as_deref()),
+        agent,
         every: crate::sync_schedule::interval_of(&src.choices, &when),
         when,
         last: last_run(&item["last"]),
@@ -137,19 +140,36 @@ fn skipped(v: &Value) -> Option<Skipped> {
     })
 }
 
-fn on_args(src: &MailAgentSource, every: Option<&str>) -> Result<Vec<String>, String> {
+fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str) -> Result<Vec<String>, String> {
     let every = every.unwrap_or(&src.every);
     if !src.choices.iter().any(|c| c == every) {
         return Err(format!("not an interval the mail agent offers: {every}"));
     }
-    Ok(src.on.iter().map(|w| if w == "{every}" { every.to_string() } else { w.clone() }).collect())
+    let harness = background_agent::check(harness)?;
+    Ok(src
+        .on
+        .iter()
+        .map(|w| match w.as_str() {
+            "{every}" => every.to_string(),
+            "{harness}" => harness.to_string(),
+            _ => w.clone(),
+        })
+        .collect())
 }
 
 /// Turns the schedule on, or changes its interval (memo replaces a schedule of the same name), or off; memo's words
-/// come back when it refuses, masked.
-pub fn set(tool: &Tool, on: bool, every: Option<&str>) -> Result<MailAgent, String> {
+/// come back when it refuses, masked. `agent` is the owner's pick for this job, else the agent for background jobs.
+pub fn set(tool: &Tool, on: bool, every: Option<&str>, agent: Option<&str>) -> Result<MailAgent, String> {
     let src = source(tool)?;
-    let args = if on { on_args(src, every)? } else { src.off.clone() };
+    let harness = match agent {
+        Some(a) => Some(a.to_string()),
+        None if on => Some(background_agent::effective().ok_or("Choose the agent for background jobs first.")?),
+        None => None,
+    };
+    let args = match &harness {
+        Some(h) if on => on_args(src, every, h)?,
+        _ => src.off.clone(),
+    };
     let via = match gate(src)? {
         Ok(via) => via,
         Err(shown) => return Ok(shown),
@@ -160,6 +180,8 @@ pub fn set(tool: &Tool, on: bool, every: Option<&str>) -> Result<MailAgent, Stri
     if out.code != Some(0) && !gone {
         return Err(failure(&out, json.as_ref()));
     }
+    // The schedule is memo's and already changed; a lost note only hides which agent runs it.
+    let _ = background_agent::set_mail_triage(if on { harness.as_deref() } else { None });
     status(tool)
 }
 
@@ -189,7 +211,7 @@ mod tests {
         assert_eq!(s.via, "memo");
         assert_eq!(s.list.join(" "), "schedule list name:mail-triage --no-record --json");
         assert_eq!(
-            on_args(s, None).unwrap(),
+            on_args(s, None, "claude").unwrap(),
             [
                 "schedule",
                 "agent",
@@ -205,9 +227,11 @@ mod tests {
                 "--json"
             ]
         );
-        assert_eq!(on_args(s, Some("15m")).unwrap()[6], "15m");
-        assert!(on_args(s, Some("1m")).is_err());
-        assert!(on_args(s, Some("--yes")).is_err());
+        assert_eq!(on_args(s, Some("15m"), "claude").unwrap()[6], "15m");
+        assert_eq!(on_args(s, None, "codex").unwrap()[3], "codex");
+        assert!(on_args(s, None, "bash").is_err());
+        assert!(on_args(s, Some("1m"), "claude").is_err());
+        assert!(on_args(s, Some("--yes"), "claude").is_err());
         assert_eq!(s.off.join(" "), "schedule remove mail-triage --json");
         assert_eq!(s.waiting.join(" "), "review status --no-record --json");
         assert!(source(catalog::tool("tg").unwrap()).is_err());
@@ -221,7 +245,7 @@ mod tests {
                 "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "Invoice from Ana Ruiz", "trace_id": "t1"}}
         ]});
         assert_eq!(
-            read(src(), &v),
+            read(src(), &v, Some("claude".into())),
             MailAgent::On {
                 when: "every 5m".into(),
                 every: Some("5m".into()),
@@ -235,17 +259,21 @@ mod tests {
                 spent_today_usd: Some(0.42),
                 max_cost_usd: None,
                 max_cost_per_day_usd: None,
+                agent: Some("claude".into()),
+                trouble: None,
             }
         );
     }
 
     #[test]
     fn a_missing_schedule_is_off_and_a_failed_run_keeps_its_streak() {
-        assert!(matches!(read(src(), &json!({"items": []})), MailAgent::Off { .. }));
+        assert!(matches!(read(src(), &json!({"items": []}), None), MailAgent::Off { .. }));
         let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m", "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 1, "output": "", "reason": "provider_error (claude.exit)",
             "failures": 2}}]});
-        let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v) else { panic!("on") };
+        let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v, Some("claude".into())) else {
+            panic!("on")
+        };
         assert_eq!(last.reason.as_deref(), Some("provider_error (claude.exit)"));
         assert_eq!(last.failures, Some(2));
         assert_eq!(last.skipped, None);
@@ -259,7 +287,9 @@ mod tests {
             "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
             "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "cost.day-cap"}}}]});
-        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } = read(src(), &v) else {
+        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } =
+            read(src(), &v, Some("claude".into()))
+        else {
             panic!("on")
         };
         assert_eq!(
@@ -285,11 +315,13 @@ mod tests {
             spent_today_usd: Some(1.5),
             max_cost_usd: Some(1.0),
             max_cost_per_day_usd: Some(0.0),
+            agent: Some("codex".into()),
+            trouble: None,
         };
         assert_eq!(
             serde_json::to_value(on).unwrap(),
             json!({"state": "on", "when": "every 5m", "every": "5m", "last": null, "spentTodayUsd": 1.5, "maxCostUsd": 1.0,
-                "maxCostPerDayUsd": 0.0})
+                "maxCostPerDayUsd": 0.0, "agent": "codex", "trouble": null})
         );
         assert_eq!(serde_json::to_value(MailAgent::NoMemo).unwrap(), json!({"state": "noMemo"}));
         assert_eq!(

@@ -16,6 +16,8 @@ use serde_json::Value;
 use std::time::Duration;
 
 pub const MORNING: &str = "morning-digest";
+/// memo's `digest add` starts claude and takes no agent, so digests stay on Claude Code whatever the owner chose for
+/// background jobs (`background_agent.rs`).
 const HARNESS: &str = "claude";
 /// memo's `DIGEST_SOURCES`: what a digest can read.
 const SOURCES: [&str; 6] = ["telegram", "max", "whatsapp", "mail", "meetings", "tasks"];

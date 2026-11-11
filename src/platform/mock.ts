@@ -5,6 +5,7 @@ import { accountRemoveMock } from "./mock-account-remove"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
+import { backgroundAgentMock } from "./mock-background-agent"
 import { backupMock } from "./mock-backup"
 import { botMock } from "./mock-bot"
 import { clientsMock } from "./mock-clients"
@@ -728,6 +729,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncMock(),
     ...syncScheduleMock(params),
     ...mailAgentMock(params),
+    ...backgroundAgentMock(params),
     ...digestsMock(params),
     ...digestEditorsMock(params),
     ...conversationMock(params),

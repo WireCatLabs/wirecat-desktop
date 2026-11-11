@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { LastRun, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { MailAgent } from "./MailAgent"
 
 const email = findTool("email") as NonNullable<ReturnType<typeof findTool>>
@@ -22,11 +23,20 @@ const on: Extract<State, { state: "on" }> = {
   spentTodayUsd: 0.84,
   maxCostUsd: 1,
   maxCostPerDayUsd: 5,
+  agent: "claude",
+  trouble: null,
 }
+const agents = (installed: string[], chosen: string | null = null) => ({
+  agents: ["claude", "codex"].map((id) => ({ id, installed: installed.includes(id), signedIn: null })),
+  chosen,
+  effective: chosen ?? (installed.length === 1 ? (installed[0] ?? null) : null),
+})
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  useBackgroundAgents.setState({ agents: null, error: null, busy: false, chooseError: null })
   vi.spyOn(platform, "mailAgentWaiting").mockResolvedValue(17)
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"]))
 })
 
 it("is offered only for Email, which names memo's schedule", () => {
@@ -48,7 +58,7 @@ it("turns the schedule on through memo and then shows its status and the day's s
   expect(toggle).toHaveAttribute("aria-checked", "false")
   fireEvent.click(toggle)
 
-  expect(set).toHaveBeenCalledWith("email", true, "30m")
+  await vi.waitFor(() => expect(set).toHaveBeenCalledWith("email", true, "30m", "claude"))
   expect(await screen.findByText(/Last run .* · finished/)).toBeInTheDocument()
   expect(screen.getByText("Spent today: $0.84 of $5.00")).toBeInTheDocument()
   expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "true")
@@ -62,7 +72,7 @@ it("turns it off with memo's remove", async () => {
 
   fireEvent.click(await screen.findByRole("switch", { name: "Run on a schedule" }))
 
-  expect(set).toHaveBeenCalledWith("email", false, undefined)
+  expect(set).toHaveBeenCalledWith("email", false, undefined, undefined)
   await vi.waitFor(() =>
     expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "false"),
   )
@@ -81,12 +91,67 @@ it("says it could not turn on, keeps the tool's words under Details, and leaves 
   expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "false")
 })
 
-it("keeps the switch off and says why when Claude Code is missing", async () => {
+it("keeps the switch off and says why when neither agent is installed", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "off", harness: false })
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents([]))
   render(<MailAgent tool={email} />)
 
   expect(await screen.findByRole("switch", { name: "Run on a schedule" })).toBeDisabled()
-  expect(screen.getByText(/Claude Code is not installed/)).toBeInTheDocument()
+  expect(screen.getByText(/Neither Claude Code nor Codex is installed/)).toBeInTheDocument()
+})
+
+it("asks which agent to run in when both are installed and none is chosen, and never picks one", async () => {
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "off", harness: true })
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"]))
+  const choose = vi.spyOn(platform, "backgroundAgentChoose").mockResolvedValue(agents(["claude", "codex"], "codex"))
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, agent: "codex" })
+  const user = userEvent.setup()
+  render(<MailAgent tool={email} />)
+
+  const agent = await screen.findByRole("combobox", { name: "Agent for background jobs" })
+  expect(agent).toHaveTextContent("Not chosen")
+  await user.click(screen.getByRole("switch", { name: "Run on a schedule" }))
+  expect(set).not.toHaveBeenCalled()
+  expect(screen.getByText("Choose the agent it runs in first: Claude Code or Codex.")).toHaveClass("text-warn-ink")
+
+  await user.click(agent)
+  await user.click(screen.getByRole("option", { name: /^Codex/ }))
+  await user.click(screen.getByRole("button", { name: "Use this agent" }))
+  expect(choose).toHaveBeenCalledWith("codex")
+  await user.click(screen.getByRole("switch", { name: "Run on a schedule" }))
+  expect(set).toHaveBeenCalledWith("email", true, "30m", "codex")
+})
+
+it("names the agent with no credit, keeps its words under Details and offers the other one", async () => {
+  const failed = { ...ran, exitCode: 1, reason: "exit 1", failures: 2 }
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"], "claude"))
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
+    ...on,
+    last: failed,
+    trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
+  })
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, agent: "codex" })
+  const user = userEvent.setup()
+  render(<MailAgent tool={email} />)
+
+  expect(await screen.findByText("Claude Code has no credit left, so the run failed.")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Details" }))
+  expect(screen.getByText("Credit balance is too low")).toBeInTheDocument()
+  expect(set).not.toHaveBeenCalled()
+  await user.click(screen.getByRole("button", { name: "Run through Codex" }))
+  expect(set).toHaveBeenCalledWith("email", true, "30m", "codex")
+})
+
+it("offers no other agent when only the failing one is installed", async () => {
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
+    ...on,
+    last: { ...ran, exitCode: 1 },
+    trouble: { agent: "claude", kind: "limit", line: "You've hit your session limit · resets 3:45pm" },
+  })
+  render(<MailAgent tool={email} />)
+
+  expect(await screen.findByText("Claude Code reached its usage limit, so the run failed.")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Run through/ })).not.toBeInTheDocument()
 })
 
 it("offers Memo instead of a switch when memo is not installed", async () => {
@@ -150,7 +215,7 @@ it("shows the schedule's own interval and changes it through memo, never falling
   expect(screen.getByText(/Checks for new mail every 30 min/)).toBeInTheDocument()
   await user.click(how)
   await user.click(screen.getByRole("option", { name: "hour" }))
-  expect(set).toHaveBeenCalledWith("email", true, "1h")
+  expect(set).toHaveBeenCalledWith("email", true, "1h", "claude")
   await vi.waitFor(() => expect(how).toHaveTextContent("hour"))
 })
 
@@ -166,6 +231,6 @@ it("turns on at the interval chosen while it was off", async () => {
   await user.click(screen.getByRole("option", { name: "15 min" }))
   expect(set).not.toHaveBeenCalled()
   await user.click(screen.getByRole("switch", { name: "Run on a schedule" }))
-  expect(set).toHaveBeenCalledWith("email", true, "15m")
+  await vi.waitFor(() => expect(set).toHaveBeenCalledWith("email", true, "15m", "claude"))
   expect(within(document.body).queryByText(/every 5 min/)).not.toBeInTheDocument()
 })

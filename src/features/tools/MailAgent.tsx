@@ -4,6 +4,8 @@ import { dailyCap, formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-
 import { useLang, useMessages } from "@/i18n"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { agentName, BackgroundAgentChoice, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
+import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -46,6 +48,12 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   const [waiting, setWaiting] = useState<number | null>(null)
   const [pending, setPending] = useState<Pending>(null)
   const [failure, setFailure] = useState<Failure>(null)
+  const [ask, setAsk] = useState(false)
+  const agents = useAgentsLoaded()
+  const names = useMessages(backgroundAgentMessages).names
+  const effective = agents?.effective ?? null
+  const installed = agents?.agents.filter((a) => a.installed).length ?? 0
+  const choose = state?.state === "off" && effective === null && installed > 1
 
   const loadWaiting = useCallback(() => {
     platform.mailAgentWaiting(tool.id).then(setWaiting, () => setWaiting(null))
@@ -67,10 +75,14 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
     }
   }, [tool.id, loadWaiting])
 
-  const change = (on: boolean, interval = every) => {
-    setPending(on && state?.state === "on" ? { on, every: interval } : { on })
+  // A new interval keeps the agent the schedule runs in; only an explicit pick moves it to another.
+  const change = (on: boolean, interval = every, pick?: string) => {
+    const agent = pick ?? (state?.state === "on" ? (state.agent ?? effective) : effective)
+    if (on && agent === null) return setAsk(true)
+    setAsk(false)
+    setPending(on && state?.state === "on" && !pick ? { on, every: interval } : { on })
     setFailure(null)
-    platform.mailAgentSet(tool.id, on, on ? interval : undefined).then(
+    platform.mailAgentSet(tool.id, on, on ? interval : undefined, on ? (agent ?? undefined) : undefined).then(
       (s) => {
         setState(s)
         if (s.state === "on" && s.every) setEvery(s.every)
@@ -93,6 +105,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
 
   const on = pending ? pending.on : state?.state === "on"
   const usable = state?.state === "on" || (state?.state === "off" && state.harness)
+  const runningIn = state?.state === "on" ? state.agent : effective
   return (
     <section
       aria-labelledby={headingId}
@@ -151,10 +164,21 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
             )}
           </div>
           <p id={helpId} className="text-[0.875rem] text-ink-dim">
-            {m.toggleHelp(shownEvery ? duration(shownEvery) : state?.state === "on" ? state.when : duration(every))}
+            {m.toggleHelp(
+              shownEvery ? duration(shownEvery) : state?.state === "on" ? state.when : duration(every),
+              runningIn === null ? null : agentName(names, runningIn),
+            )}
           </p>
         </div>
       )}
+      <Collapse open={choose}>
+        <div className="flex flex-col gap-2">
+          <p className={ask ? "text-[0.9rem] text-warn-ink" : "text-[0.9rem] text-ink-soft"} aria-live="polite">
+            {m.needAgent}
+          </p>
+          {choose && <BackgroundAgentChoice describedBy={helpId} />}
+        </div>
+      </Collapse>
       <Collapse open={state?.state === "off" && !state.harness}>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-[0.9rem] text-ink-soft">{m.noHarness}</p>
@@ -163,7 +187,18 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
           </OpenLink>
         </div>
       </Collapse>
-      <Collapse open={state?.state === "on"}>{state?.state === "on" && <Status state={state} m={m} />}</Collapse>
+      <Collapse open={state?.state === "on"}>
+        {state?.state === "on" && (
+          <Status
+            state={state}
+            m={m}
+            effective={effective}
+            others={agents?.agents.filter((a) => a.installed).map((a) => a.id) ?? []}
+            busy={pending !== null}
+            onRun={(agent) => change(true, shownEvery ?? every, agent)}
+          />
+        )}
+      </Collapse>
       <Collapse open={failure !== null}>
         <ErrorNotice inline raw={failure?.message ?? null}>
           {failure &&
@@ -183,9 +218,25 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   )
 }
 
-function Status({ state, m }: { state: Extract<State, { state: "on" }>; m: MailAgentText }) {
+type StatusProps = {
+  state: Extract<State, { state: "on" }>
+  m: MailAgentText
+  /** The agent for background jobs; another one than the schedule's is offered, never switched to. */
+  effective: string | null
+  /** Installed agents. */
+  others: string[]
+  busy: boolean
+  onRun: (agent: string) => void
+}
+
+function Status({ state, m, effective, others, busy, onRun }: StatusProps) {
   const lang = useLang()
-  const { last, spentTodayUsd } = state
+  const a = useMessages(backgroundAgentMessages)
+  const { last, spentTodayUsd, trouble } = state
+  const failing = trouble !== null && last !== null && last.exitCode !== 0
+  const troubled = failing ? (trouble.agent ?? state.agent) : null
+  const instead = failing ? others.find((id) => id !== troubled) : undefined
+  const moved = !failing && state.agent !== null && effective !== null && effective !== state.agent
   const outcome = last ? runOutcome(last) : null
   const cap = dailyCap(state.maxCostPerDayUsd)
   return (
@@ -206,6 +257,30 @@ function Status({ state, m }: { state: Extract<State, { state: "on" }>; m: MailA
         <p className="tabular-nums">
           {m.spentToday(formatUsd(spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang))}
         </p>
+      )}
+      {state.agent === "codex" && <p>{a.codexNoCap}</p>}
+      {failing && (
+        <ErrorNotice
+          inline
+          raw={trouble.line}
+          action={
+            instead && (
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => onRun(instead)}>
+                {a.runVia(agentName(a.names, instead))}
+              </Button>
+            )
+          }
+        >
+          {a.trouble[trouble.kind](troubled === null ? a.theAgent : agentName(a.names, troubled))}
+        </ErrorNotice>
+      )}
+      {moved && state.agent && effective && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p>{m.otherChosen(agentName(a.names, effective), agentName(a.names, state.agent))}</p>
+          <Button size="sm" variant="secondary" disabled={busy} onClick={() => onRun(effective)}>
+            {a.runVia(agentName(a.names, effective))}
+          </Button>
+        </div>
       )}
     </div>
   )

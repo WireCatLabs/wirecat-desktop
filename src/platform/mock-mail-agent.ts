@@ -7,7 +7,8 @@ import type { Platform } from "./types"
 // with the day's cost cap reached, `?mail-agent=failed` on with two failed runs,
 // `?mail-agent=nocap` on from a memo that does not report its caps, `?mail-agent=noclaude` off with
 // Claude Code missing, `?mail-agent=nomemo` without memo, `?mail-agent=old` with a memo too old;
-// `?mail-agent-fail=1` makes turning it on fail with memo's words.
+// `?mail-agent-fail=1` makes turning it on fail with memo's words; `?mail-agent=nocredit` on through Claude Code, whose
+// last two runs failed for lack of credit, `?mail-agent=codexlimit` on through Codex at its usage limit.
 export function mailAgentMock(
   params: URLSearchParams,
 ): Pick<Platform, "mailAgentStatus" | "mailAgentSet" | "mailAgentWaiting"> {
@@ -21,6 +22,8 @@ export function mailAgentMock(
     spentTodayUsd: 0.84,
     maxCostUsd: 1,
     maxCostPerDayUsd: 5,
+    agent: "claude",
+    trouble: null,
     ...over,
   })
   const start = (): MailAgent => {
@@ -45,6 +48,20 @@ export function mailAgentMock(
         last: { at: ago(3), exitCode: 1, reason: "provider_error (claude.exit)", failures: 2, skipped: null },
         spentTodayUsd: 0.31,
       })
+    if (scenario === "nocredit")
+      return on({
+        last: { at: ago(3), exitCode: 1, reason: "exit 1", failures: 2, skipped: null },
+        spentTodayUsd: 0,
+        trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
+      })
+    if (scenario === "codexlimit")
+      return on({
+        last: { at: ago(3), exitCode: 1, reason: "exit 1", failures: 1, skipped: null },
+        spentTodayUsd: null,
+        maxCostUsd: null,
+        agent: "codex",
+        trouble: { agent: "codex", kind: "limit", line: "You've hit your usage limit. Try again at 3:45 PM." },
+      })
     if (scenario === "nocap") return on({ maxCostUsd: null, maxCostPerDayUsd: null })
     if (scenario === "nomemo") return { state: "noMemo" }
     if (scenario === "old") return { state: "old", version: "0.131.20", need: "0.131.26" }
@@ -56,13 +73,13 @@ export function mailAgentMock(
       await delay(350)
       return state
     },
-    async mailAgentSet(_id, turnOn, every = "30m") {
+    async mailAgentSet(_id, turnOn, every = "30m", agent) {
       await delay(900)
       if (turnOn && params.get("mail-agent-fail")) throw new Error("claude is not on PATH")
       const kept =
-        state.state === "on"
-          ? { last: state.last, spentTodayUsd: state.spentTodayUsd }
-          : { last: null, spentTodayUsd: 0 }
+        state.state === "on" && !agent
+          ? { last: state.last, spentTodayUsd: state.spentTodayUsd, agent: state.agent, trouble: state.trouble }
+          : { last: null, spentTodayUsd: 0, agent: agent ?? "claude", trouble: null }
       state = turnOn ? on({ ...kept, when: `every ${every}`, every }) : { state: "off", harness: true }
       return state
     },

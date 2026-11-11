@@ -11,6 +11,13 @@ export type AccountRemoved =
 /**  `was_signed_in` is false when the tool found no sign-in to end. */
 { result: "signedOut"; wasSignedIn: boolean } | { result: "failed"; message: string };
 
+/**  Why an agent refused a run, sorted from its own words; `line` is that sentence, masked. */
+export type AgentTrouble = {
+	agent: string | null,
+	kind: TroubleKind,
+	line: string,
+};
+
 export type Area = {
 	/**  A tool id, or `shared` for the archive every tool reads. */
 	id: string,
@@ -652,7 +659,7 @@ export type LoginCode = {
 };
 
 export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
-/**  `harness`: whether the agent program is on PATH, so turning it on can work. */
+/**  `harness`: whether Claude Code or Codex is on PATH, so turning it on can work. */
 { state: "off"; harness: boolean } | 
 /**
  *  `spent_today_usd` is `None` where memo does not report it; the caps are `None` from a memo built on cli-core older than 0.584, and
@@ -660,7 +667,7 @@ export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | 
  */
 { state: "on"; when: string; 
 /**  `30m` when memo's `when` is one of the catalog's intervals. */
-every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null };
+every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null; agent: string | null; trouble: AgentTrouble | null };
 
 export type Mailbox = {
 	profile: string,
@@ -1272,6 +1279,8 @@ export type ToolState = {
 	/**  Newest first: the first one is the copy the app runs (`program`); the rest are left unused. */
 	installs: Install[],
 };
+
+export type TroubleKind = "noCredit" | "limit" | "signedOut";
 
 export type TunnelRoute = {
 	tool: string,

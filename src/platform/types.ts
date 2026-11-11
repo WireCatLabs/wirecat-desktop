@@ -17,6 +17,7 @@ import type {
 import type { AiChecked, AiModel, AiModelChoice, AiOff } from "./ai-model-schemas"
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
+import type { BackgroundAgents } from "./background-agent-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
   AccountRemoval,
@@ -572,8 +573,12 @@ export type Platform = {
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
   /** memo's own `schedule agent` at `every` (the catalog's default when left out) or `schedule remove`; rejects
-   * with memo's words, masked. On again with another interval replaces the schedule. */
-  mailAgentSet(id: string, on: boolean, every?: string): Promise<MailAgent>
+   * with memo's words, masked. On again with another interval replaces the schedule. `agent` is the owner's pick for
+   * this job; without it the agent for background jobs runs it. */
+  mailAgentSet(id: string, on: boolean, every?: string, agent?: string): Promise<MailAgent>
+  /** Claude Code and Codex: installed, signed in, the owner's pick for background jobs and the one a job starts. */
+  backgroundAgents(): Promise<BackgroundAgents>
+  backgroundAgentChoose(id: string): Promise<BackgroundAgents>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */

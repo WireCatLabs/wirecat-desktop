@@ -16,6 +16,8 @@ use serde_json::Value;
 use std::time::Duration;
 
 const NAME: &str = "morning-digest";
+/// memo's `digest add` starts claude and takes no agent, so digests stay on Claude Code whatever the owner chose for
+/// background jobs (`background_agent.rs`). The older memo here could take codex, but one digest on another agent than the rest would be harder to explain.
 const HARNESS: &str = "claude";
 const PROMPT: &str = "Run memo skill show morning-digest and follow it.";
 /// The mail agent's minimum: `schedule agent` with its caps. A memo without `--deliver-to` refuses that option itself,

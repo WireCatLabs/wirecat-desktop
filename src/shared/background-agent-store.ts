@@ -1,0 +1,41 @@
+import { create } from "zustand"
+import type { BackgroundAgents } from "@/platform/background-agent-schemas"
+import { platform } from "@/platform/bridge"
+import { errorText as message } from "./errors"
+
+type State = {
+  /** null until the first answer. */
+  agents: BackgroundAgents | null
+  error: string | null
+  busy: boolean
+  chooseError: string | null
+  load(): Promise<void>
+  choose(id: string): Promise<void>
+}
+
+/** Claude Code and Codex for the background jobs; shared by Settings and the mail agent. */
+export const useBackgroundAgents = create<State>((set, get) => ({
+  agents: null,
+  error: null,
+  busy: false,
+  chooseError: null,
+  async load() {
+    set({ error: null })
+    try {
+      set({ agents: await platform.backgroundAgents() })
+    } catch (e) {
+      set({ error: message(e) })
+    }
+  },
+  async choose(id) {
+    if (get().busy) return
+    set({ busy: true, chooseError: null })
+    try {
+      set({ agents: await platform.backgroundAgentChoose(id) })
+    } catch (e) {
+      set({ chooseError: message(e) })
+    } finally {
+      set({ busy: false })
+    }
+  },
+}))

@@ -206,6 +206,12 @@ src-tauri/src/
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
                 schedule's own and turns on at the one chosen, the catalog's `every` (30m) only when none is known.
+                The agent (`{harness}`) is the one the page passes, else `background_agent.rs`'s choice.
+  background_agent.rs Claude Code or Codex for the background jobs: memo's `sources readers list` says installed and
+                signed in (PATH alone without memo); the owner's pick is kept in the app's data folder, because memo
+                has no default. Several installed and none chosen is a question, never a guess. A failed run's report
+                and stderr are matched against the agents' documented refusals (no credit, usage limit, signed out);
+                only that line, masked, reaches the page. Digests stay on Claude Code: memo's `digest add` takes no agent.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   deep_link.rs  `wirecat://open/v1/…` links (Tauri's deep-link plugin, with single-instance first so a click reaches the
                 running window): parsed to the v1 grammar of cli-core's `links.ts`, checked against its shared fixture
