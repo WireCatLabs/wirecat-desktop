@@ -13,6 +13,9 @@ use std::time::Duration;
 
 const LIMIT: &str = "500";
 const ACTIVITY_LIMIT: &str = "30";
+const ENDED_LIMIT: &str = "100";
+/// Memo's pages of waiting actions one page here covers: see `waiting_actions`.
+const WAITING_SPAN: u32 = 4;
 pub const MAX_TEXT: usize = 2000;
 const READ: Duration = Duration::from_mins(1);
 /// Memo 0.131.72 lists the links its sources reported in minutes on a big store (BUG-663); the page shows the rest
@@ -171,6 +174,12 @@ const FINDINGS: &str = "evidence_findings";
 /// A source review is shown as a marker on the memory or fact it is about, and decided there, never as an action:
 /// memo refuses `actions confirm` on it.
 pub(crate) const SOURCE_REVIEW: &str = "memory_source_review";
+/// `actions list` also holds these. A match or a split is decided on the People page. A relationship proposal is read
+/// from `relationships list`, and every rejected one stays behind here as a row.
+const NOT_ACTIONS: [&str; 4] = [SOURCE_REVIEW, "identity_link", "identity_split", "relationship"];
+/// The kinds the page has words for (`verbs` and `kinds` in its messages) or memo writes a whole line for.
+const DESCRIBED: [&str; 10] =
+    ["reply", "send", "ban", "mute", "pin", "invite", "create_task", FINDINGS, "mail_findings", "meeting_findings"];
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Counts {
@@ -278,7 +287,11 @@ fn fact(v: &Value) -> Option<Entry> {
 
 pub(crate) fn action(v: &Value) -> Option<Entry> {
     let account = &v["account"];
-    let kind = text(v, "kind").filter(|k| k != SOURCE_REVIEW)?;
+    let kind = text(v, "kind").filter(|k| !NOT_ACTIONS.contains(&k.as_str()))?;
+    // Without words of ours or the agent's own text, the row would be the kind's bare name with Approve beside it.
+    if !DESCRIBED.contains(&kind.as_str()) && text(v, "text").is_none() {
+        return None;
+    }
     let batch = kind == FINDINGS;
     Some(Entry {
         reference: format!("action:{}", text(v, "id")?),
@@ -424,14 +437,25 @@ fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String>
     Ok(v["items"].as_array().map(|a| a.iter().filter_map(|r| relationship(r, pending)).collect()).unwrap_or_default())
 }
 
+/// The links the page shows. Sources report tens of thousands and memo lists oldest first, so the owner's are asked for
+/// by standing. `standing:` replaces `include:ended` rather than adding to it, hence two calls.
+fn held_links(call: &Call) -> Result<Vec<Entry>, String> {
+    let mut held = rows(call, &["relationships", "list", "standing:confirmed", "--limit", LIMIT], false)?;
+    held.extend(rows(call, &["relationships", "list", "standing:ended", "--limit", ENDED_LIMIT], false)?);
+    Ok(held)
+}
+
 /// Relationships are part of the page only where Memo has them; a memo without the list leaves the rest as it is.
-/// Links that ended are asked for with `include:ended`, which an older memo does not know and lists without.
+/// An older memo that does not know `standing:` or `include:ended` lists without them.
 fn relationships(call: &Call, pending: bool) -> Result<Vec<Entry>, String> {
     let found = if pending {
         rows(call, &["relationships", "list", "confirmed:false"], true)
     } else {
-        match rows(call, &["relationships", "list", "include:ended"], false) {
-            Err(e) if unsupported(&e) => rows(call, &["relationships", "list"], false),
+        match held_links(call) {
+            Err(e) if unsupported(&e) => match rows(call, &["relationships", "list", "include:ended"], false) {
+                Err(e) if unsupported(&e) => rows(call, &["relationships", "list"], false),
+                r => r,
+            },
             r => r,
         }
     };
@@ -607,9 +631,17 @@ fn is_held_links(args: &[String]) -> bool {
 
 /// One page of a list, never every page: a large store has thousands. A memo before `--page` refuses the option and
 /// gives its first page, `None` for the page.
-fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>, page: u32) -> Result<Listed, String> {
+fn list(
+    call: &Call,
+    noun: &str,
+    query: &[&str],
+    parse: fn(&Value) -> Option<Entry>,
+    page: u32,
+) -> Result<Listed, String> {
     // `actions list` reads every findings batch's sources back unless brief; the page reads them on opening one.
-    let mut parts = vec![noun, "list", "--limit", LIMIT];
+    let mut parts = vec![noun, "list"];
+    parts.extend(query);
+    parts.extend(["--limit", LIMIT]);
     if noun == "actions" {
         parts.push("--brief");
     }
@@ -627,13 +659,34 @@ fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>, page: u32) 
 
 type Listed = (Vec<Entry>, bool, Option<u32>);
 
+/// What waits, asked for by status so that decided rows cannot push it back. Memo has no `kind:` on this list, so the
+/// rows `action` drops still fill its pages: one page here walks a few of memo's.
+fn waiting_actions(call: &Call, page: u32) -> Result<Listed, String> {
+    let first = page.saturating_sub(1) * WAITING_SPAN + 1;
+    let mut entries = Vec::new();
+    for n in first..first + WAITING_SPAN {
+        let (items, more, paged) = list(call, "actions", &["status:proposed"], action, n)?;
+        entries.extend(items);
+        if !more || paged.is_none() {
+            return Ok((entries, more, paged.map(|_| page)));
+        }
+    }
+    Ok((entries, true, Some(page)))
+}
+
+/// What was decided: the whole list, less what `waiting_actions` already gave.
+fn decided_action(v: &Value) -> Option<Entry> {
+    action(v).filter(|e| e.status != "proposed")
+}
+
 /// Every list at once: memo's server answers them side by side, and a memo without it starts a process for each, so one
 /// after another would take that many times as long.
 fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
-    let (memories, facts, actions, agents, (proposed, held, roles)) = std::thread::scope(|s| {
-        let memories = s.spawn(|| list(call, "memories", memory, page));
-        let facts = s.spawn(|| list(call, "facts", fact, page));
-        let actions = s.spawn(|| list(call, "actions", action, page));
+    let (memories, facts, waiting, decided, agents, (proposed, held, roles)) = std::thread::scope(|s| {
+        let memories = s.spawn(|| list(call, "memories", &[], memory, page));
+        let facts = s.spawn(|| list(call, "facts", &[], fact, page));
+        let waiting = s.spawn(|| waiting_actions(call, page));
+        let decided = s.spawn(|| list(call, "actions", &[], decided_action, page));
         let agents = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
         let proposed = s.spawn(|| relationships(call, true));
         let held = s.spawn(|| relationships(call, false));
@@ -642,7 +695,8 @@ fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
         (
             memories.join().unwrap_or_else(stopped),
             facts.join().unwrap_or_else(stopped),
-            actions.join().unwrap_or_else(stopped),
+            waiting.join().unwrap_or_else(stopped),
+            decided.join().unwrap_or_else(stopped),
             agents.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
             (
                 proposed.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
@@ -652,7 +706,7 @@ fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
         )
     });
     let (mut entries, mut more, mut page) = memories?;
-    for (items, has_more, paged) in [facts?, actions?] {
+    for (items, has_more, paged) in [facts?, waiting?, decided?] {
         entries.extend(items);
         more |= has_more;
         page = page.and(paged);
@@ -1290,10 +1344,11 @@ mod tests {
             ("relationships", Some("list")) => Ok(
                 json!({"items":[{"list":"organization","id":"board-member","label":"Board member","built_in":false}]}),
             ),
+            ("relationships", Some("standing:ended")) => Ok(json!({"items":[held_relationship("ended")]})),
             ("relationships", _) => {
                 let mut waiting = pending_relationship();
                 waiting["standing"] = json!("proposed");
-                Ok(json!({"items":[held_relationship("reported"), held_relationship("ended"), waiting]}))
+                Ok(json!({"items":[held_relationship("reported"), waiting]}))
             }
             ("agents", _) => Err("unknown command 'agents'".into()),
             _ => Ok(json!({"items":[]})),
@@ -1361,17 +1416,29 @@ mod tests {
     }
 
     #[test]
-    fn asks_for_ended_links_and_lists_without_them_on_a_memo_that_does_not_know_the_word() {
+    fn asks_for_the_owners_links_and_the_ended_ones_by_standing() {
+        let fake = Fake::new(|a| Ok(json!({"items":[held_relationship(a[2].trim_start_matches("standing:"))]})));
+        let held = relationships(&|a: &[String]| fake.call(a), false).unwrap();
+        assert_eq!(held.iter().map(|e| e.status.as_str()).collect::<Vec<_>>(), ["confirmed", "stale"]);
+        assert_eq!(fake.seen()[0][..5], strs(&["relationships", "list", "standing:confirmed", "--limit", LIMIT]));
+        assert_eq!(fake.seen()[1][..5], strs(&["relationships", "list", "standing:ended", "--limit", ENDED_LIMIT]));
+    }
+
+    #[test]
+    fn a_memo_that_does_not_know_standing_or_include_lists_without_them() {
         let fake = Fake::new(|a| {
-            if a.iter().any(|w| w == "include:ended") {
-                Err("relationships list: query.unknown-field at position 1 — no field \"include\"".into())
+            if a.iter().any(|w| w.starts_with("standing:") || w == "include:ended") {
+                Err("relationships list: query.unknown-field at position 1".into())
             } else {
                 Ok(json!({"items":[held_relationship("confirmed")]}))
             }
         });
         let held = relationships(&|a: &[String]| fake.call(a), false).unwrap();
         assert_eq!(held.len(), 1);
-        assert_eq!(fake.seen()[0][2], "include:ended");
+        assert_eq!(
+            fake.seen().iter().map(|a| a[2].as_str()).collect::<Vec<_>>()[..2],
+            ["standing:confirmed", "include:ended"]
+        );
     }
 
     #[test]
@@ -1429,12 +1496,12 @@ mod tests {
             })
         });
         let call = |a: &[String]| fake.call(a);
-        let (facts, more, page) = list(&call, "facts", fact, 2).unwrap();
+        let (facts, more, page) = list(&call, "facts", &[], fact, 2).unwrap();
         assert_eq!((facts.len(), more, page), (1, true, Some(2)));
         assert_eq!(fake.seen().len(), 1, "no page is read ahead");
-        let (memories, more, page) = list(&call, "memories", memory, 1).unwrap();
+        let (memories, more, page) = list(&call, "memories", &[], memory, 1).unwrap();
         assert_eq!((memories.len(), more, page), (1, true, None));
-        assert!(list(&call, "memories", memory, 2).is_err(), "an older memo has no second page");
+        assert!(list(&call, "memories", &[], memory, 2).is_err(), "an older memo has no second page");
     }
 
     #[test]
@@ -1512,6 +1579,7 @@ mod tests {
 
     #[test]
     fn only_the_held_links_wait_less() {
+        assert!(is_held_links(&words(&["relationships", "list", "standing:confirmed", "--limit", LIMIT])));
         assert!(is_held_links(&words(&["relationships", "list", "include:ended"])));
         assert!(is_held_links(&words(&["relationships", "list"])));
         assert!(!is_held_links(&words(&["relationships", "list", "confirmed:false"])));
@@ -1537,6 +1605,42 @@ mod tests {
         let mut review = proposal("proposed");
         review["kind"] = json!("memory_source_review");
         assert_eq!(action(&review), None);
+    }
+
+    #[test]
+    fn what_other_pages_decide_or_the_page_cannot_describe_is_never_an_action() {
+        for kind in ["identity_link", "identity_split", "relationship"] {
+            let mut row = proposal("proposed");
+            row["kind"] = json!(kind);
+            assert_eq!(action(&row), None, "{kind}");
+        }
+        let mut unknown = proposal("proposed");
+        unknown["kind"] = json!("key_document");
+        assert!(action(&unknown).is_some(), "an agent's own text describes it");
+        unknown["text"] = Value::Null;
+        assert_eq!(action(&unknown), None);
+        unknown["kind"] = json!("mail_findings");
+        assert!(action(&unknown).is_some());
+    }
+
+    #[test]
+    fn asks_memo_for_what_waits_and_walks_past_pages_of_rows_it_drops() {
+        let mut matched = proposal("proposed");
+        matched["kind"] = json!("identity_link");
+        let mut rejected = proposal("rejected");
+        rejected["id"] = json!("2");
+        let fake = Fake::new(move |a| {
+            Ok(match (a.get(2).map(String::as_str), a.iter().position(|w| w == "--page").map(|i| a[i + 1].as_str())) {
+                (Some("status:proposed"), Some("1")) => json!({"items":[matched],"page":{"has_more":true}}),
+                (Some("status:proposed"), _) => json!({"items":[proposal("proposed")],"page":{"has_more":false}}),
+                _ => json!({"items":[proposal("proposed"), rejected],"page":{"has_more":false}}),
+            })
+        });
+        let call = |a: &[String]| fake.call(a);
+        let (waiting, more, page) = waiting_actions(&call, 1).unwrap();
+        assert_eq!((waiting.len(), more, page), (1, false, Some(1)));
+        let (decided, ..) = list(&call, "actions", &[], decided_action, 1).unwrap();
+        assert_eq!(decided.iter().map(|e| e.status.as_str()).collect::<Vec<_>>(), ["rejected"]);
     }
 
     #[test]

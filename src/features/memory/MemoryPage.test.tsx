@@ -8,7 +8,9 @@ import { render, screen, waitFor, within } from "@/testing/render"
 import { useLogs } from "../logs/store"
 import { useTasks } from "../tasks/store"
 import { MEMORY_RUNS } from "./Activity"
+import { actionLine } from "./labels"
 import { MemoryPage } from "./MemoryPage"
+import { memoryMessages } from "./messages"
 import { useMemory } from "./store"
 
 // The mock store outlives each test, so a later test reads what an earlier one approved or rejected.
@@ -20,6 +22,13 @@ const all = async (user: ReturnType<typeof userEvent.setup>) => {
 }
 
 describe("Memory", () => {
+  it("titles a mail findings batch in the page's own words, not memo's kind name", () => {
+    const batch = { kind: "mail_findings", verb: "mail_findings", summary: "Mail findings", text: null } as MemoryEntry
+    expect(actionLine(batch, memoryMessages.en, true)).toBe("Findings from mail")
+    const evidence = { kind: "evidence_findings", verb: "create", summary: "Create 3 facts", text: null } as MemoryEntry
+    expect(actionLine(evidence, memoryMessages.en, false)).toBe("Create 3 facts")
+  })
+
   it("approves a waiting row without opening it, and the row turns green where it is", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)

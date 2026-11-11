@@ -381,8 +381,9 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 What agents concluded about the owner and the people around them, read from memo (plan
 `docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.72 or newer (`memory.minVersion` in the catalog, the first memo with
 `sources` and source reviews); an older one
-answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
-(each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
+answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`,
+`actions list status:proposed --brief` (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list.
+`actions list` also holds People's `identity_link` and `identity_split` rows and every rejected `relationship`, and has no `kind:` field, so Rust drops them after the read, with any kind the page has no words for and no text of its own; one page reads up to four of memo's pages of what waits so they cannot push it back; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
 `target_name`, `chat_name`, the whole `text` and, for a findings batch, `counts`. The page writes the row's line from
 them in the interface language; memo's English `summary` is the fallback for a verb the page has no words for. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
@@ -451,8 +452,8 @@ comes back as `memo.refused`.
 ### Relationships
 
 Relationships between people, organizations and projects are rows of the same page (CRM relations plan, PR 11).
-`memory_read` also runs `relationships list confirmed:false` (an agent's proposals), `relationships list include:ended` (the links, each with
-its `standing`; a memo that does not know `include:` lists without it, so without ended ones) and `relationships roles
+`memory_read` also runs `relationships list confirmed:false` (an agent's proposals), `relationships list standing:confirmed --limit 500` and `standing:ended --limit 100` (the links, each with
+its `standing`; `standing:` replaces `include:ended`, and sources report too many links to read them all, so **Reported** rows come only from a memo that does not know `standing:`, which falls back to `include:ended`, then the plain list) and `relationships roles
 list` (the owner's role lists, from the memo with cli-core's role lists). A memo without one of them leaves its part out
 and the rest of the page as it is; any other failure (a busy store) fails the read as a failed memories list does. A row sits under the end
 it starts from (a person, an organization or a project), says the other end and the role, and carries a standing chip:
