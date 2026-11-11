@@ -1822,7 +1822,7 @@
         "config": null
       },
       "memory": {
-        "minVersion": "0.131.80",
+        "minVersion": "0.131.82",
         "revokeMinVersion": "0.131.28"
       },
       "tasks": null,
