@@ -172,6 +172,8 @@ export function LogsPage() {
   useEffect(() => setShown(STEP), [deferred, range, newest])
 
   const onFilter = (field: string, value: string, negate: boolean) => setQuery(toggleTerm(query, field, value, negate))
+  const onFlip = (field: string, values: readonly string[]) =>
+    setQuery(values.reduce((q, v) => toggleTerm(q, field, v), query))
   const failed = all.filter((r) => r.status === "failed").length
   const oldest = all.reduce((min, r) => (r.started_at < min ? r.started_at : min), all[0]?.started_at ?? "")
   const trouble = settingsTone(sources, keeping)
@@ -277,6 +279,7 @@ export function LogsPage() {
                   total={ranged.length}
                   groupBy={groupBy}
                   onToggle={onFilter}
+                  onFlip={onFlip}
                   onGroup={setGroupBy}
                 />
               </div>

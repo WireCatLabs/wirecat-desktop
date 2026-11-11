@@ -5,11 +5,11 @@ import { useMessages } from "@/i18n"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { FilterMenu } from "@/ui/FilterMenu"
 import { Lamp } from "@/ui/Lamp"
+import { SEARCH_FROM } from "@/ui/popup-list"
 import { logsMessages } from "./messages"
 import { commandLabel, fieldLabel, type LogsWords, toolName, viaName } from "./names"
-
-const SHOWN = 6
 
 type Props = {
   counts: Record<string, Count[]>
@@ -17,10 +17,12 @@ type Props = {
   total: number
   groupBy: string | null
   onToggle: (field: string, value: string, negate: boolean) => void
+  /** Ticks or unticks several values in one change, as clearing a long field's list does. */
+  onFlip: (field: string, values: readonly string[]) => void
   onGroup: (field: string | null) => void
 }
 
-export function Facets({ counts, terms, total, groupBy, onToggle, onGroup }: Props) {
+export function Facets({ counts, terms, total, groupBy, onToggle, onFlip, onGroup }: Props) {
   const m = useMessages(logsMessages)
   return (
     <nav aria-label={m.facets} className="flex flex-col gap-[1.1rem]">
@@ -34,6 +36,7 @@ export function Facets({ counts, terms, total, groupBy, onToggle, onGroup }: Pro
             terms={terms}
             grouped={groupBy === field}
             onToggle={onToggle}
+            onFlip={onFlip}
             onGroup={onGroup}
           />
         ))}
@@ -42,29 +45,21 @@ export function Facets({ counts, terms, total, groupBy, onToggle, onGroup }: Pro
   )
 }
 
-/** Picked values always stay in view, but in their count order rather than pinned to the top. */
-export function visibleValues(counts: Count[], picked: (c: Count) => boolean, limit: number): Count[] {
-  let room = Math.max(0, limit - counts.filter(picked).length)
-  return counts.filter((c) => {
-    if (picked(c)) return true
-    if (room === 0) return false
-    room--
-    return true
-  })
-}
-
 function Facet(
-  props: { field: string; counts: Count[]; grouped: boolean } & Pick<Props, "terms" | "onToggle" | "onGroup">,
+  props: { field: string; counts: Count[]; grouped: boolean } & Pick<
+    Props,
+    "terms" | "onToggle" | "onFlip" | "onGroup"
+  >,
 ) {
-  const { field, terms, grouped, onToggle, onGroup } = props
+  const { field, terms, grouped, onToggle, onFlip, onGroup } = props
   // Runs without the field can't be picked: `-field:*` is a negated term, so it would AND with the ticked values
   // instead of widening them like every other checkbox. The Groups table still shows them, so totals add up.
   const counts = props.counts.filter((c) => c.value !== "")
   const m = useMessages(logsMessages)
   const [open, setOpen] = useState(true)
-  const [all, setAll] = useState(false)
-  const shown = all ? counts : visibleValues(counts, (c) => termState(terms, field, c.value) !== null, SHOWN)
   const label = fieldLabel(m, field)
+  const long = counts.length > SEARCH_FROM
+  const kept = counts.filter((c) => termState(terms, field, c.value) === "include").map((c) => c.value)
 
   return (
     <section aria-label={label}>
@@ -97,34 +92,40 @@ function Facet(
         </button>
       </div>
       <Collapse open={open} className="pt-[0.35rem]">
-        <ul className="flex flex-col">
-          {counts.length === 0 && <li className="py-1 pl-[1.2rem] text-[0.9rem] text-ink-dim">{m.noValues}</li>}
-          {shown.map((c) => (
-            <Value key={c.value} field={field} count={c} state={termState(terms, field, c.value)} onToggle={onToggle} />
-          ))}
-          {counts.length > shown.length && (
-            <li>
-              <button
-                type="button"
-                onClick={() => setAll(true)}
-                className="mt-0.5 pl-[1.2rem] text-[0.9rem] font-medium text-brand hover:text-brand-hover"
-              >
-                {m.showAll(counts.length)}
-              </button>
-            </li>
-          )}
-          {all && counts.length > SHOWN && (
-            <li>
-              <button
-                type="button"
-                onClick={() => setAll(false)}
-                className="mt-0.5 pl-[1.2rem] text-[0.9rem] font-medium text-brand hover:text-brand-hover"
-              >
-                {m.showFewer}
-              </button>
-            </li>
-          )}
-        </ul>
+        {long ? (
+          // A field with many values (commands, clients) is a list to search, not a column the page grows by.
+          <FilterMenu
+            label={label}
+            empty={m.anyOf(counts.length)}
+            search
+            options={counts.map((c) => ({
+              value: c.value,
+              label: field === "tool" ? toolName(c.value) : valueTitle(m, field, c.value),
+              count: c.count,
+              ...(field === "tool"
+                ? { icon: <ToolIcon id={c.value} className="size-4 shrink-0 text-ink-soft" /> }
+                : {}),
+              ...(field === "status" ? { icon: <Lamp tone={statusTone(c.value)} size="sm" /> } : {}),
+            }))}
+            selected={kept}
+            onChange={(next) =>
+              onFlip(field, [...next.filter((x) => !kept.includes(x)), ...kept.filter((x) => !next.includes(x))])
+            }
+          />
+        ) : (
+          <ul className="flex flex-col">
+            {counts.length === 0 && <li className="py-1 pl-[1.2rem] text-[0.9rem] text-ink-dim">{m.noValues}</li>}
+            {counts.map((c) => (
+              <Value
+                key={c.value}
+                field={field}
+                count={c}
+                state={termState(terms, field, c.value)}
+                onToggle={onToggle}
+              />
+            ))}
+          </ul>
+        )}
       </Collapse>
     </section>
   )

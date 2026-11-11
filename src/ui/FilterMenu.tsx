@@ -5,7 +5,7 @@ import { CheckMark } from "./Checkbox"
 import { cx } from "./cx"
 import { ExpandChevron } from "./ExpandChevron"
 import { uiMessages } from "./messages"
-import { useCloseOutside, useListPlacement } from "./popup-list"
+import { SEARCH_FROM, useCloseOutside, useListPlacement } from "./popup-list"
 
 export type FilterOption = {
   value: string
@@ -36,8 +36,6 @@ type Props = {
   search?: boolean
 }
 
-const SEARCH_FROM = 7
-
 /**
  * A filter chip: a button that opens a list of choices with a count beside each. Several may be chosen; a long list
  * gets a field to narrow it. The list floats over the page (`popup-list`), so opening it moves nothing. Once something
@@ -66,7 +64,12 @@ export function FilterMenu({
   const field = useRef<HTMLInputElement>(null)
   const base = useId()
   const searchable = search || options.length >= SEARCH_FROM
-  const shown = options.filter((o) =>
+  // A long list puts what was chosen first, as it stood when the list opened: a tick never moves a row away.
+  const [first, setFirst] = useState<readonly string[]>([])
+  const ordered = searchable
+    ? [...options.filter((o) => first.includes(o.value)), ...options.filter((o) => !first.includes(o.value))]
+    : options
+  const shown = ordered.filter((o) =>
     `${o.label} ${o.hint ?? ""} ${o.terms ?? ""}`.toLocaleLowerCase().includes(text.trim().toLocaleLowerCase()),
   )
 
@@ -80,6 +83,10 @@ export function FilterMenu({
   const place = useListPlacement(open, chip, list)
   useCloseOutside(open, inside, closeOutside)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the order is taken once, when the list opens
+  useEffect(() => {
+    if (open) setFirst(selected)
+  }, [open])
   useEffect(() => {
     if (!open) return
     setActive(0)
