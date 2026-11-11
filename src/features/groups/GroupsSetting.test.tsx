@@ -84,10 +84,11 @@ it("refuses a group name Memo would refuse before asking it", async () => {
   expect(screen.getByText("All and bots already mean something to Memo.")).toBeInTheDocument()
 })
 
-it("says the groups arrive with the next update on an older memo", async () => {
+it("asks for a memo update on an older memo, in the words every page uses", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue({ kind: "old", version: "0.131.51" })
   render(<GroupsSetting />)
-  expect(await screen.findByText(/Memo 0.131.51 has no account groups yet/)).toBeInTheDocument()
+  expect(await screen.findByText("This page needs a newer Memo than 0.131.51.")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
 })
 
 it("puts an account on the work side from all", async () => {

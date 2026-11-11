@@ -16,6 +16,7 @@ import {
   localDay,
 } from "@/domain/tasks"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type {
   Creator,
   NewTask,
@@ -33,7 +34,8 @@ import type {
 import type { Platform } from "./types"
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-const scenario = () => params.get("tasks") ?? "default"
+const scenario = () =>
+  params.get("tasks") ?? memoDefault({ missing: "missing", old: "old", failing: "fail" }) ?? "default"
 
 export const MOCK_NOMATCH_QUERY = 'project:HOME assignee:"person:3" state:done'
 
@@ -543,6 +545,8 @@ export function tasksMock(): TaskApi {
     },
     async taskCounts(query): Promise<TaskCounts> {
       await delay(420)
+      // task_board.rs checks no version for counts, so a missing memo is its plain error.
+      if (scenario() === "missing") throw new Error("Memo is not installed")
       if (scenario() === "none")
         return { total: 0, project: [], assignee: [], priority: [], state: [], due: [], agent: [] }
       const without = (field: Field) => {

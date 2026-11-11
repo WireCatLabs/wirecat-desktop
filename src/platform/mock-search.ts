@@ -1,5 +1,6 @@
 import { findTool } from "@/domain/catalog"
 import { delay } from "./mock-delay"
+import { failIfMemoFails, memoDefault } from "./mock-memo"
 import type { SearchAnswer, SearchHit, ValueItem } from "./search-schemas"
 import type { Platform } from "./types"
 
@@ -285,7 +286,9 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
     const tool = findTool(id)
     const search = tool?.search
     if (!tool || !search) throw new Error("This tool cannot search its local data.")
-    if (params.get("search-old") === id) return { kind: "old", message: "unknown option '--offline'" }
+    if ((params.get("search-old") ?? memoDefault({ old: "memo" })) === id)
+      return { kind: "old", message: "unknown option '--offline'" }
+    if (id === "memo") failIfMemoFails()
     if (params.get("search-fail") === "tool")
       return {
         kind: "failed",

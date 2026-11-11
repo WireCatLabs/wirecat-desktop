@@ -112,7 +112,6 @@ const en = {
   summary: (provider: string, model: string) => `In use: ${provider}, ${model}.`,
   looking: "Looking at the AI model…",
   failed: "Could not read the AI model.",
-  tooOld: "Memo on this computer cannot use an AI model yet. Update it on the Tools page.",
 }
 
 const ru: typeof en = {
@@ -207,7 +206,6 @@ const ru: typeof en = {
   summary: (provider: string, model: string) => `Используется: ${provider}, ${model}.`,
   looking: "Смотрим модель ИИ…",
   failed: "Не удалось прочитать модель ИИ.",
-  tooOld: "Memo на этом компьютере пока не умеет работать с моделью ИИ. Обновите его на странице Инструменты.",
 }
 
 const es: typeof en = {
@@ -304,7 +302,6 @@ const es: typeof en = {
   summary: (provider: string, model: string) => `En uso: ${provider}, ${model}.`,
   looking: "Mirando el modelo de IA…",
   failed: "No se pudo leer el modelo de IA.",
-  tooOld: "Memo en este ordenador aún no puede usar un modelo de IA. Actualízalo en la página Herramientas.",
 }
 
 export const aiModelMessages: Messages<typeof en> = { en, ru, es }

@@ -34,10 +34,6 @@ const en = {
   threadTitle: "WireCat can't list this mail thread yet",
   threadBody:
     "Memo opens a mail thread from a link to one of its emails, and this link names the thread only. Copy the reference to give it to your AI agent.",
-  noMemoTitle: "Memo is not installed",
-  noMemoBody: "WireCat reads conversations through Memo. Install it on the Tools page.",
-  oldTitle: "Memo needs an update",
-  oldBody: "The installed Memo cannot read conversations yet. Update it on the Tools page.",
   failedTitle: "WireCat could not read this conversation",
 }
 
@@ -76,10 +72,6 @@ const ru: typeof en = {
   threadTitle: "WireCat пока не может показать эту цепочку писем",
   threadBody:
     "Memo открывает цепочку писем по ссылке на одно из её писем, а эта ссылка называет только цепочку. Скопируйте ссылку на объект, чтобы передать её AI-агенту.",
-  noMemoTitle: "Memo не установлен",
-  noMemoBody: "WireCat читает переписку через Memo. Установите его на странице «Инструменты».",
-  oldTitle: "Memo нужно обновить",
-  oldBody: "Установленный Memo пока не умеет читать переписку. Обновите его на странице «Инструменты».",
   failedTitle: "WireCat не смог прочитать эту переписку",
 }
 
@@ -118,10 +110,6 @@ const es: typeof en = {
   threadTitle: "WireCat aún no puede mostrar este hilo de correo",
   threadBody:
     "Memo abre un hilo de correo desde un enlace a uno de sus correos, y este enlace solo nombra el hilo. Copia la referencia para dársela a tu agente de IA.",
-  noMemoTitle: "Memo no está instalado",
-  noMemoBody: "WireCat lee las conversaciones con Memo. Instálalo en Herramientas.",
-  oldTitle: "Memo necesita una actualización",
-  oldBody: "El Memo instalado aún no puede leer conversaciones. Actualízalo en Herramientas.",
   failedTitle: "WireCat no pudo leer esta conversación",
 }
 

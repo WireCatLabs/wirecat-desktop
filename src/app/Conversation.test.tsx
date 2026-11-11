@@ -129,7 +129,10 @@ describe("a conversation a link opens", () => {
 
     vi.spyOn(platform, "conversationRead").mockResolvedValueOnce({ state: "noMemo" })
     link({ type: "chat", provider: "telegram", account: "1", chat: "2" })
-    expect(await screen.findByRole("heading", { name: "Memo is not installed" }, { timeout: 4000 })).toBeInTheDocument()
+    expect(
+      await screen.findByText("This page reads Memo, which is not installed.", undefined, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Install Memo" })).toBeInTheDocument()
   }, 20000)
 
   it("offers to try again after a failed read", async () => {
@@ -140,7 +143,8 @@ describe("a conversation a link opens", () => {
     expect(
       await screen.findByRole("heading", { name: "WireCat could not read this conversation" }, { timeout: 4000 }),
     ).toBeInTheDocument()
-    expect(screen.getByText("memo stopped after 60 s")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Details" }))
+    expect(await screen.findByText("memo stopped after 60 s")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Try again" }))
     expect(await messages()).toBeInTheDocument()
   }, 15000)

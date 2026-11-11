@@ -1,5 +1,6 @@
 import type { Enrichment, EnrichmentOffer, EnrichmentStatus, EnrichmentTarget } from "./bindings"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import { MODEL_PRICES } from "./mock-model-prices"
 import { providerKeys } from "./mock-provider-keys"
 import type { Platform } from "./types"
@@ -35,7 +36,7 @@ export function enrichmentMock(
   | "enrichmentKeySet"
   | "enrichmentKeyRemove"
 > {
-  const scenario = params.get("enrich")
+  const scenario = params.get("enrich") ?? memoDefault({ old: "old" })
   const keyScenario = params.get("enrich-key")
   providerKeys.found = scenario !== "nokey"
   const keySource = keyScenario === "env" ? "env" : "keyring"

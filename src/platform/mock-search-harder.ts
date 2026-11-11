@@ -1,5 +1,6 @@
 import type { HarderStatus, SearchHarder } from "./bindings"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import { MODEL_PRICES } from "./mock-model-prices"
 import { providerKeys } from "./mock-provider-keys"
 import { searchMock } from "./mock-search"
@@ -50,7 +51,7 @@ export function searchHarderMock(
   Platform,
   "searchHarderStatus" | "searchHarderPreview" | "searchHarderOn" | "searchHarderOff" | "searchHarderRun"
 > {
-  const scenario = params.get("harder")
+  const scenario = params.get("harder") ?? memoDefault({ old: "old" })
   if (scenario === "nokey") providerKeys.found = false
   let chosen = scenario === "router" ? ROUTER : ANTHROPIC
   let on = scenario === "on" || scenario === "nokey" || scenario === "router"

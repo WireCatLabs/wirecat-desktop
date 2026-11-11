@@ -44,6 +44,12 @@ describe("what a page still needs", () => {
       version: null,
       need: "0.131.72",
     })
+    expect(gapFromRead({ kind: "old", version: "0.131.51" })).toEqual({
+      kind: "old",
+      tool: "memo",
+      version: "0.131.51",
+      need: null,
+    })
     expect(gapFromRead({ kind: "ready" })).toBeNull()
   })
 })

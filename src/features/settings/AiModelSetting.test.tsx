@@ -326,11 +326,23 @@ describe("AI model", () => {
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)
-    expect(await screen.findByText(/cannot use an AI model yet/)).toBeInTheDocument()
+    expect(await screen.findByText("This page needs a newer Memo than 0.132.0.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })
 
-  it("is not shown, and asks memo nothing, when memo is not installed", () => {
+  it("says memo is needed, and asks memo nothing, once the tools show it is not installed", () => {
+    useTools.setState({ installs: { memo: [] } })
+    const show = vi.spyOn(platform, "aiModelShow")
+    render(<AiModelSetting />)
+    expect(screen.getByRole("region", { name: "AI model" })).toHaveTextContent(
+      "This page reads Memo, which is not installed.",
+    )
+    expect(screen.getByRole("button", { name: "Install Memo" })).toBeInTheDocument()
+    expect(show).not.toHaveBeenCalled()
+  })
+
+  it("is not shown, and asks memo nothing, while the tools are not found yet", () => {
     useTools.setState({ installs: {} })
     const show = vi.spyOn(platform, "aiModelShow")
     render(<AiModelSetting />)

@@ -124,7 +124,7 @@ describe("a profile that holds nothing", () => {
 })
 
 describe("closed tasks this week and last", () => {
-  it("are null while memo counts and when it cannot, then both numbers", async () => {
+  it("are null while memo counts, failed when it cannot, then both numbers", async () => {
     const counts = vi.spyOn(platform, "taskCounts").mockRejectedValueOnce(new Error("memo is busy"))
     const none: never[] = []
     counts.mockResolvedValue({
@@ -142,8 +142,7 @@ describe("closed tasks this week and last", () => {
     })
     const failed = renderHook(() => useTaskWeeks("2026-11-05", "UTC"))
     expect(failed.result.current).toBeNull()
-    await waitFor(() => expect(counts).toHaveBeenCalled())
-    expect(failed.result.current).toBeNull()
+    await waitFor(() => expect(failed.result.current).toBe("failed"))
     const { result } = renderHook(() => useTaskWeeks("2026-11-06", "UTC"))
     await waitFor(() =>
       expect(result.current).toEqual({ now: { closed: 14, created: 15 }, last: { closed: 14, created: 15 } }),

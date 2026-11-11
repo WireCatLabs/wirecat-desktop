@@ -34,8 +34,10 @@ const IDLE_KEPT: Duration = Duration::from_mins(9);
 const SERVER_KEPT: Duration = Duration::from_mins(10);
 /// A server gets ready in about 0.35 s; a call waits this long for one that is starting before it starts memo itself.
 const STARTING_WAIT: Duration = Duration::from_secs(1);
-/// A server that only failed to get ready in time may have met a busy moment, so it is tried again after this.
+/// A server that only failed to get ready in time may have met a busy moment, so it is tried again after this; each
+/// slow start in a row doubles the pause, so a memo that hangs at start does not hold a page for 10 s every 2 minutes.
 const SLOW_START_KEPT: Duration = Duration::from_mins(2);
+const SLOW_START_DOUBLINGS: u32 = 4;
 /// How long a request waits for one of the same command on its server before it starts its own process.
 const LANE_WAIT: Duration = Duration::from_secs(1);
 
@@ -107,6 +109,11 @@ pub struct Pool {
 struct State {
     by_bin: HashMap<PathBuf, Servers>,
     refused: HashMap<PathBuf, Refusal>,
+    slow_starts: HashMap<PathBuf, (Stamp, u32)>,
+}
+
+fn slow_start_pause(in_a_row: u32) -> Duration {
+    SLOW_START_KEPT * 2u32.pow(in_a_row.saturating_sub(1).min(SLOW_START_DOUBLINGS))
 }
 
 #[derive(Default)]
@@ -303,10 +310,19 @@ impl Pool {
             Ok(server) => {
                 let server = Arc::new(server);
                 servers.live.push(Slot { server: Arc::clone(&server), busy, idle_since: Instant::now() });
+                state.slow_starts.remove(bin);
                 Some(server)
             }
             Err(refusal) => {
-                if let Some(r) = refusal {
+                if let Some(mut r) = refusal {
+                    if r.until.is_some() {
+                        let in_a_row = match state.slow_starts.get(bin) {
+                            Some((stamp, n)) if *stamp == r.stamp => n + 1,
+                            _ => 1,
+                        };
+                        state.slow_starts.insert(bin.to_path_buf(), (r.stamp.clone(), in_a_row));
+                        r.until = Some(Instant::now() + slow_start_pause(in_a_row));
+                    }
                     state.refused.insert(bin.to_path_buf(), r);
                 }
                 None
@@ -846,6 +862,25 @@ echo '{"via":"spawn"}'
         }
         assert_eq!(starts(&pool), 1);
         assert!(pool.lock().refused[&fake.0].until.is_some());
+    }
+
+    #[test]
+    fn each_slow_start_in_a_row_waits_twice_as_long_up_to_32_minutes() {
+        let pauses: Vec<u64> = (1..=7).map(|n| slow_start_pause(n).as_secs() / 60).collect();
+        assert_eq!(pauses, [2, 4, 8, 16, 32, 32, 32]);
+    }
+
+    #[test]
+    fn a_server_that_stays_slow_is_left_longer_each_time() {
+        let fake = Fake::new("slow-again", NEVER_READY);
+        let pool = pool(2, Duration::from_millis(300));
+        call(&pool, &fake, "list", Duration::from_secs(10)).unwrap();
+        pool.lock().refused.get_mut(&fake.0).unwrap().until = Some(Instant::now());
+        call(&pool, &fake, "list", Duration::from_secs(10)).unwrap();
+        assert_eq!(starts(&pool), 2);
+        assert_eq!(pool.lock().slow_starts[&fake.0].1, 2);
+        let left = pool.lock().refused[&fake.0].until.unwrap().saturating_duration_since(Instant::now());
+        assert!(left > Duration::from_mins(3), "{left:?}");
     }
 
     #[test]

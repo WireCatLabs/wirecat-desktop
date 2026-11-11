@@ -1,6 +1,7 @@
 import { ALL, applyChange, type Change, type Group } from "@/domain/groups"
 import type { GroupsRead } from "./groups-schemas"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // The groups block's stand-in for memo, with made-up accounts only. `?groups=none` has no saved group, `old` an older
@@ -8,8 +9,8 @@ import type { Platform } from "./types"
 // saved entry that names more than one account. `?groups=noscope` is a memo before account scopes.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-const scenario = params.get("groups")
-const fail = params.get("groups-fail")
+const scenario = params.get("groups") ?? memoDefault({ missing: "missing", old: "old" })
+const fail = params.get("groups-fail") ?? memoDefault({ failing: "read" })
 
 const member = (source: string, profiles: string[], scope: string | null = "personal") => ({
   source,

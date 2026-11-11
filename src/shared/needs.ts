@@ -2,8 +2,8 @@ import { useQueries } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { tools } from "@/domain/catalog"
 import { type Gap, gapOf, type Need } from "@/domain/needs"
-import { profilesQuery } from "@/shared/query"
-import { useTools } from "@/shared/tools-store"
+import { profilesQuery } from "./query"
+import { useTools } from "./tools-store"
 
 /** Any CRM the catalog knows, signed in: Clients imports deals from whichever the owner uses. */
 export const crmNeed = (): Need => ({ anyOf: tools.filter((t) => t.crm).map((t) => t.id), signedIn: true })

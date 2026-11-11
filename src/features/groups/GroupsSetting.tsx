@@ -11,7 +11,9 @@ import {
   type Member,
   nameProblem,
 } from "@/domain/groups"
+import { gapFromRead } from "@/domain/needs"
 import { useMessages } from "@/i18n"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Board, DragCopy, useBoardDrag, useSlide } from "@/ui/Board"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -56,21 +58,24 @@ export function GroupsSetting() {
               {m.retry}
             </Button>
           }
-          detail={readError}
+          raw={readError}
         >
           {m.readFailed}
         </ErrorNotice>
       ) : read === null ? (
         <BoardPlaceholder />
-      ) : read.kind === "missing" ? (
-        <p className="reveal text-[0.95rem] text-ink-soft">{m.missing}</p>
-      ) : read.kind === "old" ? (
-        <p className="reveal text-[0.95rem] text-ink-soft">{m.old(read.version)}</p>
+      ) : read.kind === "missing" || read.kind === "old" ? (
+        <MemoNeeded read={read} />
       ) : (
         <GroupsBoard groups={read.groups} unresolved={read.unresolved} />
       )}
     </section>
   )
+}
+
+function MemoNeeded({ read }: { read: { kind: "missing" } | { kind: "old"; version: string | null } }) {
+  const gap = gapFromRead(read)
+  return gap && <ToolNeeded gap={gap} inline />
 }
 
 function BoardPlaceholder() {

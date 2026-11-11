@@ -245,7 +245,7 @@ function Body() {
   if (error) {
     return (
       <ErrorNotice
-        detail={error.message}
+        raw={error.message}
         action={
           <Button size="sm" onClick={() => void readAgain()}>
             {m.tryAgain}

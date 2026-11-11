@@ -1,6 +1,7 @@
 import type { Backfill, DigestBook, DigestItem, DigestSpec, OtherSchedule, RouteChoices, ScheduleRun } from "./bindings"
 import type { Digest, DigestDay } from "./digest-schemas"
 import { delay } from "./mock-delay"
+import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
 
 // Synthetic digests for the browser build: every section, item type, task group, sync line and the "viewed" footer,
@@ -225,7 +226,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
   const started = Date.now()
   const today = iso(dayFrom(0))
   const built = new Set<string>()
-  const memo = params.get("digest-memo")
+  const memo = params.get("digest-memo") ?? memoDefault({ missing: "nomemo", old: "tooold" })
   const named = memo !== "old"
   const item = (spec: DigestSpec, over: Partial<DigestItem> = {}): DigestItem => ({
     name: spec.name,
