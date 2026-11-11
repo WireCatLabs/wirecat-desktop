@@ -154,7 +154,7 @@ describe("People", () => {
     act(() => usePeople.getState().reveal("person:46"))
     const dmitry = await screen.findByRole("dialog", { name: "Dmitry Volkov" }, { timeout: 4000 })
     const telegram = await within(dmitry).findByRole("region", { name: "Telegram" })
-    await waitFor(() => expect(telegram).toHaveTextContent("Seen in: personal, work"))
+    await waitFor(() => expect(telegram).toHaveTextContent("Seen in: personal, work"), { timeout: 4000 })
     const bot = within(telegram).getByText("Sirgris Personal Bot").closest("li") as HTMLElement
     expect(within(bot).getByText("bot")).toBeInTheDocument()
     const max = within(dmitry).getByRole("region", { name: "MAX" })

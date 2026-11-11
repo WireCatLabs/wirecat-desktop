@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
+import { STATES, setField } from "@/domain/tasks"
 import { platform } from "@/platform/bridge"
 import type {
   Doubts,
@@ -14,9 +15,18 @@ import type {
   Resolved,
   Split,
 } from "@/platform/people-schemas"
+import type { TaskRead } from "@/platform/task-schemas"
 import { fresh } from "@/shared/fresh"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+export type TasksOf = { state: "loading" } | { state: "ready"; read: TaskRead } | { state: "failed"; error: string }
+
+/**
+ * A person's tasks as the table counts them: every project and every state, since memo's search otherwise leaves
+ * closed tasks out, and refuses `assignee:` without `project:`.
+ */
+export const tasksQuery = (ref: string) => `project:* ${setField("", "assignee", [ref])} state:(${STATES.join(" OR ")})`
 
 export type Detail =
   | { state: "loading" }
@@ -72,6 +82,8 @@ type PeopleState = {
   splits: Split[]
   splitDecided: Record<string, MatchAnswer>
   doubts: DoubtsRead | null
+  /** The tasks assigned to each person opened, read when their card opens. */
+  tasks: Record<string, TasksOf>
   reading: boolean
   /** When memo last answered; the page reads again only when it is older than a minute. */
   readAt: number | null
@@ -138,6 +150,7 @@ type PeopleState = {
   decideSplit(id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
   /** A page of the people whose accounts look wrongly joined; the page on screen when none is given. */
   readDoubts(page?: number): Promise<void>
+  loadTasks(ref: string): Promise<void>
   /** The owner says this person's accounts in doubt are right; the failure lands in `failed` under the person. */
   keep(ref: string): Promise<boolean>
   unlink(ref: string, identities: string[]): Promise<boolean>
@@ -162,13 +175,16 @@ export const usePeople = create<PeopleState>((set, get) => {
   let pageSeq = 0
   let typing: ReturnType<typeof setTimeout> | undefined
   let wanted: string[] = []
+  // What a dialog needs now; the table's next list of rows must not drop it.
+  let needed: string[] = []
   let doubtSeq = 0
   let running = 0
 
   const pump = () => {
     while (running < AT_ONCE) {
-      const ref = wanted.find((r) => !get().details[r])
+      const ref = [...needed, ...wanted].find((r) => !get().details[r])
       if (!ref) return
+      needed = needed.filter((r) => r !== ref)
       wanted = wanted.filter((r) => r !== ref)
       running++
       void get()
@@ -263,6 +279,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     splits: [],
     splitDecided: {},
     doubts: null,
+    tasks: {},
     reading: false,
     readAt: null,
     error: null,
@@ -428,7 +445,7 @@ export const usePeople = create<PeopleState>((set, get) => {
       pump()
     },
     need(ref) {
-      wanted = [ref, ...wanted.filter((r) => r !== ref)]
+      needed = [ref, ...needed.filter((r) => r !== ref)]
       pump()
     },
     async loadDetail(ref, again = false) {
@@ -547,6 +564,15 @@ export const usePeople = create<PeopleState>((set, get) => {
       await settle(updated, split.person, from ? [from] : [])
       if (answer === "confirm") void get().readDoubts()
       return true
+    },
+    async loadTasks(ref) {
+      set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "loading" } } }))
+      try {
+        const read = await platform.taskList(tasksQuery(ref))
+        set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "ready", read } } }))
+      } catch (e) {
+        set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "failed", error: message(e) } } }))
+      }
     },
     async readDoubts(page) {
       const asked = ++doubtSeq

@@ -1,62 +1,79 @@
-import { useEffect, useState } from "react"
-import { STATES, setField } from "@/domain/tasks"
+import { useEffect } from "react"
 import { openTarget } from "@/features/links"
 import { StateText, useTasks } from "@/features/tasks"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import type { TaskRead } from "@/platform/task-schemas"
 import { useNav } from "@/shared/nav"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { peopleMessages } from "./messages"
-import { usePeople } from "./store"
+import { tasksQuery, usePeople } from "./store"
 
 const SHOWN = 10
 
-/**
- * Every state, closed ones too: the table's count is memo's every task assigned to them, and memo's own search
- * otherwise leaves closed tasks out.
- */
-const queryFor = (ref: string) => `${setField("", "assignee", [ref])} state:(${STATES.join(" OR ")})`
-
-type Read = { state: "loading" } | { state: "ready"; read: TaskRead } | { state: "failed"; error: string }
-
-/** The tasks assigned to this person; a task opens in the Tasks page's dialog, and the rest of them on that page. */
+/** The tasks assigned to this person; a task opens in the Tasks page's dialog, and all of them on that page. */
 export function PersonTasks({ reference }: { reference: string }) {
   const m = useMessages(peopleMessages)
-  const [got, setGot] = useState<Read>({ state: "loading" })
+  const got = usePeople((s) => s.tasks[reference])
   useEffect(() => {
-    let live = true
-    platform
-      .taskList(queryFor(reference))
-      .then((read) => live && setGot({ state: "ready", read }))
-      .catch((e: unknown) => live && setGot({ state: "failed", error: e instanceof Error ? e.message : String(e) }))
-    return () => {
-      live = false
-    }
+    void usePeople.getState().loadTasks(reference)
   }, [reference])
   const leave = () => usePeople.getState().reveal(null)
+  const toTasks = () => {
+    leave()
+    useNav.getState().go("tasks")
+    useTasks.getState().setQuery(tasksQuery(reference))
+  }
 
-  if (got.state === "ready" && (got.read.kind !== "ready" || got.read.total === 0)) return null
+  const read = got?.state === "ready" ? got.read : null
+  if (read?.kind === "ready" && read.total === 0) return null
   return (
     <section className="flex flex-col gap-[0.5rem]">
       <h3 className="font-medium">
         {m.tasksTitle}
-        {got.state === "ready" && got.read.kind === "ready" && (
-          <span className="ml-2 font-normal text-ink-soft tabular-nums">{got.read.total}</span>
-        )}
+        {read?.kind === "ready" && <span className="ml-2 font-normal text-ink-soft tabular-nums">{read.total}</span>}
       </h3>
-      {got.state === "loading" ? (
+      {!got || got.state === "loading" ? (
         <Skeleton className="h-[2.4rem] w-full" />
       ) : got.state === "failed" ? (
-        <ErrorNotice raw={got.error} inline>
+        <ErrorNotice
+          raw={got.error}
+          inline
+          action={
+            <Button size="sm" onClick={() => void usePeople.getState().loadTasks(reference)}>
+              {m.readAgain}
+            </Button>
+          }
+        >
           {m.tasksFailed}
         </ErrorNotice>
-      ) : got.read.kind === "ready" ? (
+      ) : read?.kind === "badQuery" ? (
+        <ErrorNotice
+          raw={read.message}
+          inline
+          action={
+            <Button size="sm" onClick={toTasks}>
+              {m.tasksOpenPage}
+            </Button>
+          }
+        >
+          {m.tasksRefused}
+        </ErrorNotice>
+      ) : read?.kind === "old" || read?.kind === "missing" ? (
+        <ErrorNotice
+          inline
+          action={
+            <Button size="sm" onClick={toTasks}>
+              {m.tasksOpenPage}
+            </Button>
+          }
+        >
+          {m.tasksNeedMemo}
+        </ErrorNotice>
+      ) : read?.kind === "ready" ? (
         <>
           <ul className="flex flex-col rounded-[0.45rem] border border-line">
-            {got.read.tasks.slice(0, SHOWN).map((t) => (
+            {read.tasks.slice(0, SHOWN).map((t) => (
               <li key={t.key} className="border-line not-first:border-t">
                 <button
                   type="button"
@@ -74,17 +91,10 @@ export function PersonTasks({ reference }: { reference: string }) {
               </li>
             ))}
           </ul>
-          {(got.read.total > SHOWN || got.read.more) && (
+          {(read.total > SHOWN || read.more) && (
             <span>
-              <Button
-                size="sm"
-                onClick={() => {
-                  leave()
-                  useNav.getState().go("tasks")
-                  useTasks.getState().setQuery(queryFor(reference))
-                }}
-              >
-                {m.tasksAll(got.read.total)}
+              <Button size="sm" onClick={toTasks}>
+                {m.tasksAll(read.total)}
               </Button>
             </span>
           )}
