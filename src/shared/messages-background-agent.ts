@@ -12,10 +12,11 @@ const en = {
     programMissing: "Its program is not found",
     notSupported: "Cannot run on a schedule yet",
     needsNewerMemo: "Needs a newer Memo",
+    unrestricted: "Runs every command without asking",
   } as Record<AgentState, string>,
   notSignedIn: "Ready, not signed in",
   greyed:
-    "Greyed agents cannot run background jobs. «Its program is not found»: its settings are on this computer, but its command is not, so install it again. «Cannot run on a schedule yet»: Memo cannot start it without you.",
+    "Greyed agents cannot run background jobs. «Its program is not found»: its settings are on this computer, but its command is not, so install it again. «Cannot run on a schedule yet»: Memo cannot start it without you. «Runs every command without asking»: a job reads your mail and messages, and a message could make such an agent run anything on this computer, so it does not run background jobs.",
   oldMemo: "This Memo knows only Claude Code and Codex. Update Memo to run background jobs in other agents.",
   openMemo: "Open Memo",
   onlyOne: (name: string) => `Only ${name} is ready, so background jobs run in it.`,
@@ -28,8 +29,6 @@ const en = {
   looking: "Looking for agents on this computer…",
   none: "No agent on this computer can run background jobs. Install Claude Code or Codex, then come back.",
   digests: "Digests are written by Claude Code until you update Memo.",
-  unrestricted: (name: string) =>
-    `${name} runs every command on its own, without asking. Only the read-only mode stops it from sending messages.`,
   noCost: (name: string) => `${name} does not report what a run costs, so the cost limits do not stop its runs.`,
   trouble: {
     noCredit: (name: string) => `${name} has no credit left, so the run failed.`,
@@ -51,10 +50,11 @@ const ru: typeof en = {
     programMissing: "Не найдена его программа",
     notSupported: "Пока не умеет работать по расписанию",
     needsNewerMemo: "Нужна более новая Memo",
+    unrestricted: "Выполняет любые команды, не спрашивая",
   },
   notSignedIn: "Готов, вход не выполнен",
   greyed:
-    "Серые агенты не могут выполнять фоновые задачи. «Не найдена его программа»: его настройки на компьютере есть, а команды нет, поэтому установите его заново. «Пока не умеет работать по расписанию»: Memo не может запустить его без вас.",
+    "Серые агенты не могут выполнять фоновые задачи. «Не найдена его программа»: его настройки на компьютере есть, а команды нет, поэтому установите его заново. «Пока не умеет работать по расписанию»: Memo не может запустить его без вас. «Выполняет любые команды, не спрашивая»: задача читает вашу почту и сообщения, и сообщение может заставить такого агента сделать на компьютере что угодно, поэтому фоновые задачи он не выполняет.",
   oldMemo: "Эта Memo знает только Claude Code и Codex. Обновите Memo, чтобы запускать фоновые задачи в других агентах.",
   openMemo: "Открыть Memo",
   onlyOne: (name) => `Готов только ${name}, поэтому фоновые задачи работают в нём.`,
@@ -67,8 +67,6 @@ const ru: typeof en = {
   looking: "Ищем агентов на этом компьютере…",
   none: "Ни один агент на этом компьютере не может выполнять фоновые задачи. Установите Claude Code или Codex и вернитесь сюда.",
   digests: "Сводки пишет Claude Code, пока вы не обновите Memo.",
-  unrestricted: (name) =>
-    `${name} выполняет любые команды сам, не спрашивая. Отправлять сообщения ему мешает только режим «только чтение».`,
   noCost: (name) => `${name} не сообщает, сколько стоит запуск, поэтому лимиты расходов его запуски не останавливают.`,
   trouble: {
     noCredit: (name) => `У ${name} закончились деньги на счёте, поэтому запуск не удался.`,
@@ -90,10 +88,11 @@ const es: typeof en = {
     programMissing: "No se encuentra su programa",
     notSupported: "Aún no puede ejecutarse con horario",
     needsNewerMemo: "Necesita un Memo más reciente",
+    unrestricted: "Ejecuta cualquier comando sin preguntar",
   },
   notSignedIn: "Listo, sin iniciar sesión",
   greyed:
-    "Los agentes en gris no pueden ejecutar tareas en segundo plano. «No se encuentra su programa»: su configuración está en este equipo, pero su comando no, así que vuelve a instalarlo. «Aún no puede ejecutarse con horario»: Memo no puede iniciarlo sin ti.",
+    "Los agentes en gris no pueden ejecutar tareas en segundo plano. «No se encuentra su programa»: su configuración está en este equipo, pero su comando no, así que vuelve a instalarlo. «Aún no puede ejecutarse con horario»: Memo no puede iniciarlo sin ti. «Ejecuta cualquier comando sin preguntar»: una tarea lee tu correo y tus mensajes, y un mensaje podría hacer que ese agente ejecute cualquier cosa en este equipo, así que no ejecuta tareas en segundo plano.",
   oldMemo:
     "Este Memo solo conoce Claude Code y Codex. Actualiza Memo para ejecutar tareas en segundo plano en otros agentes.",
   openMemo: "Abrir Memo",
@@ -107,8 +106,6 @@ const es: typeof en = {
   looking: "Buscando agentes en este equipo…",
   none: "Ningún agente de este equipo puede ejecutar tareas en segundo plano. Instala Claude Code o Codex y vuelve aquí.",
   digests: "Los resúmenes los escribe Claude Code hasta que actualices Memo.",
-  unrestricted: (name) =>
-    `${name} ejecuta cualquier comando por su cuenta, sin preguntar. Solo el modo de solo lectura le impide enviar mensajes.`,
   noCost: (name) =>
     `${name} no informa de cuánto cuesta una ejecución, así que los límites de gasto no detienen sus ejecuciones.`,
   trouble: {

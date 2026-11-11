@@ -37,6 +37,9 @@ pub enum AgentState {
     NotSupported,
     /// This memo is too old to say; a newer one may start it.
     NeedsNewerMemo,
+    /// memo starts it, but nothing holds it to the CLIs' commands: a job that reads mail could be made to run anything.
+    /// The owner decided such an agent runs no background job (NEED-2571 A); `reason` says why, in memo's words.
+    Unrestricted,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -49,8 +52,8 @@ pub struct Agent {
     pub signed_in: Option<bool>,
     /// False for an agent that does not report what a run costs: the cost limits cannot stop it.
     pub reports_cost: bool,
-    /// False for an agent that approves every command it runs without a person: only the read-only switch stops a send.
-    pub restricted: bool,
+    /// memo's own sentence for why an unrestricted agent is not held to the CLIs' commands.
+    pub reason: Option<String>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
@@ -72,6 +75,8 @@ pub struct Runnable {
     pub programs: Vec<String>,
     pub reports_cost: bool,
     pub restricted: bool,
+    /// Why it is not restricted, from memo, shown beside the greyed agent.
+    pub reason: Option<String>,
     /// memo's own PATH check, by the programs it starts: Cursor's agent is `cursor-agent`, never the `cursor` editor.
     pub installed: Option<bool>,
 }
@@ -129,6 +134,7 @@ fn parse_supported(v: &Value) -> Vec<Runnable> {
                 programs,
                 reports_cost,
                 restricted: i["restricted"].as_bool().unwrap_or(false),
+                reason: text(&i["restricted_reason"]).or_else(|| text(&i["restrictedReason"])),
                 installed: i["installed"].as_bool(),
             })
         })
@@ -144,6 +150,7 @@ fn fallback() -> Vec<Runnable> {
             programs: vec![(*id).into()],
             reports_cost: *cost,
             restricted: true,
+            reason: None,
             installed: None,
         })
         .collect()
@@ -154,18 +161,32 @@ pub fn supported() -> (Vec<Runnable>, bool) {
     let Ok(Ok(memo)) = digest_schedule::memo() else { return (fallback(), false) };
     let args: Vec<String> = SUPPORTED.iter().map(|w| (*w).to_string()).collect();
     match skills::call(memo, &args, Duration::from_secs(30)) {
-        Ok((out, Some(v))) if out.code == Some(0) => (parse_supported(skills::body(&v)), true),
+        // Every memo starts claude: an answer with none in it is one this parser does not read, not "no agent".
+        Ok((out, Some(v))) if out.code == Some(0) => match parse_supported(skills::body(&v)) {
+            listed if listed.is_empty() => (fallback(), false),
+            listed => (listed, true),
+        },
         _ => (fallback(), false),
     }
 }
 
-/// An id the owner or the page sent, checked against what this memo starts before it becomes an argument.
-pub fn check(id: &str) -> Result<String, String> {
+/// An id the owner or the page sent, checked against what this memo starts, and allowed to run a job unattended,
+/// before it becomes an argument; with whether its runs report their cost.
+pub fn check(id: &str) -> Result<(String, bool), String> {
     let refused = || format!("not an agent for background jobs: {id}");
     if !id_word(id) {
         return Err(refused());
     }
-    supported().0.into_iter().find(|r| r.id == id).map(|r| r.id).ok_or_else(refused)
+    let found = supported().0.into_iter().find(|r| r.id == id).ok_or_else(refused)?;
+    if !found.restricted {
+        return Err(format!("{id} runs every command without asking, so it does not run background jobs yet"));
+    }
+    Ok((found.id, found.reports_cost))
+}
+
+/// Whether an agent's runs report their cost: memo refuses the cost caps for one that does not.
+pub fn reports_cost(id: &str) -> bool {
+    supported().0.iter().find(|r| r.id == id).is_some_and(|r| r.reports_cost)
 }
 
 fn file() -> Option<PathBuf> {
@@ -232,6 +253,7 @@ fn join(
             // whether the agent's settings are on this computer.
             let program = runnable.map(|r| r.installed.unwrap_or_else(|| r.programs.iter().any(|p| on_path(p))));
             let state = match (program, seen) {
+                (Some(true), _) if runnable.is_some_and(|r| !r.restricted) => AgentState::Unrestricted,
                 (Some(true), _) => AgentState::Ready,
                 (Some(false), Some(_)) => AgentState::ProgramMissing,
                 (Some(false), None) => AgentState::NotInstalled,
@@ -245,7 +267,7 @@ fn join(
                 state,
                 signed_in: signed_in.filter(|_| state == AgentState::Ready),
                 reports_cost: runnable.is_some_and(|r| r.reports_cost),
-                restricted: runnable.is_some_and(|r| r.restricted),
+                reason: runnable.filter(|r| !r.restricted).and_then(|r| r.reason.clone()),
             }
         })
         .collect();
@@ -273,7 +295,7 @@ pub fn effective() -> Option<String> {
 }
 
 pub fn choose(id: &str) -> Result<BackgroundAgents, String> {
-    let id = check(id)?;
+    let (id, _) = check(id)?;
     let path = file();
     let mut saved = load_from(path.as_deref());
     saved.agent = Some(id);
@@ -385,7 +407,8 @@ mod tests {
             name: None,
             programs: vec![id.into()],
             reports_cost: cost,
-            restricted: cost,
+            restricted: id == "claude" || id == "codex",
+            reason: None,
             installed: None,
         }
     }
@@ -403,7 +426,8 @@ mod tests {
     fn reads_memos_list_of_agents_it_starts() {
         let v = json!({"items": [
             {"id": "claude", "name": "Claude Code", "programs": ["claude"], "reports_cost": true},
-            {"id": "grok", "name": "Grok CLI", "programs": ["grok"], "reportsCost": false, "installed": true},
+            {"id": "grok", "name": "Grok CLI", "programs": ["grok"], "reports_cost": false, "installed": true,
+             "restricted": false, "restricted_reason": "approves every command in print mode"},
             {"id": "--all", "programs": []}, {"name": "no id"}
         ]});
         let r = parse_supported(&v);
@@ -411,6 +435,7 @@ mod tests {
         assert!(r[0].reports_cost && !r[1].reports_cost);
         assert_eq!(r[1].programs, ["grok"]);
         assert_eq!((r[0].installed, r[1].installed), (None, Some(true)));
+        assert!(!r[1].restricted && r[1].reason.as_deref() == Some("approves every command in print mode"));
     }
 
     #[test]
@@ -430,9 +455,15 @@ mod tests {
         assert_eq!(state("codex"), AgentState::ProgramMissing);
         assert_eq!(state("cursor"), AgentState::NotSupported, "found, but memo cannot start it");
         assert_eq!(state("gemini"), AgentState::NotInstalled);
-        assert_eq!(state("grok"), AgentState::Ready, "an agent only memo knows, found by memo's program name");
+        assert_eq!(
+            state("grok"),
+            AgentState::Unrestricted,
+            "found by memo's program name, but it approves every command"
+        );
         assert_eq!(a.agents.len(), 5);
-        assert_eq!(a.effective, None, "two ready, none chosen");
+        assert_eq!(a.effective.as_deref(), Some("claude"), "the only one ready: Grok is found but not offered");
+        let both = join(&registry, &supported, true, &readers, |p| p == "codex" || p == "claude", None);
+        assert_eq!(both.effective, None, "two ready, none chosen");
         assert_eq!(a.agents[0].signed_in, Some(true));
         assert_eq!(a.agents[1].signed_in, None, "only a ready agent says whether it is signed in");
 

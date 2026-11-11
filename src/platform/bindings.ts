@@ -813,6 +813,10 @@ export type OtherSchedule = {
 	spentTodayUsd: number | null,
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
+	/**  The agent it starts, `None` from a memo that does not say. */
+	harness: string | null,
+	/**  Why its last run failed, when the agent's own words say: memo's `digest list` keeps no run files. */
+	trouble: AgentTrouble | null,
 };
 
 /**  The commands the manifest declares, grouped by what they ask to touch; each is its words joined by spaces. */

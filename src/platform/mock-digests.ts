@@ -209,6 +209,8 @@ const others: OtherSchedule[] = [
     spentTodayUsd: 5.02,
     maxCostUsd: 1,
     maxCostPerDayUsd: 5,
+    harness: "claude",
+    trouble: null,
   },
   {
     name: "weekly-review",
@@ -218,6 +220,8 @@ const others: OtherSchedule[] = [
     spentTodayUsd: 0,
     maxCostUsd: 1,
     maxCostPerDayUsd: 5,
+    harness: "claude",
+    trouble: null,
   },
 ]
 

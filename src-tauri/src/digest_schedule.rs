@@ -117,6 +117,10 @@ pub struct OtherSchedule {
     pub spent_today_usd: Option<f64>,
     pub max_cost_usd: Option<f64>,
     pub max_cost_per_day_usd: Option<f64>,
+    /// The agent it starts, `None` from a memo that does not say.
+    pub harness: Option<String>,
+    /// Why its last run failed, when the agent's own words say: memo's `digest list` keeps no run files.
+    pub trouble: Option<crate::background_agent::AgentTrouble>,
 }
 
 /// `digest backfill`: the price first (no `--yes`), then what it built.
@@ -158,7 +162,7 @@ pub fn status() -> Result<DigestSchedules, String> {
     }
 }
 
-fn read(v: &Value, harness: bool) -> DigestSchedules {
+pub(crate) fn read(v: &Value, harness: bool) -> DigestSchedules {
     let items = v["items"].as_array().map(Vec::as_slice).unwrap_or_default();
     let digest = items.iter().find(|i| i["name"].as_str() == Some(NAME)).map(|i| {
         Box::new(DigestSchedule {
@@ -183,6 +187,8 @@ fn read(v: &Value, harness: bool) -> DigestSchedules {
             spent_today_usd: i["spent_today_usd"].as_f64(),
             max_cost_usd: i["max_cost_usd"].as_f64(),
             max_cost_per_day_usd: i["max_cost_per_day_usd"].as_f64(),
+            harness: i["harness"].as_str().map(str::to_string),
+            trouble: crate::background_agent::trouble_of_run(&i["last"], i["harness"].as_str()),
         })
         .collect();
     DigestSchedules::Ready { digest, others, harness }

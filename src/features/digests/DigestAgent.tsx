@@ -1,13 +1,6 @@
 import { useMessages } from "@/i18n"
 import type { DigestItem } from "@/platform/bindings"
-import {
-  agentName,
-  BackgroundAgentChoice,
-  costed,
-  otherAgent,
-  restricted,
-  useAgentsLoaded,
-} from "@/shared/BackgroundAgentChoice"
+import { agentName, BackgroundAgentChoice, costed, otherAgent, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -37,7 +30,6 @@ export function DigestAgent({ item, title }: { item: DigestItem; title: string }
         {m.runsIn(name(item.agent))}
         {!costed(agents, item.agent) && ` ${m.noCost(name(item.agent))}`}
       </p>
-      {!restricted(agents, item.agent) && <p className="text-warn-ink">{m.unrestricted(name(item.agent))}</p>}
       {failing && (
         <ErrorNotice
           inline

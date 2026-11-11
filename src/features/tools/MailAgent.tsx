@@ -5,14 +5,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import {
-  agentName,
-  BackgroundAgentChoice,
-  costed,
-  otherAgent,
-  restricted,
-  useAgentsLoaded,
-} from "@/shared/BackgroundAgentChoice"
+import { agentName, BackgroundAgentChoice, costed, otherAgent, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
@@ -278,9 +271,6 @@ function Status({ state, m, effective, agents, busy, onRun }: StatusProps) {
         </p>
       )}
       {!paid && state.agent && <p>{a.noCost(name(state.agent))}</p>}
-      {state.agent && !restricted(agents, state.agent) && (
-        <p className="text-warn-ink">{a.unrestricted(name(state.agent))}</p>
-      )}
       {failing && (
         <ErrorNotice
           inline

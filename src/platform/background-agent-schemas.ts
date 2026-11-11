@@ -6,6 +6,7 @@ export const AgentStateSchema = v.picklist([
   "programMissing",
   "notSupported",
   "needsNewerMemo",
+  "unrestricted",
 ])
 
 export const BackgroundAgentsSchema = v.object({
@@ -16,7 +17,7 @@ export const BackgroundAgentsSchema = v.object({
       state: AgentStateSchema,
       signedIn: v.nullable(v.boolean()),
       reportsCost: v.boolean(),
-      restricted: v.boolean(),
+      reason: v.nullable(v.string()),
     }),
   ),
   chosen: v.nullable(v.string()),

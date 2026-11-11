@@ -7,6 +7,7 @@ import { ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec, Route, RouteChoices } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { costed, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { useNav } from "@/shared/nav"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -90,6 +91,7 @@ export function DigestFields({
   can,
   creating,
   shown = null,
+  costed = true,
 }: {
   spec: DigestSpec
   onChange: (spec: DigestSpec) => void
@@ -101,6 +103,8 @@ export function DigestFields({
   creating: boolean
   /** The problem a click on Save or Create found; it is said at its field until the draft is fixed. */
   shown?: Problem | null
+  /** The agent reports what a run costs: only then can a cap stop it, and memo takes one. */
+  costed?: boolean
 }) {
   const m = useMessages(bookMessages).form
   const b = useMessages(bookMessages)
@@ -273,22 +277,24 @@ export function DigestFields({
         </Field>
       )}
 
-      <Field label={m.caps} hint={m.perDayHint}>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Usd
-            label={m.perRun}
-            value={spec.maxCostUsd ?? 0}
-            min={0.01}
-            onChange={(maxCostUsd) => set({ maxCostUsd })}
-          />
-          <Usd
-            label={m.perDay}
-            value={spec.maxCostPerDayUsd ?? 0}
-            min={0}
-            onChange={(maxCostPerDayUsd) => set({ maxCostPerDayUsd })}
-          />
-        </div>
-      </Field>
+      {costed && (
+        <Field label={m.caps} hint={m.perDayHint}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Usd
+              label={m.perRun}
+              value={spec.maxCostUsd ?? 0}
+              min={0.01}
+              onChange={(maxCostUsd) => set({ maxCostUsd })}
+            />
+            <Usd
+              label={m.perDay}
+              value={spec.maxCostPerDayUsd ?? 0}
+              min={0}
+              onChange={(maxCostPerDayUsd) => set({ maxCostPerDayUsd })}
+            />
+          </div>
+        </Field>
+      )}
 
       {creating && (
         <div className="flex items-center gap-2">
@@ -566,11 +572,13 @@ export function ScheduleCard({
   })
   const working = busy[item.name] === "save"
   const cap = dailyCap(item.maxCostPerDayUsd)
+  const agents = useAgentsLoaded()
+  const paid = costed(agents, item.agent ?? "claude")
 
   return (
     <section aria-labelledby={titleId} className={card}>
       <SectionTitle id={titleId}>{m.one.settings}</SectionTitle>
-      {item.spentTodayUsd !== null && (
+      {item.spentTodayUsd !== null && paid && (
         <p className="text-[0.88rem] text-ink-soft tabular-nums">
           {m.one.spentToday(formatUsd(item.spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang))}
         </p>
@@ -578,6 +586,7 @@ export function ScheduleCard({
       {!harness && <NoHarness />}
       <div ref={form}>
         <DigestFields
+          costed={paid}
           key={item.name}
           spec={draft}
           onChange={setDraft}

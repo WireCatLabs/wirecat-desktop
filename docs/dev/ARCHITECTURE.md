@@ -210,13 +210,17 @@ src-tauri/src/
   background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents page
                 finds (`skills::agents`) and every one memo starts (`schedule agents list`: id, name, programs,
                 `reports_cost`, `restricted`, `installed`) is listed; one that cannot run a job carries why (not
-                installed, program not found, memo cannot start it, needs a newer Memo), never hidden. memo's own PATH
+                installed, program not found, memo cannot start it, needs a newer Memo, or it runs every command without
+                asking: memo's `restricted` is false, so a message it reads could make it run anything; the owner
+                decided those run no background job), never hidden. Only a restricted agent is offered or accepted. memo's own PATH
                 check decides "ready", by the program it starts. A memo without the list gets Claude Code and Codex.
                 The owner's pick is kept in the app's data folder, because memo has no default; several ready and
                 none chosen is a question, never a guess, and a chosen agent that went away asks again. A failed run's
                 stderr, and its report while it is one short answer, are matched against the agents' documented
-                refusals (no credit, usage limit, signed out); only that line, masked, reaches the page. Digests take
-                it through memo's `digest add|edit --agent`; an edit names it only to move the digest.
+                refusals (no credit, usage limit, signed out); only that line, masked, reaches the page; a digest's
+                come from its `schedule list` run, as `digest list` keeps no run files. Digests take it through memo's
+                `digest add|edit --agent`, an edit naming the digest's own. memo refuses the cost caps for an agent
+                that reports no cost, so they are left out of its arguments and off the page.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   deep_link.rs  `wirecat://open/v1/…` links (Tauri's deep-link plugin, with single-instance first so a click reaches the
                 running window): parsed to the v1 grammar of cli-core's `links.ts`, checked against its shared fixture

@@ -150,20 +150,27 @@ fn skipped(v: &Value) -> Option<Skipped> {
     })
 }
 
-fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str) -> Result<Vec<String>, String> {
+/// `costed`: the agent reports what a run costs. memo refuses the cost caps for one that does not, so its schedule
+/// goes without them.
+fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str, costed: bool) -> Result<Vec<String>, String> {
     let every = every.unwrap_or(&src.every);
     if !src.choices.iter().any(|c| c == every) {
         return Err(format!("not an interval the mail agent offers: {every}"));
     }
-    Ok(src
-        .on
-        .iter()
-        .map(|w| match w.as_str() {
+    let mut args = Vec::new();
+    let mut words = src.on.iter();
+    while let Some(w) = words.next() {
+        if !costed && (w == "--max-cost" || w == "--max-cost-per-day") {
+            words.next();
+            continue;
+        }
+        args.push(match w.as_str() {
             "{every}" => every.to_string(),
             "{harness}" => harness.to_string(),
             _ => w.clone(),
-        })
-        .collect())
+        });
+    }
+    Ok(args)
 }
 
 /// Turns the schedule on, or changes its interval (memo replaces a schedule of the same name), or off; memo's words
@@ -171,12 +178,12 @@ fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str) -> Result<
 pub fn set(tool: &Tool, on: bool, every: Option<&str>, agent: Option<&str>) -> Result<MailAgent, String> {
     let src = source(tool)?;
     let harness = match agent {
-        Some(a) => Some(background_agent::check(a)?),
+        Some(a) => Some(background_agent::check(a)?.0),
         None if on => Some(background_agent::effective().ok_or("Choose the agent for background jobs first.")?),
         None => None,
     };
     let args = match &harness {
-        Some(h) if on => on_args(src, every, h)?,
+        Some(h) if on => on_args(src, every, h, background_agent::reports_cost(h))?,
         _ => src.off.clone(),
     };
     let via = match gate(src)? {
@@ -220,7 +227,7 @@ mod tests {
         assert_eq!(s.via, "memo");
         assert_eq!(s.list.join(" "), "schedule list name:mail-triage --no-record --json");
         assert_eq!(
-            on_args(s, None, "claude").unwrap(),
+            on_args(s, None, "claude", true).unwrap(),
             [
                 "schedule",
                 "agent",
@@ -236,10 +243,13 @@ mod tests {
                 "--json"
             ]
         );
-        assert_eq!(on_args(s, Some("15m"), "claude").unwrap()[6], "15m");
-        assert_eq!(on_args(s, None, "codex").unwrap()[3], "codex");
-        assert!(on_args(s, Some("1m"), "claude").is_err());
-        assert!(on_args(s, Some("--yes"), "claude").is_err());
+        assert_eq!(on_args(s, Some("15m"), "claude", true).unwrap()[6], "15m");
+        let codex = on_args(s, None, "codex", false).unwrap();
+        assert_eq!(codex[3], "codex");
+        assert!(!codex.iter().any(|w| w.starts_with("--max-cost")), "memo refuses a cap for an agent with no cost");
+        assert!(!codex.contains(&"1".to_string()), "the cap's value goes with it");
+        assert!(on_args(s, Some("1m"), "claude", true).is_err());
+        assert!(on_args(s, Some("--yes"), "claude", true).is_err());
         assert_eq!(s.off.join(" "), "schedule remove mail-triage --json");
         assert_eq!(s.waiting.join(" "), "review status --no-record --json");
         assert!(source(catalog::tool("tg").unwrap()).is_err());

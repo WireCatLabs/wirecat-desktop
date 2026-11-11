@@ -20,10 +20,6 @@ export const agentName = (agents: BackgroundAgents | null, id: string) =>
 export const costed = (agents: BackgroundAgents | null, id: string) =>
   agents?.agents.find((a) => a.id === id)?.reportsCost ?? id === "claude"
 
-/** False only for an agent the list says approves every command itself; one it does not know is not warned about. */
-export const restricted = (agents: BackgroundAgents | null, id: string) =>
-  agents?.agents.find((a) => a.id === id)?.restricted ?? true
-
 /**
  * The agent to offer when `failing` refused a run: the one chosen for background jobs, or the only other one ready.
  * `undefined` with several others ready: the owner picks, nothing is picked for him.
@@ -105,7 +101,13 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
       {need.hint}
       {only && marked === null && <p className="text-[0.9rem] text-ink-soft">{m.onlyOne(only.name)}</p>}
       {runs && !runs.reportsCost && <p className="text-[0.9rem] text-ink-soft">{m.noCost(runs.name)}</p>}
-      {runs && !runs.restricted && <p className="text-[0.9rem] text-warn-ink">{m.unrestricted(runs.name)}</p>}
+      {agents.agents
+        .filter((a) => a.state === "unrestricted" && a.reason)
+        .map((a) => (
+          <p key={a.id} className="text-[0.9rem] text-ink-soft">
+            {a.name}: {a.reason}
+          </p>
+        ))}
       {greyed && <p className="text-[0.9rem] text-ink-soft">{m.greyed}</p>}
       {!agents.listed && (
         <div className="flex flex-wrap items-center gap-3">

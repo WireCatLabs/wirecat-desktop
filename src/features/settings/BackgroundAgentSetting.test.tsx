@@ -43,24 +43,27 @@ it("says the only ready agent runs the jobs, and greys the others with the reaso
   expect(screen.getByText(/Greyed agents cannot run background jobs/)).toBeInTheDocument()
 })
 
-it("warns that an agent memo cannot hold to the CLIs' commands runs every command without asking", async () => {
+it("greys an agent that runs every command without asking, with memo's reason, and never offers it", async () => {
   const kimi = {
     id: "kimi",
     name: "Kimi CLI",
-    state: "ready" as const,
+    state: "unrestricted" as const,
     signedIn: null,
     reportsCost: false,
-    restricted: false,
+    reason: "approves every command in print mode",
   }
-  const fixture = agents([])
-  vi.spyOn(platform, "backgroundAgents").mockResolvedValue({
-    ...fixture,
-    agents: [...fixture.agents, kimi],
-    effective: "kimi",
-  })
+  const fixture = agents(["claude"])
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue({ ...fixture, agents: [...fixture.agents, kimi] })
+  const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
 
-  expect(await screen.findByText(/Kimi CLI runs every command on its own, without asking/)).toBeInTheDocument()
+  expect(await screen.findByText("Kimi CLI: approves every command in print mode")).toBeInTheDocument()
+  expect(screen.getByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
+  await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
+  expect(screen.getByRole("option", { name: "Kimi CLI · Runs every command without asking" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  )
 })
 
 it("on a memo that cannot list its agents, keeps Claude Code and Codex and points to the Memo update", async () => {
