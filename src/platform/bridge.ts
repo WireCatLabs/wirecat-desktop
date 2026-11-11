@@ -55,6 +55,7 @@ import {
   PeopleReadSchema,
   PersonDetailSchema,
   ResolvedSchema,
+  TestPeopleSchema,
   UnlinkedSchema,
 } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
@@ -278,6 +279,10 @@ function createTauri(): Platform {
     peopleKeep: async (reference) => {
       await invoke("people_keep", { reference })
     },
+    peopleTestData: async (reference) => {
+      await invoke("people_test_data", { reference })
+    },
+    peopleTestPeople: () => call(TestPeopleSchema, "people_test_people"),
     peopleContact: async (reference, organization) => {
       await invoke("people_contact", { reference, organization })
     },

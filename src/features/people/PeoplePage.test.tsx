@@ -44,6 +44,23 @@ describe("People", () => {
     usePeople.setState(usePeople.getInitialState(), true)
   })
 
+  // Before the match tests: they merge this person into another.
+  it("lists every phone and address of a CRM contact in the person's card, each with a link", async () => {
+    render(<PeoplePage />)
+    await table()
+    act(() => usePeople.getState().reveal("person:30"))
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 8000 })
+    expect(await within(dialog).findByRole("link", { name: /\+34 910 000 334/ }, { timeout: 8000 })).toHaveAttribute(
+      "href",
+      "tel:+34910000334",
+    )
+    expect(within(dialog).getByRole("link", { name: /konstantin@mail.example/ })).toHaveAttribute(
+      "href",
+      "mailto:konstantin@mail.example",
+    )
+    expect(within(dialog).getByRole("button", { name: "Copy +34 910 000 333" })).toBeInTheDocument()
+  })
+
   it("lists people, the most written first, with their contact, and other kinds behind tabs", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
@@ -110,10 +127,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 129/)
+    expect(pages).toHaveTextContent(/^1–50 of 130/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 129/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 130/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -546,21 +563,32 @@ describe("People", () => {
     expect(contact).toHaveBeenCalledWith("person:42", "organization:3")
   })
 
-  it("puts a card of test data alone aside on this computer, and brings it back", async () => {
+  it("hides a card of test data alone through memo, and brings a hidden person back as a real contact", async () => {
+    const hide = vi.spyOn(platform, "peopleTestData")
+    const keep = vi.spyOn(platform, "peopleKeep")
     const user = userEvent.setup()
     render(<PeoplePage />)
     const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
     const card = () =>
       within(panel)
         .queryAllByRole("listitem")
-        .find((row) => row.textContent?.startsWith("test@test.test"))
-    expect(await within(card() as HTMLElement).findByText(/Memo cannot remove test data yet/)).toBeInTheDocument()
-    expect(within(card() as HTMLElement).queryByRole("button", { name: "Separate test accounts" })).toBeNull()
-    await user.click(within(card() as HTMLElement).getByRole("button", { name: "Put aside" }))
+        .find((row) => row.textContent?.startsWith("Ann Lee"))
+    expect(await within(card() as HTMLElement).findByText(/Hide it if it is/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/1 test account is hidden/, {}, { timeout: 4000 })).toBeInTheDocument()
+
+    await user.click(within(card() as HTMLElement).getByRole("button", { name: "It is test data" }))
+    expect(hide).toHaveBeenCalledWith("person:49")
+    expect(await within(panel).findByText(/2 test accounts are hidden/, {}, { timeout: 4000 })).toBeInTheDocument()
     expect(card()).toBeUndefined()
-    expect(within(panel).getByText(/1 test data card is put aside on this computer/)).toBeInTheDocument()
-    await user.click(within(panel).getByRole("button", { name: "Show them" }))
-    expect(card()).toBeDefined()
+
+    await user.click(within(panel).getByRole("button", { name: "Show" }))
+    const hidden = within(panel)
+      .getAllByRole("listitem")
+      .find((row) => row.textContent?.startsWith("Ann Lee")) as HTMLElement
+    await user.click(within(hidden).getByRole("button", { name: "It is a real contact" }))
+    expect(keep).toHaveBeenCalledWith("person:49")
+    expect(await within(panel).findByText(/Ann Lee is a real contact/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(within(panel).getByText(/1 test account is hidden/)).toBeInTheDocument()
   })
 
   it("separates the test accounts of a person who has real ones too", async () => {

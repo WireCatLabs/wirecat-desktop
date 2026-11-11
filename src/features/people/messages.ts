@@ -205,6 +205,7 @@ const en = {
     "person.unknown": "This person is gone: they were joined with someone or removed. Read the list again.",
     "person.no-doubt": "There is no doubt about this person any more. Read the list again.",
     "person.test-data": "These accounts look like test data, so they cannot be confirmed. Open the card to check them.",
+    "person.owner": "Your own card is not test data.",
     "memo.too-old":
       "Confirming needs a newer version of WireCat's tools. If the Tools page offers no update yet, it comes with the next one.",
     "proposal.wrong-state": "This match was already decided. Read again.",
@@ -288,17 +289,20 @@ const en = {
   doubtTestSeparateHelp:
     "This person has real accounts too. Separate the test ones: they move to a card of their own, and the real ones stay here.",
   doubtTestOnlyHelp:
-    "Every account here is test data. Memo cannot remove test data yet, so you can only put the card aside on this computer.",
+    "Every account here looks like test data. Hide it if it is, or say it is a real contact and it stays in Contacts.",
   doubtSeparateTest: "Separate test accounts",
-  doubtSetAside: "Put aside",
   doubtSeparated: (name: string) => `The test accounts left ${name} for a card of their own.`,
-  doubtPutAside: (name: string) => `${name} is put aside on this computer.`,
-  doubtsAside: (n: number) =>
-    plural("en", n, {
-      one: "# test data card is put aside on this computer.",
-      other: "# test data cards are put aside on this computer.",
-    }),
-  doubtsShowAside: "Show them",
+  doubtTestTitle: "Test data",
+  doubtTestHide: "It is test data",
+  doubtTestReal: "It is a real contact",
+  doubtHidden: (name: string) => `${name} is hidden as test data, on every computer.`,
+  doubtReal: (name: string) => `${name} is a real contact and stays in Contacts.`,
+  testHidden: (n: number) => plural("en", n, { one: "# test account is hidden", other: "# test accounts are hidden" }),
+  testHiddenShow: "Show",
+  testHiddenHide: "Hide",
+  testHiddenHelp:
+    "Memo hides accounts at test addresses, such as example.com or .test. If one of them is a real person, say so.",
+  testHiddenFailed: "Could not read the hidden test accounts.",
   copyAccount: (value: string) => `Copy ${value}`,
   tasksTitle: "Tasks",
   tasksRefused: "Memo did not accept the search for this person's tasks.",
@@ -538,6 +542,7 @@ const ru: typeof en = {
     "person.no-doubt": "Сомнений в этом человеке больше нет. Прочитайте список заново.",
     "person.test-data":
       "Эти аккаунты похожи на тестовые данные, поэтому их нельзя подтвердить. Откройте карточку, чтобы проверить.",
+    "person.owner": "Ваша собственная карточка не тестовые данные.",
     "memo.too-old":
       "Для подтверждения нужна новая версия инструментов WireCat. Если на странице «Инструменты» обновления ещё нет, оно придёт со следующим.",
     "proposal.wrong-state": "По этому совпадению уже решили. Прочитайте заново.",
@@ -621,19 +626,26 @@ const ru: typeof en = {
   doubtTestSeparateHelp:
     "У этого человека есть и настоящие аккаунты. Отделите тестовые: они уйдут в свою карточку, а настоящие останутся здесь.",
   doubtTestOnlyHelp:
-    "Здесь только тестовые аккаунты. Memo пока не умеет удалять тестовые данные, поэтому карточку можно только убрать с глаз на этом компьютере.",
+    "Все аккаунты здесь похожи на тестовые. Скройте их, если это так, или отметьте как настоящий контакт, и он останется в контактах.",
   doubtSeparateTest: "Отделить тестовые",
-  doubtSetAside: "Убрать с глаз",
   doubtSeparated: (name: string) => `Тестовые аккаунты отделены от ${name} в свою карточку.`,
-  doubtPutAside: (name: string) => `${name}: карточка убрана на этом компьютере.`,
-  doubtsAside: (n: number) =>
+  doubtTestTitle: "Тестовые данные",
+  doubtTestHide: "Это тестовые данные",
+  doubtTestReal: "Это настоящий контакт",
+  doubtHidden: (name: string) => `${name}: скрыто как тестовые данные, на всех компьютерах.`,
+  doubtReal: (name: string) => `${name}: настоящий контакт, остается в контактах.`,
+  testHidden: (n: number) =>
     plural("ru", n, {
-      one: "# карточка с тестовыми данными убрана на этом компьютере.",
-      few: "# карточки с тестовыми данными убраны на этом компьютере.",
-      many: "# карточек с тестовыми данными убрано на этом компьютере.",
-      other: "# карточки с тестовыми данными убраны на этом компьютере.",
+      one: "Скрыт # тестовый аккаунт",
+      few: "Скрыто # тестовых аккаунта",
+      many: "Скрыто # тестовых аккаунтов",
+      other: "Скрыто # тестовых аккаунта",
     }),
-  doubtsShowAside: "Показать",
+  testHiddenShow: "показать",
+  testHiddenHide: "свернуть",
+  testHiddenHelp:
+    "Memo скрывает аккаунты с тестовыми адресами, например example.com или .test. Если среди них есть настоящий человек, отметьте его.",
+  testHiddenFailed: "Не удалось прочитать скрытые тестовые аккаунты.",
   copyAccount: (value: string) => `Скопировать ${value}`,
   tasksTitle: "Задачи",
   tasksRefused: "Memo не принял поиск задач этого человека.",
@@ -849,6 +861,7 @@ const es: typeof en = {
     "person.no-doubt": "Ya no hay dudas sobre esta persona. Vuelve a leer la lista.",
     "person.test-data":
       "Estas cuentas parecen datos de prueba, así que no se pueden confirmar. Abre la ficha para revisarlas.",
+    "person.owner": "Tu propia ficha no son datos de prueba.",
     "memo.too-old":
       "Para confirmar hace falta una versión más nueva de las herramientas de WireCat. Si en Herramientas aún no hay actualización, llegará con la próxima.",
     "proposal.wrong-state": "Esta coincidencia ya se decidió. Lee de nuevo.",
@@ -935,17 +948,21 @@ const es: typeof en = {
   doubtTestSeparateHelp:
     "Esta persona también tiene cuentas reales. Separa las de prueba: pasan a una ficha propia y las reales se quedan aquí.",
   doubtTestOnlyHelp:
-    "Todas las cuentas son datos de prueba. Memo aún no puede borrarlos, así que solo puedes apartar la ficha en este ordenador.",
+    "Todas las cuentas parecen datos de prueba. Ocúltalas si lo son, o di que es un contacto real y se queda en Contactos.",
   doubtSeparateTest: "Separar las de prueba",
-  doubtSetAside: "Apartar",
   doubtSeparated: (name: string) => `Las cuentas de prueba salieron de ${name} a una ficha propia.`,
-  doubtPutAside: (name: string) => `${name} queda apartada en este ordenador.`,
-  doubtsAside: (n: number) =>
-    plural("es", n, {
-      one: "# ficha con datos de prueba está apartada en este ordenador.",
-      other: "# fichas con datos de prueba están apartadas en este ordenador.",
-    }),
-  doubtsShowAside: "Mostrarlas",
+  doubtTestTitle: "Datos de prueba",
+  doubtTestHide: "Son datos de prueba",
+  doubtTestReal: "Es un contacto real",
+  doubtHidden: (name: string) => `${name} queda oculto como datos de prueba, en todos los ordenadores.`,
+  doubtReal: (name: string) => `${name} es un contacto real y se queda en Contactos.`,
+  testHidden: (n: number) =>
+    plural("es", n, { one: "# cuenta de prueba oculta", other: "# cuentas de prueba ocultas" }),
+  testHiddenShow: "Mostrar",
+  testHiddenHide: "Ocultar",
+  testHiddenHelp:
+    "Memo oculta las cuentas con direcciones de prueba, como example.com o .test. Si alguna es de una persona real, dilo.",
+  testHiddenFailed: "No se pudieron leer las cuentas de prueba ocultas.",
   copyAccount: (value: string) => `Copiar ${value}`,
   tasksTitle: "Tareas",
   tasksRefused: "Memo no aceptó la búsqueda de las tareas de esta persona.",

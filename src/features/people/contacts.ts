@@ -28,7 +28,9 @@ export function contactsOf(
     return digits ? [`+${digits}`] : []
   })
   const own = (key: "phone" | "email") =>
-    [row?.[key], ...(person?.identities ?? []).map((i) => i[key])].filter((v): v is string => !!v)
+    [row?.[key], ...(person?.identities ?? []).flatMap((i) => [i[key], ...i[`${key}s`]])].filter(
+      (v): v is string => !!v,
+    )
   const phones = [
     ...(profile?.phones ?? []),
     ...own("phone"),

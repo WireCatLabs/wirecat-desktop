@@ -99,6 +99,7 @@ import type {
   PersonDetail,
   PersonKind,
   Resolved,
+  TestPeople,
   Unlinked,
 } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
@@ -401,8 +402,15 @@ export type Platform = {
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */
   peopleDoubts(page: number, size: number): Promise<Doubts>
-  /** The owner says this person's accounts in doubt belong together; they stop being listed until one moves. */
+  /**
+   * The owner says this person's accounts in doubt belong together, and what looked like test data is a real contact;
+   * they stop being listed until one moves, and a person memo hid as test data comes back.
+   */
   peopleKeep(reference: string): Promise<void>
+  /** The owner says this person is test data: memo hides them from every list, on every computer. */
+  peopleTestData(reference: string): Promise<void>
+  /** The people memo hides as test data, the first page of them with how many there are. */
+  peopleTestPeople(): Promise<TestPeople>
   /** The person writes from the organization's shared mailbox: memo records them as its contact. */
   peopleContact(reference: string, organization: string): Promise<void>
   /** Joins the chosen people of one group of matches into one, a match at a time. */

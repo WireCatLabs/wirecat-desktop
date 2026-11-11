@@ -1,7 +1,7 @@
 import { Unlink } from "lucide-react"
 import { useEffect } from "react"
 import { accountLabel, bySource, profilesOf, seenAtWork } from "@/domain/people"
-import { accountValue, sourceLink } from "@/domain/source-link"
+import { accountValue, emailLink, phoneLink, sourceLink } from "@/domain/source-link"
 import { useGroups } from "@/features/groups"
 import { useLang, useMessages } from "@/i18n"
 import type { Identity } from "@/platform/people-schemas"
@@ -63,6 +63,7 @@ export function IdentityList({
                       {seenAtWork(i.seenIn) && <Pill>{m.atWork}</Pill>}
                     </span>
                     <AccountAddress identity={i} />
+                    <ContactLines identity={i} />
                     <span className="text-[0.85rem] text-ink-soft">
                       {i.seenIn.length === 0
                         ? m.seenNowhere
@@ -119,6 +120,34 @@ function AccountAddress({ identity: i }: { identity: Identity }) {
         <span className={`selectable min-w-0 break-all text-ink-dim ${text}`}>{shown}</span>
       )}
       <CopyButton value={value} label={m.copyAccount(value)} className="size-7" />
+    </span>
+  )
+}
+
+/** Every phone and address the account's source gave, beside the account's own address when that is not one of them. */
+function ContactLines({ identity: i }: { identity: Identity }) {
+  const m = useMessages(peopleMessages)
+  const own = accountValue(i.identity, i.username)
+  const lines = [
+    ...i.phones.map((value) => ({ value, href: phoneLink(value) })),
+    ...i.emails.map((value) => ({ value, href: emailLink(value) })),
+  ].filter(({ value }) => value !== own)
+  if (lines.length === 0) return null
+  const text = "font-mono text-[0.85rem]"
+  return (
+    <span className="flex flex-col gap-[0.1rem]">
+      {lines.map(({ value, href }) => (
+        <span key={value} className="flex min-w-0 items-center gap-[0.25rem]">
+          {href ? (
+            <ExtLink href={href} className={text}>
+              {value}
+            </ExtLink>
+          ) : (
+            <span className={`selectable min-w-0 break-all text-ink-dim ${text}`}>{value}</span>
+          )}
+          <CopyButton value={value} label={m.copyAccount(value)} className="size-7" />
+        </span>
+      ))}
     </span>
   )
 }

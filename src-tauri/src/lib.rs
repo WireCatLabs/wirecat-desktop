@@ -357,6 +357,8 @@ pub fn run() {
             commands::people::people_split_decide,
             commands::people::people_doubts,
             commands::people::people_keep,
+            commands::people::people_test_data,
+            commands::people::people_test_people,
             commands::people::people_contact,
             commands::people::people_kinds,
             commands::people::people_page,

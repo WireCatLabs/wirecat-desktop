@@ -1,11 +1,8 @@
 import { Check, EyeOff, Unlink, UserRound } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
-import { create } from "zustand"
-import { createJSONStorage, persist } from "zustand/middleware"
 import { cleanName, fullerName, WHATSAPP_PHONE } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import type { Doubt } from "@/platform/people-schemas"
-import { safeStorage } from "@/shared/safe-storage"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -23,28 +20,6 @@ import { SourceIcon, sourceOf } from "./sources"
 import { DOUBTS_PAGE, usePeople } from "./store"
 
 /**
- * Test data the owner put aside on this computer. memo keeps listing test data and has no answer that clears it
- * (`people links resolve` refuses it), so this hides the card here and nothing more.
- */
-const useSetAside = create<{ hidden: string[]; hide(key: string): void; showAll(): void }>()(
-  persist(
-    (set) => ({
-      hidden: [],
-      hide: (key) => set((s) => ({ hidden: [...s.hidden.filter((k) => k !== key), key].slice(-500) })),
-      showAll: () => set({ hidden: [] }),
-    }),
-    { name: "wirecat.people-test-data", storage: createJSONStorage(() => safeStorage) },
-  ),
-)
-
-/** A new test account on the same person brings the card back. */
-const asideKey = (doubt: Doubt) =>
-  `${doubt.person}|${doubt.identities
-    .map((i) => i.identity)
-    .sort()
-    .join(" ")}`
-
-/**
  * `memo people links check` above the contacts: people whose accounts may not all be theirs, each a card with the reason,
  * the accounts, and what to do: confirm it, or take the suggested split.
  */
@@ -58,18 +33,19 @@ export function LinkDoubts() {
   const body = useId()
   const box = useRef<HTMLElement>(null)
   const paging = useRef(false)
-  const hidden = useSetAside((s) => s.hidden)
+  const tests = usePeople((s) => s.testPeople)
+  const hiddenCount = tests?.state === "ready" ? tests.read.total : 0
   const last = doubts?.last
   const ready = doubts?.state !== "loading"
-  const aside = last?.items.filter((d) => d.reason === "test-data" && hidden.includes(asideKey(d))).length ?? 0
   // A page of other cards is usually shorter: the panel's top comes back into view, not the page's.
   useEffect(() => {
     if (!ready || !paging.current) return
     paging.current = false
     revealIfHidden(box.current, "start")
   }, [ready])
-  if (!doubts || (!last && doubts.state !== "failed") || (last && last.items.length === 0 && doubts.page === 1))
-    return null
+  const noDoubts =
+    !doubts || (!last && doubts.state !== "failed") || (last && last.items.length === 0 && doubts.page === 1)
+  if (noDoubts && hiddenCount === 0) return null
 
   return (
     <section
@@ -102,29 +78,22 @@ export function LinkDoubts() {
         <p role="status" className={said ? "text-[0.9rem] text-ink-soft" : "sr-only"}>
           {said}
         </p>
-        {doubts.state === "failed" && (
+        {doubts?.state === "failed" && (
           <ErrorNotice raw={doubts.error} inline>
             {m.doubtsFailed}
           </ErrorNotice>
         )}
-        {last ? (
-          <ul aria-busy={doubts.state === "loading"} className="flex flex-col gap-[0.6rem]">
-            {last.items
-              .filter((d) => d.reason !== "test-data" || !hidden.includes(asideKey(d)))
-              .map((doubt) => (
-                <DoubtCard key={`${doubt.person}:${doubt.reason}`} doubt={doubt} onDone={setSaid} />
-              ))}
-          </ul>
-        ) : (
-          <Skeleton className="h-[3rem] w-full" />
-        )}
-        {aside > 0 && (
-          <p className="text-[0.9rem] text-ink-soft">
-            {m.doubtsAside(aside)}{" "}
-            <LinkButton onClick={() => useSetAside.getState().showAll()}>{m.doubtsShowAside}</LinkButton>
-          </p>
-        )}
-        {last && (doubts.page > 1 || last.more) && (
+        {last
+          ? last.items.length > 0 && (
+              <ul aria-busy={doubts?.state === "loading"} className="flex flex-col gap-[0.6rem]">
+                {last.items.map((doubt) => (
+                  <DoubtCard key={`${doubt.person}:${doubt.reason}`} doubt={doubt} onDone={setSaid} />
+                ))}
+              </ul>
+            )
+          : doubts && <Skeleton className="h-[3rem] w-full" />}
+        {hiddenCount > 0 && <HiddenTests onDone={setSaid} />}
+        {doubts && last && (doubts.page > 1 || last.more) && (
           <Pager
             page={doubts.page}
             label={m.doubtsPages}
@@ -156,7 +125,7 @@ function accountLabel(i: Doubt["identities"][number]) {
 /** `onDone` gets the sentence that says what the owner's answer did: the card itself leaves with the next read. */
 function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => void }) {
   const m = useMessages(peopleMessages)
-  const { reveal, need, askSplit, askUndo, keep } = usePeople.getState()
+  const { reveal, need, askSplit, askUndo, keep, markTest } = usePeople.getState()
   const known = useKnownName()
   const busy = usePeople((s) => s.busy[doubt.person])
   const failed = usePeople((s) => s.failed[doubt.person])
@@ -171,7 +140,7 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
       doubt.identities.map((i) => i.name),
     ) ??
     labels.find(Boolean) ??
-    m.noName
+    (doubt.reason === "test-data" ? m.doubtTestTitle : m.noName)
   const test = doubt.reason === "test-data"
   // memo lists only the test accounts: the person may hold real ones too, and those stay when the test ones leave.
   useEffect(() => {
@@ -239,16 +208,26 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
             {m.doubtSeparateTest}
           </Button>
         )}
+        {test && !canSeparate && (
+          <Button
+            size="sm"
+            aria-busy={busy === "test" || undefined}
+            disabled={!!busy}
+            icon={<EyeOff className="size-4" aria-hidden />}
+            onClick={() => void markTest(doubt.person).then((done) => done && onDone(m.doubtHidden(name)))}
+          >
+            {m.doubtTestHide}
+          </Button>
+        )}
         {test && (
           <Button
             size="sm"
-            icon={<EyeOff className="size-4" aria-hidden />}
-            onClick={() => {
-              useSetAside.getState().hide(asideKey(doubt))
-              onDone(m.doubtPutAside(name))
-            }}
+            aria-busy={busy === "keep" || undefined}
+            disabled={!!busy}
+            icon={<Check className="size-4" aria-hidden />}
+            onClick={() => void keep(doubt.person).then((done) => done && onDone(m.doubtReal(name)))}
           >
-            {m.doubtSetAside}
+            {busy === "keep" ? m.doubtKeeping : m.doubtTestReal}
           </Button>
         )}
         {!test && (
@@ -290,5 +269,65 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
       </div>
       {failed && <Refusal error={failed} />}
     </li>
+  )
+}
+
+/** One line for the people memo hid as test data; opened, each with "It is a real contact". */
+function HiddenTests({ onDone }: { onDone: (said: string) => void }) {
+  const m = useMessages(peopleMessages)
+  const tests = usePeople((s) => s.testPeople)
+  const busy = usePeople((s) => s.busy)
+  const failed = usePeople((s) => s.failed)
+  const [open, setOpen] = useState(false)
+  const list = useId()
+  if (tests?.state === "failed")
+    return (
+      <ErrorNotice raw={tests.error} inline>
+        {m.testHiddenFailed}
+      </ErrorNotice>
+    )
+  if (tests?.state !== "ready") return null
+  return (
+    <div className="flex flex-col gap-[0.4rem] text-[0.9rem]">
+      <p className="text-ink-soft">
+        {m.testHidden(tests.read.total)} ·{" "}
+        <LinkButton aria-expanded={open} aria-controls={list} onClick={() => setOpen(!open)}>
+          {open ? m.testHiddenHide : m.testHiddenShow}
+        </LinkButton>
+      </p>
+      {open && (
+        <div id={list} className="flex flex-col gap-[0.4rem]">
+          <p className="text-ink-soft">{m.testHiddenHelp}</p>
+          <ul className="flex flex-col gap-[0.3rem]">
+            {tests.read.items.map(({ person, name }) => {
+              const shown = cleanName(name) ?? m.doubtTestTitle
+              return (
+                <li key={person} className="flex flex-col gap-[0.2rem]">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="selectable min-w-0 truncate">{shown}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-busy={busy[person] === "keep" || undefined}
+                      disabled={!!busy[person]}
+                      icon={<Check className="size-4" aria-hidden />}
+                      onClick={() =>
+                        void usePeople
+                          .getState()
+                          .keep(person)
+                          .then((done) => done && onDone(m.doubtReal(shown)))
+                      }
+                    >
+                      {busy[person] === "keep" ? m.doubtKeeping : m.doubtTestReal}
+                    </Button>
+                  </span>
+                  {failed[person] && <Refusal error={failed[person]} />}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }

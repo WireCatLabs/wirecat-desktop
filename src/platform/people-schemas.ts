@@ -55,6 +55,11 @@ const DoubtSchema = v.object({
 /** `total` is null in a group, where memo cannot count. */
 export const DoubtsSchema = v.object({ items: v.array(DoubtSchema), total: v.nullable(v.number()), more: v.boolean() })
 
+export const TestPeopleSchema = v.object({
+  items: v.array(v.object({ person: v.string(), name: text })),
+  total: v.number(),
+})
+
 /** A memo older than kinds of people (UX-133) gives only ref, name, owner and tasks: the rest arrives as null. */
 const ListedSchema = v.object({
   ref: v.string(),
@@ -114,6 +119,9 @@ export const PersonDetailSchema = v.object({
       username: text,
       phone: v.optional(text, null),
       email: v.optional(text, null),
+      /** Every phone and address its source gave; empty from a memo that gives one of each at most. */
+      phones: v.optional(v.array(v.string()), []),
+      emails: v.optional(v.array(v.string()), []),
       seenIn: v.array(v.object({ account: v.string(), scope: text })),
       method: text,
       linkedAt: text,
@@ -154,6 +162,7 @@ export type Resolved = v.InferOutput<typeof ResolvedSchema>
 export type Split = v.InferOutput<typeof SplitSchema>
 export type Doubts = v.InferOutput<typeof DoubtsSchema>
 export type Doubt = Doubts["items"][number]
+export type TestPeople = v.InferOutput<typeof TestPeopleSchema>
 export type PeopleRead = v.InferOutput<typeof PeopleReadSchema>
 export type PeoplePage = v.InferOutput<typeof PeoplePageSchema>
 export type Listed = v.InferOutput<typeof ListedSchema>

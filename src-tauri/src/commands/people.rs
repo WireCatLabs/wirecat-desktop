@@ -108,6 +108,18 @@ pub async fn people_keep(reference: String) -> Result<people::Kept, AppError> {
     crate::log::command("people_keep", async move { attempt(move || people::keep(&reference)).await }).await
 }
 
+/// The owner says a person is test data, with memo's `people links resolve test`: memo hides them from every list.
+#[tauri::command]
+pub async fn people_test_data(reference: String) -> Result<(), AppError> {
+    crate::log::command("people_test_data", async move { attempt(move || people::test_data(&reference)).await }).await
+}
+
+/// The people memo hides as test data, from memo's `people list kind:test`.
+#[tauri::command]
+pub async fn people_test_people() -> Result<people::TestPeople, AppError> {
+    crate::log::command("people_test_people", async move { attempt(people::test_people).await }).await
+}
+
 /// The owner says a person writes from a company's shared mailbox, with memo's `relationships add --role contact`.
 #[tauri::command]
 pub async fn people_contact(reference: String, organization: String) -> Result<(), AppError> {

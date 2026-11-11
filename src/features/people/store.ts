@@ -14,6 +14,7 @@ import type {
   PersonKind,
   Resolved,
   Split,
+  TestPeople,
 } from "@/platform/people-schemas"
 import type { TaskRead } from "@/platform/task-schemas"
 import { fresh } from "@/shared/fresh"
@@ -32,7 +33,7 @@ export type Detail =
   | { state: "loading" }
   | { state: "ready"; person: PersonDetail }
   | { state: "failed"; error: string }
-export type Op = MatchAnswer | "unlink" | "unmerge" | "keep"
+export type Op = MatchAnswer | "unlink" | "unmerge" | "keep" | "test"
 /** What the owner just did on a person, said where it happened until the page is read again (rule 9). */
 export type Done =
   | { op: "confirm" | "reject"; with: string }
@@ -82,6 +83,8 @@ type PeopleState = {
   splits: Split[]
   splitDecided: Record<string, MatchAnswer>
   doubts: DoubtsRead | null
+  /** The people memo hides as test data, for the line under the doubts. */
+  testPeople: { state: "ready"; read: TestPeople } | { state: "failed"; error: string } | null
   /** The tasks assigned to each person opened, read when their card opens. */
   tasks: Record<string, TasksOf>
   reading: boolean
@@ -155,8 +158,14 @@ type PeopleState = {
   /** A page of the people whose accounts look wrongly joined; the page on screen when none is given. */
   readDoubts(page?: number): Promise<void>
   loadTasks(ref: string): Promise<void>
-  /** The owner says this person's accounts in doubt are right; the failure lands in `failed` under the person. */
+  /**
+   * The owner says this person's accounts in doubt are right, or a hidden person is a real contact; the failure lands
+   * in `failed` under the person.
+   */
   keep(ref: string): Promise<boolean>
+  /** The owner says this person is test data: memo hides them everywhere. */
+  markTest(ref: string): Promise<boolean>
+  readTestPeople(): Promise<void>
   unlink(ref: string, identities: string[]): Promise<boolean>
   unmerge(ref: string, merge: string): Promise<boolean>
   askSplit(ref: string | null, preset?: string[]): void
@@ -283,6 +292,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     splits: [],
     splitDecided: {},
     doubts: null,
+    testPeople: null,
     tasks: {},
     reading: false,
     readAt: null,
@@ -329,7 +339,10 @@ export const usePeople = create<PeopleState>((set, get) => {
       try {
         const read = await platform.peopleRead(get().kind)
         // After the read, not beside it: memo's command server runs two calls at once and starts anew for a third.
-        if (counts) void get().readDoubts()
+        if (counts)
+          void get()
+            .readDoubts()
+            .then(() => get().readTestPeople())
         if (call !== seq) return
         const ready = read.kind === "ready" ? read : null
         const kinded = ready?.kinded ?? false
@@ -618,7 +631,25 @@ export const usePeople = create<PeopleState>((set, get) => {
       })
       if (!asked) return false
       await get().readDoubts()
+      await get().readTestPeople()
       return true
+    },
+    async markTest(ref) {
+      const asked = await run(ref, "test", async () => {
+        await platform.peopleTestData(ref)
+        return true
+      })
+      if (!asked) return false
+      await get().readDoubts()
+      await get().readTestPeople()
+      return true
+    },
+    async readTestPeople() {
+      try {
+        set({ testPeople: { state: "ready", read: await platform.peopleTestPeople() } })
+      } catch (e) {
+        set({ testPeople: { state: "failed", error: message(e) } })
+      }
     },
     async unlink(ref, identities) {
       const result = await run(ref, "unlink", () => platform.peopleUnlink(ref, identities))

@@ -18,13 +18,14 @@ const QUIET: [&str; 2] = ["--json", "--no-record"];
 /// The app starts memo with no terminal, which memo takes as nobody's run; this says the owner decided here.
 const FROM_APP: &str = "--from-app";
 /// memo's own refusals the page words in the owner's language.
-const WORDED: [&str; 7] = [
+const WORDED: [&str; 8] = [
     "identity.stale",
     "identity.owner-only",
     "person.not-found",
     "person.unknown",
     "person.no-doubt",
     "person.test-data",
+    "person.owner",
     "proposal.wrong-state",
 ];
 /// What `people links resolve` is refused with by a memo from before it; the page offers the update.
@@ -437,6 +438,9 @@ pub struct Identity {
     /// As this source gave them; absent before memo carries them on identities.
     pub phone: Option<String>,
     pub email: Option<String>,
+    /// Every phone and address the source gave, `phone` and `email` among them, as a CRM contact holds several.
+    pub phones: Vec<String>,
+    pub emails: Vec<String>,
     pub seen_in: Vec<Seen>,
     /// How it was joined: `initial`, `manual`, `same-email`, `same-phone`, `proposal`, `unlink`, `undo-merge`…
     pub method: Option<String>,
@@ -477,6 +481,17 @@ fn merge_word(s: &str) -> Option<&str> {
     (uid(to) && uid(from)).then_some(s)
 }
 
+/// The list memo gives, else the one value an older memo gives, each once.
+fn every(v: &Value, many: &str, one: &str) -> Vec<String> {
+    let mut found: Vec<String> = text(v, one).into_iter().collect();
+    for value in strings(&v[many]) {
+        if !value.trim().is_empty() && !found.contains(&value) {
+            found.push(value);
+        }
+    }
+    found
+}
+
 fn identity(v: &Value) -> Option<Identity> {
     let id = text(v, "identity")?;
     Some(Identity {
@@ -487,6 +502,8 @@ fn identity(v: &Value) -> Option<Identity> {
         username: text(v, "username"),
         phone: text(v, "phone"),
         email: text(v, "email"),
+        phones: every(v, "phones", "phone"),
+        emails: every(v, "emails", "email"),
         seen_in: list(v, "seen_in", |s| Some(Seen { account: id_text(&s["account"])?, scope: text(s, "scope") })),
         method: text(v, "method"),
         linked_at: text(v, "linked_at"),
@@ -832,6 +849,53 @@ fn keep_with(call: &Call, reference: &str) -> Result<Kept, String> {
 
 pub fn keep(reference: &str) -> Result<Kept, String> {
     with_memo(|call| keep_with(call, reference))
+}
+
+fn test_data_with(call: &Call, reference: &str) -> Result<(), String> {
+    let reference = person_ref(reference)?;
+    call(&decision(&["people", "links", "resolve", reference, "test"]))
+        .map_err(|e| if e.contains("unknown command") { KEEP_TOO_OLD.to_string() } else { e })?;
+    Ok(())
+}
+
+/// The owner says a person is test data: memo hides them from every list until the owner keeps them.
+pub fn test_data(reference: &str) -> Result<(), String> {
+    with_memo(|call| test_data_with(call, reference))
+}
+
+/// A person memo hides as test data.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct TestPerson {
+    pub person: String,
+    pub name: Option<String>,
+}
+
+/// The people memo hides as test data: the first page of them, and how many there are.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct TestPeople {
+    pub items: Vec<TestPerson>,
+    pub total: u64,
+}
+
+const TEST_PAGE: &str = "50";
+
+fn test_people_with(call: &Call) -> Result<TestPeople, String> {
+    let v = match call(&words(&["people", "list", "kind:test", "--limit", TEST_PAGE])) {
+        Err(e) if e == UNKNOWN_KIND || OLDER.contains(&e.as_str()) => {
+            return Ok(TestPeople { items: vec![], total: 0 });
+        }
+        r => r?,
+    };
+    let items: Vec<TestPerson> = list(&v, "items", |p| {
+        Some(TestPerson { person: person_of(&p["ref"])?, name: text(p, "display_name").or_else(|| text(p, "name")) })
+    });
+    let total = v["page"]["total"]["value"].as_u64().unwrap_or(items.len() as u64);
+    Ok(TestPeople { items, total })
+}
+
+/// The people memo hides as test data, for the line under «Check the links».
+pub fn test_people() -> Result<TestPeople, String> {
+    with_memo(test_people_with)
 }
 
 /// The owner says a person writes from a company's shared mailbox: memo records them as the organization's contact.
@@ -1192,6 +1256,46 @@ mod tests {
         let refused = |_: &[String]| Err("person.no-doubt".to_string());
         assert_eq!(keep_with(&refused, "person:7").unwrap_err(), "person.no-doubt");
         assert!(keep_with(&refused, "--help").is_err());
+    }
+
+    #[test]
+    fn calling_a_person_test_data_passes_from_app_and_names_an_older_memo() {
+        let call = |args: &[String]| {
+            assert_eq!(args[..5], ["people", "links", "resolve", "person:7", "test"]);
+            assert!(args.iter().any(|a| a == FROM_APP));
+            Ok(json!({"item": {"person": "person:7", "identities": ["email:a@b.test"]}}))
+        };
+        assert_eq!(test_data_with(&call, "person:7"), Ok(()));
+        let old = |_: &[String]| Err("unknown command 'resolve'".to_string());
+        assert_eq!(test_data_with(&old, "person:7").unwrap_err(), KEEP_TOO_OLD);
+        assert!(test_data_with(&call, "--help").is_err());
+    }
+
+    #[test]
+    fn hidden_test_people_are_read_and_an_older_memo_hides_none() {
+        let call = |args: &[String]| {
+            assert_eq!(args[..3], ["people", "list", "kind:test"]);
+            Ok(json!({"items": [{"ref": "person:9", "name": null, "display_name": "Ann Lee"}],
+                "page": {"total": {"value": 3, "relation": "eq"}}}))
+        };
+        assert_eq!(
+            test_people_with(&call).unwrap(),
+            TestPeople {
+                items: vec![TestPerson { person: "person:9".into(), name: Some("Ann Lee".into()) }],
+                total: 3
+            }
+        );
+        let old = |_: &[String]| Err(UNKNOWN_KIND.to_string());
+        assert_eq!(test_people_with(&old).unwrap(), TestPeople { items: vec![], total: 0 });
+    }
+
+    #[test]
+    fn an_identity_lists_every_phone_and_address() {
+        let v = json!({"identity": "bitrix24:p.example/contact/7", "phone": "+34600000001",
+            "phones": ["+34600000001", "+34600000002"], "email": "a@b.test", "seen_in": []});
+        let i = identity(&v).unwrap();
+        assert_eq!(i.phones, ["+34600000001", "+34600000002"]);
+        assert_eq!(i.emails, ["a@b.test"]);
     }
 
     #[test]

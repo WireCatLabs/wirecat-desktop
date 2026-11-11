@@ -156,6 +156,8 @@ describe("what the people share", () => {
           bot: false,
           phone: null,
           email: null,
+          phones: [],
+          emails: [],
         },
       ],
     })
@@ -184,6 +186,8 @@ describe("what the people share", () => {
           bot: false,
           phone: "+34 600 111 222",
           email: "lena@example.org",
+          phones: [],
+          emails: [],
         },
       ],
     }
