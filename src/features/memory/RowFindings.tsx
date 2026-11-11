@@ -16,7 +16,7 @@ import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { memoryMessages } from "./messages"
 import { findingsMessages } from "./messages-findings"
-import { CitedRef, citedText, SourceContextView } from "./RowSources"
+import { CitedRef, citedText, ITEM_LIST, ITEM_PAD, SourceContextView } from "./RowSources"
 import { canRevoke, useMemory } from "./store"
 
 type Finding = NonNullable<MemoryEntry["findings"]>[number]
@@ -39,6 +39,16 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   const keep = tickedCount(findings, skipped)
   const drop = findings.length - keep
   const known = sources?.state === "ready" ? sources.sources : undefined
+  // Save leaves with the bar it sits in: focus goes to what the batch made, or to the batch's title.
+  const save = async () => {
+    await (keep === 0 ? discard(entry.ref) : confirm(entry.ref))
+    requestAnimationFrame(() => {
+      const row = document.querySelector(`[data-ref="${CSS.escape(entry.ref)}"]`)
+      focusInPlace(
+        row?.querySelector<HTMLElement>("[data-edit]") ?? row?.querySelector<HTMLElement>("[aria-controls]") ?? null,
+      )
+    })
+  }
   const kinds = new Set(findings.map((x) => (x.kind === "fact" || x.kind === "task" ? x.kind : "other")))
 
   return (
@@ -54,7 +64,8 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
           </p>
         </div>
         {open && findings.length > 1 && (
-          <span className="flex shrink-0 items-center gap-[0.8rem] text-[0.9rem]">
+          <span className="flex shrink-0 items-center gap-[0.6rem] text-[0.9rem] text-ink-soft">
+            {f.markAll}
             <LinkButton disabled={!!busy} onClick={() => skipAll(entry.ref, false)}>
               {f.keepAll}
             </LinkButton>
@@ -65,7 +76,7 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
         )}
       </div>
 
-      <ul data-findings className="flex flex-col rounded-[0.45rem] border border-line bg-app">
+      <ul data-findings className={ITEM_LIST}>
         {findings.map((x) => (
           <FindingItem key={x.id} entry={entry} finding={x} sources={known} />
         ))}
@@ -78,14 +89,13 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
             <p className="text-ink-dim">{f.editLater}</p>
           </div>
           <Button
-            variant="primary"
             disabled={!!busy}
             icon={
               busy === "confirm" || busy === "discard" ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden />
               ) : undefined
             }
-            onClick={() => void (keep === 0 ? discard(entry.ref) : confirm(entry.ref))}
+            onClick={() => void save()}
           >
             {f.save(keep, drop)}
           </Button>
@@ -115,7 +125,12 @@ function FindingItem({
   const decided = !open && x.outcome
 
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)] gap-x-[1.2rem] gap-y-[0.6rem] border-line px-[1rem] py-[0.85rem] not-first:border-t md:grid-cols-[minmax(0,1fr)_auto]">
+    <li
+      className={cx(
+        "grid grid-cols-[minmax(0,1fr)] gap-x-[1.2rem] gap-y-[0.6rem] border-line not-first:border-t md:grid-cols-[minmax(0,1fr)_auto]",
+        ITEM_PAD,
+      )}
+    >
       <div
         className={cx(
           "min-w-0 transition-opacity duration-(--motion-fast)",
@@ -232,6 +247,7 @@ function Outcome({ entry, finding: x }: { entry: MemoryEntry; finding: Finding }
       </span>
       {accepted && made && (
         <Button
+          data-edit
           size="sm"
           variant="secondary"
           icon={

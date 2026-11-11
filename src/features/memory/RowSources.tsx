@@ -17,6 +17,10 @@ import { memoryMessages } from "./messages"
 import { findingsMessages } from "./messages-findings"
 import { useMemory } from "./store"
 
+/** One list frame and one item inset for a record's sources and a batch's findings, so the two read as one kind. */
+export const ITEM_LIST = "flex flex-col rounded-[0.45rem] border border-line bg-app"
+export const ITEM_PAD = "px-[1rem] py-[0.8rem]"
+
 const SOURCE_ICONS = { meeting: Video, mail: Mail, message: MessagesSquare, note: FileText }
 
 const sourceIcon = (kind: string) => {
@@ -54,7 +58,7 @@ export function SourceItem({ source: s }: { source: MemorySource }) {
     </>
   )
   if (!s.ref || s.missing)
-    return <li className="flex gap-[0.8rem] border-line px-[0.9rem] py-[0.7rem] not-first:border-t">{head}</li>
+    return <li className={cx("flex gap-[0.8rem] border-line not-first:border-t", ITEM_PAD)}>{head}</li>
   const ref = s.ref
   return (
     <li className="border-line not-first:border-t">
@@ -67,7 +71,10 @@ export function SourceItem({ source: s }: { source: MemorySource }) {
           if (!open) useMemory.getState().loadContext(ref)
           setOpen(!open)
         }}
-        className="group flex cursor-pointer gap-[0.8rem] px-[0.9rem] py-[0.7rem] transition-colors duration-(--motion-fast) hover:bg-app-2"
+        className={cx(
+          "group flex cursor-pointer gap-[0.8rem] transition-colors duration-(--motion-fast) hover:bg-app-2",
+          ITEM_PAD,
+        )}
       >
         {head}
       </TextButton>
@@ -193,7 +200,7 @@ export function Sources({ entry }: { entry: MemoryEntry }) {
       {sources.sources.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.noSources}</p>
       ) : (
-        <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
+        <ul className={ITEM_LIST}>
           {sources.sources.map((s: MemorySource) => (
             <SourceItem key={s.ref ?? `${s.kind}|${s.title ?? ""}|${s.at ?? ""}`} source={s} />
           ))}

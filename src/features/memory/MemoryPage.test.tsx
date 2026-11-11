@@ -177,6 +177,7 @@ describe("Memory", () => {
     const [, accept] = confirm.mock.calls[0] ?? []
     expect(accept).toHaveLength(3)
     expect(within(batch).getByText(/^Rejected/)).toBeInTheDocument()
+    await waitFor(() => expect(within(batch).getAllByRole("button", { name: /^Edit the/ })[0]).toHaveFocus())
     confirm.mockRestore()
   })
 
