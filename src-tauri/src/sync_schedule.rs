@@ -1,10 +1,11 @@
 //! A tool's sync on a timer, per account: the tool's own `<bin> <profile> schedule command <name> --every <d> --
-//! <sync words>`, `schedule list` and `schedule remove`. The tool writes the schedule file and the timer; nothing here
+//! <sync words>` (or `--at HH:MM`, daily), `schedule list`, `schedule run` and `schedule remove`. The tool writes the schedule file and the timer; nothing here
 //! does. The schedule is named `<bin>-<profile>`, the name mail's existing ones already carry (`mail-gmail`).
 
 use crate::catalog::{self, Tool};
-use crate::digest_schedule::{ScheduleRun, run_of};
-use crate::skills::{call, failure};
+use crate::digest_schedule::{ScheduleRun, daily_time, is_time, run_of};
+use crate::redact;
+use crate::skills::{body, call, failure};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -23,14 +24,38 @@ pub struct ScheduleSource {
 #[serde(rename_all = "camelCase", tag = "state")]
 pub enum SyncSchedule {
     Off,
-    /// `every`: `5m` when memo's words name one of the catalog's intervals, else `None` and `when` says it.
+    /// `every`: `5m` when memo's words name one of the catalog's intervals, else `None` and `when` says it. `daily`:
+    /// `04:45` for a schedule that runs once a day at that time.
     #[serde(rename_all = "camelCase")]
     On {
         when: String,
         every: Option<String>,
+        daily: Option<String>,
         last: Option<Box<ScheduleRun>>,
     },
 }
+
+/// When a new schedule runs: at one of the catalog's intervals, or daily at a local `HH:MM`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum When<'a> {
+    Every(&'a str),
+    At(&'a str),
+}
+
+/// `schedule run`: the schedule's command run once now, as its timer would.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleTest {
+    pub exit_code: i64,
+    /// Why a failed run failed: an error code or reason id.
+    pub reason: Option<String>,
+    /// The end of what the run printed, masked: what an agent needs to find the cause.
+    pub output: String,
+}
+
+/// A full sync of a messenger may take its whole `--timeout 50m`.
+const TEST_TIMEOUT: Duration = Duration::from_hours(1);
+const OUTPUT_CHARS: usize = 6000;
 
 fn source(tool: &Tool) -> Result<&ScheduleSource, String> {
     tool.sync.as_ref().and_then(|s| s.schedule.as_ref()).ok_or_else(|| format!("{} has no sync schedule", tool.name))
@@ -65,7 +90,12 @@ fn read(src: &ScheduleSource, name: &str, v: &Value) -> SyncSchedule {
     let found = v["items"].as_array().into_iter().flatten().find(|i| i["name"].as_str() == Some(name));
     let Some(item) = found else { return SyncSchedule::Off };
     let when = item["when"].as_str().unwrap_or_default().to_string();
-    SyncSchedule::On { every: interval_of(&src.choices, &when), when, last: run_of(&item["last"]).map(Box::new) }
+    SyncSchedule::On {
+        every: interval_of(&src.choices, &when),
+        daily: daily_time(&when),
+        when,
+        last: run_of(&item["last"]).map(Box::new),
+    }
 }
 
 fn words(list: &[&str]) -> Vec<String> {
@@ -83,32 +113,58 @@ pub fn status(tool: &Tool, profile: &str) -> Result<SyncSchedule, String> {
     }
 }
 
-fn on_args(tool: &Tool, profile: &str, every: &str) -> Result<Vec<String>, String> {
+fn on_args(tool: &Tool, profile: &str, when: When) -> Result<Vec<String>, String> {
     let src = source(tool)?;
-    if !src.choices.iter().any(|c| c == every) {
-        return Err(format!("not an interval {} offers: {every}", tool.name));
-    }
+    let timing = match when {
+        When::Every(every) if src.choices.iter().any(|c| c == every) => ["--every", every],
+        When::Every(every) => return Err(format!("not an interval {} offers: {every}", tool.name)),
+        When::At(at) if is_time(at) => ["--at", at],
+        When::At(at) => return Err(format!("not a time of day: {at}")),
+    };
     let name = name_of(tool, profile)?;
     let mut args = vec![profile.to_string()];
-    args.extend(words(&["schedule", "command", &name, "--every", every, "--notify-on", "failures", "--json", "--"]));
+    args.extend(words(&["schedule", "command", &name]));
+    args.extend(words(&timing));
+    args.extend(words(&["--notify-on", "failures", "--json", "--"]));
     args.extend(src.args.iter().cloned());
     Ok(args)
 }
 
-/// `Some(every)` makes or replaces the schedule at that interval; `None` removes it (its past runs stay).
-pub fn set(tool: &Tool, profile: &str, every: Option<&str>) -> Result<SyncSchedule, String> {
-    let args = match every {
-        Some(every) => on_args(tool, profile, every)?,
+/// `Some(when)` makes or replaces the schedule; `None` removes it (its past runs stay).
+pub fn set(tool: &Tool, profile: &str, when: Option<When>) -> Result<SyncSchedule, String> {
+    let args = match when {
+        Some(when) => on_args(tool, profile, when)?,
         None => {
             [vec![profile.to_string()], words(&["schedule", "remove", &name_of(tool, profile)?, "--json"])].concat()
         }
     };
     let (out, json) = call(tool, &args, Duration::from_mins(1))?;
-    let gone = every.is_none() && json.as_ref().and_then(|v| v["error"]["code"].as_str()) == Some("not_found");
+    let gone = when.is_none() && json.as_ref().and_then(|v| v["error"]["code"].as_str()) == Some("not_found");
     if out.code != Some(0) && !gone {
         return Err(failure(&out, json.as_ref()));
     }
     status(tool, profile)
+}
+
+/// Runs the account's schedule once now and waits for it; a failed run is an answer, not an error.
+pub fn test(tool: &Tool, profile: &str) -> Result<ScheduleTest, String> {
+    source(tool)?;
+    let args = [vec![profile.to_string()], words(&["schedule", "run", &name_of(tool, profile)?, "--json"])].concat();
+    let (out, json) = call(tool, &args, TEST_TIMEOUT)?;
+    match json.as_ref() {
+        Some(v) if v.get("error").is_none() => Ok(test_of(body(v))),
+        j => Err(failure(&out, j)),
+    }
+}
+
+fn test_of(v: &Value) -> ScheduleTest {
+    let output = redact::text(v["output"].as_str().unwrap_or_default().trim());
+    let skip = output.chars().count().saturating_sub(OUTPUT_CHARS);
+    ScheduleTest {
+        exit_code: v["exit_code"].as_i64().unwrap_or(1),
+        reason: v["reason"].as_str().map(redact::text),
+        output: output.chars().skip(skip).collect(),
+    }
 }
 
 #[cfg(test)]
@@ -123,16 +179,40 @@ mod tests {
     #[test]
     fn the_messengers_and_mail_sync_on_a_timer_with_their_own_schedule_command() {
         assert_eq!(
-            on_args(tool("email"), "gmail", "5m").unwrap().join(" "),
+            on_args(tool("email"), "gmail", When::Every("5m")).unwrap().join(" "),
             "gmail schedule command mail-gmail --every 5m --notify-on failures --json -- sync"
         );
         assert_eq!(
-            on_args(tool("tg"), "personal", "1h").unwrap().join(" "),
+            on_args(tool("tg"), "personal", When::Every("1h")).unwrap().join(" "),
             "personal schedule command tg-personal --every 1h --notify-on failures --json -- messages sync --all --timeout 50m"
         );
-        assert!(on_args(tool("tg"), "personal", "1m").is_err());
-        assert!(on_args(tool("tg"), "--all", "1h").is_err());
+        assert!(on_args(tool("tg"), "personal", When::Every("1m")).is_err());
+        assert!(on_args(tool("tg"), "--all", When::Every("1h")).is_err());
         assert!(source(tool("memo")).is_err());
+    }
+
+    #[test]
+    fn a_nightly_sync_runs_daily_at_a_time_of_day() {
+        assert_eq!(
+            on_args(tool("max"), "work", When::At("04:45")).unwrap().join(" "),
+            "work schedule command max-work --at 04:45 --notify-on failures --json -- messages sync --all --timeout 50m"
+        );
+        assert!(on_args(tool("max"), "work", When::At("4:45")).is_err());
+        assert!(on_args(tool("max"), "work", When::At("24:00")).is_err());
+        let v = json!({"items": [{"name": "max-work", "kind": "command", "when": "daily at 04:45", "last": null}]});
+        let SyncSchedule::On { every, daily, .. } = read(source(tool("max")).unwrap(), "max-work", &v) else {
+            panic!()
+        };
+        assert_eq!((every, daily.as_deref()), (None, Some("04:45")));
+    }
+
+    #[test]
+    fn a_test_run_keeps_the_end_of_its_output_and_its_reason() {
+        let long = format!("{}the end", "synced a chat\n".repeat(OUTPUT_CHARS / 10));
+        let t = test_of(&json!({"name": "tg-personal", "exit_code": 1, "output": long, "reason": "auth.expired"}));
+        assert_eq!((t.exit_code, t.reason.as_deref()), (1, Some("auth.expired")));
+        assert_eq!(t.output.chars().count(), OUTPUT_CHARS);
+        assert!(t.output.ends_with("the end"));
     }
 
     #[test]

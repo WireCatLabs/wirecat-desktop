@@ -4,6 +4,7 @@ import { findTool } from "@/domain/catalog"
 import { failureSuperseded } from "@/domain/sync"
 import type { ScheduleRun, SyncSchedule as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useMachineSetup } from "@/shared/machine-setup-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { SyncSchedule } from "./SyncSchedule"
 import { syncKey, useSync } from "./sync-store"
@@ -31,7 +32,7 @@ describe("an account's sync on a timer", () => {
     vi.spyOn(platform, "syncScheduleStatus").mockResolvedValue({ state: "off" })
     const set = vi
       .spyOn(platform, "syncScheduleSet")
-      .mockResolvedValue({ state: "on", when: "every 15m", every: "15m", last: null })
+      .mockResolvedValue({ state: "on", when: "every 15m", every: "15m", daily: null, last: null })
     const user = userEvent.setup()
     render(<SyncSchedule tool={email} profile="personal" />)
     const region = await screen.findByRole("region", { name: "Sync schedule of Email personal" })
@@ -50,6 +51,7 @@ describe("an account's sync on a timer", () => {
       state: "on",
       when: "every 5m",
       every: "5m",
+      daily: null,
       last: run({ exitCode: 4, reason: "authentication_error", failures: 1, failingSince: ago(600) }),
     })
     render(<SyncSchedule tool={email} profile="personal" />)
@@ -64,6 +66,7 @@ describe("an account's sync on a timer", () => {
       state: "on",
       when: "every 5m",
       every: "5m",
+      daily: null,
       last: run({ exitCode: 2, reason: "configuration_error", failures: 41, failingSince: ago(600) }),
     })
     const set = vi.spyOn(platform, "syncScheduleSet").mockResolvedValue({ state: "off" })
@@ -77,6 +80,7 @@ describe("an account's sync on a timer", () => {
     await user.click(within(region).getByRole("button", { name: "Turn off" }))
     expect(set).toHaveBeenCalledWith("email", "personal", null)
     expect(await within(region).findByRole("button", { name: "Sync on a schedule" })).toBeInTheDocument()
+    expect(useMachineSetup.getState().offByHand).toContain("email:personal")
   })
 
   it("says what the tool answered when it refuses", async () => {
@@ -112,7 +116,7 @@ describe("a failed sync from this window", () => {
 
   it("clears once the account's timer ran it again successfully", async () => {
     failed(Date.now() - 60 * 60_000)
-    const next: State = { state: "on", when: "every 5m", every: "5m", last: run({ at: ago(2) }) }
+    const next: State = { state: "on", when: "every 5m", every: "5m", daily: null, last: run({ at: ago(2) }) }
     vi.spyOn(platform, "syncScheduleStatus").mockResolvedValue(next)
     await useSync.getState().loadSchedule("email", "personal")
     expect(useSync.getState().runs[syncKey("email", "personal")]).toBeUndefined()
@@ -124,6 +128,7 @@ describe("a failed sync from this window", () => {
       state: "on",
       when: "every 5m",
       every: "5m",
+      daily: null,
       last: run({ at: ago(2), exitCode: 2 }),
     })
     await useSync.getState().loadSchedule("email", "personal")

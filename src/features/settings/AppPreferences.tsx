@@ -7,6 +7,7 @@ import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { AiModelSetting } from "./AiModelSetting"
 import { CommunitySetting } from "./CommunitySetting"
+import { MachineSetting } from "./MachineSetup"
 import { settingsMessages } from "./messages"
 import { OwnToolsSetting } from "./OwnToolsSetting"
 import { ReadersSetting } from "./ReadersSetting"
@@ -20,6 +21,9 @@ export function AppPreferences() {
       <h2 id="app-preferences" className="sr-only">
         {m.app}
       </h2>
+      <div className="mb-6">
+        <MachineSetting />
+      </div>
       <div className="grid gap-x-10 gap-y-6 @2xl:grid-cols-2">
         <LanguageSetting />
         <ScaleSetting />

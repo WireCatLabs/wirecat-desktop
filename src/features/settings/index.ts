@@ -1,4 +1,7 @@
 export { AppPreferences } from "./AppPreferences"
+export { MachineChoicesList, MachineSetting } from "./MachineSetup"
+export { confirmChoices, useApplyChoices } from "./machine-setup"
 export { settingsMessages } from "./messages"
+export { machineMessages } from "./messages-machine"
 export { ReaderChoice } from "./ReadersSetting"
 export { useApplyScale, useScaleKeys } from "./scale"

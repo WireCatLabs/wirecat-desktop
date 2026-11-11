@@ -32,6 +32,8 @@ src-tauri/src/
                 fails with `error.rs`'s `{ kind, message }` (`unknown_tool`, `invalid_profile`, `not_installed`,
                 `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message.
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
+                `autostart_status` / `autostart_set`: WireCat opening at login, through the Tauri autostart plugin in
+                Rust (no plugin permission in the webview); a test copy or a development build refuses to turn it on.
   log.rs        a daily log file in the app's log folder, last seven kept: each command's name, duration and result
                 kind, and each program `run.rs` starts (file name, duration, exit). Every line goes through
                 `redact.rs` first.
@@ -236,9 +238,10 @@ src-tauri/src/
                 terminal). A memo without either command answers "unknown command" and the card says it needs an
                 update.
   sync_schedule.rs an account's sync on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
-                --every <d> -- <catalog sync.schedule.args>`, `schedule list` and `schedule remove`. The tool writes the
-                timer. Its latest run (and `failing_since`) shows under the account, and a failed sync from this window
-                clears once a later run succeeded, timed or listed by `syncLast`.
+                --every <d> -- <catalog sync.schedule.args>` (or `--at HH:MM`, daily: the setup's "Sync everything on
+                a schedule"), `schedule list`, `schedule run` (its test run, output masked) and `schedule remove`. The
+                tool writes the timer. Its latest run (and `failing_since`) shows under the account, and a failed sync
+                from this window clears once a later run succeeded, timed or listed by `syncLast`.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
 

@@ -2,6 +2,7 @@ import { Bot, HardDrive, Terminal } from "lucide-react"
 import type { ReactNode } from "react"
 import { findTool, isCommunity, isOwn, maker, ownerId, samePackage, tools } from "@/domain/catalog"
 import { computerLine, doneRow } from "@/domain/onboarding-flow"
+import { MachineChoicesList, MachineSetting, machineMessages } from "@/features/settings"
 import { NodeNotice } from "@/features/system"
 import { InstallLine, toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -35,6 +36,7 @@ function Fact({ icon, title, children }: { icon: ReactNode; title: string; child
 
 export function Welcome() {
   const m = useMessages(onboardingMessages).welcome
+  const mm = useMessages(machineMessages)
   const icon = "size-[1.5rem]"
   return (
     <>
@@ -49,6 +51,10 @@ export function Welcome() {
           {m.agent}
         </Fact>
       </ul>
+      <section aria-label={mm.title} className="flex flex-col gap-2">
+        <p className="max-w-[60ch] text-body text-ink-soft">{mm.welcome}</p>
+        <MachineChoicesList applied={false} />
+      </section>
       <p className="text-body text-ink-soft">{m.time}</p>
     </>
   )
@@ -248,6 +254,7 @@ export function Done() {
           })}
         </ul>
       )}
+      <MachineSetting />
       <p className="max-w-[65ch] text-body text-ink-soft">{m.moreLater}</p>
       <section aria-label={m.next} className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>

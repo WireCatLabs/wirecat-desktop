@@ -1137,6 +1137,15 @@ export type ScheduleRun = {
 	deliveries: Delivery[],
 };
 
+/**  `schedule run`: the schedule's command run once now, as its timer would. */
+export type ScheduleTest = {
+	exitCode: number,
+	/**  Why a failed run failed: an error code or reason id. */
+	reason: string | null,
+	/**  The end of what the run printed, masked: what an agent needs to find the cause. */
+	output: string,
+};
+
 export type SearchHarder = 
 /**  The installed memo is older than `need`, or `need` is `None`: no memo with it is released yet. */
 { state: "old"; version: string | null; need: string | null } | { state: "ready"; status: HarderStatus };
@@ -1209,8 +1218,11 @@ export type SyncEvent =
 retryAfterMs: number | null };
 
 export type SyncSchedule = { state: "off" } | 
-/**  `every`: `5m` when memo's words name one of the catalog's intervals, else `None` and `when` says it. */
-{ state: "on"; when: string; every: string | null; last: ScheduleRun | null };
+/**
+ *  `every`: `5m` when memo's words name one of the catalog's intervals, else `None` and `when` says it. `daily`:
+ *  `04:45` for a schedule that runs once a day at that time.
+ */
+{ state: "on"; when: string; every: string | null; daily: string | null; last: ScheduleRun | null };
 
 /**  Counts only: titles, chat keys and account names in the tool's answer stay in Rust. */
 export type SyncSummary = {

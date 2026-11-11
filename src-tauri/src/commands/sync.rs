@@ -87,17 +87,53 @@ pub async fn sync_schedule_status(id: String, profile: String) -> Result<sync_sc
     .await
 }
 
-/// `every` makes or replaces the account's sync schedule at that interval; none removes it.
+/// `every` (an interval) or `at` (daily, `HH:MM`) makes or replaces the account's sync schedule; neither removes it.
 #[tauri::command]
 pub async fn sync_schedule_set(
     id: String,
     profile: String,
     every: Option<String>,
+    at: Option<String>,
 ) -> Result<sync_schedule::SyncSchedule, AppError> {
     crate::log::command("sync_schedule_set", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        attempt(move || sync_schedule::set(tool, &profile, every.as_deref())).await
+        attempt(move || {
+            let when = match (every.as_deref(), at.as_deref()) {
+                (Some(_), Some(_)) => return Err("a schedule runs at an interval or at a time, not both".to_string()),
+                (Some(every), None) => Some(sync_schedule::When::Every(every)),
+                (None, Some(at)) => Some(sync_schedule::When::At(at)),
+                (None, None) => None,
+            };
+            sync_schedule::set(tool, &profile, when)
+        })
+        .await
+    })
+    .await
+}
+
+/// Runs the account's schedule once now, as its timer would, and waits for it. Counts as this window's sync of the
+/// profile, so a sync from the page and the test run never hold the store at once.
+#[tauri::command]
+pub async fn sync_schedule_test(
+    id: String,
+    profile: String,
+    running: State<'_, Arc<Running>>,
+) -> Result<sync_schedule::ScheduleTest, AppError> {
+    let running = Arc::clone(&running);
+    crate::log::command("sync_schedule_test", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        let key = sync::key(tool, Some(&profile));
+        if running.busy(&catalog::owner(tool).id) || !running.start(&key) {
+            return Err(AppError::Busy(format!(
+                "{} is syncing {profile} already. Try again when it is done.",
+                tool.name
+            )));
+        }
+        let result = attempt(move || sync_schedule::test(tool, &profile)).await;
+        running.finish(&key);
+        result
     })
     .await
 }

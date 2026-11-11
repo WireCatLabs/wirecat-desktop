@@ -3,6 +3,7 @@ import { type CatalogTool, syncSchedules } from "@/domain/catalog"
 import { type AdviceKind, advice } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
 import type { ScheduleRun } from "@/platform/bindings"
+import { useMachineSetup } from "@/shared/machine-setup-store"
 import { signedInSince, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -30,6 +31,9 @@ function lastWords(last: ScheduleRun | null, m: SyncScheduleText, why: Record<Ad
   const kind = failureOf(last.reason).kind
   return m.lastFailed(ago(last.at), kind === "failed" ? null : why[kind])
 }
+
+const timing = (on: { when: string; every: string | null; daily: string | null }, m: SyncScheduleText) =>
+  on.every ? m.on(m.duration(on.every)) : on.daily ? m.daily(on.daily) : m.onWhen(on.when)
 
 // min-h: the line keeps a button's height when the read failed and only words are left.
 const SCHEDULE_LINE = "flex min-h-8 flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.875rem] text-ink-dim"
@@ -90,6 +94,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
       .setSchedule(tool.id, profile, next)
       .then(
         () => {
+          useMachineSetup.getState().byHand(tool.id, profile, next !== null)
           setSaving(false)
           setOpen(false)
         },
@@ -114,7 +119,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
           <span className="flex min-w-0 items-center gap-2">
             <Lamp tone={failing ? "bad" : last ? "ok" : "idle"} size="sm" />
             <span>
-              {on.every ? m.on(m.duration(on.every)) : m.onWhen(on.when)} · {lastWords(last, m, why)}
+              {timing(on, m)} · {lastWords(last, m, why)}
             </span>
           </span>
         ) : null}

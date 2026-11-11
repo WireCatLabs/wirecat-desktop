@@ -76,6 +76,7 @@ fn types() -> Types {
         .register::<crate::digest_editors::DigestTemplate>()
         .register::<crate::digest_editors::TemplatePreview>()
         .register::<crate::sync_schedule::SyncSchedule>()
+        .register::<crate::sync_schedule::ScheduleTest>()
         .register::<crate::crm_board::CrmRead>()
         .register::<crate::crm_board::CrmCard>()
         .register::<crate::crm_board::CrmKind>()
