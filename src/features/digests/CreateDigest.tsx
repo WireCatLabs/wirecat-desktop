@@ -96,23 +96,26 @@ export function Starter(props: { can: Can; onPick: (t: Template) => void; compac
           title={m.weekly}
           body={m.weeklyBody}
         >
+          {!can.named && update}
           <Button variant="secondary" size="sm" disabled={!can.named} onClick={() => onPick("weekly")}>
             {m.setUp}
           </Button>
-          {!can.named && update}
         </Choice>
         <Choice compact={compact} icon={<Plus className="size-5" aria-hidden />} title={m.own} body={m.ownBody}>
+          {!can.named && update}
           <Button variant="secondary" size="sm" disabled={!can.named} onClick={() => onPick("own")}>
             {m.setUp}
           </Button>
-          {!can.named && update}
         </Choice>
       </ul>
     </section>
   )
 }
 
-function Choice(props: {
+function Choice({
+  compact,
+  ...props
+}: {
   compact: boolean
   icon: ReactNode
   title: string
@@ -121,34 +124,17 @@ function Choice(props: {
   badge?: ReactNode
   children: ReactNode
 }) {
-  const title = (
-    <span className="flex items-center gap-2 font-semibold text-ink">
-      <span className="text-brand">{props.icon}</span>
-      {props.title}
-    </span>
-  )
-  const body = (
-    <>
-      {props.body}
-      {props.badge && <span className="ml-[0.4rem] inline-flex align-middle">{props.badge}</span>}
-    </>
-  )
-  const actions = <div className="flex flex-wrap items-center gap-2">{props.children}</div>
-  if (props.compact)
-    return (
-      <li className="flex flex-col gap-1.5 px-[1.1rem] py-[0.8rem]">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {title}
-          {actions}
-        </div>
-        <p className="text-[0.88rem] text-ink-soft">{body}</p>
-      </li>
-    )
   return (
-    <li className="flex flex-col gap-2 px-[1.3rem] py-[1.2rem]">
-      {title}
-      <p className="flex-1 text-[0.92rem] text-ink-soft">{body}</p>
-      {actions}
+    <li className={cx("flex flex-col", compact ? "gap-1.5 px-[1.1rem] py-[0.8rem]" : "gap-2 px-[1.3rem] py-[1.2rem]")}>
+      <span className="flex items-center gap-2 font-semibold text-ink">
+        <span className="text-brand">{props.icon}</span>
+        {props.title}
+      </span>
+      <p className={cx("flex-1 text-ink-soft", compact ? "text-[0.88rem]" : "text-[0.92rem]")}>
+        {props.body}
+        {props.badge && <span className="ml-[0.4rem] inline-flex align-middle">{props.badge}</span>}
+      </p>
+      <div className="mt-1 flex flex-col items-start gap-1.5">{props.children}</div>
     </li>
   )
 }

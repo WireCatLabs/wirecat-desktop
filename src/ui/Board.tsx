@@ -50,8 +50,40 @@ const modifier = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) =>
 /** Places on screen, relative to the board; `scroll` is the board's scroll then, or null in a sticky column. */
 type Places = Map<string, { x: number; y: number; scroll: number | null }>
 
+// A drop can wait on a dialog that moves the card much later, from wherever it then stands.
+const LANDING_MS = 1000
+// One pointer carries one card, so where it was let go needs no wiring between the two hooks.
+let landing: { key: string; x: number; y: number; at: number } | null = null
+
+const SLIDE = { duration: MOVE_MS, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }
+
+/** A card let go settles as a fixed copy: inside its column, the column's scrolling would cut off what stands outside. */
+function settle(el: HTMLElement, from: { x: number; y: number }, board: HTMLElement) {
+  const r = el.getBoundingClientRect()
+  const copy = el.cloneNode(true) as HTMLElement
+  for (const x of [copy, ...copy.querySelectorAll("[data-card]")]) x.removeAttribute("data-card")
+  copy.inert = true
+  copy.classList.add("shadow-panel", "pointer-events-none")
+  Object.assign(copy.style, {
+    position: "fixed",
+    left: `${r.left}px`,
+    top: `${r.top}px`,
+    width: `${r.width}px`,
+    height: `${r.height}px`,
+    zIndex: "50",
+  })
+  board.append(copy)
+  el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: MOVE_MS })
+  const move = copy.animate(
+    [{ transform: `translate(${from.x - r.left}px, ${from.y - r.top}px) rotate(1.2deg)` }, { transform: "none" }],
+    SLIDE,
+  )
+  move.onfinish = move.oncancel = () => copy.remove()
+}
+
 /**
- * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Columns do the
+ * Cards that changed place slide from where they were, so a refusal is seen, never a jump; a card let go by the pointer
+ * settles from where it was let go, not from the place it was picked up. Columns do the
  * same when one comes or goes (the stage map's Unmapped), and a new column fades in. A card in a moving column slides
  * only by its own part of the move, or the two would add up. Places are kept relative to the board, so scrolling the
  * page between two changes is not mistaken for a move; a sticky column (`data-sticky`) stays put while the board
@@ -78,6 +110,8 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
     const before = last.current
     last.current = next
     if (!before || reducedMotion() || typeof grid.animate !== "function") return
+    const landed = landing && next.cards.has(landing.key) ? landing : null
+    if (landed) landing = null
     const shift = (from: Places, to: Places, key: string) => {
       const a = from.get(key)
       const b = to.get(key)
@@ -87,10 +121,7 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
     }
     const slide = (el: HTMLElement, dx: number, dy: number) => {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return
-      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
-        duration: MOVE_MS,
-        easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-      })
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], SLIDE)
     }
     for (const el of grid.querySelectorAll<HTMLElement>("[data-column]")) {
       const id = el.dataset.column ?? ""
@@ -99,6 +130,10 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
       else if (before.columns.size > 0) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MOVE_MS })
     }
     for (const el of grid.querySelectorAll<HTMLElement>("[data-card]")) {
+      if (landed && el.dataset.card === landed.key && performance.now() - landed.at < LANDING_MS) {
+        settle(el.closest<HTMLElement>("[data-slide]") ?? el, landed, grid)
+        continue
+      }
       const d = shift(before.cards, next.cards, el.dataset.card ?? "")
       if (!d) continue
       const column = el.closest<HTMLElement>("[data-column]")?.dataset.column ?? ""
@@ -150,7 +185,7 @@ export function useBoardDrag<C extends string = string>(o: {
   const say = (words: string | undefined) => words !== undefined && setSaid(words)
   const cardsIn = (c: C) => o.cardsIn?.(c) ?? []
 
-  const drop = (key: string, to: C, before: string | null, copy: boolean) => {
+  const drop = (key: string, to: C, before: string | null, copy: boolean, letGo?: { x: number; y: number }) => {
     const from = o.columnOf(key)
     if (from === undefined) return
     const current = cardsIn(from)
@@ -168,6 +203,7 @@ export function useBoardDrag<C extends string = string>(o: {
       return
     }
     say(o.words?.dropped?.(key, to))
+    if (letGo) landing = { key, ...letGo, at: performance.now() }
     o.onDrop({ key, to, before, copy })
   }
 
@@ -207,7 +243,7 @@ export function useBoardDrag<C extends string = string>(o: {
     const onUp = (e: PointerEvent) => {
       if (drag) {
         dropped.current = true
-        drop(drag.key, drag.to, drag.before, copying(e))
+        drop(drag.key, drag.to, drag.before, copying(e), { x: drag.x - drag.dx, y: drag.y - drag.dy })
       }
       press.current = null
       setDrag(null)
