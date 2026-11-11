@@ -387,12 +387,14 @@ answers "old" and the page offers its update. `memory_read` runs `memories list`
 `actions list` also holds People's `identity_link` and `identity_split` rows and every rejected `relationship`, and has no `kind:` field, so Rust drops them after the read, with any kind the page has no words for and no text of its own; one page reads up to four of memo's pages of what waits so they cannot push it back; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
 `target_name`, `chat_name`, the whole `text` and, for a findings batch, `counts`. The page writes the row's line from
-them in the interface language; memo's English `summary` is the fallback for a verb the page has no words for. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
+them in the interface language; memo's English `summary` is the fallback for a verb the page has no words for. A findings batch's sources come from `actions show` when its row opens; a mail batch has none there, so each finding shows the emails it cites. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
 number) and runs a fixed command:
 
 - **Confirm**: `memories confirm`, `facts confirm`; for an action `actions confirm`, which makes a task in the account
   that would act and sends nothing. A findings batch is decided by its id with the fingerprint `actions show` gives:
-  `actions confirm <id> <finding ids…> --fingerprint <hash>`, or `actions reject` when none is ticked.
+  `actions confirm <id> <finding ids…> --fingerprint <hash>`, or `actions reject` when none is ticked. A mail findings
+  batch (`mail_findings`) is decided the same way without `--fingerprint`, which memo neither gives nor needs for it;
+  `actions confirm <id>` with no finding named would accept every one.
 - **Discard**: a memory `invalidate` (stale), a proposed fact `reject`, an accepted decision `reverse`, an action
   `reject`. Other facts can only be forgotten.
 - **Correct**: Rust reads the old record with `show` and writes the owner's `add --supersedes` with the old kind,

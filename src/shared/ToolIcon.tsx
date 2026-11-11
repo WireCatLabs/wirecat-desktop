@@ -5,7 +5,7 @@ import calendar from "@/assets/logos/google-calendar.svg"
 import drive from "@/assets/logos/google-drive.svg"
 import max from "@/assets/logos/max.png"
 import whatsapp from "@/assets/logos/whatsapp.svg"
-import zoom from "@/assets/logos/zoom.png"
+import zoom from "@/assets/logos/zoom.svg"
 import { cx } from "@/ui/cx"
 
 /**

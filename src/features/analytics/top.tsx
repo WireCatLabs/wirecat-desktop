@@ -114,15 +114,24 @@ export function WeekTiles() {
   )
   const minutes = sameDays(stats.minuteRows, today)
   const untimed = sameDays(stats.untimedRows, today)
+  const now = new Date().toISOString()
+  // A sync zm did not record (an agent's, or one run by hand) still leaves its meetings: the newest one counts too.
   const zoomAt =
     syncs.state === "ready"
-      ? syncs.data
-          .flatMap((s) => (s.id === "zm" && s.at ? [s.at] : []))
+      ? [
+          ...syncs.data.flatMap((s) => (s.id === "zm" && s.at ? [s.at] : [])),
+          ...meetings.bodies.flatMap((b) =>
+            b.items.flatMap((i) => (i.started_at && i.started_at <= now ? [i.started_at] : [])),
+          ),
+        ]
           .sort()
           .at(-1)
       : null
   // Zoom loaded before this week began: the store cannot know about this week's meetings, so 0 would be a claim.
-  const zoomBehind = Boolean(zoomAt) && todayIn(zone, new Date(zoomAt ?? 0)) < weekOf(today)
+  const zoomDay = zoomAt ? todayIn(zone, new Date(zoomAt)) : null
+  const zoomBehind = zoomDay !== null && zoomDay < weekOf(today) && minutes.now === 0
+  // Last week's same days end a week before today; a load before that may have missed some of them.
+  const lastUnknown = zoomDay !== null && zoomDay < addDays(today, -7)
   const zoomNote = zoomBehind
     ? m.meetingsBehind(formatDate(zoomAt ?? 0, { day: "numeric", month: "long" }, lang))
     : minutes.last === 0 && untimed.last > 0
@@ -143,7 +152,7 @@ export function WeekTiles() {
       <Tile
         label={m.weekMeetingHours}
         now={meetings.loading ? null : minutes.now}
-        last={meetings.loading || zoomBehind ? null : minutes.last}
+        last={meetings.loading || lastUnknown ? null : minutes.last}
         format={(n) => ((zoomBehind || !meetings.bodies.length) && n === 0 ? "—" : hours(n))}
         {...(zoomNote ? { note: zoomNote } : {})}
       />

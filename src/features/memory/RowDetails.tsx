@@ -100,7 +100,8 @@ export function Details({ entry }: { entry: MemoryEntry }) {
       {entry.findings ? (
         <div className="flex min-w-0 flex-col gap-[1.2rem]">
           <Findings entry={entry} />
-          <Sources entry={entry} />
+          {/* memo reads sources back for an evidence batch only; a mail finding's cited emails open beside it. */}
+          {entry.kind !== "mail_findings" && <Sources entry={entry} />}
         </div>
       ) : entry.type === "action" ? (
         <ActionFacts entry={entry} m={m} />
@@ -177,6 +178,7 @@ export function Details({ entry }: { entry: MemoryEntry }) {
             row(m.actsOn, <span className="selectable font-mono text-[0.9rem] break-all">{entry.target}</span>)}
           {entry.account &&
             entry.type !== "relationship" &&
+            entry.kind !== "mail_findings" &&
             row(m.wouldAct, <span className="selectable font-mono text-[0.9rem]">{entry.account}</span>)}
           {entry.supersedes &&
             row(m.corrects, <span className="selectable font-mono text-[0.9rem]">{entry.supersedes}</span>)}

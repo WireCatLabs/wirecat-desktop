@@ -357,6 +357,10 @@ export const actionTargetOf = (e: { targetName?: string | null; chatName?: strin
 export const actionSentence = (verb: string, target: string | null, text: string | null) =>
   `${verb}${target ? ` ${target}` : ""}${text ? `: ${text}` : ""}`
 
+/** The mailbox a mail findings batch was read from, or null for any other record. */
+export const mailboxOf = (e: { kind: string; account: string | null }) =>
+  e.kind === "mail_findings" ? (e.account?.replace(/^email:/, "") ?? "") : null
+
 /** What a findings batch is about: a project, or the person or other subject it names. */
 export const batchSubjectOf = (e: Subjected, fallback: string) =>
   e.projectName ?? e.subjectName ?? e.project ?? fallback

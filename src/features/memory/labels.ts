@@ -1,4 +1,4 @@
-import { actionSentence, actionTargetOf, byOwner, dayKey, findingsCounts } from "@/domain/memory"
+import { actionSentence, actionTargetOf, byOwner, dayKey, findingsCounts, mailboxOf } from "@/domain/memory"
 import { type OwnerRole, relationParts, roleLabel } from "@/domain/relationships"
 import { currentLang, formatDate, type Lang } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -48,14 +48,17 @@ export function relationSentence(e: MemoryEntry, m: M, x: X, roles: readonly Own
 }
 
 /**
- * What the row's text says: the record's own text, for a findings batch how many facts and tasks it holds, for a
+ * What the row's text says: the record's own text, for a findings batch how many facts and tasks it holds (a mail
+ * batch: how many findings and from which mailbox), for a
  * relationship a sentence (or its other end and role, where the sentence's words are not at hand).
  */
 export function textOf(e: MemoryEntry, m: M, roles: readonly OwnerRole[] = [], x?: X) {
   if (e.type === "relationship") return x ? relationSentence(e, m, x, roles) : relationLine(e, m, roles)
   if (e.findings) {
     const c = findingsCounts(e.findings, e.status)
-    return c.reviewed ? m.findingsReviewed(c.first, c.second) : m.findingsTitle(c.first, c.second)
+    if (c.reviewed) return m.findingsReviewed(c.first, c.second)
+    const mailbox = mailboxOf(e)
+    return mailbox === null ? m.findingsTitle(c.first, c.second) : m.mailTitle(e.findings.length, mailbox)
   }
   if (e.type === "action") return actionLine(e, m, true)
   return e.text ?? kindOf(e.kind, m)

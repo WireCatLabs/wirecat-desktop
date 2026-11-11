@@ -235,7 +235,30 @@ const en = {
       : ticked === total
         ? `Approve creates all ${total} in ${project}: facts as accepted, tasks on its board.`
         : `Approve creates the ${plural("en", ticked, { one: "ticked one", other: "# ticked ones" })} in ${project}: facts as accepted, tasks on its board. The others are rejected.`,
-  findingKinds: { fact: "Fact", task: "Task" } as Record<string, string>,
+  findingKinds: {
+    fact: "Fact",
+    task: "Task",
+    task_update: "Task change",
+    task_close: "Close task",
+    task_due: "New due date",
+    task_detail: "Task detail",
+    memory: "Memory",
+    link: "Link",
+    new_contact: "New contact",
+    invoice: "Invoice",
+    payment: "Payment",
+    order: "Order",
+    order_update: "Order status",
+  } as Record<string, string>,
+  mailTitle: (n: number, mailbox: string) =>
+    `Found in the mail of ${mailbox}: ${plural("en", n, { one: "# finding", other: "# findings" })} to review`,
+  mailHead: (mailbox: string) => `What an agent found in the mail of ${mailbox}. Tick what to keep`,
+  mailFor: (mailbox: string) => `Found in the mail of ${mailbox}`,
+  mailNote: (ticked: number, total: number): string =>
+    ticked === 0
+      ? "Nothing is ticked. Reject turns them all down."
+      : `Approve keeps ${ticked === total ? "all of them" : plural("en", ticked, { one: "the ticked one", other: "the # ticked ones" })}, each as its label says: a task, a fact, an invoice and so on. Nothing is sent to anyone.${ticked === total ? "" : " The others are rejected."}`,
+  openMail: "Open the email",
   outcomes: { accepted: "Created", rejected: "Rejected" } as Record<string, string>,
   cites: "Cites",
   include: (text: string) => `Include: ${text}`,
@@ -484,7 +507,30 @@ const ru: typeof en = {
     ticked === 0
       ? "Ничего не отмечено. «Отклонить» отклонит всё."
       : `«Одобрить» создаст ${ticked === total ? "все находки" : `отмеченные (${ticked})`} в ${project}: факты как принятые, задачи на его доске.${ticked === total ? "" : " Остальные будут отклонены."}`,
-  findingKinds: { fact: "Факт", task: "Задача" } as Record<string, string>,
+  findingKinds: {
+    fact: "Факт",
+    task: "Задача",
+    task_update: "Изменение задачи",
+    task_close: "Закрыть задачу",
+    task_due: "Новый срок задачи",
+    task_detail: "Уточнение задачи",
+    memory: "Память",
+    link: "Связь",
+    new_contact: "Новый контакт",
+    invoice: "Счёт",
+    payment: "Платёж",
+    order: "Заказ",
+    order_update: "Статус заказа",
+  } as Record<string, string>,
+  mailTitle: (n: number, mailbox: string) =>
+    `Найдено в почте ${mailbox}: ${plural("ru", n, { one: "# находка", few: "# находки", many: "# находок", other: "# находки" })} на проверку`,
+  mailHead: (mailbox: string) => `Что агент нашёл в почте ${mailbox}. Отметьте, что сохранить`,
+  mailFor: (mailbox: string) => `Найдено в почте ${mailbox}`,
+  mailNote: (ticked: number, total: number): string =>
+    ticked === 0
+      ? "Ничего не отмечено. «Отклонить» отклонит всё."
+      : `«Одобрить» сохранит ${ticked === total ? "все находки" : `отмеченные (${ticked})`}, каждую как написано на её метке: задачу, факт, счёт и так далее. Никому ничего не отправляется.${ticked === total ? "" : " Остальные будут отклонены."}`,
+  openMail: "Открыть письмо",
   outcomes: { accepted: "Создано", rejected: "Отклонено" } as Record<string, string>,
   cites: "Ссылается на",
   include: (text: string) => `Включить: ${text}`,
@@ -733,7 +779,30 @@ const es: typeof en = {
     ticked === 0
       ? "No hay nada marcado. Rechazar los rechaza todos."
       : `Aprobar crea ${ticked === total ? "los hallazgos" : `los ${ticked} marcados`} en ${project}: los hechos como aceptados, las tareas en su tablero.${ticked === total ? "" : " Los demás se rechazan."}`,
-  findingKinds: { fact: "Hecho", task: "Tarea" } as Record<string, string>,
+  findingKinds: {
+    fact: "Hecho",
+    task: "Tarea",
+    task_update: "Cambio de tarea",
+    task_close: "Cerrar tarea",
+    task_due: "Nueva fecha de tarea",
+    task_detail: "Detalle de tarea",
+    memory: "Memoria",
+    link: "Vínculo",
+    new_contact: "Contacto nuevo",
+    invoice: "Factura",
+    payment: "Pago",
+    order: "Pedido",
+    order_update: "Estado del pedido",
+  } as Record<string, string>,
+  mailTitle: (n: number, mailbox: string) =>
+    `Encontrado en el correo de ${mailbox}: ${plural("es", n, { one: "# hallazgo", other: "# hallazgos" })} por revisar`,
+  mailHead: (mailbox: string) => `Lo que un agente encontró en el correo de ${mailbox}. Marca lo que quieres guardar`,
+  mailFor: (mailbox: string) => `Encontrado en el correo de ${mailbox}`,
+  mailNote: (ticked: number, total: number): string =>
+    ticked === 0
+      ? "No hay nada marcado. Rechazar los rechaza todos."
+      : `Aprobar guarda ${ticked === total ? "todos los hallazgos" : `los ${ticked} marcados`}, cada uno como dice su etiqueta: una tarea, un hecho, una factura, etc. No se envía nada a nadie.${ticked === total ? "" : " Los demás se rechazan."}`,
+  openMail: "Abrir el correo",
   outcomes: { accepted: "Creado", rejected: "Rechazado" } as Record<string, string>,
   cites: "Cita",
   include: (text: string) => `Incluir: ${text}`,

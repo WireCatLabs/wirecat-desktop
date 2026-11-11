@@ -1,6 +1,9 @@
-import { ChevronRight, LoaderCircle } from "lucide-react"
+import { ChevronRight, ExternalLink, LoaderCircle } from "lucide-react"
 import { useState } from "react"
-import { batchSubjectOf, createdTarget, tickedCount } from "@/domain/memory"
+import { isConversation } from "@/domain/conversation"
+import { linkTargetOf } from "@/domain/links"
+import { batchSubjectOf, createdTarget, mailboxOf, tickedCount } from "@/domain/memory"
+import { openConversation } from "@/features/conversation"
 import { useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
@@ -24,6 +27,7 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   const open = entry.status === "proposed"
   // A batch may be about a person or another subject rather than a project.
   const project = batchSubjectOf(entry, m.project)
+  const mailbox = mailboxOf(entry)
   const ticked = tickedCount(findings, skipped)
   const [shownRef, setShownRef] = useState<string | null>(null)
   const [gone, setGone] = useState<string[]>([])
@@ -47,7 +51,13 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   return (
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">
-        {open ? m.findingsHead(project) : m.findingsFor(project)}
+        {mailbox !== null
+          ? open
+            ? m.mailHead(mailbox)
+            : m.mailFor(mailbox)
+          : open
+            ? m.findingsHead(project)
+            : m.findingsFor(project)}
       </h3>
       <ul data-findings className="flex flex-col rounded-[0.45rem] border border-line bg-app">
         {findings.map((f) => {
@@ -116,6 +126,21 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
                         }}
                       />
                     ))}
+                    {mailbox !== null &&
+                      f.evidence.map((ref) => {
+                        const target = linkTargetOf(ref)
+                        return target && isConversation(target) ? (
+                          <Button
+                            key={`open ${ref}`}
+                            size="sm"
+                            variant="secondary"
+                            icon={<ExternalLink className="size-4" aria-hidden />}
+                            onClick={() => openConversation(target)}
+                          >
+                            {m.openMail}
+                          </Button>
+                        ) : null
+                      })}
                   </span>
                 )}
                 {f.evidence.map((ref) => (
@@ -130,7 +155,11 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
           )
         })}
       </ul>
-      {open && <p className="text-[0.9rem] text-ink-soft">{m.findingsNote(ticked, findings.length, project)}</p>}
+      {open && (
+        <p className="text-[0.9rem] text-ink-soft">
+          {mailbox === null ? m.findingsNote(ticked, findings.length, project) : m.mailNote(ticked, findings.length)}
+        </p>
+      )}
     </div>
   )
 }
