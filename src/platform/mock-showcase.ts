@@ -22,7 +22,8 @@ if (showcase) {
   }
 }
 
-// The versions on npm when the website screenshots were taken (2026-11-02), so visitors see current numbers.
+// A released npm version of every listed tool, so visitors see real numbers. A tool left out has no version, and its
+// row says it does not start.
 export const SHOWCASE_VERSIONS: Record<string, string> = {
   tg: "0.112.0",
   max: "0.95.0",
@@ -30,6 +31,9 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   zm: "0.64.0",
   drive: "0.55.0",
   memo: "0.131.14",
+  gcal: "0.23.0",
+  email: "0.24.0",
+  bitrix: "0.13.0",
 }
 
 const MIN = 60_000

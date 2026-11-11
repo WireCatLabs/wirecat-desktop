@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useSync } from "@/features/tools"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
+import { type CrmWriter, clientsMock, NORTHSTAR, SAMPLE_PROMPTED } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import type { Based } from "./api"
@@ -462,6 +462,13 @@ describe("Confirming a CRM's stages", () => {
     expect(screen.getByText(/CRM stages wait for you to confirm them/)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Confirm stages" }))
     expect(await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })).toBeInTheDocument()
+  })
+
+  it("opens on the board without the dialog when the showcase marks the sample CRMs as asked", async () => {
+    useClients.setState({ prompted: SAMPLE_PROMPTED })
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    expect(screen.queryByRole("dialog")).toBeNull()
   })
 })
 

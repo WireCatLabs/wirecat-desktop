@@ -38,7 +38,7 @@ export function ReplyTime() {
     color: `var(--series-${i + 1})`,
   }))
   return (
-    <Panel id="an-reply" title={m.replyTitle} source="stats messages responses --who me">
+    <Panel id="an-reply" title={m.replyTitle}>
       {r.loading && !r.ready.length ? (
         <CardSkeleton label={m.replyTitle} />
       ) : !r.ready.length ? (
@@ -111,7 +111,7 @@ export function WaitingOnYou() {
     .filter((x): x is string => x !== null)
     .sort()[0]
   return (
-    <Panel id="an-waiting" title={m.waitingTitle} source="stats messages waiting">
+    <Panel id="an-waiting" title={m.waitingTitle}>
       {r.loading && !r.ready.length ? (
         <CardSkeleton label={m.waitingTitle} />
       ) : !r.ready.length ? (
@@ -147,7 +147,6 @@ export function Meetings() {
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
   const { numbers, loading, missing, problems } = useMeetingNumbers()
-  const source = numbers?.from === "list" ? "zm meetings list" : "zm stats meetings history"
   const weeks = Math.max(1, (PERIOD_DAYS[period] ?? Math.max(7, (numbers?.weeks.length ?? 1) * 7)) / 7)
   const perWeek = (numbers?.minutes ?? 0) / 60 / weeks
   const buckets = bucketDays({ meetings: numbers?.weeks ?? [] }, period, today, "week")
@@ -155,7 +154,7 @@ export function Meetings() {
   const seriesName = (s: { title: string | null }) => s.title ?? m.oneOffMeetings
   return (
     <>
-      <Panel id="an-meetings" title={m.meetingsTitle} source={source}>
+      <Panel id="an-meetings" title={m.meetingsTitle}>
         {missing ? (
           <SourceProblems problems={[{ kind: "missing", tool: "zm" }]} />
         ) : loading ? (
@@ -192,7 +191,7 @@ export function Meetings() {
           </div>
         )}
       </Panel>
-      <Panel id="an-series" title={m.seriesTitle} source={source}>
+      <Panel id="an-series" title={m.seriesTitle}>
         {loading ? (
           <CardSkeleton label={m.seriesTitle} />
         ) : !numbers?.series.length ? (
@@ -233,7 +232,7 @@ export function TaskSources() {
   const label = (row: (typeof rows)[number]) =>
     hide || !row.name ? row.key.replace(/^(chat|meeting):([a-z]+)\/.*$/, "$2") : row.name
   return (
-    <Panel id="an-sources" title={m.taskSourcesTitle} source="stats tasks show">
+    <Panel id="an-sources" title={m.taskSourcesTitle}>
       {state.state === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : r.loading ? (
@@ -307,7 +306,7 @@ export function MeetingDays() {
     formatDate(new Date(`${addDays("2026-11-02", Number(k))}T12:00:00Z`), { weekday: "long", timeZone: "UTC" }, lang)
   const slots = ["var(--series-6)", "var(--series-1)", "var(--series-2)", "var(--series-5)"]
   return (
-    <Panel id="an-meeting-days" title={m.meetingDaysTitle} source="zm meetings list">
+    <Panel id="an-meeting-days" title={m.meetingDaysTitle}>
       {state.state === "missing" ? (
         <p className="text-[0.9rem] text-ink-soft">{m.needsUpdate("Zoom")}</p>
       ) : r.loading ? (

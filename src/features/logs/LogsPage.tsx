@@ -43,7 +43,7 @@ import { Groups } from "./Groups"
 import { LogSettings, settingsTone } from "./LogSettings"
 import { useLive } from "./live"
 import { logsMessages } from "./messages"
-import { fieldLabel, LOGS_DOCS, problemText, toolName } from "./names"
+import { fieldLabel, logsDocs, problemText, toolName } from "./names"
 import { RunsTable } from "./RunsTable"
 import { runKey, type Source, useLogs, useShownLogs } from "./store"
 
@@ -66,6 +66,7 @@ const NONE = new Set<string>()
 
 export function LogsPage() {
   const m = useMessages(logsMessages)
+  const lang = useLang()
   const { loadedAt, liveRound, reading, asked, live, query, range, groupBy, expanded, details } = useLogs()
   const sources = useShownLogs((s) => s.sources)
   const keeping = useShownLogs((s) => s.keeping)
@@ -182,7 +183,7 @@ export function LogsPage() {
         <PageHeader
           title={m.title}
           intro={m.intro}
-          guide={{ label: m.howToSearch, href: LOGS_DOCS }}
+          guide={{ label: m.howToSearch, href: logsDocs(lang) }}
           actions={
             <>
               <Freshness at={loadedAt} reading={reading.length} asked={asked} />
@@ -243,7 +244,7 @@ export function LogsPage() {
               problem={problems[0] ? problemText(m, problems[0]) : null}
               suggest={suggestRuns}
               words={{ label: m.searchRuns, placeholder: m.placeholder, hint: m.searchHint }}
-              docs={LOGS_DOCS}
+              docs={logsDocs(lang)}
               onChange={setQuery}
             />
             <Range value={range} onChange={setRange} />

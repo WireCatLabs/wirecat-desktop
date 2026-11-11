@@ -1,7 +1,7 @@
 import { findTool } from "@/domain/catalog"
 import { agentName, termText } from "@/domain/runs"
 import { useLogs } from "@/features/logs"
-import { useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
@@ -21,14 +21,18 @@ import { agentsMessages } from "./messages"
 import { SkillPreview } from "./SkillPreview"
 import type { AgentsView } from "./view"
 
+const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/agents`
+
 const box = "rounded-[0.45rem] border border-line bg-app"
 
 export function PageHead({ view }: { view: AgentsView }) {
   const m = useMessages(agentsMessages)
+  const lang = useLang()
   return (
     <PageHeader
       title={m.title}
       intro={m.intro}
+      guide={{ label: m.howAgents, href: guide(lang) }}
       actions={
         <RefreshButton
           busy={view.checking}

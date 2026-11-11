@@ -3,7 +3,7 @@ import type { Messages } from "@/i18n"
 const en = {
   title: "Account groups",
   intro:
-    "Memo reads one group at a time when an agent asks for it, such as memo work search. A card is an account with " +
+    "A group is a set of your accounts, such as work or personal. An agent can search one group instead of all. A card is an account with " +
     "its profiles in each tool. Drag a card to move it to another group; hold Alt or Ctrl while you drop to copy it. " +
     "An account may be in several groups.",
   all: "All",
@@ -56,7 +56,7 @@ const en = {
 const ru: typeof en = {
   title: "Группы аккаунтов",
   intro:
-    "Memo читает одну группу, когда агент её называет, например memo work search. Карточка — это аккаунт с его " +
+    "Группа: набор ваших аккаунтов, например «работа» или «личное». Агент может искать в одной группе, а не во всех. Карточка — это аккаунт с его " +
     "профилями в каждом инструменте. Перетащите карточку, чтобы перенести её в другую группу; удерживайте Alt или " +
     "Ctrl, когда отпускаете, чтобы скопировать. Аккаунт может быть в нескольких группах.",
   all: "Все",
@@ -111,7 +111,7 @@ const ru: typeof en = {
 const es: typeof en = {
   title: "Grupos de cuentas",
   intro:
-    "Memo lee un grupo cada vez que un agente lo nombra, como memo work search. Una tarjeta es una cuenta con sus " +
+    "Un grupo es un conjunto de tus cuentas, como trabajo o personal. Un agente puede buscar en un solo grupo en vez de en todos. Una tarjeta es una cuenta con sus " +
     "perfiles en cada herramienta. Arrastra una tarjeta para moverla a otro grupo; mantén Alt o Ctrl al soltarla " +
     "para copiarla. Una cuenta puede estar en varios grupos.",
   all: "Todas",

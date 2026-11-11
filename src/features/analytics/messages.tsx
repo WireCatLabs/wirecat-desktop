@@ -10,7 +10,8 @@ const en = {
   sourceChip: "Source",
   profileChip: "Profile",
   weekHead: "This week against the same days of last week",
-  noProfilesYet: "No messenger profiles yet",
+  noProfilesYet: "No messenger profiles yet. Sign in to Telegram, MAX or WhatsApp on the Tools page.",
+  openTools: "Open Tools",
   refreshing: "Counting…",
 
   overview: "What WireCat keeps",
@@ -273,7 +274,8 @@ const ru: typeof en = {
   sourceChip: "Источник",
   profileChip: "Профиль",
   weekHead: "Эта неделя против тех же дней прошлой",
-  noProfilesYet: "Профилей мессенджеров пока нет",
+  noProfilesYet: "Профилей мессенджеров пока нет. Войдите в Telegram, MAX или WhatsApp на странице «Инструменты».",
+  openTools: "Открыть «Инструменты»",
   refreshing: "Считаем…",
 
   overview: "Что хранит WireCat",
@@ -530,7 +532,9 @@ const es: typeof en = {
   sourceChip: "Fuente",
   profileChip: "Perfil",
   weekHead: "Esta semana frente a los mismos días de la anterior",
-  noProfilesYet: "Todavía no hay perfiles de mensajería",
+  noProfilesYet:
+    "Todavía no hay perfiles de mensajería. Inicia sesión en Telegram, MAX o WhatsApp en la página Herramientas.",
+  openTools: "Abrir Herramientas",
   refreshing: "Contando…",
 
   overview: "Lo que guarda WireCat",

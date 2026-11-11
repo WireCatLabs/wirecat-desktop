@@ -50,6 +50,7 @@ const en = {
   title: "Agents",
   intro:
     "Give each AI agent the skill for each of your tools. A skill tells the agent which commands a tool has; with it, the agent runs them itself.",
+  howAgents: "How agents use your tools",
   checkAgain: "Check again",
   checking: "Checking…",
   checkingLabel: "Checking",
@@ -368,6 +369,7 @@ const ru: typeof en = {
   title: "Агенты",
   intro:
     "Дайте каждому ИИ-агенту навык для каждого вашего инструмента. Навык говорит агенту, какие команды есть у инструмента, и агент запускает их сам.",
+  howAgents: "Как агенты работают с инструментами",
   checkAgain: "Проверить снова",
   checking: "Проверка…",
   checkingLabel: "Проверка",
@@ -690,6 +692,7 @@ const es: typeof en = {
   title: "Agentes",
   intro:
     "Da a cada agente de IA la skill de cada una de tus herramientas. La skill le dice al agente qué comandos tiene una herramienta; con ella, el agente los ejecuta por su cuenta.",
+  howAgents: "Cómo usan los agentes tus herramientas",
   checkAgain: "Comprobar de nuevo",
   checking: "Comprobando…",
   checkingLabel: "Comprobando",

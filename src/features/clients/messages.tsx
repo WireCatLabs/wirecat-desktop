@@ -32,6 +32,7 @@ type Words = {
   stage: string
   stageOf: (title: string) => string
   baseStage: string
+  baseStageHint: string
   account: string
   column: (name: string, n: number) => string
   emptyColumn: string
@@ -101,8 +102,8 @@ const en: Words = {
   tryAgain: "Try again",
   none: { deal: "No deals yet", lead: "No leads yet" },
   noneBody: {
-    deal: "Sync a CRM, or ask an agent to record a deal with memo deals add. They show here by stage.",
-    lead: "Sync a CRM, or ask an agent to record a lead with memo leads add. They show here by stage.",
+    deal: "Sync a CRM on the Tools page, or ask your agent to record a deal. Deals show here by stage.",
+    lead: "Sync a CRM on the Tools page, or ask your agent to record a lead. Leads show here by stage.",
   },
   noMatch: "Nothing on this board matches.",
   clear: "Clear",
@@ -117,6 +118,7 @@ const en: Words = {
   stage: "Stage",
   stageOf: (title) => `Stage of ${title}`,
   baseStage: "Base stage",
+  baseStageHint: "Your own stage. Stages from every CRM are placed on it, so everything lines up on one board.",
   account: "Account",
   column: (name, n) => plural("en", n, { one: `${name}, # card`, other: `${name}, # cards` }),
   emptyColumn: "Nothing here",
@@ -194,8 +196,8 @@ const ru: Words = {
   tryAgain: "Ещё раз",
   none: { deal: "Сделок пока нет", lead: "Лидов пока нет" },
   noneBody: {
-    deal: "Синхронизируйте CRM или попросите агента записать сделку командой memo deals add. Они появятся здесь по этапам.",
-    lead: "Синхронизируйте CRM или попросите агента записать лид командой memo leads add. Они появятся здесь по этапам.",
+    deal: "Синхронизируйте CRM на странице «Инструменты» или попросите агента записать сделку. Сделки появятся здесь по этапам.",
+    lead: "Синхронизируйте CRM на странице «Инструменты» или попросите агента записать лид. Лиды появятся здесь по этапам.",
   },
   noMatch: "На доске ничего не подходит.",
   clear: "Сбросить",
@@ -210,6 +212,7 @@ const ru: Words = {
   stage: "Этап",
   stageOf: (title) => `Этап: ${title}`,
   baseStage: "Базовый этап",
+  baseStageHint: "Ваш собственный этап. На него ставятся этапы из всех CRM, чтобы всё стояло на одной доске.",
   account: "Аккаунт",
   column: (name, n) =>
     plural("ru", n, { one: `${name}, # карточка`, few: `${name}, # карточки`, other: `${name}, # карточек` }),
@@ -291,8 +294,8 @@ const es: Words = {
   tryAgain: "Reintentar",
   none: { deal: "Aún no hay negociaciones", lead: "Aún no hay prospectos" },
   noneBody: {
-    deal: "Sincroniza un CRM o pide a un agente que registre una negociación con memo deals add. Aparecen aquí por etapa.",
-    lead: "Sincroniza un CRM o pide a un agente que registre un prospecto con memo leads add. Aparecen aquí por etapa.",
+    deal: "Sincroniza un CRM en la página Herramientas o pide a tu agente que registre una negociación. Aparecen aquí por etapa.",
+    lead: "Sincroniza un CRM en la página Herramientas o pide a tu agente que registre un prospecto. Aparecen aquí por etapa.",
   },
   noMatch: "Nada del tablero coincide.",
   clear: "Borrar",
@@ -307,6 +310,7 @@ const es: Words = {
   stage: "Etapa",
   stageOf: (title) => `Etapa de ${title}`,
   baseStage: "Etapa base",
+  baseStageHint: "Tu propia etapa. En ella se colocan las etapas de cada CRM, así todo queda en un tablero.",
   account: "Cuenta",
   column: (name, n) => plural("es", n, { one: `${name}, # tarjeta`, other: `${name}, # tarjetas` }),
   emptyColumn: "Nada aquí",

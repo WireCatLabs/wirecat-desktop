@@ -20,7 +20,7 @@ import { Health, WhatChanged, WhenYouTalk } from "./views"
 function When() {
   const m = useMessages(analyticsMessages)
   return (
-    <Panel id="an-when" title={m.whenTitle} source="stats messages show --by hour">
+    <Panel id="an-when" title={m.whenTitle}>
       <p className="text-[0.9rem] text-ink-soft">{m.whenNote}</p>
       <WhenYouTalk />
     </Panel>
@@ -30,7 +30,7 @@ function When() {
 function StandsOut() {
   const m = useMessages(analyticsMessages)
   return (
-    <Panel id="an-changes" title={m.outliersTitle} source="stats messages show --by sender|chat|day">
+    <Panel id="an-changes" title={m.outliersTitle}>
       <WhatChanged />
     </Panel>
   )
@@ -39,7 +39,7 @@ function StandsOut() {
 function UpToDate() {
   const m = useMessages(analyticsMessages)
   return (
-    <Panel id="an-health" title={m.health} source="runs list · status · store coverage">
+    <Panel id="an-health" title={m.health}>
       <p className="text-[0.9rem] text-ink-soft">{m.healthNote}</p>
       <Health />
     </Panel>

@@ -3,9 +3,11 @@ import { useEffect } from "react"
 import type { Period } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
+import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
 import { ServiceIcon } from "@/shared/ServiceIcon"
 import { ToolIcon } from "@/shared/ToolIcon"
+import { Button } from "@/ui/Button"
 import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
@@ -76,7 +78,12 @@ function Filters() {
   const profiles = [...toolsOf.keys()].sort()
   if (present.length === 0)
     return MESSENGERS.some((x) => sources[x.id]?.state === "loading") ? null : (
-      <span className="text-[0.9rem] text-ink-soft">{m.noProfilesYet}</span>
+      <>
+        <span className="text-[0.9rem] text-ink-soft">{m.noProfilesYet}</span>
+        <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("tools")}>
+          {m.openTools}
+        </Button>
+      </>
     )
   return (
     <>

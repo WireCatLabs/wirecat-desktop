@@ -1,12 +1,13 @@
 import { findTool } from "@/domain/catalog"
 import { isBareCommand, type QueryProblem } from "@/domain/runs"
+import type { Lang } from "@/i18n"
 import type { logsMessages } from "./messages"
 
 export type LogsWords = (typeof logsMessages)["en"]
 
 export const toolName = (id: string) => findTool(id)?.name ?? id
 
-export const LOGS_DOCS = "https://wirecat.dev/en/docs/desktop/logs"
+export const logsDocs = (lang: Lang) => `https://wirecat.dev/${lang}/docs/desktop/logs`
 
 export const fieldLabel = (m: LogsWords, field: string) => m.fields[field] ?? field
 export const viaName = (m: LogsWords, via: string) => m.via[via] ?? via
