@@ -17,10 +17,16 @@ import { queryClient } from "@/shared/query"
 
 export type View = "table" | "board"
 export type Unusable = { kind: "missing" } | { kind: "old"; version: string | null; need: string }
-export type History = { state: "loading" } | { state: "ready"; events: TaskEvent[] } | { state: "failed" }
+export type History =
+  | { state: "loading" }
+  | { state: "ready"; events: TaskEvent[] }
+  | { state: "failed"; message: string }
 /** A comment on screen; `local` keeps its place while memo saves it and after, so the row never remounts. */
 export type ShownComment = TaskComment & { local?: string; saving?: true }
-export type Comments = { state: "loading" } | { state: "ready"; items: ShownComment[] } | { state: "failed" }
+export type Comments =
+  | { state: "loading" }
+  | { state: "ready"; items: ShownComment[] }
+  | { state: "failed"; message: string }
 /** A subtask memo would not move on its own: its parent, and the project the owner chose. */
 export type Detach = { parent: string; project: string }
 /** A write Memo refused because the task changed after the page read it. */
@@ -57,6 +63,8 @@ type TasksState = {
   readAt: number | null
   projectsAt: number | null
   open: string | null
+  /** Counts the tasks opened; the dialog's form lives for one, so a move that renames the open task keeps it. */
+  opened: number
   /** Tasks opened through a "waits for" link that the current search leaves out; never shown in the list. */
   outside: Record<string, Task>
   busy: Record<string, true>
@@ -186,17 +194,20 @@ export const useTasks = create<TasksState>((set, get) => {
     if (found) learn(found)
   }
 
+  /** The open task keeps its history on screen while it is read again; any other reads it when next opened. */
+  const forget = (s: TasksState, key: string) => (s.open === key ? s.history : without(s.history, key))
+
   const replace = (task: Task) =>
     set((s) =>
       s.outside[task.key] && !s.tasks.some((t) => t.key === task.key)
-        ? { outside: { ...s.outside, [task.key]: task }, history: without(s.history, task.key) }
+        ? { outside: { ...s.outside, [task.key]: task }, history: forget(s, task.key) }
         : {
             tasks: s.tasks.some((t) => t.key === task.key)
               ? s.tasks.map((t) =>
                   t.key === task.key ? { ...task, ready: task.ready ?? t.ready, blockedBy: t.blockedBy } : t,
                 )
               : [task, ...s.tasks],
-            history: without(s.history, task.key),
+            history: forget(s, task.key),
           },
     )
 
@@ -282,7 +293,7 @@ export const useTasks = create<TasksState>((set, get) => {
         order: s.order.map((k) => (k === from ? task.key : k)),
         outside: inList ? s.outside : { ...without(s.outside, from), [task.key]: task },
         open: s.open === from ? task.key : s.open,
-        history: without(s.history, from),
+        history: s.open === from ? move(s.history) : without(s.history, from),
         comments: move(s.comments),
         unsent: move(s.unsent),
         moved: without(s.moved, from),
@@ -310,6 +321,7 @@ export const useTasks = create<TasksState>((set, get) => {
     readAt: null,
     projectsAt: null,
     open: null,
+    opened: 0,
     outside: {},
     busy: {},
     failed: {},
@@ -428,13 +440,17 @@ export const useTasks = create<TasksState>((set, get) => {
     },
 
     toggle(key) {
-      set((s) => ({ open: key === null || s.open === key ? null : key }))
+      set((s) => ({ open: key === null || s.open === key ? null : key, opened: s.opened + 1 }))
       if (key && get().open === key && !get().history[key]) void get().loadHistory(key)
       if (key && get().open === key && !get().comments[key]) void get().loadComments(key)
     },
 
     async openTask(key) {
-      set((s) => ({ open: key, failed: find(key) ? s.failed : without(s.failed, key) }))
+      set((s) => ({
+        open: key,
+        opened: s.open === key ? s.opened : s.opened + 1,
+        failed: find(key) ? s.failed : without(s.failed, key),
+      }))
       if (!get().history[key]) void get().loadHistory(key)
       if (!get().comments[key]) void get().loadComments(key)
       if (find(key)) return
@@ -514,12 +530,13 @@ export const useTasks = create<TasksState>((set, get) => {
     },
 
     async loadHistory(key) {
-      set((s) => ({ history: { ...s.history, [key]: { state: "loading" } } }))
+      const shown = () => get().history[key]?.state === "ready"
+      if (!shown()) set((s) => ({ history: { ...s.history, [key]: { state: "loading" } } }))
       try {
         const events = await platform.taskHistory(key)
         set((s) => ({ history: { ...s.history, [key]: { state: "ready", events } } }))
-      } catch {
-        set((s) => ({ history: { ...s.history, [key]: { state: "failed" } } }))
+      } catch (e) {
+        if (!shown()) set((s) => ({ history: { ...s.history, [key]: { state: "failed", message: message(e) } } }))
       }
     },
 
@@ -528,8 +545,8 @@ export const useTasks = create<TasksState>((set, get) => {
       try {
         const items = await platform.taskComments(key)
         set((s) => ({ comments: { ...s.comments, [key]: { state: "ready", items } } }))
-      } catch {
-        set((s) => ({ comments: { ...s.comments, [key]: { state: "failed" } } }))
+      } catch (e) {
+        set((s) => ({ comments: { ...s.comments, [key]: { state: "failed", message: message(e) } } }))
       }
     },
 

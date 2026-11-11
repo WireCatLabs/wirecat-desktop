@@ -18,6 +18,8 @@ type Props = {
   wide?: boolean | "xl" | "full"
   /** Long forms: the body scrolls between a fixed title and fixed actions, so nothing is cut off. */
   scroll?: boolean
+  /** With `scroll`: one height whatever the content, so a save or the next record moves nothing, the frame included. */
+  tall?: boolean
   /** Quiet links under the actions, for what the reader rarely needs. */
   footer?: ReactNode
 }
@@ -26,7 +28,17 @@ type Props = {
  * The platform's modal <dialog>: focus is trapped, and Escape, the × or a click outside closes it. Focus goes back to
  * what opened it, unless something else took it meanwhile (another dialog opened from this one).
  */
-export function Dialog({ open, title, children, actions, onClose, wide = false, scroll = false, footer }: Props) {
+export function Dialog({
+  open,
+  title,
+  children,
+  actions,
+  onClose,
+  wide = false,
+  scroll = false,
+  tall = false,
+  footer,
+}: Props) {
   const m = useMessages(uiMessages)
   const ref = useRef<HTMLDialogElement>(null)
   const opener = useRef<HTMLElement | null>(null)
@@ -115,7 +127,12 @@ export function Dialog({ open, title, children, actions, onClose, wide = false, 
       {(open || closing) &&
         (scroll ? (
           // The dialog's border sits inside its max height, so the column is 2px shorter or the dialog scrolls too.
-          <div className="relative flex max-h-[calc(100vh-2rem-2px)] flex-col">
+          <div
+            className={cx(
+              "relative flex max-h-[calc(100vh-2rem-2px)] flex-col",
+              tall && "h-[min(50rem,calc(100vh-2rem-2px))]",
+            )}
+          >
             <h2 id={titleId} className="shrink-0 px-6 pt-6 pr-16 pb-3 text-[1.2rem] font-semibold">
               {shown.title}
             </h2>

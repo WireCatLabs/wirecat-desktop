@@ -1,4 +1,5 @@
 import { Lock, Mail, MessageSquare } from "lucide-react"
+import type { ReactNode } from "react"
 import { providerName } from "@/domain/archive"
 import { taskFailure } from "@/domain/task-failure"
 import {
@@ -171,11 +172,24 @@ export function SourceMark({ task }: { task: Task }) {
 }
 
 /** A refused write in one line of plain words with what to do; memo's own words, already masked, behind a click. */
-export function TaskError({ lead, raw }: { lead: string; raw: string }) {
+export function TaskError({
+  lead,
+  raw,
+  action,
+  reading = false,
+}: {
+  lead: string
+  raw: string
+  action?: ReactNode
+  /** A read that failed: nothing was refused, so the words for a refused change do not fit. */
+  reading?: boolean
+}) {
   const m = useMessages(taskMessages)
+  const kind = taskFailure(raw)
   return (
     <ErrorNotice
       inline
+      action={action}
       detail={
         // On a card, pointer down starts a drag, a click opens the task and Space picks it up: the details only fold.
         // biome-ignore lint/a11y/noStaticElementInteractions: it only keeps the card's own handlers out
@@ -190,7 +204,7 @@ export function TaskError({ lead, raw }: { lead: string; raw: string }) {
         </div>
       }
     >
-      {lead} {m.failure[taskFailure(raw)]}
+      {lead} {reading && kind === "other" ? m.readWhy : m.failure[kind]}
     </ErrorNotice>
   )
 }
@@ -203,6 +217,7 @@ export function TaskLink({ taskKey }: { taskKey: string }) {
       type="button"
       aria-label={m.open(taskKey)}
       aria-haspopup="dialog"
+      data-task-link
       onClick={(e) => {
         e.stopPropagation()
         void useTasks.getState().openTask(taskKey)
