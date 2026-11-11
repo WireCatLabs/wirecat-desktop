@@ -49,6 +49,8 @@ pub struct Inputs {
 pub struct Prepared {
     pub args: Vec<String>,
     env: Vec<(String, Answer)>,
+    /// The whole stdin of a method that reads its secret until EOF; nothing else is ever written to it.
+    stdin: Option<Answer>,
     _client: Option<ClientFile>,
 }
 
@@ -61,16 +63,20 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
         .ok_or_else(|| format!("{} cannot sign in from the app this way", tool.name))?;
     let mut args = catalog::with_profile(&method.words, Some(profile))?;
     let mut env = Vec::new();
+    let mut stdin = None;
     let mut client = None;
     if let Some(address) = inputs.address {
         args.extend([flag(method.address.as_ref(), "an address")?.clone(), valid_address(&address)?]);
     }
     if let Some(password) = inputs.password {
         let password = Answer::new(password);
-        if password.is_empty() || password.len() > 1024 || password.chars().any(char::is_control) {
+        if method.stdin {
+            stdin = Some(valid_webhook(&password)?);
+        } else if password.is_empty() || password.len() > 1024 || password.chars().any(char::is_control) {
             return Err("The app password is one line of at most 1024 characters.".into());
+        } else {
+            env.push((flag(method.password.as_ref(), "a password")?.clone(), password));
         }
-        env.push((flag(method.password.as_ref(), "a password")?.clone(), password));
     }
     if let Some(json) = inputs.client_file {
         let name = flag(method.client_file.as_ref(), "an app of your own")?;
@@ -80,7 +86,7 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     } else if inputs.oauth {
         args.extend(method.oauth.clone().ok_or_else(|| "This sign-in takes no browser choice.".to_string())?);
     }
-    Ok(Prepared { args, env, _client: client })
+    Ok(Prepared { args, env, stdin, _client: client })
 }
 
 fn flag<'a>(name: Option<&'a String>, what: &str) -> Result<&'a String, String> {
@@ -105,6 +111,70 @@ fn valid_address(address: &str) -> Result<String, String> {
         return Err("Type the whole mail address, such as name@example.com.".into());
     }
     Ok(address.to_string())
+}
+
+/// A profile already signed in to the portal the owner is about to sign in to, and whose webhook it holds.
+#[derive(specta::Type, serde::Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Signed {
+    pub profile: String,
+    /// The employee's id the portal names; None when the portal did not answer.
+    pub user: Option<String>,
+}
+
+const IDENTITY: Duration = Duration::from_secs(30);
+
+/// Every profile of the tool on `host`, with the employee its webhook acts as. The portal is asked only for a profile
+/// on the same host; the address never leaves the tool.
+pub fn on_portal(tool: &Tool, host: &str) -> Result<Vec<Signed>, String> {
+    let sign_in = tool.sign_in.as_ref();
+    let words = sign_in.and_then(|s| s.identity.as_ref()).ok_or_else(|| format!("{} keeps no portal", tool.name))?;
+    let host = host.trim().to_ascii_lowercase();
+    let mut found = Vec::new();
+    for profile in crate::tools::profiles(tool)?.unwrap_or_default() {
+        if profile.signed_in == Some(false) {
+            continue;
+        }
+        let args = catalog::with_profile(words, Some(&profile.name))?;
+        let Ok((_, Some(local))) = crate::skills::call(tool, &args, IDENTITY) else { continue };
+        if local["item"]["portal"].as_str().map(str::to_ascii_lowercase).as_deref() != Some(host.as_str()) {
+            continue;
+        }
+        let user = sign_in.and_then(|s| s.identity_check.as_ref()).and_then(|check| {
+            let asked: Vec<String> = args.iter().cloned().chain([check.clone()]).collect();
+            let (_, json) = crate::skills::call(tool, &asked, IDENTITY).ok()?;
+            user_id(&json?["item"]["user"]["id"])
+        });
+        found.push(Signed { profile: profile.name, user });
+    }
+    Ok(found)
+}
+
+fn user_id(v: &serde_json::Value) -> Option<String> {
+    v.as_str().map(str::to_string).or_else(|| v.as_u64().map(|n| n.to_string())).filter(|s| !s.is_empty())
+}
+
+/// A Bitrix24 incoming webhook as the portal shows it, `https://<portal>/rest/<user id>/<secret>/`. The error never
+/// repeats it: the secret is part of the address.
+fn valid_webhook(address: &Answer) -> Result<Answer, String> {
+    let refused = || "This is not an incoming webhook address. Copy the whole address Bitrix24 shows.".to_string();
+    let text = address.trim();
+    let rest = text.strip_prefix("https://").ok_or_else(refused)?;
+    let (host, path) = rest.split_once('/').ok_or_else(refused)?;
+    // REST 3.0 pastes carry `api/` after `rest/`; b24 takes both.
+    let mut parts = path.split('/').filter(|p| *p != "api");
+    let shaped = !host.is_empty()
+        && host.contains('.')
+        && host.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | ':'))
+        && parts.next() == Some("rest")
+        && parts.next().is_some_and(|user| !user.is_empty() && user.chars().all(|c| c.is_ascii_digit()))
+        && parts.next().is_some_and(|key| {
+            !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-'))
+        });
+    if !shaped || text.len() > 512 || text.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return Err(refused());
+    }
+    Ok(Answer::new(text.to_string()))
 }
 
 /// The owner's client JSON in a folder only they can open, for one run; the tool keeps the client with its sign-in,
@@ -189,8 +259,14 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
         TIMEOUT,
         stopped,
         GRACE,
-        |stdin| {
-            answers().lock().unwrap().insert(k.clone(), stdin);
+        |mut stdin| match &prepared.stdin {
+            // Dropped at once: the tool reads until EOF.
+            Some(secret) => {
+                let _ = stdin.write_all(secret.as_bytes()).and_then(|()| stdin.write_all(b"\n"));
+            }
+            None => {
+                answers().lock().unwrap().insert(k.clone(), stdin);
+            }
         },
         |line| match parser.read(line) {
             Some(e @ (SignInEvent::Done { .. } | SignInEvent::Failed { .. })) => outcome = Some(e),
@@ -299,6 +375,32 @@ mod tests {
             assert!(refused.is_err(), "{method}: the tool asks the password on stdin");
         }
         assert!(args(catalog::tool("tg").unwrap(), "qr", "work", typed("me@x.com", None)).is_err());
+    }
+
+    #[test]
+    fn a_webhook_goes_only_to_stdin_and_a_bad_one_is_never_repeated() {
+        let b24 = catalog::tool("bitrix").unwrap();
+        let hook = "https://acme.bitrix24.ru/rest/12/s3cr3tk3y/";
+        let typed = |text: &str| Inputs { password: Some(text.into()), ..Inputs::default() };
+        assert!(args(b24, "webhook", "work", typed("https://acme.bitrix24.ru/rest/api/12/s3cr3tk3y/")).is_ok());
+        let prepared = args(b24, "webhook", "work", typed(&format!(" {hook} "))).unwrap();
+        assert_eq!(prepared.args, ["work", "session", "start", "--json"]);
+        assert_eq!(prepared.env.len(), 0);
+        assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some(hook));
+        for bad in [
+            "http://acme.bitrix24.ru/rest/12/s3cr3tk3y/",
+            "https://acme.bitrix24.ru/rest/x/s3cr3tk3y/",
+            "https://acme.bitrix24.ru/crm/12/s3cr3tk3y/",
+            "https://acme.bitrix24.ru/rest/12/",
+            "https://acme.bitrix24.ru/rest/12/s3cr3t k3y/",
+            "--help",
+        ] {
+            let error = args(b24, "webhook", "work", typed(bad)).err().unwrap();
+            assert!(!error.contains("s3cr3t"), "{error}");
+        }
+        assert!(
+            args(b24, "webhook", "work", Inputs { address: Some("me@x.com".into()), ..Inputs::default() }).is_err()
+        );
     }
 
     #[test]

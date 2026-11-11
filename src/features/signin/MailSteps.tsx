@@ -18,7 +18,7 @@ import { telegramMessages } from "./messages-telegram"
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
-function Numbered({ i }: { i: number }) {
+export function Numbered({ i }: { i: number }) {
   return (
     <span
       aria-hidden

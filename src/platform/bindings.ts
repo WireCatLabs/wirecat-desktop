@@ -1156,6 +1156,13 @@ export type ShellReach = {
 	primary: boolean,
 };
 
+/**  A profile already signed in to the portal the owner is about to sign in to, and whose webhook it holds. */
+export type Signed = {
+	profile: string,
+	/**  The employee's id the portal names; None when the portal did not answer. */
+	user: string | null,
+};
+
 /**  What an update did to the copies of its SKILL.md that an older version wrote. */
 export type SkillRefresh = {
 	refreshed: string[],

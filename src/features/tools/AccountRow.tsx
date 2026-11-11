@@ -1,10 +1,10 @@
 import { LogIn } from "lucide-react"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
-import { openSettingsAt } from "@/features/config"
 import { useMessages } from "@/i18n"
 import type { Profile } from "@/platform/schemas"
+import { ACCOUNT_NAME_MAX, nameOf, useAccountNames } from "@/shared/account-names-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -37,7 +37,8 @@ export function AccountRow(props: {
   const m = useMessages(accountsMessages).row
   const check = useCheck(tool)
   const [folders, setFolders] = useState(false)
-  const [removing, setRemoving] = useState(false)
+  const [removing, setRemoving] = useState<"remove" | "signOut" | null>(null)
+  const [renaming, setRenaming] = useState(false)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
 
   const signIn = () => reconnect(tool, p.name, onReload)
@@ -47,11 +48,19 @@ export function AccountRow(props: {
       ? [{ label: check.running ? m.checking : m.check, disabled: check.running, onSelect: () => check.run(p.name) }]
       : []),
     ...(tool.folderPicker && p.signedIn === true ? [{ label: m.folders, onSelect: () => setFolders(true) }] : []),
-    ...(tool.settings?.perProfile ? [{ label: m.settings, onSelect: () => openSettingsAt(tool.id, p.name) }] : []),
-    ...(tool.setup && p.signedIn !== true
-      ? [{ label: p.signedIn === false ? m.signInAgain : m.signIn, onSelect: signIn }]
+    ...(tool.setup
+      ? [
+          {
+            label: p.signedIn === false ? m.signInAgain : p.signedIn === true ? m.signInFresh : m.signIn,
+            onSelect: signIn,
+          },
+        ]
       : []),
-    { label: m.remove, danger: true, onSelect: () => setRemoving(true) },
+    { label: m.rename, onSelect: () => setRenaming(true) },
+    ...(tool.accountRemove?.signOut && p.signedIn !== false
+      ? [{ label: m.signOut, onSelect: () => setRemoving("signOut") }]
+      : []),
+    { label: m.remove, danger: true, onSelect: () => setRemoving("remove") },
   ]
 
   return (
@@ -67,12 +76,16 @@ export function AccountRow(props: {
         <Collapse open={folders}>
           <DriveFoldersSettings tool={tool} profile={p.name} onClose={() => setFolders(false)} />
         </Collapse>
+        <Collapse open={renaming}>
+          {renaming && <Rename tool={tool.id} profile={p.name} onClose={() => setRenaming(false)} />}
+        </Collapse>
       </Collapse>
       <RemoveAccountDialog
         tool={tool}
         profile={p.name}
-        open={removing}
-        onClose={() => setRemoving(false)}
+        open={removing !== null}
+        signOutOnly={removing === "signOut"}
+        onClose={() => setRemoving(null)}
         onRemoved={() => {
           check.clear()
           setFolders(false)
@@ -81,6 +94,7 @@ export function AccountRow(props: {
         onForgotten={() => {
           check.clear()
           setFolders(false)
+          useAccountNames.getState().forget(tool.id, p.name)
           onForgotten()
         }}
         onSignIn={signIn}
@@ -111,10 +125,11 @@ function RowLine(props: {
       {m.signInAgain}
     </Button>
   )
+  const name = <AccountName tool={tool.id} profile={p.name} />
   if (!syncs) {
     return (
       <div className="flex min-h-8 items-center gap-3">
-        <span className="min-w-0 truncate font-medium">{p.name}</span>
+        {name}
         {state}
         <span className="flex-1" />
         {signIn}
@@ -122,15 +137,7 @@ function RowLine(props: {
       </div>
     )
   }
-  return (
-    <SyncingLine
-      tool={tool}
-      profile={p.name}
-      name={<span className="min-w-0 truncate font-medium">{p.name}</span>}
-      state={state}
-      menu={menu}
-    />
-  )
+  return <SyncingLine tool={tool} profile={p.name} name={name} state={state} menu={menu} />
 }
 
 /** The row of a profile that syncs: when it last synced under the name, Sync beside the menu. */
@@ -162,5 +169,75 @@ function SyncingLine(props: {
       <SyncFollowUp c={c} />
       <SyncSchedule tool={tool} profile={profile} />
     </section>
+  )
+}
+
+/** The owner's name for the account when it has one, with the profile id beside it: commands still use the id. */
+function AccountName({ tool, profile }: { tool: string; profile: string }) {
+  const m = useMessages(accountsMessages).row
+  const name = useAccountNames((s) => nameOf(s.names, tool, profile))
+  if (!name) return <span className="min-w-0 truncate font-medium">{profile}</span>
+  return (
+    <span className="flex min-w-0 items-baseline gap-2">
+      <span className="min-w-0 truncate font-medium">{name}</span>
+      <span className="shrink-0 font-mono text-[0.85rem] text-ink-dim" title={m.profileId(profile)}>
+        {profile}
+      </span>
+    </span>
+  )
+}
+
+/** A name of the owner's own, kept by WireCat; the tool and its profile never change. */
+function Rename({ tool, profile, onClose }: { tool: string; profile: string; onClose: () => void }) {
+  const m = useMessages(accountsMessages).row
+  const id = useId()
+  const current = useAccountNames((s) => nameOf(s.names, tool, profile))
+  const [value, setValue] = useState(current ?? "")
+  const save = (name: string) => {
+    useAccountNames.getState().rename(tool, profile, name)
+    onClose()
+  }
+  return (
+    <form
+      className="flex flex-col gap-1.5 pt-1"
+      onSubmit={(e) => {
+        e.preventDefault()
+        save(value)
+      }}
+    >
+      <label htmlFor={id} className="text-[0.9rem] font-medium text-ink">
+        {m.renameLabel(profile)}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          id={id}
+          // biome-ignore lint/a11y/noAutofocus: the field is what Rename opened
+          autoFocus
+          value={value}
+          maxLength={ACCOUNT_NAME_MAX}
+          placeholder={profile}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose()
+          }}
+          aria-describedby={`${id}-hint`}
+          className="h-9 min-w-[14rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-3 text-body text-ink"
+        />
+        <Button size="sm" variant="primary" type="submit">
+          {m.renameSave}
+        </Button>
+        {current && (
+          <Button size="sm" variant="secondary" onClick={() => save("")}>
+            {m.renameReset}
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" onClick={onClose}>
+          {m.renameCancel}
+        </Button>
+      </div>
+      <p id={`${id}-hint`} className="text-[0.85rem] text-ink-soft">
+        {m.renameHint(profile)}
+      </p>
+    </form>
   )
 }

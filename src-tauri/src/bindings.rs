@@ -13,6 +13,7 @@ fn types() -> Types {
         .register::<crate::profile::PathPlan>()
         .register::<crate::tools::ToolState>()
         .register::<crate::tools::Profile>()
+        .register::<crate::signin::Signed>()
         .register::<crate::tools::Diagnosis>()
         .register::<crate::install::InstallEvent>()
         .register::<crate::install::CopyRemoval>()

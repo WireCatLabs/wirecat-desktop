@@ -6,6 +6,7 @@ import { type AdviceKind, advice, clock, type SyncFailure, type SyncWhat, share 
 import { useLogs } from "@/features/logs"
 import { useMessages } from "@/i18n"
 import type { LastSync } from "@/platform/sync-schemas"
+import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { useNav } from "@/shared/nav"
 import { ReportThis } from "@/shared/ReportThis"
 import { useTools } from "@/shared/tools-store"
@@ -332,7 +333,8 @@ export function useRowSync(entry: CatalogTool, installed: boolean) {
 
 export function RowSyncLine({ entry, info }: { entry: CatalogTool; info: NonNullable<ReturnType<typeof useRowSync>> }) {
   const what = entry.sync?.what ?? "messages"
-  const who = info.profile && syncNeedsProfile(entry) ? `${info.profile} · ` : ""
+  const title = useAccountNames((n) => (info.profile ? accountTitle(n.names, entry.id, info.profile) : null))
+  const who = title && syncNeedsProfile(entry) ? `${title} · ` : ""
   const m = useMessages(syncMessages).sync
   const elapsed = useElapsed(info.run?.phase === "running" ? info.run.startedAt : null)
   if (info.run?.phase === "running") {

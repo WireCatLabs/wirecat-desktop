@@ -54,6 +54,7 @@ import type {
   RouteChoices,
   SearchHarder,
   SendTo,
+  Signed,
   SyncSchedule,
   TemplatePreview,
   ZoomAppAnswer,
@@ -500,6 +501,8 @@ export type Platform = {
   ): Promise<void>
   /** The answer to the running sign-in's `needs` step, written to the tool's stdin; never logged or kept. */
   signInAnswer(id: string, value: string): Promise<void>
+  /** The tool's profiles signed in to `host`, with the employee each webhook acts as (b24); never the address. */
+  signInOnPortal(id: string, host: string): Promise<Signed[]>
   /** Asks the tool to stop, then ends it after a few seconds; `signIn` then answers `stopped`, or `done` with what came. */
   signInStop(id: string): Promise<void>
   /** zm's own `app --json`: what to enter when making the Zoom app; `old` from a zm before it, which has the list built in. */

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { crmToolOf } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
+import { nameOf, useAccountNames } from "@/shared/account-names-store"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { useFieldError } from "@/ui/FieldError"
@@ -18,6 +19,8 @@ export function ProfilePicker(props: { onChoose: (profile: string) => void; onCa
   const asking = useClients((s) => s.asking)
   const [choice, setChoice] = useState<string | null>(null)
   const tool = asking ? (crmToolOf(asking.account.provider)?.name ?? asking.account.provider) : ""
+  const toolId = asking ? (crmToolOf(asking.account.provider)?.id ?? null) : null
+  const names = useAccountNames((n) => n.names)
   const need = useFieldError("clients-profile-pick")
   const picked = choice !== null && asking?.profiles.includes(choice) ? choice : null
   const close = (chosen: boolean) => {
@@ -67,7 +70,7 @@ export function ProfilePicker(props: { onChoose: (profile: string) => void; onCa
                 need.clear()
               }}
             >
-              {name}
+              {toolId && nameOf(names, toolId, name) ? `${nameOf(names, toolId, name)} (${name})` : name}
             </Choice>
           ))}
           {need.hint}

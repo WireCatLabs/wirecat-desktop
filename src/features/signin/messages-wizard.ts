@@ -24,6 +24,9 @@ const en = {
     pair: () => "Type the code on the phone",
     appPassword: () => "Your app password",
     server: () => "Mail server, if not found",
+    portal: () => "Your portal",
+    webhook: () => "Make a webhook",
+    paste: () => "Paste and check",
     done: () => "Done",
   } as Record<WizardStep, (name: string) => string>,
   method: {
@@ -229,6 +232,9 @@ const ru: WizardText = {
     pair: () => "Код на телефоне",
     appPassword: () => "Пароль приложения",
     server: () => "Почтовый сервер, если не найден",
+    portal: () => "Ваш портал",
+    webhook: () => "Создайте вебхук",
+    paste: () => "Вставьте и проверьте",
     done: () => "Готово",
   },
   method: {
@@ -437,6 +443,9 @@ const es: WizardText = {
     pair: () => "Escribe el código en el teléfono",
     appPassword: () => "Tu contraseña de aplicación",
     server: () => "Servidor de correo, si no se encuentra",
+    portal: () => "Tu portal",
+    webhook: () => "Crea un webhook",
+    paste: () => "Pega y comprueba",
     done: () => "Listo",
   },
   method: {

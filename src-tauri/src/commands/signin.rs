@@ -91,6 +91,17 @@ pub async fn remove_bot(id: String, profile: String) -> Result<(), AppError> {
     .await
 }
 
+/// The tool's profiles already signed in to this portal, for the window to refuse a second profile with the same
+/// webhook before it runs.
+#[tauri::command]
+pub async fn sign_in_on_portal(id: String, host: String) -> Result<Vec<signin::Signed>, AppError> {
+    crate::log::command("sign_in_on_portal", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || signin::on_portal(tool, &host)).await
+    })
+    .await
+}
+
 /// Hands the running sign-in the answer to its last `needs` step, on its stdin; the value is wiped after the write.
 #[tauri::command]
 pub fn sign_in_answer(id: String, value: String) -> Result<(), AppError> {

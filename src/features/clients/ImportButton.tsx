@@ -3,6 +3,7 @@ import { Download } from "lucide-react"
 import { type CatalogTool, tools } from "@/domain/catalog"
 import { SyncStatus, syncKey, useSync, useSyncControl } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { profilesQuery } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
@@ -28,6 +29,7 @@ export function useImportPairs(): Pair[] {
 export function ImportButton() {
   const t = useMessages(tableMessages)
   const pairs = useImportPairs()
+  const names = useAccountNames((n) => n.names)
   const runs = useSync((s) => s.runs)
   const running = pairs.find((p) => runs[syncKey(p.tool.id, p.profile)]?.phase === "running")
   const start = (p: Pair) => useSync.getState().start(p.tool.id, p.profile)
@@ -43,7 +45,10 @@ export function ImportButton() {
         </Button>
       ) : (
         <SplitButton
-          items={pairs.map((p) => ({ label: t.importAs(p.tool.name, p.profile), onSelect: () => start(p) }))}
+          items={pairs.map((p) => ({
+            label: t.importAs(p.tool.name, accountTitle(names, p.tool.id, p.profile)),
+            onSelect: () => start(p),
+          }))}
           menuLabel={t.importMenu}
           moreLabel={running ? t.importing(running.tool.name) : t.importMenu}
           disabled={!!running}

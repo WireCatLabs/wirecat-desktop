@@ -317,7 +317,7 @@
         "note": null,
         "schedule": {
           "every": "1h",
-          "choices": ["15m", "30m", "1h", "3h"],
+          "choices": ["15m", "30m", "1h", "2h", "3h", "4h", "8h", "24h"],
           "args": ["messages", "sync", "--all", "--timeout", "50m"]
         }
       },
@@ -741,7 +741,7 @@
         "note": null,
         "schedule": {
           "every": "1h",
-          "choices": ["15m", "30m", "1h", "3h"],
+          "choices": ["15m", "30m", "1h", "2h", "3h", "4h", "8h", "24h"],
           "args": ["messages", "sync", "--all", "--timeout", "50m"]
         }
       },
@@ -2028,7 +2028,7 @@
         "lastShape": "runs",
         "what": "mail",
         "note": null,
-        "schedule": { "every": "5m", "choices": ["5m", "15m", "30m", "1h"], "args": ["sync"] }
+        "schedule": { "every": "5m", "choices": ["5m", "15m", "30m", "1h", "2h", "4h", "8h", "24h"], "args": ["sync"] }
       },
       "mailAgent": {
         "via": "memo",
@@ -2199,7 +2199,29 @@
       "settings": null,
       "signIn": {
         "gives": "Lets your agent read and change the portal's CRM with the rights of the employee who made the webhook.",
-        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm, user_basic and department scopes."
+        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm, user_basic and department scopes.",
+        "identity": ["{profile}", "session", "status", "--no-record", "--json"],
+        "identityCheck": "--check",
+        "methods": [
+          {
+            "id": "webhook",
+            "label": "Incoming webhook",
+            "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true
+          }
+        ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn"],
+        "keeps": ["settings", "data", "listed"]
       },
       "crm": {
         "provider": "bitrix24",
