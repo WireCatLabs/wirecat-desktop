@@ -101,7 +101,7 @@ function Body() {
   if (error) {
     return (
       <ErrorNotice
-        detail={error}
+        raw={error}
         action={
           <Button size="sm" onClick={() => void useTasks.getState().load()}>
             {m.tryAgain}
