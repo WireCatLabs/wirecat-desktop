@@ -27,11 +27,7 @@ const KIND_ICONS: Record<PersonKind, ReactNode> = {
   unsorted: <Inbox className="size-4" aria-hidden />,
 }
 
-/** Placeholder rows while the first page comes: enough to fill a window, at the real row height. */
-const WAITING_ROWS = 12
-
-/** `skeleton` draws the same table, inert and with placeholder rows, so nothing moves when the first answer lands. */
-export function PeopleTable({ skeleton = false }: { skeleton?: boolean }) {
+export function PeopleTable() {
   const m = useMessages(peopleMessages)
   const people = usePeople((s) => s.people)
   const more = usePeople((s) => s.peopleMore)
@@ -40,8 +36,7 @@ export function PeopleTable({ skeleton = false }: { skeleton?: boolean }) {
   const named = usePeople((s) => s.named)
   const page = usePeople((s) => s.page)
   const size = usePeople((s) => s.pageSize)
-  // A memo older than kinds is rare now: the skeleton draws the current table.
-  const kinded = usePeople((s) => s.kinded) || skeleton
+  const kinded = usePeople((s) => s.kinded)
   const kind = usePeople((s) => s.kind)
   const kinds = usePeople((s) => s.kinds)
   const reading = usePeople((s) => s.reading)
@@ -77,12 +72,7 @@ export function PeopleTable({ skeleton = false }: { skeleton?: boolean }) {
 
   if (people.length === 0 && !kinded) return <EmptyState title={m.emptyTitle}>{m.emptyBody}</EmptyState>
   return (
-    <section
-      aria-label={skeleton ? m.reading : m.rows}
-      aria-busy={skeleton || undefined}
-      inert={skeleton}
-      className="flex flex-col gap-[0.8rem]"
-    >
+    <section aria-label={m.rows} className="flex flex-col gap-[0.8rem]">
       {tabs}
       <form
         onSubmit={(e) => {
@@ -123,16 +113,14 @@ export function PeopleTable({ skeleton = false }: { skeleton?: boolean }) {
         </FilterBar>
       </form>
       <AccountResult account={query.trim()} />
-      {found.length === 0 && !reading && !skeleton ? (
+      {found.length === 0 && !reading ? (
         <p className="text-[0.95rem] text-ink-soft">{query.trim() ? m.noMatch : m.emptyKind}</p>
       ) : (
         <DataTable
           key={kind}
-          label={skeleton ? m.reading : m.rows}
-          busy={reading && !skeleton}
-          rows={skeleton ? [] : rows}
-          placeholders={skeleton ? WAITING_ROWS : 0}
-          {...(skeleton ? { loading: m.reading } : {})}
+          label={m.rows}
+          busy={reading}
+          rows={rows}
           rowKey={(p) => p.ref}
           columns={columns}
           density="compact"

@@ -62,10 +62,7 @@ describe("People", () => {
     await user.click(
       await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
     )
-    // The skeleton fades out over the page for a moment with the same help line: read the page's own.
-    expect(
-      within(kinds.closest("section") as HTMLElement).getByText("Bots, newsletters and no-reply senders."),
-    ).toBeInTheDocument()
+    expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
     expect(within(kinds).getByRole("radio", { name: "Unsorted 5,002+" })).toBeInTheDocument()
     await waitFor(async () =>
       expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
