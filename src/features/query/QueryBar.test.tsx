@@ -28,49 +28,27 @@ function Bar(props: { start: string; named?: boolean }) {
 }
 
 describe("QueryBar names", () => {
-  it("shows the name over the id, and keeps the id in the box and the query", () => {
+  it("keeps the id in the box as typed and names it in a muted line under it", () => {
     render(<Bar start="invoice from:6034997871" />)
-    const chip = screen.getByRole("button", { name: "Edit from: Милочка" })
-    expect(chip).toHaveAttribute("title", "from: Милочка\nfrom:6034997871")
-    expect(screen.getByRole("combobox", { name: "Search" })).toHaveValue("invoice from:6034997871")
-    expect(screen.getByRole("combobox", { name: "Search" })).toHaveAccessibleDescription(/from: Милочка/)
+    const bar = screen.getByRole("combobox", { name: "Search" })
+    expect(bar).toHaveValue("invoice from:6034997871")
+    expect(bar).toHaveAccessibleDescription(/Names in this search: from:6034997871 Милочка/)
+    expect(screen.queryByRole("button", { name: /Edit|Remove/ })).not.toBeInTheDocument()
   })
 
-  it("removes the whole term with Backspace after it or Delete before it", async () => {
-    const user = userEvent.setup()
-    render(<Bar start="from:6034997871 invoice" />)
-    const bar = screen.getByRole("combobox", { name: "Search" }) as HTMLInputElement
-    await user.click(bar)
-    bar.setSelectionRange(0, 0)
-    await user.keyboard("{Delete}")
-    expect(bar).toHaveValue("invoice")
-
-    await user.clear(bar)
-    await user.type(bar, "a from:6034997871")
-    await user.keyboard("{Backspace}")
-    expect(bar).toHaveValue("a")
-  })
-
-  it("takes the whole term out with the chip's own remove button", async () => {
-    const user = userEvent.setup()
-    render(<Bar start="invoice from:6034997871" />)
-    await user.click(screen.getByRole("button", { name: "Remove from: Милочка" }))
-    expect(screen.getByRole("combobox", { name: "Search" })).toHaveValue("invoice")
-  })
-
-  it("edits the id as text once the caret is inside the term", async () => {
+  it("edits and deletes the id as plain text", async () => {
     const user = userEvent.setup()
     render(<Bar start="from:6034997871" />)
     const bar = screen.getByRole("combobox", { name: "Search" }) as HTMLInputElement
     await user.click(bar)
-    bar.setSelectionRange(14, 14)
+    bar.setSelectionRange(15, 15)
     await user.keyboard("{Backspace}")
-    expect(bar).toHaveValue("from:603499781")
-    expect(screen.queryByRole("button", { name: /Edit from/ })).not.toBeInTheDocument()
+    expect(bar).toHaveValue("from:603499787")
+    expect(bar).not.toHaveAccessibleDescription(/Names in this search/)
   })
 
-  it("draws no names where the page gives none, as in Logs", () => {
+  it("names nothing where the page gives no names, as in Logs", () => {
     render(<Bar start="from:6034997871" named={false} />)
-    expect(screen.queryByRole("button", { name: /Edit/ })).not.toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "Search" })).not.toHaveAccessibleDescription(/Names/)
   })
 })

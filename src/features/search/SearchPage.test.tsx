@@ -4,7 +4,7 @@ import type { HarderOutcome, HarderStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
-import { act, render, screen, waitFor, within } from "@/testing/render"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { SearchPage } from "./SearchPage"
 import { useSearch } from "./store"
 
@@ -215,6 +215,35 @@ describe("Search", () => {
     expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("")
   }, 15000)
 
+  it("tries a part-of-name query without its patterns on a tool too old for them, without asking the agent again", async () => {
+    const user = userEvent.setup()
+    const draft = vi
+      .spyOn(platform, "searchDraft")
+      .mockResolvedValue({ kind: "query", query: "аренд* from:*Мила*", by: "claude-code" })
+    const search = vi.spyOn(platform, "searchStore").mockImplementation(async (_id, _profile, query) =>
+      query.includes("from:*")
+        ? {
+            kind: "queryError",
+            reason: "query.unsupported-operator",
+            message: "search: query.unsupported-operator at position 7 — from takes term, phrase",
+            span: { start: 7, end: 18 },
+          }
+        : { kind: "hits", hits: [], hasMore: false, paged: false, notes: [], total: { value: 3, relation: "eq" } },
+    )
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "аренда у Милы{Enter}")
+    await waitFor(
+      () => expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("аренд* from:Мила"),
+      {
+        timeout: 4000,
+      },
+    )
+    expect(draft).toHaveBeenCalledTimes(1)
+    expect(search.mock.calls.map((call) => call[2])).toEqual(["аренд* from:*Мила*", "аренд* from:Мила"])
+  }, 15000)
+
   it("puts the query in the box when the store could not try it, and says why under Details", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "searchDraft").mockResolvedValue({ kind: "query", query: "plan", by: "claude-code" })
@@ -252,6 +281,27 @@ describe("Search", () => {
     expect(bar).toHaveValue("")
     await user.click(screen.getByRole("button", { name: /^Ярослав Петров/ }))
     expect(bar).toHaveValue("from:702 has:photo")
+  }, 15000)
+
+  it("offers the near names when a written part-of-name pattern fits nobody", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchDraft").mockResolvedValue({
+      kind: "query",
+      query: "from:*Ярослва* has:photo",
+      by: "claude-code",
+    })
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "failed",
+      message: "from:*Ярослва* — no person fits; near: Ярослав Петров",
+      candidates: [{ id: "702", label: "Ярослав Петров", field: "from" }],
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "фото от Ярослвы{Enter}")
+    const choice = await screen.findByRole("button", { name: /^Ярослав Петров/ }, { timeout: 4000 })
+    await user.click(choice)
+    expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("from:702 has:photo")
   }, 15000)
 
   it("says which agent could not write the query, and how to fix it", async () => {
@@ -476,19 +526,9 @@ describe("Search", () => {
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
     expect(bar).toHaveValue('has:link date>=30d chat:"-1001001" ')
-    const chip = screen.getByRole("button", { name: "Edit chat: Design crit" })
-    expect(chip).toHaveAttribute("title", 'chat: Design crit\nchat:"-1001001"')
-    expect(bar).toHaveAccessibleDescription(/Names in this search: chat: Design crit/)
-
-    const input = bar as HTMLInputElement
-    act(() => chip.click())
-    expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
-    input.setSelectionRange(0, 0)
-    await user.click(chip)
-    expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
-    await user.keyboard("{End}{ArrowLeft}{Backspace}")
-    expect(bar).toHaveValue("has:link date>=30d")
-    expect(screen.queryByRole("button", { name: "Edit chat: Design crit" })).not.toBeInTheDocument()
+    expect(bar).toHaveAccessibleDescription(/Names in this search: chat:"-1001001" Design crit/)
+    await user.keyboard("{End}{Backspace}{Backspace}")
+    expect(bar).toHaveValue('has:link date>=30d chat:"-1001001')
   }, 15000)
 
   it("turns a chat name that fits two chats into a choice that names one by id", async () => {
@@ -503,7 +543,7 @@ describe("Search", () => {
     expect(await screen.findByText(/Pick the chat you meant below: every chat with "kyrillic"/)).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: /^kyrillic\s*@kyrillic/ }))
     expect(bar).toHaveValue('date>=3d chat:"-1001762030832"')
-    expect(screen.getByRole("button", { name: "Edit chat: kyrillic" })).toBeInTheDocument()
+    expect(bar).toHaveAccessibleDescription(/Names in this search: chat:"-1001762030832" kyrillic/)
     await waitFor(() =>
       expect(search).toHaveBeenLastCalledWith("tg", "personal", 'date>=3d chat:"-1001762030832"', 50, 1),
     )
@@ -525,7 +565,7 @@ describe("a name that fits several people", () => {
     expect(screen.getByRole("button", { name: /^Ярослав\s*@yar_one/ })).toBeInTheDocument()
     await user.click(choice)
     expect(bar).toHaveValue("from:702 has:photo")
-    expect(screen.getByRole("button", { name: "Edit from: Ярослав Петров" })).toBeInTheDocument()
+    expect(bar).toHaveAccessibleDescription(/Names in this search: from:702 Ярослав Петров/)
     await waitFor(() => expect(search).toHaveBeenLastCalledWith("tg", "personal", "from:702 has:photo", 50, 1))
   }, 15000)
 })

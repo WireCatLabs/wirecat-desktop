@@ -354,58 +354,58 @@ const EXAMPLES: &[Example] = &[
     Example {
         needs: &["from", "has", "date"],
         words: "photos Ana sent last week about the flat",
-        query: r#"flat from:"Ana" has:photo date>=7d"#,
+        query: "flat* from:*Ana* has:photo date>=7d",
     },
     Example {
-        needs: &["from"], words: "как купить велосипед у Милы", query: r#"купить велосипед from:"Мила""#
+        needs: &["from"], words: "как купить велосипед у Милы", query: "куп* велосипед* from:*Мила*"
     },
     Example {
         needs: &["from", "has"],
         words: "голосовые от Сергея Иванова про договор аренды",
-        query: r#"договор аренды from:"Сергей Иванов" has:voice"#,
+        query: r#"договор* аренд* from:"Сергей Иванов" has:voice"#,
     },
     Example {
         needs: &["chat", "has", "date"],
         words: "ссылки из чата Дизайн за последний месяц",
-        query: r#"chat:"Дизайн" has:link date>=30d"#,
+        query: "chat:*Дизайн* has:link date>=30d",
     },
     Example {
         needs: &["from", "date"],
         words: "что Оля писала вчера про отпуск",
-        query: r#"отпуск from:"Оля" date:yesterday"#,
+        query: "отпуск* from:*Оля* date:yesterday",
     },
     Example {
         needs: &["from"],
         words: "anything about rent or the deposit, but not from Marco",
-        query: r#"(rent OR deposit) NOT from:"Marco""#,
+        query: "(rent* OR deposit*) NOT from:*Marco*",
     },
     Example {
         needs: &["from", "date"],
         words: "el presupuesto que mandó Lucía en febrero",
-        query: r#"presupuesto from:"Lucía" date:[2026-02-01 TO 2026-02-28]"#,
+        query: "presupuest* from:*Lucía* date:[2026-02-01 TO 2026-02-28]",
     },
-    Example { needs: &["from", "has"], words: "the invoice pdf Kai sent", query: r#"invoice from:"Kai" has:file"# },
+    Example { needs: &["from", "has"], words: "the invoice pdf Kai sent", query: "invoice* from:*Kai* has:file" },
     Example {
         needs: &["from", "date"],
         words: "письма от Stripe про возврат за эту неделю",
-        query: r#"возврат from:"Stripe" date>=7d"#,
+        query: "возврат* from:*Stripe* date>=7d",
     },
     Example {
         needs: &["from", "filename"],
         words: "the contract Ana mailed as an attachment",
-        query: r#"contract from:"Ana" filename:contract"#,
+        query: "from:*Ana* filename:*contract*",
     },
     Example {
         needs: &["title", "author"],
         words: "the quarterly plan Ana wrote",
-        query: r#"title:quarterly plan author:"Ana""#,
+        query: "title:quarterl* plan* author:*Ana*",
     },
     Example {
         needs: &["tag", "date"],
         words: "мои заметки про отпуск с тегом семья за этот месяц",
-        query: "отпуск tag:семья date>=2026-03-01",
+        query: "отпуск* tag:семья date>=2026-03-01",
     },
-    Example { needs: &["date"], words: "notes I changed today about the launch", query: "launch date:today" },
+    Example { needs: &["date"], words: "notes I changed today about the launch", query: "launch* date:today" },
     Example {
         needs: &[], words: "встреча, где обсуждали бюджет на рекламу", query: "бюджет реклама"
     },
@@ -437,11 +437,14 @@ fn rules(names: &[&str]) -> Vec<&'static str> {
     ];
     if has_names {
         rules.push(
-            "Names of people and chats go into their key in the dictionary form, nominative case: \"у Милы\" is \
-             from:\"Мила\", \"от Сергея Иванова\" is from:\"Сергей Иванов\". Keep the person's own spelling and \
-             alphabet; never transliterate. Quote every name.",
+            "A person or a chat is part of the name between two *, in the dictionary form, nominative case: \"у \
+             Милы\" is from:*Мила*, \"чат Дизайн\" is chat:*Дизайн*. Only a full name, first and last, goes exactly \
+             and quoted: \"от Сергея Иванова\" is from:\"Сергей Иванов\"; an id given in digits goes as it is: \
+             from:123456. Never put a value with * in quotes; a space inside one is written \\ followed by the \
+             space: from:*Анна\\ Мария*. Keep the person's own spelling and alphabet; never transliterate.",
         );
-        rules.push("Several people or chats: (from:\"Маша\" OR from:\"Петя\").");
+        rules.push("Several people or chats: (from:*Маша* OR from:*Петя*).");
+        rules.push("A file's name or a mail folder: part of it between two *, as filename:*договор*.");
     } else {
         rules.push(
             "Names of people are plain words in the dictionary form, nominative case: \"с Милой\" is Мила. Keep the \
@@ -449,6 +452,13 @@ fn rules(names: &[&str]) -> Vec<&'static str> {
         );
     }
     if !names.is_empty() {
+        rules.push(
+            "A topic word, in the text or in a key that holds words (subject:, content:, transcript:, title:), is the \
+             start of the word that keeps through its forms, followed by *: \"договора аренды\" is договор* аренд*, \
+             \"invoices\" is invoice*, a mail's subject \"отчет\" is subject:отчет*. Never put * before a word. \
+             Words the person put in quotes stay an exact \"phrase\". Keys with listed values take those values \
+             only, and an id, a date, an address or a link goes exactly.",
+        );
         rules.push(
             "Use only the keys listed above and only their listed values. When the description needs a key that is \
              not listed, write those words as plain words or leave them out.",
@@ -484,7 +494,8 @@ pub fn system_prompt(tool: &Tool) -> Result<String, String> {
     };
     let examples: Vec<String> = EXAMPLES
         .iter()
-        .filter(|e| e.needs.iter().all(|n| names.contains(n)))
+        // Keyless tools take no patterns, so their examples are the only ones with plain topic words.
+        .filter(|e| e.needs.is_empty() == names.is_empty() && e.needs.iter().all(|n| names.contains(n)))
         .take(8)
         .map(|e| format!("Description: {}\nQuery: {}", e.words, e.query))
         .collect();
@@ -589,13 +600,16 @@ mod tests {
         let tg = system_prompt(catalog::tool("tg").unwrap()).unwrap();
         assert!(tg.contains("- has: what it holds besides text. Example: has:photo. Only these values: photo, file"));
         assert!(tg.contains("date:[YYYY-MM-DD TO YYYY-MM-DD]"));
-        assert!(tg.contains(r#"from:"Мила""#));
+        assert!(tg.contains("from:*Мила*") && tg.contains("filename:*договор*"));
+        assert!(tg.contains("договор* аренд*") && tg.contains("subject:отчет*") && !tg.contains(" *аренд"));
+        assert!(!tg.contains("Query: бюджет"), "plain topic words are for keyless tools only");
         assert_eq!(tg.matches("\nQuery: ").count(), 8);
         assert!(!tg.contains("chats, contacts"), "a store list's name is not a value");
         let zm = system_prompt(catalog::tool("zm").unwrap()).unwrap();
         assert!(zm.contains("This tool has no keys") && !zm.contains("from:") && !zm.contains("date>="));
+        assert!(!zm.contains('*'), "a meeting search takes no patterns");
         let notes = system_prompt(catalog::tool("memo").unwrap()).unwrap();
-        assert!(notes.contains(r#"author:"Ana""#) && !notes.contains("has:"));
+        assert!(notes.contains("author:*Ana*") && notes.contains("launch* date:today") && !notes.contains("has:"));
     }
 
     #[test]

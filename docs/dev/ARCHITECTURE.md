@@ -608,12 +608,15 @@ stderr lines) are shown as text; its suggested next steps are never run.
 
 Values come from the tool's own read-only lists (`search_values`, `search.values` in the catalog, with
 `--offline`): tg, max and wa `chats list`, `contacts list` and `tags list`. A chat or a person goes into the query by its
-id, which names exactly one (`chat:"-1001762030832"`); the row shows the title and @username. Every value is quoted by
+id, which names exactly one (`chat:"-1001762030832"`); the row shows the title and @username, and once picked the
+name shows muted under the bar (`namesOf` in `QueryBar.tsx`). The bar itself always holds the text a terminal search
+would take: nothing is drawn over a term. Every value is quoted by
 the rule of cli-base's parser (`quoteValue` in `src/domain/search.ts`). A name that fits several chats or people is
 refused with `details.candidates`, and one that fits nobody with `from:X — nobody matches "X"` or `no chat matches
-"X"`. cli-core's `pickPerson` takes the exact names when there are any, so `from:"Ярослав"` lists only the people
-called exactly that. The page (`nameChoices`) offers every person or chat whose name, @username or alias contains
-the typed text, from the tool's candidates, its lists and the message counts below, most messages first, each as a
+"X"`. cli-core's `pickPerson` took only the exact names when there were any, so `from:"Ярослав"` listed only the
+people called exactly that; from the cli-core release with name patterns (WireCatLabs/cli-core#2861) it also lists
+those whose name contains it. The page (`nameChoices`) offers every person or chat whose name, @username or alias
+contains the typed text, from the tool's candidates, its lists and the message counts below, most messages first, each as a
 button that puts its id in place of that term. `scripts/search-fields-check.mjs` runs every field, value form and
 date against the installed tools through the same Rust code (`cargo test real_batch`).
 
@@ -631,7 +634,14 @@ come first, and senders who write only in groups are added to the contact list.
 tried once with `search_store(…, limit 1, page 1)` before it is offered. It is put in the bar with the count when the
 tool accepts it, even when the count is 0. A refused parse is sent back to the agent once, with the parser's reason and
 message only, and a second refusal puts nothing in the bar. A name that fits several people or nobody shows the same
-choices as above.
+choices as above. The agent writes part-of-value matches by default: a topic word by its start (`договор* аренд*`,
+`subject:отчет*`, `content:акт*`), never `*word*`, which reads the whole word list; a person or chat as part of the
+name (`from:*Мила*`, `chat:*Дизайн*`), a file name or mail folder the same way. Keys with listed values, ids, dates,
+addresses and links stay exact, and so does `from:"Сергей Иванов"` for a full name. Keyless tools (Zoom) get plain
+words. A tool on a cli-core older than name patterns refuses them with `query.unsupported-operator` (matched by the
+reason, never the message); the query is then tried once more as `withoutPatterns` gives it (`from:Мила`), without
+asking the agent again. Such a tool matches `from:Мила` as part of a name only when nobody is named exactly that, and
+reads a bare `word*` in the message text only.
 
 ## Profiles and diagnostics
 

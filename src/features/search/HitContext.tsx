@@ -81,7 +81,8 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
               {m.contextFailed}
             </ErrorNotice>
           ) : (
-            <Skeleton className="h-[6rem] w-full" label={m.readingContext} />
+            // The list's own cap: 11 messages or a transcript fill it; only a short thread or a chat's start is shorter.
+            <Skeleton className="h-[20rem] w-full rounded-[0.45rem]" label={m.readingContext} />
           )}
         </AutoHeight>
       </Collapse>
