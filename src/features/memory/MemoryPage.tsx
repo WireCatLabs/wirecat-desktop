@@ -79,22 +79,27 @@ export function MemoryPage() {
   const filtered = s.entries.filter((e) => matchesFilter(e, filter))
   const inTab = filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref))
   const groups = bySubjectGroups(s.tab === "review" ? byReviewRank(inTab) : inTab, s.tab === "review")
-  const ordered = groups.flatMap((g) => g.entries)
-  const pages = Math.max(1, Math.ceil(ordered.length / s.pageSize))
+  // A folded group takes one line of the page, its header; an open one a line per row.
+  const slots: Slot[] = groups.flatMap((g) =>
+    s.closedGroups.includes(g.key) ? [{ group: g }] : g.entries.map((entry) => ({ group: g, entry })),
+  )
+  const pages = Math.max(1, Math.ceil(slots.length / s.pageSize))
   const at = Math.min(s.page, pages)
-  const shown = ordered.slice((at - 1) * s.pageSize, at * s.pageSize)
+  const onPage = slots.slice((at - 1) * s.pageSize, at * s.pageSize)
+  const shown = onPage.flatMap((x) => (x.entry ? [x.entry] : []))
+  // The clicked header keeps its page: folding a group that began on an earlier page goes back to it.
+  const fold = (key: string) => {
+    const page = Math.floor(slots.findIndex((x) => x.group.key === key) / s.pageSize) + 1
+    s.toggleGroup(key)
+    if (page === at) s.setPage(page)
+    else paging.turn(s.setPage)(page)
+  }
   const count = (tab: Tab) => filtered.filter((e) => entryInTab(tab, e)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
   const filtering = s.query.trim() !== ""
   // On screen: this tab, these filters, a group that is not folded. Facts and memories only: a task, an agent's
   // findings batch and a relationship are approved in their own row.
-  const approvable = shown.filter(
-    (e) =>
-      (e.type === "memory" || e.type === "fact") &&
-      !e.findings &&
-      can(e).confirm &&
-      !s.closedGroups.includes(subjectOf(e)?.key ?? ""),
-  )
+  const approvable = shown.filter((e) => (e.type === "memory" || e.type === "fact") && !e.findings && can(e).confirm)
 
   return (
     <Page>
@@ -160,14 +165,14 @@ export function MemoryPage() {
                   {m.emptyBody}
                 </EmptyState>
               ) : (
-                <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
+                <Rack slots={onPage} groups={groups} tab={s.tab} filtering={filtering} onFold={fold} />
               )}
             </div>
-            {ordered.length > MEMORY_PAGE_SIZES[0] && (
+            {slots.length > MEMORY_PAGE_SIZES[0] && (
               <Pager
                 page={at}
                 onPage={paging.turn(s.setPage)}
-                total={ordered.length}
+                total={slots.length}
                 size={s.pageSize}
                 sizes={MEMORY_PAGE_SIZES}
                 onSize={s.setPageSize}
@@ -270,22 +275,24 @@ function AddButton() {
 }
 
 function Rack({
-  entries,
+  slots,
   groups,
   tab,
   filtering,
+  onFold,
 }: {
-  entries: MemoryEntry[]
+  slots: Slot[]
   groups: Group[]
   tab: Tab
   filtering: boolean
+  onFold: (key: string) => void
 }) {
   const m = useMessages(memoryMessages)
   const leaving = useMemory((s) => s.leaving)
   const arriving = useMemory((s) => s.arriving)
   const { setTab, setQuery } = useMemory.getState()
 
-  if (entries.length === 0)
+  if (slots.length === 0)
     return (
       <EmptyState
         action={
@@ -306,10 +313,12 @@ function Rack({
       </EmptyState>
     )
 
-  return <SubjectRack entries={entries} groups={groups} leaving={leaving} arriving={arriving} />
+  return <SubjectRack slots={slots} groups={groups} leaving={leaving} arriving={arriving} onFold={onFold} />
 }
 
 type Group = { key: string; entries: MemoryEntry[]; waiting: number }
+/** One line of a page: a row of an open group, or a folded group's header alone. */
+type Slot = { group: Group; entry?: MemoryEntry }
 
 /**
  * One run per subject: those with something waiting first, the run with no subject last, in Waiting for you the one
@@ -380,27 +389,29 @@ function ApproveShown({ refs }: { refs: string[] }) {
 
 /** One page of rows under their subjects; a subject's count is of all its rows, not only this page's. */
 function SubjectRack({
-  entries,
+  slots,
   groups,
   leaving,
   arriving,
+  onFold,
 }: {
-  entries: MemoryEntry[]
+  slots: Slot[]
   groups: Group[]
   leaving: string[]
   arriving: string[]
+  onFold: (key: string) => void
 }) {
   const m = useMessages(memoryMessages)
   const x = useMessages(explainedMessages)
   const closed = useMemory((s) => s.closedGroups)
-  const toggleGroup = useMemory((s) => s.toggleGroup)
-  const onPage = new Set(entries.map((e) => e.ref))
+  const here = new Set(slots.map((s) => s.group.key))
+  const onPage = new Set(slots.flatMap((s) => (s.entry ? [s.entry.ref] : [])))
   return (
     <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
       {groups.flatMap((whole) => {
+        if (!here.has(whole.key)) return []
         const g = { ...whole, entries: whole.entries.filter((e) => onPage.has(e.ref)) }
-        if (g.entries.length === 0) return []
-        const subject = g.entries[0] ? subjectOf(g.entries[0]) : null
+        const subject = whole.entries[0] ? subjectOf(whole.entries[0]) : null
         const open = !closed.includes(g.key)
         return (
           <section key={g.key || "none"} className="border-line [&+&]:border-t">
@@ -409,7 +420,7 @@ function SubjectRack({
                 <button
                   type="button"
                   aria-expanded={open}
-                  onClick={() => toggleGroup(g.key)}
+                  onClick={() => onFold(g.key)}
                   className="group flex w-full cursor-pointer items-center gap-[0.7rem] pt-[1rem] pb-[0.6rem] pl-[1.3rem] text-left"
                 >
                   <ChevronDown
