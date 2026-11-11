@@ -1,15 +1,15 @@
 // Each tool's tagline and summary in Russian and Spanish, by catalog id; English is the catalog's own.
 
 export const RU_TAGLINE: Record<string, string> = {
-  tg: "Чаты и каналы · поиск · ответы",
-  max: "Чаты и боты · поиск · ответы",
-  wa: "Чаты · поиск · ответы",
-  zm: "Записи и расшифровки встреч · поиск",
-  drive: "Папки и документы · поиск · редактирование",
-  gcal: "События и встречи · поиск · изменения",
-  memo: "Заметки, люди и воспоминания · поиск по всему",
-  email: "Gmail, Outlook и IMAP · поиск · переписка целиком",
-  bitrix: "Сделки, лиды, контакты и компании · изменения",
+  tg: "Чаты и каналы\u00a0· поиск\u00a0· ответы",
+  max: "Чаты и боты\u00a0· поиск\u00a0· ответы",
+  wa: "Чаты\u00a0· поиск\u00a0· ответы",
+  zm: "Записи и расшифровки встреч\u00a0· поиск",
+  drive: "Папки и документы\u00a0· поиск\u00a0· редактирование",
+  gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
+  memo: "Заметки, люди и воспоминания\u00a0· поиск по всему",
+  email: "Gmail, Outlook и IMAP\u00a0· поиск\u00a0· переписка целиком",
+  bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
 }
 
 export const RU_SUMMARY: Record<string, string> = {
@@ -28,15 +28,15 @@ export const RU_SUMMARY: Record<string, string> = {
 }
 
 export const ES_TAGLINE: Record<string, string> = {
-  tg: "Chats y canales · búsqueda · respuestas",
-  max: "Chats y bots · búsqueda · respuestas",
-  wa: "Chats · búsqueda · respuestas",
-  zm: "Grabaciones y transcripciones · búsqueda",
-  drive: "Carpetas y documentos · búsqueda · edición",
-  gcal: "Eventos y reuniones · búsqueda · cambios",
-  memo: "Notas, personas y memorias · búsqueda en todo",
-  email: "Gmail, Outlook e IMAP · búsqueda · hilos completos",
-  bitrix: "Negociaciones, prospectos y contactos · cambios",
+  tg: "Chats y canales\u00a0· búsqueda\u00a0· respuestas",
+  max: "Chats y bots\u00a0· búsqueda\u00a0· respuestas",
+  wa: "Chats\u00a0· búsqueda\u00a0· respuestas",
+  zm: "Grabaciones y transcripciones\u00a0· búsqueda",
+  drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
+  gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
+  memo: "Notas, personas y memorias\u00a0· búsqueda en todo",
+  email: "Gmail, Outlook e IMAP\u00a0· búsqueda\u00a0· hilos completos",
+  bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
 }
 
 export const ES_SUMMARY: Record<string, string> = {
