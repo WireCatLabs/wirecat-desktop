@@ -1,15 +1,15 @@
 // Each tool's tagline and summary in Russian and Spanish, by catalog id; English is the catalog's own.
 
 export const RU_TAGLINE: Record<string, string> = {
-  tg: "Ваш аккаунт Telegram для терминала и ИИ-агентов",
-  max: "Боты MAX и ваш личный аккаунт из терминала",
-  wa: "Ваш аккаунт WhatsApp как связанное устройство",
-  zm: "Расшифровки и записи Zoom с поиском",
-  drive: "Папки Google Drive как локальный текст с поиском",
-  gcal: "События Google Календаря с поиском на вашем компьютере",
-  memo: "Заметки, люди и воспоминания в одном месте для вашего агента",
-  email: "Ваша почта с поиском на вашем компьютере",
-  bitrix: "CRM Битрикс24: сделки, лиды, контакты и компании",
+  tg: "Чаты и каналы · поиск · ответы",
+  max: "Чаты и боты · поиск · ответы",
+  wa: "Чаты · поиск · ответы",
+  zm: "Записи и расшифровки встреч · поиск",
+  drive: "Папки и документы · поиск · редактирование",
+  gcal: "События и встречи · поиск · изменения",
+  memo: "Заметки, люди и воспоминания · поиск по всему",
+  email: "Gmail, Outlook и IMAP · поиск · переписка целиком",
+  bitrix: "Сделки, лиды, контакты и компании · изменения",
 }
 
 export const RU_SUMMARY: Record<string, string> = {
@@ -28,15 +28,15 @@ export const RU_SUMMARY: Record<string, string> = {
 }
 
 export const ES_TAGLINE: Record<string, string> = {
-  tg: "Tu cuenta de Telegram, para el terminal y los agentes de IA",
-  max: "Bots de MAX y tu cuenta personal, desde el terminal",
-  wa: "Tu cuenta de WhatsApp como dispositivo vinculado",
-  zm: "Transcripciones y grabaciones de Zoom, con búsqueda",
-  drive: "Carpetas de Google Drive como texto local con búsqueda",
-  gcal: "Eventos de Google Calendar, con búsqueda en tu equipo",
-  memo: "Notas, personas y memorias en un solo lugar para tu agente",
-  email: "Tu correo, con búsqueda en tu equipo",
-  bitrix: "CRM de Bitrix24: negociaciones, prospectos y contactos",
+  tg: "Chats y canales · búsqueda · respuestas",
+  max: "Chats y bots · búsqueda · respuestas",
+  wa: "Chats · búsqueda · respuestas",
+  zm: "Grabaciones y transcripciones · búsqueda",
+  drive: "Carpetas y documentos · búsqueda · edición",
+  gcal: "Eventos y reuniones · búsqueda · cambios",
+  memo: "Notas, personas y memorias · búsqueda en todo",
+  email: "Gmail, Outlook e IMAP · búsqueda · hilos completos",
+  bitrix: "Negociaciones, prospectos y contactos · cambios",
 }
 
 export const ES_SUMMARY: Record<string, string> = {
