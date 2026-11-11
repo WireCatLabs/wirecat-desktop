@@ -47,27 +47,29 @@ export function OwnToolsSetting() {
   const changed = status !== null && atStart !== null && status.allowed !== atStart
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex items-start gap-3">
         <Switch
           id={id}
           checked={status?.allowed ?? false}
           disabled={status === null}
           onChange={(on) => (on ? setAsking(true) : save(false))}
         />
-        <label htmlFor={id} className="font-medium">
-          {m.own}
-        </label>
-        <InfoTip label={m.ownInfo} className="-ml-1.5">
-          {m.ownHelp}
-        </InfoTip>
-        <button
-          type="button"
-          className="text-brand underline hover:text-brand-hover"
-          onClick={() => platform.openUrl(ownToolsDocs(lang))}
-          {...externalHref(ownToolsDocs(lang))}
-        >
-          {m.ownDocs}
-        </button>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+          <label htmlFor={id} className="min-w-0 font-medium">
+            {m.own}
+          </label>
+          <InfoTip label={m.ownInfo} className="-ml-1.5">
+            {m.ownHelp}
+          </InfoTip>
+          <button
+            type="button"
+            className="text-brand underline hover:text-brand-hover"
+            onClick={() => platform.openUrl(ownToolsDocs(lang))}
+            {...externalHref(ownToolsDocs(lang))}
+          >
+            {m.ownDocs}
+          </button>
+        </div>
       </div>
       {status?.flag && <p className="text-[0.9rem] text-ink-soft">{m.ownFlag}</p>}
       <Collapse open={changed}>

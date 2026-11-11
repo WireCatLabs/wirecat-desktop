@@ -48,7 +48,7 @@ const MOVE_MS = 220
 const modifier = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => e.altKey || e.ctrlKey || e.metaKey
 
 /** Places on screen, relative to the board; `scroll` is the board's scroll then, or null in a sticky column. */
-type Places = Map<string, { x: number; y: number; scroll: number | null }>
+type Places = Map<string, { x: number; y: number; scroll: number | null; list: Element | null; top: number }>
 
 // A drop can wait on a dialog that moves the card much later, from wherever it then stands.
 const LANDING_MS = 1000
@@ -92,6 +92,11 @@ function settle(el: HTMLElement, from: { x: number; y: number }, board: HTMLElem
  */
 export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) {
   const last = useRef<{ cards: Places; columns: Places } | null>(null)
+  // Read while rendering, before this change can shorten a list and clamp its scroll: only the owner's scrolling since
+  // the last change may be taken off a card's move.
+  const listTops = new Map(
+    [...(board.current?.querySelectorAll("[data-scroller]") ?? [])].map((list) => [list, list.scrollTop]),
+  )
   // biome-ignore lint/correctness/useExhaustiveDependencies: the cards are read from the page after each change of layout
   useLayoutEffect(() => {
     const grid = board.current
@@ -102,7 +107,14 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
       for (const el of grid.querySelectorAll<HTMLElement>(`[data-${kind}]`)) {
         const r = el.getBoundingClientRect()
         const scroll = el.closest("[data-sticky]") ? null : grid.scrollLeft
-        places.set(el.dataset[kind] ?? "", { x: r.left - g.left, y: r.top - g.top, scroll })
+        const list = el.closest("[data-scroller]")
+        places.set(el.dataset[kind] ?? "", {
+          x: r.left - g.left,
+          y: r.top - g.top,
+          scroll,
+          list,
+          top: list?.scrollTop ?? 0,
+        })
       }
       return places
     }
@@ -115,7 +127,8 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
       const b = to.get(key)
       // Where the element was, as it would stand now: a place that scrolled with the board moved as far as it has since.
       const scrolled = a?.scroll == null ? 0 : a.scroll - grid.scrollLeft
-      return a && b ? { dx: a.x + scrolled - b.x, dy: a.y - b.y } : null
+      const inner = a?.list ? a.top - (listTops.get(a.list) ?? a.top) : 0
+      return a && b ? { dx: a.x + scrolled - b.x, dy: a.y + inner - b.y } : null
     }
     const slide = (el: HTMLElement, dx: number, dy: number) => {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return

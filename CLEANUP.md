@@ -36,3 +36,4 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-people-pills` (worktree) and branch `fix/people-scope-pills`: People cards mark only work accounts. Remove both after the PR merges. 2026-11-10
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-search-analytics` (branch `fix/search-analytics-feedback`): worktree for the Search and Analytics feedback, remove after its PR merges. 2026-11-11
 - `/home/leemour/Projects/AI/cli-core-wt-participants-count` (branch `feat/participants-count-query`): worktree for the query field Analytics asks for, remove after cli-core PR #2854 merges. 2026-11-11
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-settings-model` (worktree) and branch `fix/settings-model-feedback`: Settings feedback for 0.6.0. Remove both after the PR merges. 2026-11-11

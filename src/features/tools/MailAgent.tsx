@@ -116,16 +116,18 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
       {(state?.state === "on" || state?.state === "off") && (
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Switch
-              id={switchId}
-              checked={on}
-              disabled={pending !== null || !usable}
-              aria-describedby={helpId}
-              onChange={change}
-            />
-            <label htmlFor={switchId} className="font-medium">
-              {m.toggle}
-            </label>
+            <span className="flex min-w-0 items-start gap-3">
+              <Switch
+                id={switchId}
+                checked={on}
+                disabled={pending !== null || !usable}
+                aria-describedby={helpId}
+                onChange={change}
+              />
+              <label htmlFor={switchId} className="min-w-0 font-medium">
+                {m.toggle}
+              </label>
+            </span>
             {choices.length > 0 && (
               <>
                 <label htmlFor={everyId} className="ml-2 text-[0.9rem] text-ink-soft">

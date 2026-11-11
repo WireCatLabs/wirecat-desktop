@@ -5,7 +5,8 @@ import type { Platform } from "./types"
 // Settings "AI model" stand-in for memo's `models ai` commands. `?ai=none` (default: nothing set), `?ai=anthropic`,
 // `?ai=openrouter`, `?ai=ollama` (set, pictures allowed), `?ai=noimages` (set, pictures not allowed), `?ai=old` (a memo
 // before `models ai`), `?ai-check=<reason>` (what Check answers, `ai.ok` by default), `?ai-fail=set` (the save is refused
-// because the address is not allowed). A picture added with `?file=image` is read, or not, by this state.
+// because the address is not allowed), `?ai-list=fail|empty` (the model list cannot be read, or has nothing). A picture
+// added with `?file=image` is read, or not, by this state.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("ai") ?? "none"
@@ -75,7 +76,10 @@ export function imageOutcome(): { read: string; image: { readBy: string | null; 
     : { read: "extracted", image: { readBy: `${state.provider}/${state.model}`, reason: null } }
 }
 
-export function aiModelMock(): Pick<Platform, "aiModelShow" | "aiModelSet" | "aiModelOff" | "aiModelCheck"> {
+export function aiModelMock(): Pick<
+  Platform,
+  "aiModelShow" | "aiModelSet" | "aiModelOff" | "aiModelCheck" | "aiModelList"
+> {
   return {
     async aiModelShow() {
       await delay(300)
@@ -108,6 +112,14 @@ export function aiModelMock(): Pick<Platform, "aiModelShow" | "aiModelSet" | "ai
       const changed = state.provider !== null
       state = { ...NONE, key: state.key }
       return { changed, keyKept: true }
+    },
+    async aiModelList(source) {
+      await delay(400)
+      if (params.get("ai-list") === "fail") throw new Error("ai.list-unreachable")
+      if (params.get("ai-list") === "empty") return []
+      return source === "ollama"
+        ? ["llama3.2-vision:latest", "llava:latest", "qwen2.5vl:7b"]
+        : ["anthropic/claude-haiku-4.5", "google/gemini-2.5-flash", "openai/gpt-4o-mini"]
     },
     async aiModelCheck() {
       await delay(900)

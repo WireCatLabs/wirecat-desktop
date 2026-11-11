@@ -27,6 +27,8 @@ export const AiCheckedSchema = v.object({
 
 export const AiOffSchema = v.object({ changed: v.boolean(), keyKept: v.boolean() })
 
+export const AiModelListSchema = v.array(v.string())
+
 export type AiModel = v.InferOutput<typeof AiModelSchema>
 export type AiChecked = v.InferOutput<typeof AiCheckedSchema>
 export type AiOff = v.InferOutput<typeof AiOffSchema>

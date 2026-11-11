@@ -49,23 +49,25 @@ export function CommunitySetting() {
   const locked = status === null || (!status.available && !status.show)
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex items-start gap-3">
         <Switch id={id} checked={status?.show ?? false} disabled={locked} onChange={change} />
-        <label htmlFor={id} className="font-medium">
-          {m.community}
-        </label>
-        <InfoTip label={m.communityInfo} className="-ml-1.5">
-          {m.communityHelp}
-          {status && !status.available && <> {m.communityNoKey}</>}
-        </InfoTip>
-        <button
-          type="button"
-          className="text-brand underline hover:text-brand-hover"
-          onClick={() => platform.openUrl(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
-          {...externalHref(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
-        >
-          {m.communityHow}
-        </button>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+          <label htmlFor={id} className="min-w-0 font-medium">
+            {m.community}
+          </label>
+          <InfoTip label={m.communityInfo} className="-ml-1.5">
+            {m.communityHelp}
+            {status && !status.available && <> {m.communityNoKey}</>}
+          </InfoTip>
+          <button
+            type="button"
+            className="text-brand underline hover:text-brand-hover"
+            onClick={() => platform.openUrl(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
+            {...externalHref(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
+          >
+            {m.communityHow}
+          </button>
+        </div>
       </div>
       <Collapse open={changed} className="flex flex-wrap items-center gap-3">
         <p className="text-[0.9rem] text-ink-soft">{status?.show ? m.communityOnNext : m.communityOffNext}</p>

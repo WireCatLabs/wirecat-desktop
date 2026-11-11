@@ -26,7 +26,9 @@ export type SaveReason = (typeof SAVE_REASONS)[number]
 const en = {
   heading: "AI model",
   intro:
-    "WireCat can use a model from an AI company instead of your agent (Claude Code, Codex) for reading sources, linking chats and other jobs. You pay the company for what it reads.",
+    "Instead of your agent (Claude Code, Codex), WireCat can read sources, link chats and do other jobs with an AI model of your choice: Anthropic (Claude), OpenAI (ChatGPT), a service like OpenRouter, or Ollama on this computer. You pay Anthropic, OpenAI or the service for what the model reads. Ollama is free.",
+  noModel: "No model (use your agent)",
+  noModelDetails: "WireCat leaves this work to your agent. A picture you add to memory is kept by its name only.",
   providers: {
     anthropic: "Anthropic (Claude)",
     openai: "OpenAI or compatible",
@@ -46,14 +48,31 @@ const en = {
   showKey: "Show the key",
   hideKey: "Hide the key",
   model: "Model",
-  modelHelp: "Type the model's name as the provider writes it.",
+  modelHelp: "Pick from the list, or type a name that is not on it.",
+  modelType: "Type the model's name as the provider writes it.",
+  listLoading: "Loading the list of models…",
+  listNeedsKey: (company: string) =>
+    `${company} shows its list of models only with your key, and memo cannot ask for it yet. Type the name by hand.`,
+  listOtherAddress: "WireCat cannot read the list of models at this address yet. Type the name by hand.",
+  listOllamaOff: "Could not read Ollama's list: it is not running. Start it, or type the name by hand.",
+  listOllamaEmpty: "Ollama has no models yet. Download one with ollama pull, or type the name by hand.",
+  listFailed: "Could not read OpenRouter's list. Check the connection, or type the name by hand.",
+  listDocs: (company: string) => `${company} models`,
   ollamaBeta:
     "Beta. Ollama must be running, and the model pulled with ollama pull. Nothing leaves this computer. Use a model that can read pictures, such as llava, if you want it to read them.",
   images: "Read pictures with this model",
   imagesConsent: (host: string, ollama: boolean) =>
     ollama
-      ? "Pictures you add to memory stay on this computer. The model on it reads the text in them."
-      : `Pictures you add to memory leave this computer and go to ${host}, so the model can read the text in them. Without this, a picture is kept by its name only.`,
+      ? "Pictures you add to memory stay on this computer. The model on it reads the text in them. A model on your computer is usually slower and less accurate than Anthropic's or OpenAI's."
+      : `Pictures you add to memory leave this computer and go to ${host}, so the model can read the text in them.`,
+  imagesNow: (by: string | null, here: boolean) =>
+    by === null
+      ? "Now no model reads pictures: each one is kept by its name only."
+      : here
+        ? `Now ${by}, a model on this computer, reads pictures.`
+        : `Now ${by} reads pictures.`,
+  imagesChange:
+    "A change applies only to pictures you add from now on. Pictures already in memory stay as they are: nothing is deleted and nothing is read again. WireCat keeps their text but not the pictures, so a new model cannot read them.",
   save: "Save",
   saved: "Saved.",
   refused: "memo refused the request. Check the provider, the model and the address, then try again.",
@@ -70,7 +89,6 @@ const en = {
   checkSaveFirst: "Check works on the saved model. Save your changes first.",
   nothingToSave: "Nothing is changed yet. Change a setting, then save.",
   needModel: "Type the model name first.",
-  needProvider: "Choose a provider first.",
   checkReasons: {
     "ai.ok": (s) => `Works: ${s.model} answered${s.ms === null ? "" : ` in ${s.ms} ms`}.`,
     "ai.not-set": () => "No AI model is set yet.",
@@ -89,11 +107,9 @@ const en = {
     "ai.failed": (s) => `${s.host} refused the request.`,
   } as Record<string, (s: Said) => string>,
   checkUnknown: "The check failed for a reason WireCat has no words for. Update WireCat and memo.",
-  turnOff: "Turn off",
   turnedOff: "The AI model is off. Your key stays where it is.",
   offFailed: "It was not turned off:",
   summary: (provider: string, model: string) => `In use: ${provider}, ${model}.`,
-  off: "No AI model is set. Agents and readers work as before.",
   looking: "Looking at the AI model…",
   failed: "Could not read the AI model:",
   tooOld: "Memo on this computer cannot use an AI model yet. Update it on the Tools page.",
@@ -102,7 +118,10 @@ const en = {
 const ru: typeof en = {
   heading: "Модель ИИ",
   intro:
-    "WireCat может использовать модель ИИ-компании вместо вашего агента (Claude Code, Codex): для чтения источников, связывания чатов и других задач. Вы платите компании за прочитанное.",
+    "Вместо вашего агента (Claude Code, Codex) WireCat может читать источники, связывать чаты и делать другую работу с помощью модели ИИ, которую вы выберете: Anthropic (Claude), OpenAI (ChatGPT), сервис вроде OpenRouter или Ollama на этом компьютере. За прочитанное вы платите Anthropic, OpenAI или этому сервису. Ollama бесплатна.",
+  noModel: "Без модели (использовать агента)",
+  noModelDetails:
+    "Эту работу WireCat оставляет вашему агенту. Картинка, которую вы добавляете в память, сохраняется только по названию.",
   providers: {
     anthropic: "Anthropic (Claude)",
     openai: "OpenAI или совместимый",
@@ -124,14 +143,31 @@ const ru: typeof en = {
   showKey: "Показать ключ",
   hideKey: "Скрыть ключ",
   model: "Модель",
-  modelHelp: "Впишите название модели так, как его пишет провайдер.",
+  modelHelp: "Выберите из списка или впишите название, которого в нем нет.",
+  modelType: "Впишите название модели так, как его пишет провайдер.",
+  listLoading: "Загружаем список моделей…",
+  listNeedsKey: (company: string) =>
+    `${company} показывает список моделей только по вашему ключу, а memo пока не умеет его запрашивать. Впишите название вручную.`,
+  listOtherAddress: "WireCat пока не умеет читать список моделей по этому адресу. Впишите название вручную.",
+  listOllamaOff: "Не удалось прочитать список Ollama: она не запущена. Запустите ее или впишите название вручную.",
+  listOllamaEmpty: "В Ollama пока нет моделей. Скачайте модель командой ollama pull или впишите название вручную.",
+  listFailed: "Не удалось прочитать список OpenRouter. Проверьте подключение или впишите название вручную.",
+  listDocs: (company: string) => `Модели ${company}`,
   ollamaBeta:
     "Бета. Ollama должна быть запущена, а модель скачана командой ollama pull. Ничего не покидает этот компьютер. Чтобы модель читала картинки, возьмите такую, что их понимает, например llava.",
   images: "Распознавать картинки этой моделью",
   imagesConsent: (host: string, ollama: boolean) =>
     ollama
-      ? "Картинки, которые вы добавляете в память, остаются на этом компьютере. Текст в них читает модель на нём."
-      : `Картинки, которые вы добавляете в память, уходят с этого компьютера на ${host}, чтобы модель прочитала текст в них. Без этого картинка сохраняется только по названию.`,
+      ? "Картинки, которые вы добавляете в память, остаются на этом компьютере. Текст в них читает модель на нем. Модель на компьютере обычно работает медленнее, и точность у нее ниже, чем у Anthropic или OpenAI."
+      : `Картинки, которые вы добавляете в память, уходят с этого компьютера на ${host}, чтобы модель прочитала текст в них.`,
+  imagesNow: (by: string | null, here: boolean) =>
+    by === null
+      ? "Сейчас картинки никакая модель не читает: каждая сохраняется только по названию."
+      : here
+        ? `Сейчас картинки читает ${by}, модель на этом компьютере.`
+        : `Сейчас картинки читает ${by}.`,
+  imagesChange:
+    "Изменение действует только на картинки, которые вы добавите дальше. Картинки, которые уже в памяти, остаются как есть: ничего не удаляется и заново не распознается. WireCat хранит их текст, но не сами картинки, поэтому новая модель прочитать их не сможет.",
   save: "Сохранить",
   saved: "Сохранено.",
   refused: "memo отклонил запрос. Проверьте провайдера, модель и адрес и попробуйте снова.",
@@ -148,7 +184,6 @@ const ru: typeof en = {
   checkSaveFirst: "Проверка работает с сохранённой моделью. Сначала сохраните изменения.",
   nothingToSave: "Пока ничего не изменено. Поменяйте настройку и сохраните.",
   needModel: "Сначала введите имя модели.",
-  needProvider: "Сначала выберите поставщика.",
   checkReasons: {
     "ai.ok": (s) => `Работает: ${s.model} ответила${s.ms === null ? "" : ` за ${s.ms} мс`}.`,
     "ai.not-set": () => "Модель ИИ пока не выбрана.",
@@ -167,11 +202,9 @@ const ru: typeof en = {
     "ai.failed": (s) => `${s.host} отклонил запрос.`,
   },
   checkUnknown: "Проверка не удалась по причине, для которой у WireCat нет слов. Обновите WireCat и memo.",
-  turnOff: "Выключить",
   turnedOff: "Модель ИИ выключена. Ключ остался там, где был.",
   offFailed: "Не удалось выключить:",
   summary: (provider: string, model: string) => `Используется: ${provider}, ${model}.`,
-  off: "Модель ИИ не выбрана. Агенты и читатели работают как раньше.",
   looking: "Смотрим модель ИИ…",
   failed: "Не удалось прочитать модель ИИ:",
   tooOld: "Memo на этом компьютере пока не умеет работать с моделью ИИ. Обновите его на странице Инструменты.",
@@ -180,7 +213,10 @@ const ru: typeof en = {
 const es: typeof en = {
   heading: "Modelo de IA",
   intro:
-    "WireCat puede usar un modelo de una empresa de IA en lugar de tu agente (Claude Code, Codex) para leer fuentes, enlazar chats y otras tareas. Pagas a la empresa por lo que lee.",
+    "En lugar de tu agente (Claude Code, Codex), WireCat puede leer fuentes, enlazar chats y hacer otras tareas con el modelo de IA que elijas: Anthropic (Claude), OpenAI (ChatGPT), un servicio como OpenRouter u Ollama en este ordenador. Pagas a Anthropic, OpenAI o al servicio por lo que lee el modelo. Ollama es gratis.",
+  noModel: "Sin modelo (usar tu agente)",
+  noModelDetails:
+    "WireCat deja este trabajo a tu agente. Una imagen que añades a la memoria se guarda solo por su nombre.",
   providers: {
     anthropic: "Anthropic (Claude)",
     openai: "OpenAI o compatible",
@@ -202,14 +238,31 @@ const es: typeof en = {
   showKey: "Mostrar la clave",
   hideKey: "Ocultar la clave",
   model: "Modelo",
-  modelHelp: "Escribe el nombre del modelo como lo escribe el proveedor.",
+  modelHelp: "Elige de la lista o escribe un nombre que no esté en ella.",
+  modelType: "Escribe el nombre del modelo como lo escribe el proveedor.",
+  listLoading: "Cargando la lista de modelos…",
+  listNeedsKey: (company: string) =>
+    `${company} solo muestra su lista de modelos con tu clave, y memo aún no sabe pedirla. Escribe el nombre a mano.`,
+  listOtherAddress: "WireCat aún no puede leer la lista de modelos en esta dirección. Escribe el nombre a mano.",
+  listOllamaOff: "No se pudo leer la lista de Ollama: no está en marcha. Inícialo o escribe el nombre a mano.",
+  listOllamaEmpty: "Ollama aún no tiene modelos. Descarga uno con ollama pull o escribe el nombre a mano.",
+  listFailed: "No se pudo leer la lista de OpenRouter. Revisa la conexión o escribe el nombre a mano.",
+  listDocs: (company: string) => `Modelos de ${company}`,
   ollamaBeta:
     "Beta. Ollama debe estar en marcha y el modelo descargado con ollama pull. Nada sale de este ordenador. Si quieres que lea imágenes, usa un modelo que las entienda, como llava.",
   images: "Leer imágenes con este modelo",
   imagesConsent: (host: string, ollama: boolean) =>
     ollama
-      ? "Las imágenes que añades a la memoria se quedan en este ordenador. El modelo que corre en él lee el texto que contienen."
-      : `Las imágenes que añades a la memoria salen de este ordenador y van a ${host}, para que el modelo lea el texto que contienen. Sin esto, una imagen se guarda solo por su nombre.`,
+      ? "Las imágenes que añades a la memoria se quedan en este ordenador. El modelo que corre en él lee el texto que contienen. Un modelo en tu ordenador suele ser más lento y menos preciso que los de Anthropic u OpenAI."
+      : `Las imágenes que añades a la memoria salen de este ordenador y van a ${host}, para que el modelo lea el texto que contienen.`,
+  imagesNow: (by: string | null, here: boolean) =>
+    by === null
+      ? "Ahora ningún modelo lee las imágenes: cada una se guarda solo por su nombre."
+      : here
+        ? `Ahora lee las imágenes ${by}, un modelo en este ordenador.`
+        : `Ahora lee las imágenes ${by}.`,
+  imagesChange:
+    "Un cambio solo afecta a las imágenes que añadas a partir de ahora. Las que ya están en la memoria se quedan como están: no se borra nada ni se vuelve a leer nada. WireCat guarda su texto pero no las imágenes, así que un modelo nuevo no puede leerlas.",
   save: "Guardar",
   saved: "Guardado.",
   refused: "memo rechazó la petición. Revisa el proveedor, el modelo y la dirección y vuelve a intentarlo.",
@@ -227,7 +280,6 @@ const es: typeof en = {
   checkSaveFirst: "La comprobación usa el modelo guardado. Guarda primero tus cambios.",
   nothingToSave: "Aún no has cambiado nada. Cambia un ajuste y guarda.",
   needModel: "Escribe primero el nombre del modelo.",
-  needProvider: "Elige primero un proveedor.",
   checkReasons: {
     "ai.ok": (s) => `Funciona: ${s.model} respondió${s.ms === null ? "" : ` en ${s.ms} ms`}.`,
     "ai.not-set": () => "Aún no hay ningún modelo de IA elegido.",
@@ -247,11 +299,9 @@ const es: typeof en = {
     "ai.failed": (s) => `${s.host} rechazó la petición.`,
   },
   checkUnknown: "La comprobación falló por un motivo para el que WireCat no tiene palabras. Actualiza WireCat y memo.",
-  turnOff: "Desactivar",
   turnedOff: "El modelo de IA está desactivado. Tu clave sigue donde estaba.",
   offFailed: "No se desactivó:",
   summary: (provider: string, model: string) => `En uso: ${provider}, ${model}.`,
-  off: "No hay ningún modelo de IA elegido. Los agentes y lectores funcionan como antes.",
   looking: "Mirando el modelo de IA…",
   failed: "No se pudo leer el modelo de IA:",
   tooOld: "Memo en este ordenador aún no puede usar un modelo de IA. Actualízalo en la página Herramientas.",

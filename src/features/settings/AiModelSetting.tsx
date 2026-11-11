@@ -1,19 +1,24 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { hostOfOrigin, providerHost, staysHere } from "@/domain/ai-model"
+import { hostOfOrigin, isLocalHost, providerHost, staysHere } from "@/domain/ai-model"
 import { REFUSED, tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
+import { platform } from "@/platform/bridge"
 import { useAiModel } from "@/shared/ai-model-store"
+import { externalHref } from "@/shared/external-href"
 import { useTools } from "@/shared/tools-store"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
-import { Checkbox, Radio } from "@/ui/Checkbox"
+import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
+import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { FieldError, invalidBorder, useFieldError } from "@/ui/FieldError"
+import { FieldError, useFieldError } from "@/ui/FieldError"
 import { fieldClass } from "@/ui/field"
 import { SecretField } from "@/ui/SecretField"
+import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { aiModelMessages, SAVE_REASONS, type SaveReason } from "./messages-ai-model"
 
@@ -21,6 +26,34 @@ export const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
 type Provider = (typeof AI_PROVIDERS)[number]
 
 const OPENROUTER = "https://openrouter.ai/api/v1"
+const NO_MODEL = "none"
+const MODEL_DOCS: Record<string, { company: string; url: string }> = {
+  anthropic: { company: "Anthropic", url: "https://platform.claude.com/docs/en/about-claude/models/overview" },
+  openai: { company: "OpenAI", url: "https://developers.openai.com/api/docs/models" },
+}
+
+type ModelList = { state: "none" | "loading" | "failed" } | { state: "ready"; models: string[] }
+
+/** A list that needs no key. Anthropic's and OpenAI's need the key only memo reads, so they stay free text for now. */
+const listSource = (provider: Provider | null, host: string) =>
+  provider === "ollama" ? "ollama" : provider === "openai" && host === "openrouter.ai" ? "openrouter" : null
+
+function useModelList(source: "ollama" | "openrouter" | null): ModelList {
+  const [list, setList] = useState<ModelList>({ state: "none" })
+  useEffect(() => {
+    if (source === null) return setList({ state: "none" })
+    let current = true
+    setList({ state: "loading" })
+    platform.aiModelList(source).then(
+      (models) => current && setList({ state: "ready", models }),
+      () => current && setList({ state: "failed" }),
+    )
+    return () => {
+      current = false
+    }
+  }, [source])
+  return list
+}
 
 type Draft = { provider: Provider | null; model: string; baseUrl: string; images: boolean }
 
@@ -94,7 +127,6 @@ function AiModelForm({ saved }: { saved: AiModel }) {
   const keyHelp = useId()
   const imagesId = useId()
   const consent = useId()
-  const noProvider = useFieldError(`${name}-providers`)
   const noModel = useFieldError(modelId)
   const saveFirst = useFieldError(`${name}-save`)
   const [nothing, setNothing] = useState(false)
@@ -121,13 +153,35 @@ function AiModelForm({ saved }: { saved: AiModel }) {
     setDraft((d) => ({ ...d, ...patch }))
   }
   // A key, a model name and an address typed for one provider never carry over to another.
-  const pick = (p: Provider) => {
+  const pick = (p: Provider | null) => {
     const same = p === savedDraft.provider
-    noProvider.clear()
     setKey("")
     set({ provider: p, model: same ? savedDraft.model : "", baseUrl: same ? savedDraft.baseUrl : "" })
   }
   const host = provider === null ? "" : providerHost(provider, provider === "openai" ? draft.baseUrl : null)
+  const source = listSource(provider, host)
+  const list = useModelList(source)
+  const models = list.state === "ready" ? list.models : []
+  const docs = provider !== null && source === null && host === `api.${provider}.com` ? MODEL_DOCS[provider] : undefined
+  const modelLine =
+    list.state === "loading"
+      ? m.listLoading
+      : list.state === "failed"
+        ? source === "ollama"
+          ? m.listOllamaOff
+          : m.listFailed
+        : list.state === "ready"
+          ? models.length > 0
+            ? m.modelHelp
+            : source === "ollama"
+              ? m.listOllamaEmpty
+              : m.modelType
+          : docs
+            ? m.listNeedsKey(docs.company)
+            : m.listOtherAddress
+  const savedHost = saved.provider === null ? "" : hostOfOrigin(saved.origin)
+  // memo refuses a picture when the key is missing, whatever the consent says.
+  const reads = saved.images && (saved.provider === "ollama" || saved.key.stored)
   const keyHere = saved.key.stored && saved.provider === provider
   const keyLine = keyHere
     ? [
@@ -146,7 +200,12 @@ function AiModelForm({ saved }: { saved: AiModel }) {
       onSubmit={async (e) => {
         e.preventDefault()
         if (busy !== null) return
-        if (provider === null) return noProvider.fail(m.needProvider)
+        if (provider === null) {
+          if (saved.provider === null) return setNothing(true)
+          setKey("")
+          void useAiModel.getState().off()
+          return
+        }
         if (draft.model.trim() === "") return noModel.fail(m.needModel)
         if (!dirty) return setNothing(true)
         // The field empties either way: the key is handed on once and never kept in the window.
@@ -164,109 +223,129 @@ function AiModelForm({ saved }: { saved: AiModel }) {
         )
       }}
     >
-      <fieldset
-        id={`${name}-providers`}
-        className="flex flex-col rounded-[0.45rem] border border-line aria-[invalid=true]:border-bad"
-        {...noProvider.field}
-      >
-        <legend className="sr-only">{m.providerLegend}</legend>
-        {AI_PROVIDERS.map((p) => (
-          <label
-            key={p}
-            className="flex cursor-pointer items-center gap-[0.8rem] border-line px-[0.9rem] py-[0.65rem] not-first:border-t"
-          >
-            <Radio name={name} value={p} checked={provider === p} disabled={busy !== null} onChange={() => pick(p)} />
-            <span className="font-medium">{m.providers[p]}</span>
-          </label>
-        ))}
-      </fieldset>
-      {noProvider.hint}
+      <div className="flex flex-col gap-[0.3rem]">
+        <label htmlFor={`${name}-providers`} className="text-[0.9rem] text-ink-dim">
+          {m.providerLegend}
+        </label>
+        <Select
+          id={`${name}-providers`}
+          className="w-full"
+          value={provider ?? NO_MODEL}
+          disabled={busy !== null}
+          onChange={(v) => pick(AI_PROVIDERS.find((p) => p === v) ?? null)}
+          options={[
+            { value: NO_MODEL, label: m.noModel },
+            ...AI_PROVIDERS.map((p) => ({ value: p, label: m.providers[p] ?? p })),
+          ]}
+        />
+      </div>
 
-      {provider === "openai" && (
-        <div className="flex flex-col gap-[0.3rem]">
-          <label htmlFor={urlId} className="text-[0.9rem] text-ink-dim">
-            {m.baseUrl}
-          </label>
-          <input
-            id={urlId}
-            type="url"
-            inputMode="url"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={OPENROUTER}
-            value={draft.baseUrl}
-            onChange={(e) => set({ baseUrl: e.target.value })}
-            aria-describedby={urlHelp}
-            className={`${fieldClass} selectable font-mono`}
-          />
-          <p id={urlHelp} className="text-[0.85rem] text-ink-soft">
-            {m.baseUrlHelp} {m.baseUrlRule}
-          </p>
-        </div>
-      )}
+      <AutoHeight swap={provider}>
+        <div className="flex flex-col gap-[0.9rem]">
+          {provider === null && <p className="text-[0.9rem] text-ink-soft">{m.noModelDetails}</p>}
 
-      {local && <p className="text-[0.9rem] text-ink-soft">{m.ollamaBeta}</p>}
-
-      {provider !== null && (
-        <>
-          <div className="flex flex-col gap-[0.3rem]">
-            <label htmlFor={modelId} className="text-[0.9rem] text-ink-dim">
-              {m.model}
-            </label>
-            <input
-              id={modelId}
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              value={draft.model}
-              onChange={(e) => set({ model: e.target.value })}
-              {...noModel.field}
-              className={cx(fieldClass, invalidBorder, "selectable font-mono")}
-            />
-            {noModel.hint}
-            <p className="text-[0.85rem] text-ink-soft">{m.modelHelp}</p>
-          </div>
-
-          {!local && (
+          {provider === "openai" && (
             <div className="flex flex-col gap-[0.3rem]">
-              <label htmlFor={keyId} className="text-[0.9rem] text-ink-dim">
-                {m.key}
+              <label htmlFor={urlId} className="text-[0.9rem] text-ink-dim">
+                {m.baseUrl}
               </label>
-              <SecretField
-                id={keyId}
-                value={key}
-                onChange={(k) => {
-                  setJustSaved(false)
-                  setKey(k)
-                }}
-                showLabel={m.showKey}
-                hideLabel={m.hideKey}
-                describedBy={keyHelp}
-                disabled={busy === "save"}
+              <input
+                id={urlId}
+                type="url"
+                inputMode="url"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={OPENROUTER}
+                value={draft.baseUrl}
+                onChange={(e) => set({ baseUrl: e.target.value })}
+                aria-describedby={urlHelp}
+                className={`${fieldClass} selectable font-mono`}
               />
-              <p id={keyHelp} className="text-[0.85rem] text-ink-soft">
-                {keyLine}
+              <p id={urlHelp} className="text-[0.85rem] text-ink-soft">
+                {m.baseUrlHelp} {m.baseUrlRule}
               </p>
             </div>
           )}
 
-          <div className="flex flex-col gap-[0.3rem]">
-            <label htmlFor={imagesId} className="flex cursor-pointer items-center gap-2 text-[0.95rem]">
-              <Checkbox
-                id={imagesId}
-                checked={draft.images}
-                onChange={(images) => set({ images })}
-                disabled={busy !== null}
-                aria-describedby={consent}
-              />
-              {m.images}
-            </label>
-            <p id={consent} className="ml-[1.5rem] text-[0.85rem] text-ink-soft">
-              {m.imagesConsent(host, staysHere(provider, provider === "openai" ? draft.baseUrl : null))}
-            </p>
-          </div>
-        </>
-      )}
+          {local && <p className="text-[0.9rem] text-ink-soft">{m.ollamaBeta}</p>}
+
+          {provider !== null && (
+            <>
+              <div className="flex flex-col gap-[0.3rem]">
+                <label htmlFor={modelId} className="text-[0.9rem] text-ink-dim">
+                  {m.model}
+                </label>
+                <Combobox
+                  id={modelId}
+                  value={draft.model}
+                  onChange={(model) => set({ model })}
+                  options={models}
+                  {...noModel.field}
+                  className={cx("font-mono", noModel.error !== null && "border-bad")}
+                />
+                {noModel.hint}
+                <p className="text-[0.85rem] text-ink-soft">
+                  {modelLine}
+                  {docs && (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        className="text-brand underline hover:text-brand-hover"
+                        onClick={() => platform.openUrl(docs.url)}
+                        {...externalHref(docs.url)}
+                      >
+                        {m.listDocs(docs.company)}
+                      </button>
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {!local && (
+                <div className="flex flex-col gap-[0.3rem]">
+                  <label htmlFor={keyId} className="text-[0.9rem] text-ink-dim">
+                    {m.key}
+                  </label>
+                  <SecretField
+                    id={keyId}
+                    value={key}
+                    onChange={(k) => {
+                      setJustSaved(false)
+                      setKey(k)
+                    }}
+                    showLabel={m.showKey}
+                    hideLabel={m.hideKey}
+                    describedBy={keyHelp}
+                    disabled={busy === "save"}
+                  />
+                  <p id={keyHelp} className="text-[0.85rem] text-ink-soft">
+                    {keyLine}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-[0.3rem]">
+                <label htmlFor={imagesId} className="flex cursor-pointer items-center gap-2 text-[0.95rem]">
+                  <Checkbox
+                    id={imagesId}
+                    checked={draft.images}
+                    onChange={(images) => set({ images })}
+                    disabled={busy !== null}
+                    aria-describedby={consent}
+                  />
+                  {m.images}
+                </label>
+                <div id={consent} className="ml-[1.5rem] flex flex-col gap-[0.3rem] text-[0.85rem] text-ink-soft">
+                  <p>{m.imagesConsent(host, staysHere(provider, provider === "openai" ? draft.baseUrl : null))}</p>
+                  <p>{m.imagesNow(reads ? saved.model : null, isLocalHost(savedHost))}</p>
+                  <p>{m.imagesChange}</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </AutoHeight>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button
@@ -275,28 +354,25 @@ function AiModelForm({ saved }: { saved: AiModel }) {
           size="sm"
           variant="primary"
           disabled={busy !== null}
-          icon={busy === "save" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          icon={
+            busy === "save" || busy === "off" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined
+          }
         >
           {m.save}
         </Button>
-        <Button
-          size="sm"
-          disabled={busy !== null}
-          aria-describedby={`${name}-cost`}
-          onClick={() =>
-            dirty
-              ? saveFirst.fail((lang) => aiModelMessages[lang].checkSaveFirst)
-              : saved.provider === null
-                ? noProvider.fail(m.needProvider)
+        {provider !== null && (
+          <Button
+            size="sm"
+            disabled={busy !== null}
+            aria-describedby={`${name}-cost`}
+            onClick={() =>
+              dirty
+                ? saveFirst.fail((lang) => aiModelMessages[lang].checkSaveFirst)
                 : void useAiModel.getState().check()
-          }
-          icon={busy === "check" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-        >
-          {busy === "check" ? m.checking : m.check}
-        </Button>
-        {saved.provider !== null && (
-          <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void useAiModel.getState().off()}>
-            {m.turnOff}
+            }
+            icon={busy === "check" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          >
+            {busy === "check" ? m.checking : m.check}
           </Button>
         )}
         {justSaved && !actionError && !turnedOff && checked === null && (
@@ -312,10 +388,11 @@ function AiModelForm({ saved }: { saved: AiModel }) {
       </div>
       <FieldError id={`${name}-nothing`}>{nothing && m.nothingToSave}</FieldError>
       {saveFirst.hint}
-      <p id={`${name}-cost`} className="-mt-[0.5rem] text-[0.85rem] text-ink-dim">
-        {m.checkCost}
-      </p>
-      {saved.provider === null && <p className="text-[0.9rem] text-ink-soft">{m.off}</p>}
+      {provider !== null && (
+        <p id={`${name}-cost`} className="-mt-[0.5rem] text-[0.85rem] text-ink-dim">
+          {m.checkCost}
+        </p>
+      )}
       {saved.provider !== null && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.summary(m.providers[saved.provider] ?? saved.provider, saved.model ?? "")}
