@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react"
 import { cx } from "./cx"
 
-/** The sign that something opens: at the right edge of what the owner clicks, turned over while open (DESIGN.md). */
+/** The sign that something opens: at the right edge of what the owner clicks, or right after a title (DESIGN.md). */
 export function ExpandChevron({ open, className }: { open: boolean; className?: string }) {
   return (
     <ChevronDown

@@ -395,7 +395,11 @@ number) and runs a fixed command:
   that would act and sends nothing. A findings batch is decided by its id with the fingerprint `actions show` gives:
   `actions confirm <id> <finding ids…> --fingerprint <hash>`, or `actions reject` when none is ticked. A mail findings
   batch (`mail_findings`) is decided the same way without `--fingerprint`, which memo neither gives nor needs for it;
-  `actions confirm <id>` with no finding named would accept every one.
+  `actions confirm <id>` with no finding named would accept every one. Each finding's Approve and Reject on the page
+  are only marks: memo decides a batch in one call (`actions confirm` and `review confirm <id>/<f>` both reject every
+  finding not named, `reject` turns the whole batch down), so one Save sends them all. memo cannot change a staged
+  finding's text, title, due date or assignee, so a finding is edited after the save, through what it became: a fact
+  through its correction, a task in the Tasks dialog.
 - **Discard**: a memory `invalidate` (stale), a proposed fact `reject`, an accepted decision `reverse`, an action
   `reject`. Other facts can only be forgotten.
 - **Correct**: Rust reads the old record with `show` and writes the owner's `add --supersedes` with the old kind,

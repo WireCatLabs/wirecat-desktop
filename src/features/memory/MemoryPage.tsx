@@ -1,5 +1,5 @@
 import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import {
   byReviewRank,
   can,
@@ -11,20 +11,20 @@ import {
   type Tab,
 } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
-import { toolStatus } from "@/domain/status"
-import { openTool, ToolNeeded } from "@/features/tools"
+import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
-import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { InfoTip } from "@/ui/InfoTip"
+import { keepRoom, MOTION, reducedMotion, scrollerOf } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
@@ -37,38 +37,25 @@ import { ForgetDialog } from "./ForgetDialog"
 import { memoryMessages } from "./messages"
 import { addMessages } from "./messages-add"
 import { explainedMessages } from "./messages-explained"
+import { findingsMessages } from "./messages-findings"
 import { Row, SubjectLabel } from "./Row"
 import { MEMORY_PAGE_SIZES, useMemory } from "./store"
 
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
+// A memo too old to read is the page's ToolNeeded line, with its update; a failed read only retries.
 function ReadFailedActions({ what, error }: { what: string; error: string }) {
   const m = useMessages(memoryMessages)
   const reading = useMemory((s) => s.reading)
-  const outdated = useTools(
-    (s) => toolStatus(s.installs.memo, s.latest?.memo ?? null, s.sessions.memo).kind === "outdated",
-  )
   return (
     <>
       <RefreshButton
         busy={reading}
         onClick={() => void useMemory.getState().load()}
-        label={m.readAgain}
+        label={m.tryAgain}
         busyLabel={m.reading}
       />
-      {outdated && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            void useTools.getState().install("memo", { check: true })
-            openTool("memo")
-          }}
-        >
-          {m.updateTool}
-        </Button>
-      )}
       <ReportThis what={what} error={error} />
     </>
   )
@@ -86,6 +73,7 @@ export function MemoryPage() {
     if (!demo) visit()
   }, [visit, demo])
 
+  const paging = usePaging()
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
   const filtered = s.entries.filter((e) => matchesFilter(e, filter))
@@ -149,26 +137,36 @@ export function MemoryPage() {
               <Filters />
             </div>
 
-            {s.read === null ? (
-              <RackSkeleton />
-            ) : s.entries.length === 0 ? (
-              <EmptyState
-                title={m.emptyTitle}
-                action={
-                  <Button size="sm" onClick={() => useNav.getState().go("agents")}>
-                    {m.goAgents}
-                  </Button>
-                }
-              >
-                {m.emptyBody}
-              </EmptyState>
-            ) : (
-              <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
-            )}
+            <div
+              ref={paging.list}
+              aria-busy={paging.waiting || undefined}
+              style={paging.height ? { minHeight: paging.height } : undefined}
+              className={cx(
+                "scroll-mt-[1rem] transition-opacity duration-(--motion-fast)",
+                paging.waiting && "pointer-events-none opacity-55",
+              )}
+            >
+              {s.read === null ? (
+                <RackSkeleton />
+              ) : s.entries.length === 0 ? (
+                <EmptyState
+                  title={m.emptyTitle}
+                  action={
+                    <Button size="sm" onClick={() => useNav.getState().go("agents")}>
+                      {m.goAgents}
+                    </Button>
+                  }
+                >
+                  {m.emptyBody}
+                </EmptyState>
+              ) : (
+                <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
+              )}
+            </div>
             {ordered.length > MEMORY_PAGE_SIZES[0] && (
               <Pager
                 page={at}
-                onPage={s.setPage}
+                onPage={paging.turn(s.setPage)}
                 total={ordered.length}
                 size={s.pageSize}
                 sizes={MEMORY_PAGE_SIZES}
@@ -189,7 +187,12 @@ export function MemoryPage() {
               : (ready.more || ready.page > 1) && (
                   <div className="flex flex-col gap-[0.5rem]">
                     <p className="text-[0.9rem] text-ink-dim">{m.memoPage(ready.page)}</p>
-                    <Pager page={ready.page} onPage={s.turnMemoPage} hasMore={ready.more} busy={s.reading} />
+                    <Pager
+                      page={ready.page}
+                      onPage={paging.turn(s.turnMemoPage, true)}
+                      hasMore={ready.more}
+                      busy={s.reading}
+                    />
                   </div>
                 )}
             {ready && <Activity calls={ready.activity} error={ready.activityError} />}
@@ -200,6 +203,50 @@ export function MemoryPage() {
       <ForgetDialog entry={forgetting} />
     </Page>
   )
+}
+
+/** Brings the list's top into view once its new rows are drawn, only when it is above the view. */
+const toListTop = (el: HTMLElement | null) =>
+  requestAnimationFrame(() => {
+    if (!el) return
+    const view = scrollerOf(el)?.getBoundingClientRect().top ?? 0
+    if (el.getBoundingClientRect().top < view)
+      el.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" })
+  })
+
+/**
+ * A page change keeps the reader on the list: the page keeps its room so nothing below jumps, the list keeps its
+ * height while memo reads the next page, and the list's top comes into view once the new rows are there.
+ */
+function usePaging() {
+  const list = useRef<HTMLDivElement>(null)
+  const reading = useMemory((s) => s.reading)
+  const [height, setHeight] = useState<number | null>(null)
+  const [pending, setPending] = useState(false)
+  const settle = () => {
+    toListTop(list.current)
+    setTimeout(() => setHeight(null), reducedMotion() ? 0 : MOTION.progress + MOTION.normal)
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: settle reads only the ref and setters
+  useEffect(() => {
+    if (pending && !reading) {
+      setPending(false)
+      settle()
+    }
+  }, [pending, reading])
+  const turn =
+    (go: (page: number) => void, read = false) =>
+    (page: number) => {
+      const el = list.current
+      if (el) {
+        keepRoom(el)
+        setHeight(el.offsetHeight)
+      }
+      go(page)
+      if (read) setPending(true)
+      else settle()
+    }
+  return { list, turn, height: height ?? undefined, waiting: pending }
 }
 
 /** The page's one purple action; while the panel is open it steps back and only brings focus to the panel. */
@@ -291,6 +338,7 @@ const rankOf = (g: Group) => (g.entries[0] ? reviewRank(g.entries[0]) : 2)
 /** Approves every single row on screen; the count says how many, and the rows turn green where they are. */
 function ApproveShown({ refs }: { refs: string[] }) {
   const m = useMessages(memoryMessages)
+  const f = useMessages(findingsMessages)
   const [done, setDone] = useState<number | null>(null)
   const [running, setRunning] = useState(false)
   if (refs.length === 0 && done === null) return null
@@ -309,20 +357,24 @@ function ApproveShown({ refs }: { refs: string[] }) {
     setRunning(false)
   }
   return (
-    <Button
-      size="sm"
-      onClick={approve}
-      title={m.approveShownHint(refs.length)}
-      icon={
-        running ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden />
-        ) : (
-          <Check className="size-4" aria-hidden />
-        )
-      }
-    >
-      {m.approveShown(refs.length)}
-    </Button>
+    <span className="flex items-center gap-[0.35rem]">
+      <Button
+        size="sm"
+        onClick={approve}
+        icon={
+          running ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Check className="size-4" aria-hidden />
+          )
+        }
+      >
+        {m.approveShown(refs.length)}
+      </Button>
+      <InfoTip label={f.approveAllAbout} align="end">
+        {m.approveShownHint(refs.length)}
+      </InfoTip>
+    </span>
   )
 }
 

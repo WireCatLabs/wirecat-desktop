@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest"
 import {
   actionSentence,
   actionTargetOf,
-  approveMode,
   batchSubjectOf,
   byDay,
   byReviewRank,
   can,
   causeOf,
+  citedLabelOf,
   createdTarget,
   entryInTab,
   findingsCounts,
@@ -204,10 +204,18 @@ describe("rules of a record's row", () => {
     expect(undoMenuKey(null)).toBeNull()
   })
 
-  it("approves a batch only from its opened row", () => {
-    expect(approveMode(false, false)).toBe("approve")
-    expect(approveMode(true, false)).toBe("review")
-    expect(approveMode(true, true)).toBe("approveFindings")
+  it("names a cited source in words when memo gives no title", () => {
+    expect(citedLabelOf("msg:email/leemour%40gmail.com/1881473858250960641/1881473858250960641")).toEqual({
+      kind: "mail",
+      where: "leemour@gmail.com",
+      short: "…960641",
+    })
+    expect(citedLabelOf("msg:telegram/220195113/5401505520/128115")).toEqual({
+      kind: "message",
+      where: "Telegram",
+      short: "128115",
+    })
+    expect(citedLabelOf("meeting:zoom/8812345678901")).toEqual({ kind: "meeting", where: null, short: "…678901" })
   })
 
   it("words the state by what the record is", () => {

@@ -12,7 +12,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { type MouseEvent, memo, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
-import { approveMode, can, type Subject, tabOf, tickedCount, undoMenuKey, undoOf } from "@/domain/memory"
+import { can, type Subject, tabOf, undoMenuKey, undoOf } from "@/domain/memory"
 import { standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -80,7 +80,6 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
   const failed = useMemory((s) => s.failed[entry.ref])
   // The tab already names the state of what it lists; a record that has left it (held on screen) still says so.
   const saysState = useMemory((s) => s.tab === "all" || tabOf(entry.status) !== s.tab)
-  const skipped = useMemory((s) => s.skipped[entry.ref])
   const { toggle, confirm, discard, startCorrect, askForget, openTask } = useMemory.getState()
   const panel = useId()
   const row = useRef<HTMLDivElement>(null)
@@ -91,7 +90,6 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
   const allowed = can(entry, revoke)
   const undo = undoOf(entry, revoke)
   const editable = open && allowed.correct
-  const ticked = tickedCount(entry.findings, skipped)
 
   const flip = () => {
     if (row.current) holdInPlace(row.current)
@@ -169,20 +167,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
   const undoLabel = undoKey ? m.undo[undoKey] : null
   const rejectItem = allowed.discard && undoLabel && { label: undoLabel, onSelect: () => discard(entry.ref) }
   const eraseItem = allowed.forget && { label: m.forget, danger: true, onSelect: () => askForget(entry.ref) }
-  // A findings batch is approved from its opened row, so what Approve creates is on screen; closed, it opens.
-  const mode = approveMode(!!entry.findings, open)
-  const approve =
-    mode === "approve"
-      ? { label: m.approve, onClick: () => confirm(entry.ref) }
-      : mode === "review"
-        ? { label: m.reviewFindings(entry.findings?.length ?? 0), onClick: flip }
-        : {
-            label: m.approveFindings(ticked),
-            onClick: () =>
-              ticked > 0
-                ? confirm(entry.ref)
-                : row.current?.querySelector<HTMLElement>("[data-findings] input")?.focus(),
-          }
+  const approve = { label: m.approve, onClick: () => confirm(entry.ref) }
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   // A record in use leads with what the owner most likely wants: the task it became, what it created, or an edit.
   const settled =
@@ -231,20 +216,22 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
               >
                 <span className="block min-w-0 flex-1">
                   <span className="flex items-center gap-[0.4rem]">{label}</span>
-                  <span
-                    data-text
-                    title={editable ? m.clickToCorrect : undefined}
-                    className={cx(
-                      "selectable mt-[0.25rem] text-[1rem] leading-snug font-medium",
-                      open ? "block whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
-                      editable &&
-                        "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
-                    )}
-                  >
-                    {textOf(entry, m, roles, x)}
+                  <span className="mt-[0.25rem] flex min-w-0 items-start gap-[0.4rem]">
+                    <span
+                      data-text
+                      title={editable ? m.clickToCorrect : undefined}
+                      className={cx(
+                        "selectable min-w-0 text-[1rem] leading-snug font-medium",
+                        open ? "whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
+                        editable &&
+                          "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
+                      )}
+                    >
+                      {textOf(entry, m, roles, x)}
+                    </span>
+                    <ExpandChevron open={open} className="mt-[0.2rem] group-hover:text-ink" />
                   </span>
                 </span>
-                <ExpandChevron open={open} className="mt-[0.2rem] group-hover:text-ink" />
               </TextButton>
             </div>
           )}
@@ -254,7 +241,14 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
           data-tour="memory-actions"
           className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]"
         >
-          {allowed.confirm ? (
+          {entry.findings && allowed.confirm ? (
+            // A batch is decided finding by finding in its opened panel, where its Save says what happens.
+            !open && (
+              <Button variant="secondary" onClick={flip}>
+                {m.reviewFindings(entry.findings.length)}
+              </Button>
+            )
+          ) : allowed.confirm ? (
             <>
               <Button
                 variant="ghost"

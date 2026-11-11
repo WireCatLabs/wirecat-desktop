@@ -1,3 +1,4 @@
+import { linkTargetOf } from "./links"
 import { personName } from "./people"
 import { freeWords, setField, valuesOf } from "./query-terms"
 
@@ -310,6 +311,29 @@ export function sourceKindOf(kind: string): SourceKind {
 /** The kind a ref names: `mail:123` is a mail. */
 export const refKind = (ref: string) => ref.split(":")[0] ?? ""
 
+const PROVIDERS: Record<string, string> = { telegram: "Telegram", whatsapp: "WhatsApp", max: "MAX", email: "Email" }
+
+/** The end of a long id, enough to tell two apart: `…960641`. */
+export const shortId = (id: string) => (id.length > 10 ? `…${id.slice(-6)}` : id)
+
+/**
+ * A cited ref in words, for when memo gave no title for it: what it is (an email, a chat message), where it lives (the
+ * mailbox, the messenger) and the end of its id. The whole ref stays one click away.
+ */
+export function citedLabelOf(ref: string): { kind: SourceKind; where: string | null; short: string } {
+  const target = linkTargetOf(ref)
+  if (target?.type === "message")
+    return target.provider === "email"
+      ? { kind: "mail", where: target.account, short: shortId(target.message) }
+      : { kind: "message", where: PROVIDERS[target.provider] ?? target.provider, short: shortId(target.message) }
+  const last =
+    ref
+      .slice(ref.indexOf(":") + 1)
+      .split("/")
+      .at(-1) ?? ref
+  return { kind: sourceKindOf(refKind(ref)), where: null, short: shortId(last) }
+}
+
 /** What a finished finding made, when it can be opened: a fact is shown in the list, a task on the Tasks page. */
 export function createdTarget(created: string | null | undefined): "task" | "fact" | null {
   if (!created) return null
@@ -320,12 +344,6 @@ export function createdTarget(created: string | null | undefined): "task" | "fac
 /** The record's own undo in the menu, or null when memo has none or the lead button takes it. */
 export const undoMenuKey = (undo: Undo) =>
   undo === "reject" || undo === "invalidate" || undo === "reverse" || undo === "revoke" ? undo : null
-
-export type ApproveMode = "approve" | "review" | "approveFindings"
-
-/** A findings batch is approved from its opened row, so what Approve creates is on screen; closed, it opens. */
-export const approveMode = (hasFindings: boolean, open: boolean): ApproveMode =>
-  !hasFindings ? "approve" : open ? "approveFindings" : "review"
 
 export type StateLine =
   | "review"

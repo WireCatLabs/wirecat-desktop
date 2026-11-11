@@ -7,27 +7,28 @@ import { MemoryPage } from "./MemoryPage"
 const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
 
 describe("A mail findings batch", () => {
-  it("opens a mail batch as each finding with its kind, the email it cites, and an Approve of only the ticked", async () => {
+  it("opens a mail batch as each finding with its kind and the email it cites, and saves only the approved ones", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await rack()
     await user.click(screen.getByRole("button", { name: /Found in the mail of owner@example.com/ }))
-    const findings = await screen.findByText(/What an agent found in the mail of owner@example.com/)
-    const list = findings.parentElement as HTMLElement
-    expect(within(list).getByText("Invoice")).toBeInTheDocument()
-    expect(within(list).getByText("New contact")).toBeInTheDocument()
-    expect(within(list).getAllByRole("button", { name: "Open the email" }).length).toBeGreaterThan(0)
-    await user.click(within(list).getByRole("checkbox", { name: /Include: Anna Lind/ }))
-    expect(within(list).getByText(/Approve keeps the 2 ticked ones/)).toBeInTheDocument()
+    const batch = (await screen.findByRole("heading", { name: "Found in the mail of owner@example.com" })).closest(
+      "[data-row]",
+    ) as HTMLElement
+    expect(within(batch).getByText("Invoice")).toBeInTheDocument()
+    expect(within(batch).getByText("New contact")).toBeInTheDocument()
+    expect(within(batch).getAllByRole("button", { name: "Open the email" }).length).toBeGreaterThan(0)
+    expect(within(batch).queryByText(/msg:email/)).not.toBeInTheDocument()
+    const anna = within(batch).getByRole("group", { name: /Decision on: Anna Lind/ })
+    await user.click(within(anna).getByRole("radio", { name: /Reject/ }))
     const confirm = vi.spyOn(platform, "memoryConfirm")
-    const batch = list.closest("[data-row]") as HTMLElement
-    await user.click(within(batch).getByRole("button", { name: /^Approve/ }))
+    await user.click(within(batch).getByRole("button", { name: "Save: create 2, reject 1" }))
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:12", ["t1", "i1"]))
   })
 })
 
 describe("A meeting findings batch", () => {
-  it("lists each finding and approves only the ticked ones", async () => {
+  it("lists each finding and saves only the approved ones", async () => {
     const read = platform.memoryRead.bind(platform)
     vi.spyOn(platform, "memoryRead").mockImplementation(async (page) => {
       const out = await read(page)
@@ -43,8 +44,9 @@ describe("A meeting findings batch", () => {
     await rack()
     const batch = screen.getByText(/2 facts and 2 tasks to review/).closest("[data-row]") as HTMLElement
     await user.click(within(batch).getByRole("button", { name: "Review 4" }))
-    await user.click(screen.getByRole("checkbox", { name: /Ask Tom Becker for read access/ }))
-    await user.click(within(batch).getByRole("button", { name: "Approve 3" }))
+    const tom = within(batch).getByRole("group", { name: /Decision on: Ask Tom Becker for read access/ })
+    await user.click(within(tom).getByRole("radio", { name: /Reject/ }))
+    await user.click(within(batch).getByRole("button", { name: "Save: create 3, reject 1" }))
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:7", ["f1", "f2", "f3"]))
   })
 })

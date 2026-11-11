@@ -3,9 +3,11 @@ import { byOwner, dayKey, stateLineOf, subjectOf, toneOf, undoOf } from "@/domai
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { cx } from "@/ui/cx"
+import { Disclosure } from "@/ui/Disclosure"
 import { Lamp } from "@/ui/Lamp"
 import { aboutOf, actionLine, authorOf, kindOf, type M, savedAt } from "./labels"
 import { memoryMessages } from "./messages"
+import { findingsMessages } from "./messages-findings"
 import { DocumentFacts, EditButton, Outcome, RelationSource } from "./RowExplain"
 import { RowFailed } from "./RowFailed"
 import { Findings } from "./RowFindings"
@@ -77,6 +79,7 @@ function FilterLink({ label, onClick, mono }: { label: string; onClick: () => vo
 
 export function Details({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(memoryMessages)
+  const f = useMessages(findingsMessages)
   const lang = useLang()
   const revoke = useMemory(canRevoke)
   const failed = useMemory((s) => s.failed[entry.ref])
@@ -95,15 +98,107 @@ export function Details({ entry }: { entry: MemoryEntry }) {
     </>
   )
 
+  const panel = "border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem]"
+  const meta = (
+    <div className="flex min-w-0 flex-col gap-[1.1rem]">
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-[0.45rem] text-[0.95rem]">
+        {projectName &&
+          row(m.project, <FilterLink label={projectName} onClick={() => filterBy("project", projectName)} />)}
+        {person &&
+          row(
+            m.about,
+            <FilterLink
+              label={person}
+              onClick={() => filterBy("subject", entry.subjectIsOwner ? "me" : (entry.subject ?? person))}
+            />,
+          )}
+        {entry.type !== "relationship" &&
+          row(m.kind, <FilterLink label={kindOf(entry.kind, m)} onClick={() => filterBy("kind", entry.kind)} />)}
+        {entry.scope && row(m.scope, m.scopes[entry.scope] ?? entry.scope)}
+        {(entry.type !== "relationship" || entry.author) &&
+          row(
+            m.writtenBy,
+            <>
+              <FilterLink
+                label={authorOf(entry, m)}
+                mono={!owner}
+                onClick={() => filterBy("by", owner ? "me" : authorOf(entry, m))}
+              />
+              {!owner && <span className="text-ink-soft"> ({m.agentNote})</span>}
+            </>,
+          )}
+        {entry.model && row(m.model, <span className="selectable font-mono text-[0.9rem]">{entry.model}</span>)}
+        {entry.confidence !== null &&
+          row(
+            m.confidence,
+            <span className="font-mono text-[0.9rem] tabular-nums">{entry.confidence.toFixed(2)}</span>,
+          )}
+        {row(
+          m.saved,
+          <FilterLink
+            label={savedAt(entry.createdAt, lang)}
+            mono
+            onClick={() => filterBy("when", dayKey(entry.createdAt))}
+          />,
+        )}
+        {entry.updatedAt &&
+          entry.updatedAt !== entry.createdAt &&
+          row(
+            m.updated,
+            <span className="font-mono text-[0.9rem] tabular-nums">{savedAt(entry.updatedAt, lang)}</span>,
+          )}
+        {entry.type !== "action" &&
+          entry.type !== "relationship" &&
+          row(m.sourcesCount, <span className="font-mono text-[0.9rem] tabular-nums">{entry.links}</span>)}
+        {entry.target &&
+          !entry.findings &&
+          entry.type !== "relationship" &&
+          row(m.actsOn, <span className="selectable font-mono text-[0.9rem] break-all">{entry.target}</span>)}
+        {entry.account &&
+          entry.type !== "relationship" &&
+          entry.kind !== "mail_findings" &&
+          row(m.wouldAct, <span className="selectable font-mono text-[0.9rem] break-all">{entry.account}</span>)}
+        {entry.supersedes &&
+          row(m.corrects, <span className="selectable font-mono text-[0.9rem]">{entry.supersedes}</span>)}
+        {entry.type === "relationship" &&
+          entry.account &&
+          row(m.reportedBy, <span className="font-mono text-[0.9rem]">{entry.account}</span>)}
+        {!explained &&
+          row(
+            m.state,
+            <span className="flex items-start gap-2">
+              <Lamp tone={toneOf(entry.status)} size="sm" />
+              <span className="-mt-[0.2rem]">{stateLine(entry, m)}</span>
+            </span>,
+          )}
+      </dl>
+      {undoOf(entry, revoke) === "none" && (
+        <p className="text-[0.9rem] text-ink-soft">
+          {!revoke ? m.noUndoFact : byOwner(entry) ? m.noUndoOwnFact : m.noUndoCorrection}
+        </p>
+      )}
+    </div>
+  )
+
+  // A batch's list takes the whole width; who wrote it and when fold under More details.
+  if (entry.findings)
+    return (
+      <div className={cx(panel, "flex flex-col gap-[1.1rem]")}>
+        <Findings entry={entry} />
+        {failed && <RowFailed failed={failed} />}
+        <Disclosure summary={f.details}>
+          <div className="grid gap-[1.6rem] pt-[0.4rem] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+            {meta}
+            {/* memo reads sources back for an evidence batch only; a mail finding's cited emails open in its card. */}
+            {entry.kind !== "mail_findings" && <Sources entry={entry} />}
+          </div>
+        </Disclosure>
+      </div>
+    )
+
   return (
-    <div className="grid gap-[1.6rem] border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-      {entry.findings ? (
-        <div className="flex min-w-0 flex-col gap-[1.2rem]">
-          <Findings entry={entry} />
-          {/* memo reads sources back for an evidence batch only; a mail finding's cited emails open beside it. */}
-          {entry.kind !== "mail_findings" && <Sources entry={entry} />}
-        </div>
-      ) : entry.type === "action" ? (
+    <div className={cx(panel, "grid gap-[1.6rem] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]")}>
+      {entry.type === "action" ? (
         <ActionFacts entry={entry} m={m} />
       ) : entry.type === "relationship" ? (
         <div className="flex min-w-0 flex-col gap-[1.2rem]">
@@ -123,82 +218,7 @@ export function Details({ entry }: { entry: MemoryEntry }) {
       )}
 
       <div className="flex min-w-0 flex-col gap-[1.1rem]">
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-[0.45rem] text-[0.95rem]">
-          {projectName &&
-            row(m.project, <FilterLink label={projectName} onClick={() => filterBy("project", projectName)} />)}
-          {person &&
-            row(
-              m.about,
-              <FilterLink
-                label={person}
-                onClick={() => filterBy("subject", entry.subjectIsOwner ? "me" : (entry.subject ?? person))}
-              />,
-            )}
-          {entry.type !== "relationship" &&
-            row(m.kind, <FilterLink label={kindOf(entry.kind, m)} onClick={() => filterBy("kind", entry.kind)} />)}
-          {entry.scope && row(m.scope, m.scopes[entry.scope] ?? entry.scope)}
-          {(entry.type !== "relationship" || entry.author) &&
-            row(
-              m.writtenBy,
-              <>
-                <FilterLink
-                  label={authorOf(entry, m)}
-                  mono={!owner}
-                  onClick={() => filterBy("by", owner ? "me" : authorOf(entry, m))}
-                />
-                {!owner && <span className="text-ink-soft"> ({m.agentNote})</span>}
-              </>,
-            )}
-          {entry.model && row(m.model, <span className="selectable font-mono text-[0.9rem]">{entry.model}</span>)}
-          {entry.confidence !== null &&
-            row(
-              m.confidence,
-              <span className="font-mono text-[0.9rem] tabular-nums">{entry.confidence.toFixed(2)}</span>,
-            )}
-          {row(
-            m.saved,
-            <FilterLink
-              label={savedAt(entry.createdAt, lang)}
-              mono
-              onClick={() => filterBy("when", dayKey(entry.createdAt))}
-            />,
-          )}
-          {entry.updatedAt &&
-            entry.updatedAt !== entry.createdAt &&
-            row(
-              m.updated,
-              <span className="font-mono text-[0.9rem] tabular-nums">{savedAt(entry.updatedAt, lang)}</span>,
-            )}
-          {entry.type !== "action" &&
-            entry.type !== "relationship" &&
-            row(m.sourcesCount, <span className="font-mono text-[0.9rem] tabular-nums">{entry.links}</span>)}
-          {entry.target &&
-            !entry.findings &&
-            entry.type !== "relationship" &&
-            row(m.actsOn, <span className="selectable font-mono text-[0.9rem] break-all">{entry.target}</span>)}
-          {entry.account &&
-            entry.type !== "relationship" &&
-            entry.kind !== "mail_findings" &&
-            row(m.wouldAct, <span className="selectable font-mono text-[0.9rem]">{entry.account}</span>)}
-          {entry.supersedes &&
-            row(m.corrects, <span className="selectable font-mono text-[0.9rem]">{entry.supersedes}</span>)}
-          {entry.type === "relationship" &&
-            entry.account &&
-            row(m.reportedBy, <span className="font-mono text-[0.9rem]">{entry.account}</span>)}
-          {!explained &&
-            row(
-              m.state,
-              <span className="flex items-start gap-2">
-                <Lamp tone={toneOf(entry.status)} size="sm" />
-                <span className="-mt-[0.2rem]">{stateLine(entry, m)}</span>
-              </span>,
-            )}
-        </dl>
-        {undoOf(entry, revoke) === "none" && (
-          <p className="text-[0.9rem] text-ink-soft">
-            {!revoke ? m.noUndoFact : byOwner(entry) ? m.noUndoOwnFact : m.noUndoCorrection}
-          </p>
-        )}
+        {meta}
         {failed && !editing && <RowFailed failed={failed} />}
       </div>
     </div>

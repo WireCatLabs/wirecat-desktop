@@ -273,6 +273,11 @@ body {
   cursor: text;
 }
 
+/* Text inside a clickable title still selects with a drag, but a click opens it: the pointer says so. */
+[role="button"] .selectable:not(.cursor-text) {
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
