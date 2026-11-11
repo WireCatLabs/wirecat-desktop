@@ -94,7 +94,7 @@ describe("what the digest collects", () => {
   it("asks for a memo update when this memo has no brief", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ state: "unsupported" })
     const { card } = await openCard("What to collect")
-    expect(await within(card).findByText(/Update Memo to write them/)).toBeInTheDocument()
+    expect(await within(card).findByText(/Update Memo on the Tools page to write them/)).toBeInTheDocument()
     expect(within(card).queryByRole("textbox")).not.toBeInTheDocument()
   }, 15000)
 })
@@ -153,6 +153,6 @@ describe("how the digest looks", () => {
   it("asks for a memo update when this memo has no templates", async () => {
     vi.spyOn(platform, "digestTemplate").mockResolvedValue({ state: "unsupported" })
     const { card } = await openCard("How it looks")
-    expect(await within(card).findByText(/Update Memo to edit them/)).toBeInTheDocument()
+    expect(await within(card).findByText(/Update Memo on the Tools page to edit them/)).toBeInTheDocument()
   }, 15000)
 })

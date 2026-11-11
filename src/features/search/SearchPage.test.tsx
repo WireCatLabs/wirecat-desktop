@@ -388,7 +388,7 @@ describe("Search", () => {
 
     await user.click(screen.getByRole("button", { name: "Search harder" }))
     expect(
-      await screen.findByText("memo's usual order: memo has no key for the provider, nothing was sent."),
+      await screen.findByText("The usual order: there is no key for the provider, nothing was sent."),
     ).toBeInTheDocument()
     expect(harder).toHaveBeenCalledWith("memo", "plan", 50)
     expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument()

@@ -1,19 +1,31 @@
-import { Check, CheckCheck } from "lucide-react"
+import { Check, CheckCheck, LoaderCircle, Sparkles } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { crmsOf, crmToOpen, mapColumnsOf, mapDropOf, UNMAPPED, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import type { Kind } from "@/domain/clients"
+import { tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { CrmStageMap } from "@/platform/bindings"
+import { goAiModel } from "@/shared/go-ai-model"
 import { Board, BoardColumn, DragCopy, useBoardDrag, useSlide } from "@/ui/Board"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Segmented } from "@/ui/Segmented"
 import { SplitButton } from "@/ui/SplitButton"
-import { type Based, useBaseEdit, useBoard, useConfirm, useConfirming, useMapSet, useStageName } from "./api"
+import {
+  type Based,
+  useBaseEdit,
+  useBoard,
+  useConfirm,
+  useConfirming,
+  useMapSet,
+  useStageName,
+  useSuggest,
+} from "./api"
 import { AddStage, StageMenu, StageRename } from "./BaseStageTools"
 import { OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
@@ -21,6 +33,60 @@ import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
 
 const message = (e: Error | null) => e?.message ?? ""
+
+/**
+ * Asks the AI model for a place for every waiting stage, only when pressed: its answers land as suggestions the owner
+ * accepts or moves, never as confirmed places.
+ */
+function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
+  const s = useMessages(stageMessages)
+  const suggest = useSuggest(kind)
+  const error = suggest.error ? message(suggest.error) : null
+  const reason = error && /^(ai|stage)\.[\w.-]+$/.test(error) ? error : null
+  const done = suggest.data
+  return (
+    <>
+      <Button
+        size="sm"
+        disabled={busy || suggest.isPending}
+        icon={
+          suggest.isPending ? (
+            <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
+          ) : (
+            <Sparkles className="size-4" aria-hidden />
+          )
+        }
+        onClick={() => suggest.mutate()}
+      >
+        {suggest.isPending ? s.suggesting : s.suggest}
+      </Button>
+      <span className="text-[0.85rem] text-ink-dim">{s.suggestHint}</span>
+      <Collapse open={done !== undefined || error !== null}>
+        {error ? (
+          <ErrorNotice
+            inline
+            raw={error}
+            action={
+              reason?.startsWith("ai.") ? (
+                <Button size="sm" variant="ghost" onClick={goAiModel}>
+                  {s.goAiModel}
+                </Button>
+              ) : undefined
+            }
+          >
+            {tooOldFor(error) ? s.suggestOld : ((reason && s.suggestWhy[reason]) ?? s.suggestFailed)}
+          </ErrorNotice>
+        ) : (
+          done && (
+            <span role="status" className="text-[0.9rem] text-ink">
+              {done.suggested + done.left === 0 ? s.suggestNone : s.suggestDone(done.suggested, done.left)}
+            </span>
+          )
+        )}
+      </Collapse>
+    </>
+  )
+}
 
 /** One CRM's stages as badges on the base set's columns, the unconfirmed ones in Unmapped until the owner places them. */
 export function StageMapDialog() {
@@ -230,6 +296,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                         {s.acceptAll(suggestions)}
                       </Button>
                     )}
+                    {waiting.length > 0 && <SuggestStages kind={kind} busy={busy} />}
                   </span>
                 )
               }

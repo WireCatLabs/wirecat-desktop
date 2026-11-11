@@ -62,15 +62,34 @@ export function draftOf(template: Template, digests: readonly DigestItem[], m: B
  */
 export function Starter(props: { can: Can; onPick: (t: Template) => void; compact?: boolean; morningRests?: boolean }) {
   const { can, onPick, compact = false, morningRests = false } = props
-  const m = useMessages(bookMessages).starter
+  const b = useMessages(bookMessages)
+  const m = b.starter
   const update = <span className="text-[0.85rem] text-ink-dim">{m.needsUpdate}</span>
   return (
     <section aria-labelledby="digest-starter" className="rounded-[0.2rem] border border-line-strong bg-app">
-      <div className={cx("border-line border-b", compact ? "px-[1.1rem] py-[0.65rem]" : "px-[1.3rem] py-[1.1rem]")}>
-        <h2 id="digest-starter" className={cx("font-semibold text-ink", compact ? "text-[0.95rem]" : "text-[1.05rem]")}>
-          {compact ? m.more : m.title}
-        </h2>
-        {!compact && <p className="mt-1 text-ink-soft">{m.body}</p>}
+      <div
+        className={cx(
+          "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-line border-b",
+          compact ? "px-[1.1rem] py-[0.65rem]" : "px-[1.3rem] py-[1.1rem]",
+        )}
+      >
+        <div className="min-w-0">
+          <h2
+            id="digest-starter"
+            className={cx("font-semibold text-ink", compact ? "text-[0.95rem]" : "text-[1.05rem]")}
+          >
+            {compact ? m.more : m.title}
+          </h2>
+          {!compact && <p className="mt-1 text-ink-soft">{m.body}</p>}
+        </div>
+        {/* An older memo makes only the daily digest. */}
+        <Button
+          variant="primary"
+          icon={<Plus className="size-4" aria-hidden />}
+          onClick={() => onPick(can.named ? "own" : "daily")}
+        >
+          {b.create}
+        </Button>
       </div>
       <ul className="grid divide-line md:grid-cols-3 md:divide-x max-md:divide-y">
         <Choice

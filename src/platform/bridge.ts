@@ -259,6 +259,7 @@ function createTauri(): Platform {
     clientsScopeSet: (account, profile, scope) => invoke("clients_scope_set", { account, profile, scope }),
     clientsMapSet: (stage, base) => invoke("clients_map_set", { stage, base }),
     clientsMapConfirm: (kind, pipeline) => invoke("clients_map_confirm", { kind, pipeline }),
+    clientsMapSuggest: (kind) => invoke("clients_map_suggest", { kind }),
     clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
     peopleRead: (kind) => call(PeopleReadSchema, "people_read", { kind: kind ?? null }),
     peopleKinds: () => call(KindCountsSchema, "people_kinds"),

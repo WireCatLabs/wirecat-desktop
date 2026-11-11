@@ -274,6 +274,11 @@ describe("withoutPatterns", () => {
     expect(withoutPatterns("filename:*договор* subject:*отчет*")).toBe("filename:*договор* subject:отчет")
     expect(withoutPatterns("from:* invoice")).toBe("invoice")
   })
+  it("turns a part inside a word of the text into the word's start", () => {
+    expect(withoutPatterns("*договор* *аренд* from:*Мила*")).toBe("договор* аренд* from:Мила")
+    expect(withoutPatterns("(*rent* OR text:*deposit*) -*old*")).toBe("(rent* OR text:deposit*) -old*")
+    expect(withoutPatterns("filename:*договор*")).toBeNull()
+  })
   it("says nothing changed when there is no pattern to take out", () => {
     expect(withoutPatterns("аренд* has:photo date>=7d")).toBeNull()
     expect(withoutPatterns('from:"Сергей Иванов"')).toBeNull()

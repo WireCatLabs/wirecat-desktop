@@ -22,6 +22,7 @@ function freshMemo(writer: CrmWriter = "none") {
   vi.spyOn(platform, "clientsScopeSet").mockImplementation(memo.clientsScopeSet)
   vi.spyOn(platform, "clientsMapSet").mockImplementation(memo.clientsMapSet)
   vi.spyOn(platform, "clientsMapConfirm").mockImplementation(memo.clientsMapConfirm)
+  vi.spyOn(platform, "clientsMapSuggest").mockImplementation(memo.clientsMapSuggest)
   vi.spyOn(platform, "clientsBaseEdit").mockImplementation(memo.clientsBaseEdit)
 }
 
@@ -661,6 +662,25 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(within(map).queryByRole("region", { name: /^Unmapped/ })).toBeNull()
     expect(await column(/^Quote/)).toHaveTextContent("Estimate")
     await waitFor(() => expect(within(map).getByRole("radio", { name: "amocrm · acme.example" })).toHaveFocus())
+  })
+
+  it("asks the AI model only on a click, and its places wait to be accepted", async () => {
+    const suggest = vi.spyOn(platform, "clientsMapSuggest")
+    const confirm = vi.spyOn(platform, "clientsMapConfirm")
+    const { user, column } = await openMap()
+    expect(suggest).not.toHaveBeenCalled()
+    await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))
+    expect(suggest).toHaveBeenCalledWith("deal")
+    expect(await screen.findByRole("status", {}, { timeout: 4000 })).toHaveTextContent(/to check|Nothing to ask/)
+    expect(confirm).not.toHaveBeenCalled()
+  })
+
+  it("says what to set when no AI model is chosen, with the way to Settings", async () => {
+    vi.spyOn(platform, "clientsMapSuggest").mockRejectedValue(new Error("ai.not-set"))
+    const { user, column } = await openMap()
+    await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))
+    expect(await screen.findByText(/No AI model is chosen/)).toBeVisible()
+    expect(screen.getByRole("button", { name: "Open AI model settings" })).toBeVisible()
   })
 
   it("puts a stage on another base stage than memo suggested, from the stage's own menu", async () => {

@@ -143,6 +143,16 @@ describe("the table of digests", () => {
 })
 
 describe("creating a digest", () => {
+  it("has a primary Create digest button above the table that starts an own digest", async () => {
+    const user = await openPage(ready([morning]))
+    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const create = within(presets).getByRole("button", { name: "Create digest" })
+    expect(create).toHaveAttribute("data-variant", "primary")
+    await user.click(create)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    expect(within(dialog).getByRole("button", { name: "Create" })).toBeVisible()
+  }, 15000)
+
   it("offers a daily and a weekly template and an own one when there is none", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([]))

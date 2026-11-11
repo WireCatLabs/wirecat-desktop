@@ -320,6 +320,7 @@ pub fn run() {
             commands::clients::clients_scope_set,
             commands::clients::clients_map_set,
             commands::clients::clients_map_confirm,
+            commands::clients::clients_map_suggest,
             commands::clients::clients_base_edit,
             commands::tasks::task_counts,
             commands::tasks::task_show,

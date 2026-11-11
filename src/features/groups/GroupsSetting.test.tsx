@@ -55,7 +55,7 @@ it("moves an account from the keyboard, and puts it back with Memo's reason when
   await userEvent.click(column(/^personal/).getByRole("combobox", { name: "Groups for tg personal" }))
   await userEvent.click(screen.getByRole("option", { name: "Move to work" }))
   expect(move).toHaveBeenCalledWith("telegram:1", "personal", "work")
-  expect(await screen.findByText(/Memo did not change the groups: email names more/)).toBeInTheDocument()
+  expect(await screen.findByText(/The groups did not change: email names more/)).toBeInTheDocument()
   expect(column(/^personal/).getByRole("combobox", { name: "Groups for tg personal" })).toBeInTheDocument()
   expect(column(/^work/).queryByRole("combobox", { name: "Groups for tg personal" })).toBeNull()
 })
@@ -81,7 +81,7 @@ it("refuses a group name Memo would refuse before asking it", async () => {
   render(<GroupsSetting />)
   await userEvent.type(await screen.findByRole("textbox", { name: "New group" }), "all")
   await userEvent.click(screen.getByRole("button", { name: "Create" }))
-  expect(screen.getByText("All and bots already mean something to Memo.")).toBeInTheDocument()
+  expect(screen.getByText("All and bots already mean something else.")).toBeInTheDocument()
 })
 
 it("asks for a memo update on an older memo, in the words every page uses", async () => {

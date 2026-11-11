@@ -303,7 +303,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.click(within(panel).getByRole("radio", { name: /File/ }))
     await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
-    expect(await within(panel).findByText(/cannot read pictures with an AI model yet/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/Pictures cannot be read with an AI model yet/)).toBeInTheDocument()
     expect(within(panel).queryByText(/No AI model is set/)).not.toBeInTheDocument()
   })
 
@@ -373,7 +373,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    expect(await within(panel).findByText(/cannot read sources for facts yet/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/Sources cannot be read for facts yet/)).toBeInTheDocument()
     expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeEnabled()
   })
 
@@ -418,7 +418,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    expect(await within(panel).findByText(/gave no reason WireCat can show/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/refused with no reason WireCat can show/)).toBeInTheDocument()
     expect(within(panel).queryByRole("button", { name: /Report/ })).not.toBeInTheDocument()
   })
 

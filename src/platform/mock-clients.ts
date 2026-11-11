@@ -386,6 +386,7 @@ type ClientsApi = Pick<
   | "clientsScopeSet"
   | "clientsMapSet"
   | "clientsMapConfirm"
+  | "clientsMapSuggest"
   | "clientsBaseEdit"
 >
 
@@ -515,6 +516,18 @@ export function clientsMock(writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
       const ours = (m: CrmStageMap) =>
         pipeline === null ? ALL_PIPES.find((p) => p.ref === m.pipeline)?.kind === kind : m.pipeline === pipeline
       mapping = mapping.map((m) => (ours(m) && m.base ? { ...m, confirmed: true } : m))
+    },
+    async clientsMapSuggest(kind) {
+      await delay(900)
+      const ours = (m: CrmStageMap) => ALL_PIPES.find((p) => p.ref === m.pipeline)?.kind === kind
+      const placeOf = (m: CrmStageMap) => bases[kind].find((b) => b.outcome === m.outcome)
+      const asked = mapping.filter((m) => ours(m) && !m.confirmed && !m.base)
+      mapping = mapping.map((m) => {
+        const b = asked.includes(m) ? placeOf(m) : undefined
+        return b ? { ...m, base: { ref: b.ref, name: b.name } } : m
+      })
+      const suggested = asked.filter((m) => placeOf(m)).length
+      return { suggested, left: asked.length - suggested }
     },
     async clientsBaseEdit(kind, edit) {
       await delay(400)

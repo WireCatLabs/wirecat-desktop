@@ -45,9 +45,9 @@ const en = {
   liquid:
     "Templates are written in Liquid, a small template language. {{ summary }} prints a value. {% if summary %} … {% endif %} shows a part only when there is a value. {% for item in section.items %} … {% endfor %} repeats a part for each item.",
   builtIn:
-    "Memo has a built-in template for each channel, in English and Russian. Your own template replaces it for this digest, this channel and this language only. Reset brings the built-in one back.",
+    "Each channel has a built-in template, in English and Russian. Your own template replaces it for this digest, this channel and this language only. Reset brings the built-in one back.",
   check:
-    "Preview shows your draft with the last real digest, or with a sample when there is none yet. Memo checks a template before it saves it, and says what is wrong.",
+    "Preview shows your draft with the last real digest, or with a sample when there is none yet. A template is checked before it is saved, and you see what is wrong.",
   varsTitle: "What a template can use",
   vars: {
     "date.date": "the digest's day, in your language",
@@ -81,9 +81,9 @@ const ru: typeof en = {
   liquid:
     "Шаблоны пишутся на Liquid, это небольшой язык шаблонов. {{ summary }} выводит значение. {% if summary %} … {% endif %} показывает часть, только когда значение есть. {% for item in section.items %} … {% endfor %} повторяет часть для каждого пункта.",
   builtIn:
-    "В Memo есть встроенный шаблон для каждого канала, на английском и русском. Ваш шаблон заменяет его только для этой сводки, этого канала и этого языка. Кнопка сброса возвращает встроенный.",
+    "У каждого канала есть встроенный шаблон, на английском и русском. Ваш шаблон заменяет его только для этой сводки, этого канала и этого языка. Кнопка сброса возвращает встроенный.",
   check:
-    "Предпросмотр показывает черновик на последней настоящей сводке, а если ее еще нет, на примере. Memo проверяет шаблон перед сохранением и говорит, что не так.",
+    "Предпросмотр показывает черновик на последней настоящей сводке, а если ее еще нет, на примере. Шаблон проверяется перед сохранением, и вы видите, что не так.",
   varsTitle: "Что можно использовать в шаблоне",
   vars: {
     "date.date": "день сводки, на вашем языке",
@@ -117,9 +117,9 @@ const es: typeof en = {
   liquid:
     "Las plantillas se escriben en Liquid, un lenguaje de plantillas pequeño. {{ summary }} muestra un valor. {% if summary %} … {% endif %} muestra una parte solo cuando hay valor. {% for item in section.items %} … {% endfor %} repite una parte para cada elemento.",
   builtIn:
-    "Memo trae una plantilla para cada canal, en inglés y en ruso. La tuya la sustituye solo para este resumen, este canal y este idioma. Restablecer vuelve a la de Memo.",
+    "Cada canal tiene una plantilla integrada, en inglés y en ruso. La tuya la sustituye solo para este resumen, este canal y este idioma. Restablecer vuelve a la integrada.",
   check:
-    "La vista previa muestra tu borrador con el último resumen real, o con un ejemplo si aún no hay ninguno. Memo comprueba la plantilla antes de guardarla y dice qué falla.",
+    "La vista previa muestra tu borrador con el último resumen real, o con un ejemplo si aún no hay ninguno. La plantilla se comprueba antes de guardarla, y ves qué falla.",
   varsTitle: "Qué puede usar una plantilla",
   vars: {
     "date.date": "el día del resumen, en tu idioma",

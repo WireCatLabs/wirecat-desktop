@@ -32,6 +32,7 @@ import type {
   CrmCard,
   CrmKind,
   CrmRead,
+  CrmSuggested,
   CrmVia,
   DigestBook,
   DigestSpec,
@@ -379,6 +380,11 @@ export type Platform = {
   clientsMapSet(stage: string, base: string): Promise<void>
   /** Confirms memo's suggested mappings of one pipeline, or with `null` of every pipeline of the kind. */
   clientsMapConfirm(kind: CrmKind, pipeline: string | null): Promise<void>
+  /**
+   * Asks the AI model chosen in Settings to suggest a base stage for each unconfirmed stage of the kind; the owner
+   * confirms them after. Fails with memo's reason (`ai.not-set`, `ai.key-missing`, `stage.…`) or its masked words.
+   */
+  clientsMapSuggest(kind: CrmKind): Promise<CrmSuggested>
   /** Adds, renames, moves or removes a stage of the kind's base set. */
   clientsBaseEdit(kind: CrmKind, edit: CrmBaseEdit): Promise<void>
   /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
