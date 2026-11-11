@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from "react"
 import { toolByBin } from "@/domain/catalog"
 import { ALL, accountName, editable, isDuplicate, type Member, profileParts } from "@/domain/groups"
 import { useMessages } from "@/i18n"
+import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { ServiceIcon } from "@/shared/ServiceIcon"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { cardClass } from "@/ui/Board"
@@ -118,6 +119,7 @@ function ScopeSwitch({ member }: { member: Member }) {
 
 export function Profiles({ member }: { member: Member }) {
   const m = useMessages(groupsMessages)
+  const names = useAccountNames((s) => s.names)
   if (member.profiles.length === 0)
     return (
       <span className="min-w-0">
@@ -137,7 +139,7 @@ export function Profiles({ member }: { member: Member }) {
             ) : (
               <ToolIcon id={app} className="size-4 shrink-0 text-ink-soft" />
             )}
-            <span className="truncate">{tool && name ? name : p}</span>
+            <span className="truncate">{tool && name ? accountTitle(names, tool.id, name) : p}</span>
           </span>
         )
       })}

@@ -5,10 +5,19 @@ import type { MailWay } from "@/domain/mail-signin"
 import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
-import { guidedProvider, methodOf, oauthTooOld, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import {
+  BITRIX,
+  guidedProvider,
+  methodOf,
+  oauthTooOld,
+  setClientFile,
+  setPassword,
+  useSignIn,
+} from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Disclosure } from "@/ui/Disclosure"
+import { BitrixSteps } from "./BitrixSteps"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
 import { mailMessages } from "./messages-mail"
 import { type PlanText, planFor, planMessages } from "./messages-plan"
@@ -36,6 +45,7 @@ export function Plan() {
   const chosen = tool ? methodOf(tool, method) : undefined
   // A refusal is a new run: the step starts again, its field empty.
   if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
+  if (tool === BITRIX) return <BitrixSteps />
   const steps = [
     ...(plan?.appKeys ? tm.appSteps.map((text) => ({ text, once: true })) : []),
     ...(plan?.steps ?? []).map((text) => ({ text, once: false })),
@@ -100,7 +110,7 @@ export function Plan() {
           </section>
         )}
         {chosen && (chosen.address || chosen.password) && (
-          <Typed missing={planMissing === "client" ? null : planMissing} />
+          <Typed missing={planMissing === "address" || planMissing === "password" ? planMissing : null} />
         )}
         {!gmail && plan?.own && chosen && (chosen.clientFile || chosen.clientId) && (
           <OwnApp own={plan.own} kind={chosen.clientFile ? "file" : "id"} m={m} />

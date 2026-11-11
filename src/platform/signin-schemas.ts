@@ -46,6 +46,7 @@ export type SignInEvent = v.InferOutput<typeof SignInEventSchema>
  */
 export type SignInInputs = {
   address?: string
+  /** An app password, or the whole stdin of a method marked `stdin` (b24's webhook address). */
   password?: string
   /** The text of the owner's own OAuth client JSON, written to a private file for the one run. */
   clientFile?: string

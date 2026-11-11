@@ -23,6 +23,9 @@ import type { Platform } from "./types"
 // `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and tg says nothing for 12 s, as after a real scan
 // (Telegram moves the login to the account's data centre); `&signin-scanned=1` adds the progress line tg-cli could print
 // at the scan.
+// Bitrix24 (`?signin=bitrix`, `?signin-plan=bitrix&b24-step=webhook|paste`): the webhook is checked, then saved;
+// `?signin-fail=bitrix:scope|malformed|webhook-refused|duplicate|network` fails with b24's reasons, and `?b24-same=1`
+// has profile work already on acme.bitrix24.ru as employee 12, so the window refuses the sample webhook itself.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -101,6 +104,10 @@ const GOOGLE_URL = `https://accounts.google.com/o/oauth2/v2/auth?${MOCK_CLIENT}`
 const ZOOM_REDIRECT = "https://wirecat.dev/zoom-callback"
 
 const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
+  async bitrix(s) {
+    if (await s.wait(1500)) return STOPPED
+    return { event: "done", alreadyLinked: false, received: null }
+  },
   async wa(s, method) {
     for (const text of WARNING) s.emit({ event: "note", text })
     if (method === "phone") {
@@ -383,6 +390,27 @@ const FAILURES: Record<
   },
   "signed-out": { code: "authentication_error", reason: "oauth.missing", message: () => "no saved sign-in" },
   "rate-limited": { code: "rate_limited", reason: "provider.rate-limited", message: () => "Google asks to slow down" },
+  scope: {
+    code: "permission_error",
+    reason: "webhook.scope-missing",
+    message: () => "this webhook has no user scope for user.current (INSUFFICIENT_SCOPE); add it in Bitrix24",
+  },
+  malformed: {
+    code: "validation_error",
+    reason: "webhook.malformed",
+    message: () => "that is not a Bitrix24 incoming webhook address: its path is not /rest/<user id>/<secret>/",
+  },
+  "webhook-refused": {
+    code: "authentication_error",
+    reason: "webhook.refused",
+    message: () => "Bitrix24 refused this webhook (NO_AUTH_FOUND)",
+  },
+  duplicate: {
+    code: "conflict",
+    reason: "session.duplicate",
+    message: () =>
+      "profile work already uses this webhook (acme.bitrix24.ru, user 12). Use `b24 work`, or end it first",
+  },
 }
 
 /** One of the failures the window explains, after the step it happens on. */
@@ -435,7 +463,10 @@ async function zoomAppSetup(): Promise<ZoomAppAnswer> {
   }
 }
 
-export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signInStop" | "zoomAppSetup"> {
+export function signInMock(): Pick<
+  Platform,
+  "signIn" | "signInAnswer" | "signInStop" | "zoomAppSetup" | "signInOnPortal"
+> {
   let stop: (() => void) | null = null
   let reply: ((value: string) => void) | null = null
 
@@ -482,5 +513,9 @@ export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signIn
       stop?.()
     },
     zoomAppSetup,
+    async signInOnPortal(_id, host) {
+      await delay(500)
+      return query.get("b24-same") === "1" && host === "acme.bitrix24.ru" ? [{ profile: "work", user: "12" }] : []
+    },
   }
 }

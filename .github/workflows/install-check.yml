@@ -154,6 +154,7 @@ jobs:
         run: |
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.deb" --pattern "*.AppImage" --dir dl
           gh release download v0.1.0 --repo "$GITHUB_REPOSITORY" --pattern "*.deb" --dir old
+          bash .github/scripts/ubuntu-dns.sh
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -q
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y -q xvfb
           # A copy of the first release, whose package was still called wire-cat, must give way to the new one.

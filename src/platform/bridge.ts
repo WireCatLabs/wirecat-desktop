@@ -343,6 +343,7 @@ function createTauri(): Platform {
       return invoke("sign_in", { id, method, profile, inputs: inputs ?? null, onEvent: channel })
     },
     signInAnswer: (id, value) => invoke("sign_in_answer", { id, value }),
+    signInOnPortal: (id, host) => invoke("sign_in_on_portal", { id, host }),
     signInStop: (id) => invoke("sign_in_stop", { id }),
     zoomAppSetup: (id) => invoke("zoom_app_setup", { id }),
     driveFoldersBrowse: (id, profile, parent) => invoke("drive_folders_browse", { id, profile, parent }),

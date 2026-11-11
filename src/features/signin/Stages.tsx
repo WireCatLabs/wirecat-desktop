@@ -20,6 +20,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
 import {
   APP_KEYS,
+  BITRIX,
   keptAnswer,
   linkIn,
   methodOf,
@@ -28,6 +29,7 @@ import {
   type Pairing,
   type Qr,
   receivingHistory,
+  running,
   useSignIn,
 } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -70,8 +72,11 @@ export const isKeys = (s: SignInView) =>
  * Which stage is on screen; a new value cross-fades to the next one. Both app keys are one stage, so their guide stays
  * put while the question under it changes; every other question is a stage of its own.
  */
+/** Bitrix24's webhook is checked on its paste step: the step stays on screen while b24 runs. */
+export const checksInPlan = (s: Pick<SignInView, "tool" | "phase">) => s.tool === BITRIX && running(s.phase)
+
 export function stageKey(s: SignInView) {
-  if (s.phase === "plan") return `plan:${s.method}:${s.planStep}`
+  if (s.phase === "plan" || checksInPlan(s)) return `plan:${s.method}:${checksInPlan(s) ? "paste" : s.planStep}`
   if (isKeys(s)) return "keys"
   if (s.phase === "answer" && s.need) return `answer:${s.need.field}`
   return s.phase

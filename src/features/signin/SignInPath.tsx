@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { zoomNeedsClientId } from "@/domain/signin-failure"
 import { useMessages } from "@/i18n"
-import { APP_KEYS } from "@/shared/signin-store"
+import { APP_KEYS, BITRIX, type PlanStep, useSignIn } from "@/shared/signin-store"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { MOTION } from "@/ui/motion"
@@ -11,8 +11,12 @@ import { wizardMessages } from "./messages-wizard"
 import { isKeys, isPassword, type SignInView } from "./Stages"
 import { MAIL_SERVER_FIELDS, routeOf, type WizardStep, wizardPath } from "./wizard"
 
+const BITRIX_STEPS: PlanStep[] = ["choose", "webhook", "paste"]
+
 /** The step the window shows; null while the tool says nothing that places it (starting, checking an answer). */
 function stepOf(s: SignInView, path: WizardStep[]): WizardStep | null {
+  if (s.tool === BITRIX && s.phase !== "done")
+    return s.phase === "plan" && s.planStep !== "paste" ? (s.planStep === "webhook" ? "webhook" : "portal") : "paste"
   if (s.phase === "plan") return s.planStep === "password" && path.includes("appPassword") ? "appPassword" : "intro"
   if (isKeys(s)) return "keys"
   if (s.phase === "failed" && s.tool && s.failure && zoomNeedsClientId(s.tool, s.failure.message, s.failure.reason))
@@ -74,6 +78,11 @@ function Path({ s }: { s: SignInView }) {
   const canGoBack = s.phase !== "done" && s.phase !== "progress" && !s.stopping
   const select = (i: number) => {
     if (i >= at || s.phase === "done") return undefined
+    // Bitrix24's steps are all the window's own until the check runs: each one before is a click away.
+    if (s.tool === BITRIX && s.phase === "plan") {
+      const planStep = BITRIX_STEPS[i]
+      return planStep ? () => useSignIn.setState({ planStep, planMissing: null, webhookProblem: null }) : undefined
+    }
     return i === 0 && canGoBack ? s.toPlan : () => setLocked(true)
   }
   const state = (i: number): StepState =>

@@ -2,6 +2,7 @@ import type { CatalogTool } from "@/domain/catalog"
 import { formatWhen, shortSession } from "@/domain/runs"
 import { useLang, useMessages } from "@/i18n"
 import type { Claim } from "@/platform/agents-schemas"
+import { AccountTitle } from "@/shared/AccountTitle"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -23,7 +24,7 @@ export function ClaimRow({ c, holder }: { c: AgentClaim; holder: string }) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.9rem]">
         <span className="selectable font-mono text-ink">{task}</span>
         <span className="text-ink-soft">
-          {c.tool.name} · {c.profile}
+          {c.tool.name} · <AccountTitle tool={c.tool.id} profile={c.profile} />
         </span>
         {c.session && (
           <span className="selectable font-mono text-[0.9rem] text-ink-soft" title={c.session}>

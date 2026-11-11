@@ -4,6 +4,7 @@ import { findTool, tools } from "@/domain/catalog"
 import { GroupsSetting } from "@/features/groups"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
+import { nameOf, useAccountNames } from "@/shared/account-names-store"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
@@ -195,6 +196,7 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
   const profiles = useConfig((s) => s.profiles)
   const error = useConfig((s) => s.profilesError)
   const toolId = useConfig((s) => s.tool)
+  const names = useAccountNames((n) => n.names)
   const target = useConfig((s) => s.target)
   const current = target === null ? null : (target.profile ?? DEFAULTS)
 
@@ -234,7 +236,13 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
             checked={current === p.name}
             onSelect={() => onSelect({ profile: p.name })}
           >
-            <span className="font-mono">{p.name}</span>
+            {toolId && nameOf(names, toolId, p.name) ? (
+              <>
+                {nameOf(names, toolId, p.name)} <span className="font-mono text-ink-dim">{p.name}</span>
+              </>
+            ) : (
+              <span className="font-mono">{p.name}</span>
+            )}
           </Choice>
         ))}
       </Choices>
