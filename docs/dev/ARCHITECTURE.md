@@ -165,7 +165,8 @@ src-tauri/src/
                 (`paths::user_shell`) as a new window starts it, quoted for POSIX or fish, then `exec`s that shell so
                 the window stays open; a shell the app does not know runs the line in `/bin/sh` first.
   agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
-                (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
+                (Fix › under an error, Open in on a guide, a community tool's check); only those three programs,
+                found on PATH. One `AgentLaunch` button (`features/fix`) opens the last one used and lists the rest.
   drive_folders.rs Drive's folders for one profile: `folders browse` and `add` (the picker), `folders list` with each
                 name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
                 next sync drops what it copied from there.

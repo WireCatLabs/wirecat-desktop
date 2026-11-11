@@ -230,8 +230,8 @@ workflow run and the transparency-log entry, the last three from the Fulcio cert
 A refusal is a kind with a sentence and what to do
 ([plan, Failures](plans/2026-11-07-own-tools.md#failures-the-user-can-act-on)).
 
-**4. An AI check, then two confirmations.** **Add** first offers **Check it with `<agent>`** for each agent `run_agent`
-can start (or **Copy the check**), with a prompt that names the reviewed tarball and its sha512 and tells the agent to
+**4. An AI check, then two confirmations.** **Add** first offers **Check it with `<agent>`** for the agent last used, with the
+others `run_agent` can start in its menu (or **Copy the check**), with a prompt that names the reviewed tarball and its sha512 and tells the agent to
 download, verify, unpack and read it, compare it with the repository at the release commit, and never install or run
 it; or **Skip and install**. Then "Install and run `<package>`? Its install scripts and first run use your
 permissions.", with Back and **Install and run**. Only that button installs.

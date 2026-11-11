@@ -1,6 +1,6 @@
-import { Check, Copy, SquareTerminal } from "lucide-react"
+import { Check, Copy } from "lucide-react"
 import { useState } from "react"
-import { AgentRunNote, runAgent, useStartableAgents } from "@/features/fix"
+import { AgentLaunch, AgentRunNote, runAgent, useLaunchable, useStartableAgents } from "@/features/fix"
 import { useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
 import type { OwnReview } from "@/platform/bindings"
@@ -26,6 +26,7 @@ export const checkPrompt = (review: OwnReview, r: OwnReviewText) =>
 export function OwnAgentCheck({ review, onRun }: { review: OwnReview; onRun(run: AgentRun | null): void }) {
   const r = useMessages(ownReviewMessages)
   const agents = useStartableAgents()
+  const launchable = useLaunchable()
   const [run, setRun] = useState<{ agent: string; result: AgentRun | null } | null>(null)
   const [copied, setCopied] = useState(false)
   const prompt = checkPrompt(review, r)
@@ -40,23 +41,18 @@ export function OwnAgentCheck({ review, onRun }: { review: OwnReview; onRun(run:
     setCopied(true)
     onRun(null)
   }
-  const agent = agents?.find((a) => a.id === run?.agent)
+  const agent = launchable?.find((a) => a.id === run?.agent)
   return (
     <div className="flex flex-col gap-3 text-[0.95rem]">
       <p>{r.check.body}</p>
       {agents !== null && agents.length === 0 && <p className="text-ink-soft">{r.check.noAgent}</p>}
       <div className="flex flex-wrap items-center gap-2">
-        {(agents ?? []).map((a, i) => (
-          <Button
-            key={a.id}
-            variant={i === 0 ? "primary" : "secondary"}
-            disabled={run !== null && run.result === null}
-            onClick={() => open(a.id)}
-            icon={<SquareTerminal className="size-4" aria-hidden />}
-          >
-            {run?.agent === a.id && !run.result ? r.check.opening : r.check.with(a.name)}
-          </Button>
-        ))}
+        <AgentLaunch
+          label={r.check.with}
+          openingLabel={r.check.opening}
+          opening={run && !run.result ? run.agent : null}
+          onOpen={(a) => open(a.id)}
+        />
         <Button
           variant={agents !== null && agents.length === 0 ? "primary" : "ghost"}
           onClick={copy}

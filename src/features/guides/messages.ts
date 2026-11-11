@@ -28,6 +28,8 @@ const en = {
   } satisfies Record<Goal, { name: string; line: string }>,
   needs: (what: string) => `Needs ${what}`,
   uses: (what: string) => `Uses ${what}`,
+  usesEvery: (sources: string) =>
+    sources ? `Uses memory: everything synced from ${sources}` : "Uses memory: everything you have synced",
   aMessenger: "a messenger",
   memory: "memory",
   copy: "Copy prompt",
@@ -78,6 +80,8 @@ const ru: typeof en = {
   },
   needs: (what) => `Нужно: ${what}`,
   uses: (what) => `Использует: ${what}`,
+  usesEvery: (sources) =>
+    sources ? `Использует память: всё, что загружено из ${sources}` : "Использует память: всё, что вы загрузили",
   aMessenger: "мессенджер",
   memory: "память",
   copy: "Скопировать промпт",
@@ -128,6 +132,8 @@ const es: typeof en = {
   },
   needs: (what) => `Necesita ${what}`,
   uses: (what) => `Usa ${what}`,
+  usesEvery: (sources) =>
+    sources ? `Usa la memoria: todo lo sincronizado de ${sources}` : "Usa la memoria: todo lo que sincronizaste",
   aMessenger: "un mensajero",
   memory: "memoria",
   copy: "Copiar prompt",

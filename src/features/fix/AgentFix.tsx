@@ -2,15 +2,16 @@ import { ChevronRight, SquareTerminal } from "lucide-react"
 import { useState } from "react"
 import { fixPrompt, type Problem } from "@/domain/fix-prompt"
 import { useMessages } from "@/i18n"
-import type { Agent, AgentRun } from "@/platform/agents-schemas"
+import type { AgentRun } from "@/platform/agents-schemas"
 import { useSystem } from "@/shared/system-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { AgentLaunch } from "./AgentLaunch"
 import { fixMessages } from "./messages"
-import { AgentRunNote, runAgent, useStartableAgents } from "./run-agent"
+import { AgentRunNote, runAgent, useLaunchable, useStartableAgents } from "./run-agent"
 
 /** "Fix ›": opens the panel under the error, so the owner sees where the fix goes on. */
 export function FixButton({ open, onClick, controls }: { open: boolean; onClick: () => void; controls: string }) {
@@ -37,14 +38,15 @@ export function FixPanel({ id, open, problem }: { id: string; open: boolean; pro
   const m = useMessages(fixMessages)
   const os = useSystem((s) => s.readiness?.os ?? "unknown OS")
   const agents = useStartableAgents(open)
+  const launchable = useLaunchable(open)
   const [run, setRun] = useState<Run>({ state: "idle" })
   const prompt = fixPrompt(problem, { os, app: __APP_VERSION__ })
 
-  const start = async (agent: Agent) => {
-    setRun({ state: "opening", agent: agent.id })
-    setRun({ state: "done", run: await runAgent(agent.id, prompt) })
+  const start = async (agent: string) => {
+    setRun({ state: "opening", agent })
+    setRun({ state: "done", run: await runAgent(agent, prompt) })
   }
-  const nameOf = (id: string) => agents?.find((a) => a.id === id)?.name ?? id
+  const nameOf = (id: string) => launchable?.find((a) => a.id === id)?.name ?? id
   const failed = run.state === "done" && !run.run.started ? run.run : null
 
   return (
@@ -54,12 +56,13 @@ export function FixPanel({ id, open, problem }: { id: string; open: boolean; pro
         <div className="flex flex-wrap items-center gap-2">
           {agents === null && <span className="text-[0.9rem] text-ink-dim">{m.looking}</span>}
           {agents?.length === 0 && <span className="text-[0.9rem] text-ink-soft">{m.none}</span>}
-          {agents?.map((a) => (
-            <Button key={a.id} size="sm" disabled={run.state === "opening"} onClick={() => start(a)}>
-              <SquareTerminal aria-hidden className="size-4" />
-              {run.state === "opening" && run.agent === a.id ? m.opening : m.open(a.name)}
-            </Button>
-          ))}
+          <AgentLaunch
+            enabled={open}
+            label={m.open}
+            openingLabel={m.opening}
+            opening={run.state === "opening" ? run.agent : null}
+            onOpen={(a) => start(a.id)}
+          />
         </div>
         <div aria-live="polite">
           <Collapse open={run.state === "done"}>
