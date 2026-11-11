@@ -1,5 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { useGroups } from "@/features/groups"
 import { platform } from "@/platform/bridge"
 import { answerAtOnce } from "@/testing/mock-speed"
 import { act, render, screen, waitFor, within } from "@/testing/render"
@@ -151,6 +152,7 @@ describe("People", () => {
   it("shows each account with a readable name, its profiles and a bot mark, and unlinks one after a confirmation", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
+    await act(() => useGroups.getState().load())
     act(() => usePeople.getState().reveal("person:46"))
     const dmitry = await screen.findByRole("dialog", { name: "Dmitry Volkov" }, { timeout: 4000 })
     const telegram = await within(dmitry).findByRole("region", { name: "Telegram" })
