@@ -19,6 +19,9 @@ const openMatches = async (user: User) => {
   await within(region).findAllByRole("article")
   return region
 }
+/** A card is drawn before its people load, under «No name yet», so its name comes later. */
+const openMatch = async (user: User, name: string) =>
+  within(await openMatches(user)).findByRole("article", { name }, { timeout: 4000 })
 
 /** A listed person as a memo older than kinds gives it. */
 const older = {
@@ -177,7 +180,7 @@ describe("People", () => {
     const decide = vi.spyOn(platform, "peopleDecide").mockImplementation((ref) => platform.peopleShow(ref))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
+    const card = await openMatch(user, "Lena Ortiz · Lena Ortiz")
     expect(within(card).getByRole("button", { name: "WireCat" })).toHaveAccessibleDescription(/found this itself/)
     const buttons = within(card)
       .getAllByRole("button")
@@ -192,7 +195,7 @@ describe("People", () => {
     answerAtOnce()
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
+    const card = await openMatch(user, "Lena Ortiz · Lena Ortiz")
     expect(await within(card).findByText("number hidden: accounts keep only its fingerprint")).toBeInTheDocument()
     expect(card).not.toHaveTextContent(/\+\d/)
   })
@@ -201,7 +204,7 @@ describe("People", () => {
     const decide = vi.spyOn(platform, "peopleDecide").mockRejectedValue(new Error("identity.stale"))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
+    const card = await openMatch(user, "Lena Ortiz · Lena Ortiz")
     await user.click(within(card).getByRole("button", { name: "Not the same" }))
     const why = within(card).getByRole("textbox", { name: "Why are they different people?" })
     expect(why).toHaveFocus()
@@ -231,9 +234,7 @@ describe("People", () => {
     const decide = vi.spyOn(platform, "peopleDecide").mockImplementation((ref) => platform.peopleShow(ref))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", {
-      name: "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov",
-    })
+    const card = await openMatch(user, "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov")
     await user.click(within(card).getByRole("checkbox", { name: "K. Semenov is one of them" }))
     await user.click(within(card).getByRole("button", { name: "Not the same" }))
     await user.type(within(card).getByRole("textbox"), "two brothers{Enter}")
