@@ -36,7 +36,7 @@ export function useKnownName() {
     const person = detail?.state === "ready" ? detail.person : null
     return (
       personName({
-        displayName: listedName === undefined ? listed?.displayName : null,
+        displayName: listedName === undefined ? (listed?.displayName ?? person?.displayName) : null,
         name: listedName ?? listed?.name ?? person?.name,
         contact: listed?.contact,
       }) ?? (person ? handleOf(person.identities) : null)

@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
+import { personName } from "./parts"
 import { useSource } from "./source"
 import { useTasks } from "./store"
 import { pageOf } from "./TaskBoard"
@@ -22,6 +23,17 @@ describe("a board column's page", () => {
     expect(pageOf(keys, 2)).toEqual(["a", "b"])
     expect(pageOf(keys, 2, "d")).toEqual(keys)
     expect(pageOf(keys, 9)).toEqual(keys)
+  })
+})
+
+describe("a person's name on a task", () => {
+  const words = { you: "You", unnamed: "No name" } as Parameters<typeof personName>[2]
+  const named = (name: string | null) => personName("person:7", [{ ref: "person:7", name, owner: false }], words)
+
+  it("drops what a source wrote for a missing name", () => {
+    expect(named("Kai null")).toBe("Kai")
+    expect(named("null #97365")).toBe("No name")
+    expect(named("+34600123456")).toBe("+34600123456")
   })
 })
 

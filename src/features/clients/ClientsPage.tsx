@@ -1,6 +1,6 @@
-import { Columns3, Handshake, ListChecks, Lock, Rows3, UserRoundPlus } from "lucide-react"
+import { CheckCheck, Columns3, Handshake, ListChecks, LoaderCircle, Lock, Rows3, UserRoundPlus } from "lucide-react"
 import { useEffect } from "react"
-import { crmsOf } from "@/domain/base-stages"
+import { crmsOf, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf, findTool } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { gapFromRead } from "@/domain/needs"
@@ -17,7 +17,7 @@ import { Pill } from "@/ui/Pill"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
-import { type Based, readAgain, useBoard } from "./api"
+import { type Based, readAgain, useBoard, useConfirm, useConfirming } from "./api"
 import { BaseBoard } from "./BaseBoard"
 import { MovePickers } from "./base-move"
 import { CardDialog } from "./CardDialog"
@@ -97,7 +97,9 @@ export function ClientsPage() {
           </>
         }
       />
-      {board.data?.kind === "base" && <Notices read={board.data} kind={kind} />}
+      {board.data?.kind === "base" && (
+        <Notices key={kind} read={board.data} kind={kind} settled={!board.isPlaceholderData} />
+      )}
       <Body />
       <CardDialog />
       <StageMapDialog />
@@ -109,12 +111,22 @@ export function ClientsPage() {
  * What stands between the owner and the board, one chip each so the board keeps its height: a CRM tool to install, CRM
  * stages to confirm, a pipeline the app cannot move.
  */
-function Notices({ read, kind }: { read: Based; kind: Kind }) {
+function Notices({ read, kind, settled }: { read: Based; kind: Kind; settled: boolean }) {
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
   const gap = useNeed(crmNeed())
-  const waiting = useStagePrompt(read, kind)
+  const waiting = useStagePrompt(read, kind, settled)
   const readOnly = useReadOnly(read)
+  const confirm = useConfirm(kind)
+  const confirming = useConfirming()
+  // While another kind's board is still on screen its pipelines are not this kind's to confirm.
+  const pending = settled
+    ? unconfirmedOf(
+        read.mapping,
+        read.pipelines.filter((p) => p.account),
+      )
+    : []
+  const suggestions = pending.reduce((n, p) => n + p.count, 0)
   const notices: Notice[] = []
   if (gap) {
     const tool = findTool(gap.tool)?.name ?? gap.tool
@@ -141,15 +153,39 @@ function Notices({ read, kind }: { read: Based; kind: Kind }) {
           <div className="flex max-w-[70ch] flex-col gap-1">
             <p className="font-medium text-ink">{s.toConfirm(waiting)}</p>
             <p className="text-ink-soft">{s.toConfirmBody}</p>
+            {confirm.isSuccess && suggestions === 0 && <p className="text-ink-soft">{s.allConfirmed}</p>}
           </div>
-          <Button
-            size="sm"
-            variant="primary"
-            icon={<ListChecks className="size-4" aria-hidden />}
-            onClick={() => useClients.getState().openMap("")}
-          >
-            {s.confirmStages}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {suggestions > 0 && (
+              <Button
+                size="sm"
+                variant="primary"
+                icon={
+                  confirming ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <CheckCheck className="size-4" aria-hidden />
+                  )
+                }
+                onClick={() => confirming || confirm.mutate(pending.map((p) => p.pipeline))}
+              >
+                {s.acceptEvery(suggestions)}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant={suggestions > 0 ? "ghost" : "primary"}
+              icon={<ListChecks className="size-4" aria-hidden />}
+              onClick={() => useClients.getState().openMap("")}
+            >
+              {s.confirmStages}
+            </Button>
+          </div>
+          {confirm.error && suggestions > 0 && (
+            <div className="basis-full">
+              <ErrorNotice inline>{s.failed(confirm.error.message)}</ErrorNotice>
+            </div>
+          )}
         </div>
       ),
     })
@@ -169,8 +205,8 @@ function Notices({ read, kind }: { read: Based; kind: Kind }) {
  * read that brings such stages opens the dialog by itself, once per CRM and kind (every new CRM at once, one dialog);
  * the chip stays until none is left. Gives how many wait.
  */
-function useStagePrompt(read: Based, kind: Kind) {
-  const crms = crmsOf(read.pipelines, read.mapping)
+function useStagePrompt(read: Based, kind: Kind, settled: boolean) {
+  const crms = crmsOf(settled ? read.pipelines : [], read.mapping)
   const prompted = useClients((st) => st.prompted)
   const mapOn = useClients((st) => st.mapOn)
   const fresh = [...crms]

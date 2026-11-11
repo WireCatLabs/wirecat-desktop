@@ -139,6 +139,7 @@ describe("what the people share", () => {
     const person = (id: string) => ({
       ref: "person:1",
       name: null,
+      displayName: null,
       mergedInto: null,
       merges: [],
       matches: [],
@@ -165,6 +166,7 @@ describe("what the people share", () => {
     const person = {
       ref: "person:1",
       name: null,
+      displayName: null,
       mergedInto: null,
       merges: [],
       matches: [],

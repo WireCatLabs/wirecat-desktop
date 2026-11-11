@@ -34,6 +34,7 @@ type Words = {
   toConfirmBody: string
   toConfirmChip: (n: number) => string
   confirmStages: string
+  acceptEvery: (n: number) => string
   allConfirmed: string
   failed: (reason: string) => string
   stageColumn: (name: string, n: number) => string
@@ -99,6 +100,7 @@ const en: Words = {
   toConfirmBody:
     "Each one already has a suggested stage of yours. Their cards already stand there, marked Not confirmed, until you confirm.",
   confirmStages: "Confirm stages",
+  acceptEvery: (n) => `Accept all (${n})`,
   allConfirmed: "Every suggestion is confirmed.",
   failed: (reason) => `Not saved: ${reason}`,
   stageColumn: (name, n) => plural("en", n, { one: `${name}, # stage`, other: `${name}, # stages` }),
@@ -188,6 +190,7 @@ const ru: Words = {
   toConfirmBody:
     "Для каждого уже предложен один из ваших этапов. Карточки уже стоят там с пометкой «Не подтверждено», пока вы не подтвердите.",
   confirmStages: "Подтвердить этапы",
+  acceptEvery: (n) => `Принять все (${n})`,
   allConfirmed: "Все предложения подтверждены.",
   failed: (reason) => `Не сохранено: ${reason}`,
   stageColumn: (name, n) =>
@@ -264,6 +267,7 @@ const es: Words = {
   toConfirmBody:
     "Cada una ya tiene una de tus etapas sugerida. Sus tarjetas ya están ahí, marcadas Sin confirmar, hasta que confirmes.",
   confirmStages: "Confirmar etapas",
+  acceptEvery: (n) => `Aceptar todas (${n})`,
   allConfirmed: "Todas las sugerencias están confirmadas.",
   failed: (reason) => `No se guardó: ${reason}`,
   stageColumn: (name, n) => plural("es", n, { one: `${name}, # etapa`, other: `${name}, # etapas` }),

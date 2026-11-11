@@ -1,6 +1,7 @@
 import { Lock, Mail, MessageSquare } from "lucide-react"
 import type { ReactNode } from "react"
 import { providerName } from "@/domain/archive"
+import { nameOrNumber } from "@/domain/people"
 import { taskFailure } from "@/domain/task-failure"
 import {
   bareTitleKind,
@@ -98,7 +99,7 @@ export function DueText({ task }: { task: Task }) {
 export function personName(ref: string, people: readonly Person[], m: TaskWords): string {
   const p = people.find((x) => x.ref === ref)
   if (p?.owner) return m.you
-  return p?.name ?? m.unnamed
+  return nameOrNumber(p?.name) ?? m.unnamed
 }
 
 /** "waits for HRB-14" while a blocker is open; "hermes is on it" while an agent's claim holds. */

@@ -458,6 +458,7 @@ pub struct Person {
     #[serde(rename = "ref")]
     pub reference: String,
     pub name: Option<String>,
+    pub display_name: Option<String>,
     /// The person asked for was merged away: memo answers with the person it is part of now, whose ref this is.
     pub merged_into: Option<String>,
     pub identities: Vec<Identity>,
@@ -502,6 +503,7 @@ fn person(v: &Value) -> Option<Person> {
     Some(Person {
         reference: person_of(&item["ref"])?,
         name: text(item, "name"),
+        display_name: text(item, "display_name"),
         merged_into: person_of(&item["merged_into"]),
         identities: list(item, "identities", identity),
         merges: list(item, "merges", merge),
@@ -1406,6 +1408,8 @@ mod tests {
         assert_eq!(p.merges[0].from, "person:4");
         assert_eq!(p.merges[0].identities, ["telegram:55"]);
         assert_eq!(person(&fixture("show-moved")).unwrap().merged_into.as_deref(), Some("person:2"));
+        let shown = json!({"item": {"ref": "person:2", "name": "null #9", "display_name": "Kai"}});
+        assert_eq!(person(&shown).unwrap().display_name.as_deref(), Some("Kai"));
         for bad in ["-max:1", "1max:1", "max:a b", "max:", "Max:1"] {
             assert!(sendable(bad).is_none(), "{bad}");
         }
