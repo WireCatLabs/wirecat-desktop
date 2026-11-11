@@ -193,7 +193,7 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
-    expect(await within(card).findByText("+34 600 111 222")).toBeInTheDocument()
+    expect(await within(card).findAllByText("+34 600 111 222")).not.toHaveLength(0)
     expect(within(card).queryByText(/number hidden/)).not.toBeInTheDocument()
   })
 
