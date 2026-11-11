@@ -72,6 +72,9 @@ const ToolSchema = v.object({
       pick: v.optional(v.boolean()),
       /** zm's `app --json`: what to enter when making the Zoom app, read by `zoom_app_setup` (zoom-cli PR #337). */
       appSetup: v.optional(v.array(v.string())),
+      /** b24's `session status`: the portal each profile is on, read by `signInOnPortal`. */
+      identity: v.optional(v.array(v.string())),
+      identityCheck: v.optional(v.string()),
       /**
        * Sign-ins the app runs in its own window instead of a terminal, the first one by default. `address`, `password`
        * and `clientFile` name where Rust passes what the owner typed; `clientId` is the setting that names the owner's
@@ -89,6 +92,8 @@ const ToolSchema = v.object({
             clientId: v.optional(v.string()),
             oauth: v.optional(v.array(v.string())),
             oauthMinVersion: v.optional(v.string()),
+            /** The typed secret is the tool's whole stdin (b24's webhook address), sent in `password`. */
+            stdin: v.optional(v.boolean()),
           }),
         ),
       ),

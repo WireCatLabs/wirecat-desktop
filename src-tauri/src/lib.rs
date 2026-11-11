@@ -406,6 +406,7 @@ pub fn run() {
             commands::signin::check_bots,
             commands::signin::remove_bot,
             commands::signin::sign_in_answer,
+            commands::signin::sign_in_on_portal,
             commands::signin::sign_in_stop,
             commands::setup_extras::zoom_app_setup,
             commands::setup_extras::drive_folders_browse,

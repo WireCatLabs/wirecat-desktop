@@ -24,6 +24,7 @@ import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-schemas"
+import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
@@ -61,6 +62,7 @@ export function SearchPage() {
   const m = useMessages(searchMessages)
   const lang = useLang()
   const s = useSearch()
+  const names = useAccountNames((n) => n.names)
   const installs = useTools((t) => t.installs)
   const checked = useTools((t) => t.checked)
   const refreshing = useTools((t) => t.refreshing)
@@ -168,10 +170,10 @@ export function SearchPage() {
                     placeholder={s.profiles === undefined ? m.readingProfiles : m.chooseProfile}
                     disabled={!s.profiles?.length}
                     onChange={(v) => v && s.chooseProfile(v)}
-                    options={(s.profiles ?? []).map((p) => ({
-                      value: p.name,
-                      label: p.signedIn === false ? m.signedOut(p.name) : p.name,
-                    }))}
+                    options={(s.profiles ?? []).map((p) => {
+                      const title = s.tool ? accountTitle(names, s.tool, p.name) : p.name
+                      return { value: p.name, label: p.signedIn === false ? m.signedOut(title) : title }
+                    })}
                     className="min-w-[12rem]"
                   />
                 )}

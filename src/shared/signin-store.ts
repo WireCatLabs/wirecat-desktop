@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { portalHost, type WebhookProblem, webhookParts, webhookProblem } from "@/domain/bitrix-signin"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
 import type { FailedAt } from "@/domain/signin-failure"
@@ -71,11 +72,20 @@ type SignInState = {
   /** The own app id could not be saved, so the plan stays open with the tool's reason. */
   planError: string | null
   /** Start was pressed without what the method needs. */
-  planMissing: "address" | "password" | "client" | null
+  planMissing: "address" | "password" | "client" | "portal" | "webhook" | null
   /** Gmail's way in: the browser, with WireCat's Google app or the owner's own client, or an app password. */
   way: MailWay
-  /** The plan's own second step: the app password, made with the window's steps and pasted before the run starts. */
-  planStep: "choose" | "password"
+  /**
+   * The plan's own steps before the run. Mail: the provider (`choose`), then the app password. Bitrix24: the portal
+   * (`choose`), how to make the webhook, then the field it is pasted in.
+   */
+  planStep: PlanStep
+  /** Bitrix24's portal host, as the owner typed it on the first step. */
+  portal: string
+  /** Why the pasted webhook cannot be used; the paste step says it, with what to do. */
+  webhookProblem: WebhookProblem | null
+  /** The window is asking the other profiles whether one already holds this webhook. */
+  comparing: boolean
   /** The provider refused the app password typed on that step; the step opens again, saying why. */
   passwordProblem: { reason: string; message: string } | null
   /** The last page a question's hint named, such as the provider's app password page; a failure offers it again. */
@@ -127,10 +137,18 @@ const closed = {
   planError: null,
   planMissing: null as SignInState["planMissing"],
   way: "browser" as MailWay,
-  planStep: "choose" as SignInState["planStep"],
+  planStep: "choose" as PlanStep,
+  portal: "",
+  webhookProblem: null as WebhookProblem | null,
+  comparing: false,
   passwordProblem: null as SignInState["passwordProblem"],
   hintPage: null as string | null,
 }
+
+export type PlanStep = "choose" | "password" | "webhook" | "paste"
+
+/** Bitrix24's webhook is pasted in the window and checked there: the paste step stays while it runs. */
+export const BITRIX = "bitrix"
 
 /** The first https link in a tool's hint, without the sentence's closing punctuation. */
 export const linkIn = (hint: string | null | undefined) =>
@@ -174,6 +192,8 @@ const forget = () => {
 export const setPassword = (value: string) => {
   typed.password = value
 }
+/** Whether a webhook is still pasted after a refusal, so the field says so; never the text itself. */
+export const hasPasted = () => Boolean(typed.password?.trim())
 export const setClientFile = (name: string | null, text?: string) => {
   typed.clientFile = name ? text : undefined
   useSignIn.setState({ ownFile: name })
@@ -192,8 +212,9 @@ export const guidedProvider = (
 const WRONG_PASSWORD = new Set(["mail.app-password-required", "mail.login-refused"])
 
 /** What the plan keeps across a run, a new try and a way back to it. */
-const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way">) => ({
+const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "portal">) => ({
   address: s.address,
+  portal: s.portal,
   ownFile: s.ownFile,
   ownId: s.ownId,
   way: s.way,
@@ -219,7 +240,7 @@ function inputsFor(tool: string, method: string, address: string, way: MailWay):
   if (m.address && address.trim()) inputs.address = address.trim()
   if (m.clientFile && typed.clientFile) inputs.clientFile = typed.clientFile
   else if (m.oauth && way === "browser") inputs.oauth = true
-  else if (m.password && typed.password) inputs.password = typed.password
+  else if ((m.password || m.stdin) && typed.password) inputs.password = typed.password
   return inputs
 }
 
@@ -322,6 +343,21 @@ export const useSignIn = create<SignInState>()((set, get) => {
         return get().onFinish?.()
       case "failed": {
         const s = get()
+        // A refused webhook keeps its address: after ticking a right in Bitrix24 it stays the same, so Check again works.
+        const refusal = s.tool === BITRIX ? webhookProblem(e) : null
+        if (refusal)
+          return set({
+            ...closed,
+            ...kept(s),
+            tool: s.tool,
+            profile: s.profile,
+            method: s.method,
+            onFinish: s.onFinish,
+            run: s.run + 1,
+            phase: "plan",
+            planStep: "paste",
+            webhookProblem: refusal,
+          })
         if (typed.sentIn === s.run && e.reason && WRONG_PASSWORD.has(e.reason))
           return set({
             ...closed,
@@ -349,6 +385,35 @@ export const useSignIn = create<SignInState>()((set, get) => {
         forget()
         return set({ ...closed })
     }
+  }
+
+  /** Portal, then the webhook's steps; the paste step's button runs the check through `begin`. */
+  const bitrixNext = () => {
+    const { planStep, portal } = get()
+    if (planStep === "choose") {
+      const host = portalHost(portal)
+      if (!host) return set({ planMissing: "portal" })
+      return set({ portal: host, planStep: "webhook", planMissing: null, webhookProblem: null })
+    }
+    set({ planStep: "paste", planMissing: null })
+  }
+
+  /** What the window can tell before b24 runs: the address's shape, its portal, and another profile already on it. */
+  const compareThenRun = async (run: () => void) => {
+    const { tool, profile, portal, run: at } = get()
+    if (!tool || !profile) return
+    if (!typed.password?.trim()) return set({ planMissing: "webhook", webhookProblem: null })
+    const parts = webhookParts(typed.password)
+    if (!parts) return set({ webhookProblem: { kind: "malformed", message: "" } })
+    if (parts.host !== portalHost(portal)) return set({ webhookProblem: { kind: "wrongPortal", host: parts.host } })
+    set({ comparing: true, webhookProblem: null, planMissing: null })
+    // b24 refuses a duplicate too: a failed read here leaves it to the run.
+    const same = await platform.signInOnPortal(tool, parts.host).catch(() => [])
+    if (get().run !== at || get().phase !== "plan") return
+    const other = same.find((p) => p.profile !== profile && p.user === parts.user)
+    set({ comparing: false })
+    if (other) return set({ webhookProblem: { kind: "duplicate", profile: other.profile, message: "" } })
+    run()
   }
 
   return {
@@ -421,6 +486,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
     begin() {
       const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
+      if (tool === BITRIX && planStep !== "paste") return bitrixNext()
       const chosen = methodOf(tool, method)
       if (guidedProvider(get())) {
         if (planStep === "choose") {
@@ -441,12 +507,13 @@ export const useSignIn = create<SignInState>()((set, get) => {
           .settingsSet(tool, profile, false, setting, ownId.trim())
           .then(run, (e) => set({ planError: message(e) }))
       }
-      if (!useSandbox.getState().name) return go()
+      const launch = tool === BITRIX ? () => void compareThenRun(go) : go
+      if (!useSandbox.getState().name) return launch()
       const asked = get().run
       void useSandbox
         .getState()
         .confirmSignIn()
-        .then((ok) => ok && get().run === asked && get().phase === "plan" && go())
+        .then((ok) => ok && get().run === asked && get().phase === "plan" && launch())
     },
     again() {
       const { tool, profile, onFinish, method, failure } = get()

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { Removal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useAccountNames } from "@/shared/account-names-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { AccountList } from "./Health"
 
@@ -40,7 +41,68 @@ describe("an account row", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
-    ).toEqual(["Check", "Settings", "Remove account"])
+    ).toEqual(["Check", "Settings", "Sign in again", "Rename", "Sign out", "Remove account"])
+  })
+
+  it("gives Bitrix24 the same actions as every tool", async () => {
+    render(<AccountList tool={tool("bitrix")} profiles={signedIn} onReload={() => undefined} />)
+    const menu = await openMenu("work")
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((i) => i.textContent),
+    ).toEqual(["Check", "Sign in again", "Rename", "Sign out", "Remove account"])
+  })
+
+  it("signs an account out from its menu, keeping it listed, without asking about its data", async () => {
+    vi.spyOn(platform, "accountSignOut").mockResolvedValue({ result: "signedOut", wasSignedIn: true })
+    const supported = vi.spyOn(platform, "accountRemoveSupported")
+    const onReload = vi.fn()
+    render(<AccountList tool={tool("bitrix")} profiles={signedIn} onReload={onReload} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Sign out" }))
+    const dialog = screen.getByRole("dialog", { name: "Sign out work?" })
+    expect(within(dialog).queryByText(/delete/i)).not.toBeInTheDocument()
+    expect(within(dialog).getByText(/CRM records \(deals, leads, contacts and companies\)/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign out" }))
+    expect(platform.accountSignOut).toHaveBeenCalledWith("bitrix", "work")
+    expect(supported).not.toHaveBeenCalled()
+    await waitFor(() => expect(onReload).toHaveBeenCalled())
+  })
+
+  it("offers Bitrix24 only the sign-out under Remove account until a released b24 has account remove", async () => {
+    render(<AccountList tool={tool("bitrix")} profiles={signedIn} onReload={() => undefined} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Remove account" }))
+    const dialog = screen.getByRole("dialog", { name: "Remove work?" })
+    expect(await within(dialog).findByText("Sign out, keep its data")).toBeInTheDocument()
+    expect(within(dialog).queryByText("Remove and delete its data")).not.toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Sign out" })).toBeInTheDocument()
+  })
+
+  it("shows a name of the owner's own with the profile id beside it, and keeps commands on the profile", async () => {
+    useAccountNames.setState({ names: {} })
+    vi.spyOn(platform, "diagnose").mockResolvedValue({
+      command: "tg work doctor --record --json",
+      exitCode: 0,
+      durationMs: 1,
+      report: { item: {} },
+      stderr: "",
+    })
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Rename" }))
+    const field = screen.getByLabelText("Name for work")
+    expect(field).toHaveFocus()
+    await userEvent.type(field, "  Sales   team {Enter}")
+    const row = screen.getByRole("listitem", { name: "Telegram account work" })
+    expect(within(row).getByText("Sales team")).toBeInTheDocument()
+    expect(within(row).getByTitle("Profile work")).toHaveTextContent("work")
+    expect(useAccountNames.getState().names).toEqual({ "tg:work": "Sales team" })
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Check" }))
+    expect(platform.diagnose).toHaveBeenCalledWith("tg", "work")
+
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Rename" }))
+    await userEvent.click(screen.getByRole("button", { name: "Use the profile's name" }))
+    expect(within(row).queryByText("Sales team")).not.toBeInTheDocument()
+    expect(useAccountNames.getState().names).toEqual({})
   })
 
   it("shows a check's result under the row it was asked from, and folds it away", async () => {

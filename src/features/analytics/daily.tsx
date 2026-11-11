@@ -2,6 +2,7 @@ import { addDays, bucketDays, meetingWeekdays, PERIOD_DAYS } from "@/domain/anal
 import { findTool } from "@/domain/catalog"
 import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
 import { MeetingsListSchema, ResponsesSchema, WaitingSchema } from "@/platform/analytics-schemas"
+import { AccountTitle } from "@/shared/AccountTitle"
 import { cx } from "@/ui/cx"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, PartsBar, RankBars, Stat } from "./charts"
@@ -53,7 +54,11 @@ export function ReplyTime() {
               <li key={`${p.id}/${p.profile}`} className="flex flex-wrap items-baseline justify-between gap-x-4">
                 <span className="text-[0.95rem]">
                   {toolName(p.id)}
-                  {p.profile && <span className="ml-2 font-mono text-[0.85rem] text-ink-dim">{p.profile}</span>}
+                  {p.profile && (
+                    <span className="ml-2 text-[0.85rem] text-ink-dim">
+                      <AccountTitle tool={p.id} profile={p.profile} />
+                    </span>
+                  )}
                 </span>
                 <span className="flex gap-4 text-[0.95rem]">
                   <span>

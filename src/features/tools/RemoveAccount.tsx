@@ -25,12 +25,14 @@ type Phase =
   | { step: "refused"; del: boolean; answer: Refused }
   /** The installed tool has no `account remove`: today's sign-out, with the update that brings the rest. */
   | { step: "old" }
+  /** Sign out chosen from the account's menu: the sign-in goes, everything else stays. */
+  | { step: "signOut" }
   | { step: "signingOut" }
   | { step: "signedOut"; result: AccountRemoved }
 
 const dataWhat = (tool: CatalogTool): DataWhat => {
   const what = tool.sync?.what
-  if (what === "files" || what === "meetings" || what === "mail") return what
+  if (what === "files" || what === "meetings" || what === "mail" || what === "records") return what
   return tool.id === "gcal" ? "events" : "messages"
 }
 
@@ -55,8 +57,10 @@ export function RemoveAccountDialog(props: {
   /** The tool forgot the account: the row leaves once the dialog is closed. */
   onForgotten: () => void
   onSignIn: () => void
+  /** Only the sign-out, from the account's own Sign out. */
+  signOutOnly?: boolean
 }) {
-  const { tool, profile, open, onClose, onRemoved, onForgotten, onSignIn } = props
+  const { tool, profile, open, onClose, onRemoved, onForgotten, onSignIn, signOutOnly = false } = props
   const m = useMessages(accountsMessages).remove
   const [phase, setPhase] = useState<Phase>({ step: "checking" })
   // A late answer from an earlier opening, or an earlier step, must not land in this one.
@@ -66,12 +70,13 @@ export function RemoveAccountDialog(props: {
   useEffect(() => {
     const n = ++run.current
     if (!open) return
+    if (signOutOnly) return setPhase({ step: "signOut" })
     setPhase({ step: "checking" })
     platform
       .accountRemoveSupported(tool.id)
       .catch(() => false)
       .then((full) => n === run.current && setPhase({ step: full ? "choose" : "old" }))
-  }, [open, tool.id])
+  }, [open, tool.id, signOutOnly])
 
   const answered = (n: number, del: boolean, a: AccountRemoval, done: (removal: Removal) => Phase) => {
     if (n !== run.current) return
@@ -121,7 +126,7 @@ export function RemoveAccountDialog(props: {
   return (
     <Dialog
       open={open}
-      title={m.title(profile)}
+      title={signOutOnly ? m.signOutTitle(profile) : m.title(profile)}
       onClose={close}
       actions={
         <Actions
@@ -209,6 +214,7 @@ function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: A
         </>
       )
     case "old":
+    case "signOut":
       return signOutWords ? (
         <>
           <Button variant="secondary" onClick={on.close} autoFocus>
@@ -304,6 +310,13 @@ function Body(props: {
       return <Refusal tool={tool} profile={profile} answer={phase.answer} m={m} />
     case "old":
       return <SignOutChoice tool={tool} profile={profile} m={m} />
+    case "signOut":
+      return (
+        <>
+          <p>{m.signOutLead(tool.name)}</p>
+          <Lists tool={tool} m={m} />
+        </>
+      )
     case "signingOut":
       return <Waiting>{m.running}</Waiting>
     case "signedOut":

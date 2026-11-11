@@ -84,7 +84,16 @@ export async function runMockScenario() {
     const address = params.get("signin-address")
     if (address) useSignIn.setState({ address })
   }
-  if (signIn) {
+  // Bitrix24's steps up to the paste one, with a sample webhook pasted: `begin` then checks it as the button does.
+  const bitrixAt = (step: "webhook" | "paste", paste: boolean) => {
+    useSignIn.setState({ portal: "acme.bitrix24.ru", planStep: step })
+    if (paste) setPassword("https://acme.bitrix24.ru/rest/12/sample0webhook0key/")
+  }
+  if (signIn === "bitrix" || failing?.[0] === "bitrix") {
+    useSignIn.getState().start("bitrix", "personal")
+    bitrixAt("paste", true)
+    useSignIn.getState().begin()
+  } else if (signIn) {
     useSignIn.getState().start(signIn, "personal")
     if (signInMethod) useSignIn.setState({ method: signInMethod })
     // A run started here has no Google client file to send, so Gmail's run is the app password's.
@@ -96,7 +105,7 @@ export async function runMockScenario() {
       useSignIn.getState().begin()
     }
   }
-  if (failing?.length === 2 && failing[0] && !signIn) {
+  if (failing?.length === 2 && failing[0] && failing[0] !== "bitrix" && !signIn) {
     useSignIn.getState().start(failing[0], "personal")
     useSignIn.getState().begin()
   }
@@ -111,6 +120,8 @@ export async function runMockScenario() {
     useSignIn.getState().start(plan, "personal")
     if (planMethod) useSignIn.setState({ method: planMethod })
     mailPlan()
+    const b24Step = params.get("b24-step")
+    if (plan === "bitrix" && (b24Step === "webhook" || b24Step === "paste")) bitrixAt(b24Step, false)
   }
   const bot = params.get("bot") ?? params.get("bot-fail")
   if (bot) {

@@ -142,6 +142,13 @@ pub struct SignInSource {
     /// (`qr`, `open_url`, `pairing_code`, `needs`, `progress`) and, with `--answer-stdin`, reads each answer on stdin.
     #[serde(default)]
     pub methods: Vec<SignInMethod>,
+    /// b24's `session status`: which portal each profile is signed in to, so a second profile with the same webhook
+    /// is refused before it runs. Never the address itself.
+    #[serde(default)]
+    pub identity: Option<Vec<String>>,
+    /// The flag that makes `identity` ask the portal whose webhook it is.
+    #[serde(default, rename = "identityCheck")]
+    pub identity_check: Option<String>,
 }
 
 /// What the owner types before the run starts goes in as the flag or variable named here, never through a shell.
@@ -162,6 +169,9 @@ pub struct SignInMethod {
     /// The words that make a new profile sign in by OAuth with the tool's own app (mail's `--method oauth`).
     #[serde(default)]
     pub oauth: Option<Vec<String>>,
+    /// The typed secret is the tool's whole stdin, closed after it: b24 reads its webhook address until EOF.
+    #[serde(default)]
+    pub stdin: bool,
 }
 
 /// `commands` lists every command with its effects and, from cli-core 0.408, whether the profile may run it.

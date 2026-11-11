@@ -5,6 +5,7 @@ import { catalogCommand, findTool } from "@/domain/catalog"
 import type { SkillTarget } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { AccountTitle } from "@/shared/AccountTitle"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
@@ -239,7 +240,10 @@ export function ConnectDialog({
                         onChange={() => flow.toggleWritable(c.key)}
                       />
                       <span>
-                        {c.tool.name} · <span className="font-medium">{c.profile}</span>
+                        {c.tool.name} ·{" "}
+                        <span className="font-medium">
+                          <AccountTitle tool={c.tool.id} profile={c.profile} />
+                        </span>
                       </span>
                     </label>
                   )

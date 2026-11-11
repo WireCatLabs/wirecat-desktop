@@ -5,7 +5,7 @@ import type { RemovalHolder, RemovalKind } from "@/platform/bindings"
 
 type Removes = (typeof ACCOUNT_REMOVES)[number]
 type Keeps = (typeof ACCOUNT_KEEPS)[number]
-export type DataWhat = "messages" | "files" | "meetings" | "mail" | "events"
+export type DataWhat = "messages" | "files" | "meetings" | "mail" | "events" | "records"
 
 const en = {
   row: {
@@ -21,9 +21,22 @@ const en = {
     region: (tool: string, profile: string) => `${tool} account ${profile}`,
     list: (tool: string) => `${tool} accounts`,
     closeCheck: "Close the check",
+    signInFresh: "Sign in again",
+    signOut: "Sign out",
+    rename: "Rename",
+    renameLabel: (profile: string) => `Name for ${profile}`,
+    renameHint: (profile: string) =>
+      `Shown wherever this account is listed in WireCat. Commands and your agent still use the profile ${profile}.`,
+    renameSave: "Save name",
+    renameReset: "Use the profile's name",
+    renameCancel: "Cancel",
+    profileId: (profile: string) => `Profile ${profile}`,
   },
   remove: {
     title: (profile: string) => `Remove ${profile}?`,
+    signOutTitle: (profile: string) => `Sign out ${profile}?`,
+    signOutLead: (tool: string) =>
+      `WireCat ends this ${tool} account's sign-in on this computer. Sign in again any time to use it.`,
     lead: (tool: string) => `Choose what happens to this ${tool} account on this computer.`,
     keepTitle: "Sign out, keep its data",
     deleteTitle: "Sign out and delete its data",
@@ -52,6 +65,7 @@ const en = {
       meetings: "meetings and transcripts",
       mail: "mail",
       events: "calendar events",
+      records: "CRM records (deals, leads, contacts and companies)",
     } satisfies Record<DataWhat, string>,
     noDelete: (tool: string) =>
       `${tool} cannot delete one account's data yet. Clear storage on the Storage page deletes the data of every account.`,
@@ -162,9 +176,22 @@ const ru: AccountsText = {
     region: (tool, profile) => `Аккаунт ${tool} ${profile}`,
     list: (tool) => `Аккаунты ${tool}`,
     closeCheck: "Закрыть проверку",
+    signInFresh: "Войти заново",
+    signOut: "Выйти",
+    rename: "Переименовать",
+    renameLabel: (profile) => `Название для ${profile}`,
+    renameHint: (profile) =>
+      `Показывается везде, где WireCat перечисляет этот аккаунт. Команды и ваш агент по-прежнему используют профиль ${profile}.`,
+    renameSave: "Сохранить название",
+    renameReset: "Вернуть имя профиля",
+    renameCancel: "Отмена",
+    profileId: (profile) => `Профиль ${profile}`,
   },
   remove: {
     title: (profile) => `Удалить ${profile}?`,
+    signOutTitle: (profile) => `Выйти из ${profile}?`,
+    signOutLead: (tool) =>
+      `WireCat завершит вход этого аккаунта ${tool} на этом компьютере. Чтобы снова им пользоваться, войдите заново.`,
     lead: (tool) => `Выберите, что станет с этим аккаунтом ${tool} на этом компьютере.`,
     keepTitle: "Выйти, данные оставить",
     deleteTitle: "Выйти и удалить данные",
@@ -193,6 +220,7 @@ const ru: AccountsText = {
       meetings: "встречи и расшифровки",
       mail: "письма",
       events: "события календаря",
+      records: "записи CRM (сделки, лиды, контакты и компании)",
     },
     noDelete: (tool) =>
       `${tool} пока не умеет удалять данные одного аккаунта. «Очистить хранилище» на странице «Хранилище» удаляет данные всех аккаунтов.`,
@@ -301,9 +329,22 @@ const es: AccountsText = {
     region: (tool, profile) => `Cuenta de ${tool} ${profile}`,
     list: (tool) => `Cuentas de ${tool}`,
     closeCheck: "Cerrar la comprobación",
+    signInFresh: "Volver a iniciar sesión",
+    signOut: "Cerrar sesión",
+    rename: "Cambiar nombre",
+    renameLabel: (profile) => `Nombre para ${profile}`,
+    renameHint: (profile) =>
+      `Se muestra donde WireCat lista esta cuenta. Los comandos y tu agente siguen usando el perfil ${profile}.`,
+    renameSave: "Guardar nombre",
+    renameReset: "Usar el nombre del perfil",
+    renameCancel: "Cancelar",
+    profileId: (profile) => `Perfil ${profile}`,
   },
   remove: {
     title: (profile) => `¿Quitar ${profile}?`,
+    signOutTitle: (profile) => `¿Cerrar la sesión de ${profile}?`,
+    signOutLead: (tool) =>
+      `WireCat cierra la sesión de esta cuenta de ${tool} en este ordenador. Vuelve a iniciar sesión cuando quieras usarla.`,
     lead: (tool) => `Elige qué pasa con esta cuenta de ${tool} en este ordenador.`,
     keepTitle: "Cerrar sesión y conservar sus datos",
     deleteTitle: "Cerrar sesión y borrar sus datos",
@@ -332,6 +373,7 @@ const es: AccountsText = {
       meetings: "reuniones y transcripciones",
       mail: "correos",
       events: "eventos del calendario",
+      records: "registros del CRM (negocios, prospectos, contactos y empresas)",
     },
     noDelete: (tool) =>
       `${tool} aún no puede borrar los datos de una sola cuenta. Vaciar el almacenamiento en la página Almacenamiento borra los datos de todas las cuentas.`,

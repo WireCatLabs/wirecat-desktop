@@ -1,4 +1,4 @@
-import { Bot, Terminal } from "lucide-react"
+import { Bot, LoaderCircle, Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { readMailNotes } from "@/domain/mail-signin"
@@ -8,7 +8,15 @@ import { useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { botMessages } from "@/shared/messages-bot"
-import { guidedProvider, NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "@/shared/signin-store"
+import {
+  BITRIX,
+  guidedProvider,
+  NEEDS_UPDATE,
+  type Phase,
+  receivingHistory,
+  running,
+  useSignIn,
+} from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
@@ -20,13 +28,14 @@ import { MOTION } from "@/ui/motion"
 import { noticeBox } from "@/ui/notice"
 import { explainView } from "./Failure"
 import { type SigninMessages, signinMessages } from "./messages"
+import { bitrixMessages } from "./messages-bitrix"
 import { mailMessages } from "./messages-mail"
 import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
 import { Plan } from "./Plan"
 import { SignInPath } from "./SignInPath"
-import { type SignInView, Stage, stageKey } from "./Stages"
+import { checksInPlan, type SignInView, Stage, stageKey } from "./Stages"
 import { KeyringNotice } from "./TelegramGuide"
 
 /**
@@ -70,7 +79,7 @@ export function SignInDialog() {
           {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
           <AutoHeight swap={key}>
             <Crossfade swap={key} ms={MOTION.swap}>
-              {s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}
+              {s.phase === "plan" || checksInPlan(s) ? <Plan /> : <Stage name={name} s={s} />}
             </Crossfade>
           </AutoHeight>
         </div>
@@ -140,6 +149,7 @@ function Actions() {
   const entry = tool ? findTool(tool) : undefined
   // A provider is chosen in the plan itself, never switched to in the middle of a sign-in.
   const others = entry && !entry.signIn?.pick ? signInMethods(entry).filter((m) => m.id !== method) : []
+  if (phase === "plan" && tool === BITRIX) return <BitrixActions />
   if (phase === "plan") {
     const guided = guidedProvider(s) !== null
     if (guided && s.planStep === "password")
@@ -251,6 +261,39 @@ function Actions() {
     <Button variant="primary" onClick={close} data-autofocus>
       {m.done}
     </Button>
+  )
+}
+
+const BITRIX_BACK = { webhook: "choose", paste: "webhook" } as const
+
+/** Bitrix24's own steps: Back to the one before, and the next, which on the paste step checks the webhook. */
+function BitrixActions() {
+  const { planStep, comparing, webhookProblem, close, begin } = useSignIn()
+  const m = useMessages(signinMessages)
+  const mm = useMessages(mailMessages)
+  const bm = useMessages(bitrixMessages).paste
+  const back = planStep === "webhook" || planStep === "paste" ? BITRIX_BACK[planStep] : null
+  const paste = planStep === "paste"
+  return (
+    <>
+      {back && (
+        <BackButton
+          onClick={() => useSignIn.setState({ planStep: back, planMissing: null, webhookProblem: null })}
+          reason={comparing ? m.back.busy : undefined}
+        />
+      )}
+      <Button variant="secondary" onClick={close}>
+        {m.cancel}
+      </Button>
+      <Button
+        variant="primary"
+        onClick={begin}
+        disabled={comparing}
+        icon={comparing ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : undefined}
+      >
+        {paste ? (webhookProblem ? bm.checkAgain : bm.check) : mm.next}
+      </Button>
+    </>
   )
 }
 
