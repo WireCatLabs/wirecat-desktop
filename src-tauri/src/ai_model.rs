@@ -349,7 +349,7 @@ mod tests {
         let v = json!({"data": [{"id": "b/two"}, {"id": "a/one"}, {"id": "a/one"}, {"id": "bad\nname"},
             {"id": "x".repeat(MAX_MODEL_NAME + 1)}, {"name": "no id"}]});
         assert_eq!(model_names(&v, "data", "id"), ["a/one", "b/two"]);
-        assert!(model_names(&json!({"error": "nope"}), "data", "id").is_empty());
+        assert_eq!(model_names(&json!({"error": "nope"}), "data", "id"), Vec::<String>::new());
     }
 
     #[test]
