@@ -106,7 +106,8 @@ const en = {
     "ai.address-refused": () => "This address is not allowed. Use https, or http only for a server on this computer.",
     "ai.failed": (s) => `${s.host} refused the request.`,
   } as Record<string, (s: Said) => string>,
-  checkUnknown: "The check failed for a reason WireCat has no words for. Update WireCat and Memo on the Tools page.",
+  checkUnknown:
+    "The check failed for a reason WireCat has no words for. Update WireCat from the Help menu, and Memo on the Tools page.",
   turnedOff: "The AI model is off. Your key stays where it is.",
   offFailed: "It was not turned off:",
   summary: (provider: string, model: string) => `In use: ${provider}, ${model}.`,
@@ -201,7 +202,7 @@ const ru: typeof en = {
     "ai.failed": (s) => `${s.host} отклонил запрос.`,
   },
   checkUnknown:
-    "Проверка не удалась по причине, для которой у WireCat нет слов. Обновите WireCat и Memo на странице «Инструменты».",
+    "Проверка не удалась по причине, для которой у WireCat нет слов. Обновите WireCat через меню «Справка», а Memo на странице «Инструменты».",
   turnedOff: "Модель ИИ выключена. Ключ остался там, где был.",
   offFailed: "Не удалось выключить:",
   summary: (provider: string, model: string) => `Используется: ${provider}, ${model}.`,
@@ -298,7 +299,7 @@ const es: typeof en = {
     "ai.failed": (s) => `${s.host} rechazó la petición.`,
   },
   checkUnknown:
-    "La comprobación falló por un motivo para el que WireCat no tiene palabras. Actualiza WireCat y Memo en la página Herramientas.",
+    "La comprobación falló por un motivo para el que WireCat no tiene palabras. Actualiza WireCat desde el menú Ayuda, y Memo en la página Herramientas.",
   turnedOff: "El modelo de IA está desactivado. Tu clave sigue donde estaba.",
   offFailed: "No se desactivó:",
   summary: (provider: string, model: string) => `En uso: ${provider}, ${model}.`,

@@ -520,14 +520,14 @@ export function clientsMock(writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
     async clientsMapSuggest(kind) {
       await delay(900)
       const ours = (m: CrmStageMap) => ALL_PIPES.find((p) => p.ref === m.pipeline)?.kind === kind
-      const placeOf = (m: CrmStageMap) => bases[kind].find((b) => b.outcome === m.outcome)
-      const asked = mapping.filter((m) => ours(m) && !m.confirmed && !m.base)
+      const places = (m: CrmStageMap) => bases[kind].filter((b) => b.outcome === m.outcome)
+      // As memo: every waiting stage of the kind, any CRM, that has more than one place; a suggestion is replaced.
+      const asked = mapping.filter((m) => ours(m) && !m.confirmed && places(m).length > 1)
       mapping = mapping.map((m) => {
-        const b = asked.includes(m) ? placeOf(m) : undefined
+        const b = asked.includes(m) ? places(m).at(-1) : undefined
         return b ? { ...m, base: { ref: b.ref, name: b.name } } : m
       })
-      const suggested = asked.filter((m) => placeOf(m)).length
-      return { suggested, left: asked.length - suggested }
+      return { suggested: asked.length, left: 0 }
     },
     async clientsBaseEdit(kind, edit) {
       await delay(400)

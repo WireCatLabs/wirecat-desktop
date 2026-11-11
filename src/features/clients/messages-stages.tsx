@@ -98,10 +98,10 @@ const en: Words = {
   suggest: "Suggest with AI",
   suggesting: "Asking the AI model…",
   suggestHint:
-    "Sends the names of these stages and their pipelines to the AI model chosen in Settings. Nothing changes until you accept a suggestion.",
+    "Sends the names of waiting stages from every CRM, and of your stages, to the AI model from Settings. Answers replace suggestions and wait for you.",
   suggestDone: (suggested, left) =>
-    `${suggested === 1 ? "1 suggestion" : `${suggested} suggestions`} to check.${left > 0 ? ` The model left ${left} without one: drag ${left === 1 ? "it" : "them"} yourself.` : ""}`,
-  suggestNone: "Nothing to ask: each stage here already has a suggestion or only one place to go.",
+    `${suggested === 1 ? "1 suggestion" : `${suggested} suggestions`} to check, across all your CRMs.${left > 0 ? ` The model left ${left} without one: drag ${left === 1 ? "it" : "them"} yourself.` : ""}`,
+  suggestNone: "Nothing to ask: each waiting stage has only one place it can go.",
   suggestWhy: {
     "ai.not-set": "No AI model is chosen. Choose one in Settings, AI model, then try again.",
     "ai.key-missing": "The AI model has no API key saved. Add it in Settings, AI model, then try again.",
@@ -198,10 +198,10 @@ const ru: Words = {
   suggest: "Предложить с помощью ИИ",
   suggesting: "Спрашиваем модель ИИ…",
   suggestHint:
-    "Отправляет названия этих этапов и их воронок модели ИИ, выбранной в настройках. Ничего не меняется, пока вы не примете предложение.",
+    "Отправит модели ИИ из настроек названия ждущих этапов всех CRM и ваших этапов. Ответы заменят предложения и ждут вас.",
   suggestDone: (suggested, left) =>
-    `Предложений к проверке: ${suggested}.${left > 0 ? ` Без предложения модель оставила: ${left}, перетащите их сами.` : ""}`,
-  suggestNone: "Спрашивать нечего: у каждого этапа здесь уже есть предложение или только одно место.",
+    `К проверке во всех CRM: ${suggested}.${left > 0 ? ` Без предложения модель оставила: ${left}, перетащите их сами.` : ""}`,
+  suggestNone: "Спрашивать нечего: каждому ждущему этапу подходит только одно место.",
   suggestWhy: {
     "ai.not-set": "Модель ИИ не выбрана. Выберите её в настройках, раздел «Модель ИИ», и повторите.",
     "ai.key-missing": "Для модели ИИ не сохранён ключ API. Добавьте его в настройках, раздел «Модель ИИ», и повторите.",
@@ -301,10 +301,10 @@ const es: Words = {
   suggest: "Sugerir con IA",
   suggesting: "Preguntando al modelo de IA…",
   suggestHint:
-    "Envía los nombres de estas etapas y de sus embudos al modelo de IA elegido en Ajustes. Nada cambia hasta que aceptes una sugerencia.",
+    "Envía al modelo de IA de Ajustes los nombres de las etapas en espera de todos tus CRM y de tus etapas. Las respuestas sustituyen las sugerencias y te esperan.",
   suggestDone: (suggested, left) =>
-    `Sugerencias por revisar: ${suggested}.${left > 0 ? ` El modelo dejó ${left} sin sugerencia: arrástralas tú.` : ""}`,
-  suggestNone: "No hay nada que preguntar: cada etapa ya tiene una sugerencia o un solo sitio posible.",
+    `Sugerencias por revisar en todos tus CRM: ${suggested}.${left > 0 ? ` El modelo dejó ${left} sin sugerencia: arrástralas tú.` : ""}`,
+  suggestNone: "No hay nada que preguntar: cada etapa en espera tiene un solo sitio posible.",
   suggestWhy: {
     "ai.not-set": "No hay ningún modelo de IA elegido. Elige uno en Ajustes, Modelo de IA, y vuelve a intentarlo.",
     "ai.key-missing":

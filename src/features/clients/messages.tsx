@@ -82,7 +82,7 @@ type Words = {
 const en: Words = {
   title: "Clients",
   intro:
-    "Deals and leads from your CRMs and your own pipelines, by stage. Memo keeps the copy; every account it holds is shown.",
+    "Deals and leads from your CRMs and your own pipelines, by stage. WireCat keeps a copy on this computer and shows every account in it.",
   readAgain: "Read again",
   reading: "Reading…",
   kind: "Show",
@@ -160,7 +160,7 @@ const en: Words = {
     `More than one ${tool} profile is signed in to this account. The one you choose moves its cards and saves its sync setting until WireCat closes.`,
   profileNone: (tool) =>
     `No ${tool} profile has synced this account yet, so its cards stay read only. Sign in on the Tools page and sync, then try again.`,
-  profileWhy: (why) => `Memo says: ${why}`,
+  profileWhy: (why) => `The reason: ${why}`,
   profileMove: "Use it and move",
   profileNeeded: "Choose a profile first.",
   profileUse: "Use this profile",
@@ -176,7 +176,7 @@ const en: Words = {
 const ru: Words = {
   title: "Клиенты",
   intro:
-    "Сделки и лиды из ваших CRM и ваших собственных воронок, по этапам. Копию хранит Memo; показаны все аккаунты, что в ней есть.",
+    "Сделки и лиды из ваших CRM и ваших собственных воронок, по этапам. WireCat хранит копию на этом компьютере и показывает все аккаунты в ней.",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   kind: "Показать",
@@ -257,7 +257,7 @@ const ru: Words = {
     `В этот аккаунт вошли несколько профилей ${tool}. Выбранный переносит его карточки и сохраняет настройку синхронизации, пока WireCat открыт.`,
   profileNone: (tool) =>
     `Ни один профиль ${tool} ещё не синхронизировал этот аккаунт, поэтому его карточки только для чтения. Войдите на странице «Инструменты», синхронизируйте и попробуйте снова.`,
-  profileWhy: (why) => `Memo сообщает: ${why}`,
+  profileWhy: (why) => `Причина: ${why}`,
   profileMove: "Выбрать и перенести",
   profileNeeded: "Сначала выберите профиль.",
   profileUse: "Выбрать профиль",
@@ -273,7 +273,7 @@ const ru: Words = {
 const es: Words = {
   title: "Clientes",
   intro:
-    "Negociaciones y prospectos de tus CRM y de tus propios embudos, por etapa. Memo guarda la copia; se muestra cada cuenta que tiene.",
+    "Negociaciones y prospectos de tus CRM y de tus propios embudos, por etapa. WireCat guarda una copia en este ordenador y muestra cada cuenta que contiene.",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   kind: "Mostrar",
@@ -355,7 +355,7 @@ const es: Words = {
     `Hay más de un perfil de ${tool} conectado a esta cuenta. El que elijas mueve sus tarjetas y guarda su ajuste de sincronización hasta que cierres WireCat.`,
   profileNone: (tool) =>
     `Ningún perfil de ${tool} ha sincronizado aún esta cuenta, así que sus tarjetas son de solo lectura. Inicia sesión en la página Herramientas, sincroniza y vuelve a intentarlo.`,
-  profileWhy: (why) => `Memo dice: ${why}`,
+  profileWhy: (why) => `El motivo: ${why}`,
   profileMove: "Usarlo y mover",
   profileNeeded: "Elige primero un perfil.",
   profileUse: "Usar este perfil",
