@@ -52,6 +52,8 @@ export function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang):
 
 const KEY = /^[A-Z0-9]{2,4}-\d+$/
 
+const ownTitle = (task: Task) => (bareTitleKind(task) === null ? task.title : "")
+
 const writesDone = (key: string) =>
   new Promise<void>((done) => {
     if (!useTasks.getState().busy[key]) return done()
@@ -94,7 +96,15 @@ function Field({ label, children, tip }: { label: string; children: ReactNode; t
  * A task in the dialog: title and notes to edit and save; status, priority, assignee, agent and due date that save
  * on change, as the table's cells do; then what it waits for, what waits for it, and who changed what.
  */
-export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boolean) => void }) {
+export function Details({
+  task,
+  onDirty,
+  onSaving,
+}: {
+  task: Task
+  onDirty?: (dirty: boolean) => void
+  onSaving?: (saving: boolean) => void
+}) {
   const m = useMessages(taskMessages)
   const lang = useLang()
   const id = useId()
@@ -106,7 +116,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const failed = useTasks((s) => s.failed[task.key])
   const stale = useTasks((s) => s.stale?.key === task.key)
   // The stand-in "<kind> — <locator>" is no title to edit: the box starts empty and shows the readable name.
-  const own = bareTitleKind(task) === null ? task.title : ""
+  const own = ownTitle(task)
   const [title, setTitle] = useState(own)
   const [notes, setNotes] = useState(task.description ?? "")
   const [writing, setWriting] = useState(!task.description)
@@ -115,32 +125,32 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [commenting, setCommenting] = useState(false)
-  const read = useRef({ title: own, notes: task.description ?? "" })
+  const memoNotes = task.description ?? ""
+  const [read, setRead] = useState({ title: own, notes: memoNotes })
+  const synced = read.title === own && read.notes === memoNotes
   // A field follows memo only while it still shows memo's last words: what the owner typed is never replaced, whether
-  // the answer is their own save or a stale refusal that brings someone else's text.
-  useEffect(() => {
-    const was = read.current
-    const now = { title: own, notes: task.description ?? "" }
-    read.current = now
-    // Trimmed, as memo stores them: a saved "abc  " is still memo's "abc".
-    setTitle((t) => (t.trim() === was.title.trim() ? now.title : t))
-    setNotes((n) => (n.trim() === was.notes.trim() ? now.notes : n))
-    if (!now.notes) setWriting(true)
-  }, [own, task.description])
+  // the answer is their own save or a stale refusal that brings someone else's text. Set during render, so no frame
+  // shows an untouched form as changed. Trimmed, as memo stores them: a saved "abc  " is still memo's "abc".
+  if (!synced) {
+    setRead({ title: own, notes: memoNotes })
+    if (title.trim() === read.title.trim()) setTitle(own)
+    if (notes.trim() === read.notes.trim()) setNotes(memoNotes)
+    if (!memoNotes) setWriting(true)
+  }
 
   useEffect(() => {
     if (!useTasks.getState().history[task.key]) void useTasks.getState().loadHistory(task.key)
   }, [task.key])
 
   const edit: TaskEdit = {}
-  if (title.trim() && title.trim() !== task.title) edit.title = title.trim()
+  if (title.trim() && title.trim() !== task.title.trim()) edit.title = title.trim()
   // An emptied box clears the notes.
   // memo trims what it stores, so spaces at the ends are no change.
   if (notes.trim() !== (task.description ?? "").trim()) edit.description = notes.trim() && notes
   const changed = Object.keys(edit).length > 0
   // A found task with no title of its own starts empty, and may stay so.
   const blank = title.trim() === "" && own !== ""
-  if (saved && (changed || blank)) setSaved(false)
+  if (synced && saved && (changed || blank || failed)) setSaved(false)
   useEffect(() => onDirty?.(changed || commenting), [changed, commenting, onDirty])
   useEffect(() => () => onDirty?.(false), [onDirty])
   const reset = () => {
@@ -156,12 +166,28 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const save = async () => {
     if (blank) return noTitle.fail(m.titleEmpty)
     if (!changed || saving) return
+    const sent = { title, notes }
     setSaving(true)
+    onSaving?.(true)
     // A field saved on blur may be writing still; this save needs the revision that write answers.
+    const waited = Boolean(useTasks.getState().busy[task.key])
     await writesDone(task.key)
-    const ok = await useTasks.getState().update(task.key, edit)
+    const after = useTasks.getState()
+    // That write's refusal is news to the owner: saving over it would hide it and overwrite what they have not seen.
+    const refused = waited && (after.stale?.key === task.key || after.failed[task.key])
+    // A move may have renamed the task meanwhile.
+    const key = after.open ?? task.key
+    const ok = !refused && (await useTasks.getState().update(key, edit))
     setSaving(false)
+    onSaving?.(false)
     setSaved(ok)
+    const now = useTasks.getState()
+    const stored = now.tasks.find((t) => t.key === key) ?? now.outside[key]
+    if (!ok || !stored) return
+    // memo may store something else than was typed ("none" clears the notes): the form shows what it kept.
+    setTitle((t) => (t === sent.title ? ownTitle(stored) : t))
+    setNotes((n) => (n === sent.notes ? (stored.description ?? "") : n))
+    if (!stored.description) setWriting(true)
   }
   const idle = !changed && !blank
   const hidden = idle && !saving && !saved
@@ -427,8 +453,10 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                   </span>
                   <Button
                     size="sm"
-                    disabled={busy}
-                    onClick={() => void useTasks.getState().update(task.key, { project: detach.project, detach: true })}
+                    aria-busy={busy}
+                    onClick={() => {
+                      if (!busy) void useTasks.getState().update(task.key, { project: detach.project, detach: true })
+                    }}
                   >
                     {m.moveAlone(detach.parent, detach.project)}
                   </Button>

@@ -378,6 +378,31 @@ describe("Tasks", () => {
     expect(save).not.toHaveTextContent("Saved")
   })
 
+  it("shows what memo kept when it stores something else than was typed", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-15")).getByRole("button", { name: /^HRB-15 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-15" })
+    await user.click(within(dialog).getByRole("button", { name: "Edit" }))
+    const notes = within(dialog).getByRole("textbox", { name: "Notes" })
+    await user.clear(notes)
+    await user.type(notes, "None")
+    const current = useTasks.getState().tasks.find((t) => t.key === "HRB-15")
+    if (!current) throw new Error("no HRB-15")
+    vi.spyOn(platform, "taskUpdate").mockResolvedValueOnce({
+      kind: "saved",
+      task: { ...current, description: null, revision: current.revision + 1 },
+      label: null,
+      renumbered: [],
+      moved: [],
+    })
+    const save = within(dialog).getByRole("button", { name: "Save" })
+    await user.click(save)
+    await waitFor(() => expect(save).toHaveTextContent("Saved"))
+    expect(notes).toHaveValue("")
+  })
+
   it("does not lose unsaved text to a close or a link: the first try warns, a second close discards", async () => {
     const user = userEvent.setup()
     render(<TasksPage />)

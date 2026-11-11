@@ -14,6 +14,8 @@ type Props = {
   /** The dialog's choices. Left out when there is nothing to choose: the × closes it. */
   actions?: ReactNode
   onClose: () => void
+  /** Asked before ×, Escape or a click outside closes it; false keeps it open. The browser's own close is not asked. */
+  canClose?: () => boolean
   /** `xl` for an editor with a side column, such as a task's; `full` for a board of columns. */
   wide?: boolean | "xl" | "full"
   /** Long forms: the body scrolls between a fixed title and fixed actions, so nothing is cut off. */
@@ -34,6 +36,7 @@ export function Dialog({
   children,
   actions,
   onClose,
+  canClose,
   wide = false,
   scroll = false,
   tall = false,
@@ -45,6 +48,9 @@ export function Dialog({
   // A press that starts inside (selecting text in a field) and ends on the backdrop is not a click outside.
   const pressedOutside = useRef(false)
   const titleId = useId()
+  const requestClose = () => {
+    if (canClose?.() !== false) onClose()
+  }
   // The content stays while the dialog fades out, so it does not go blank before it goes away.
   const [closing, setClosing] = useState(false)
   const last = useRef({ title, children, actions, footer })
@@ -90,7 +96,7 @@ export function Dialog({
       type="button"
       aria-label={m.closeDialog}
       title={m.closeDialog}
-      onClick={onClose}
+      onClick={requestClose}
       // A dialog with nothing to choose starts on its way out; a field or a choice marked data-autofocus comes first.
       data-autofocus={shown.actions ? undefined : true}
       className="absolute top-[1.1rem] right-[1.1rem] grid size-[2.1rem] place-items-center rounded-[0.4rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
@@ -113,13 +119,13 @@ export function Dialog({
       onCancel={(e) => {
         if (e.target !== e.currentTarget) return
         e.preventDefault()
-        onClose()
+        requestClose()
       }}
       onPointerDown={(e) => {
         pressedOutside.current = e.target === e.currentTarget
       }}
       onClick={(e) => {
-        if (pressedOutside.current && e.target === e.currentTarget) onClose()
+        if (pressedOutside.current && e.target === e.currentTarget) requestClose()
         pressedOutside.current = false
       }}
       className={`m-auto ${wide === "full" ? "w-[min(112rem,calc(100vw-2rem))]" : wide === "xl" ? "w-[min(62rem,calc(100vw-2rem))]" : wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)] overflow-hidden" : ""} rounded-[0.6rem] border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}

@@ -346,7 +346,7 @@ const en: Words = {
   needProject: "Choose the project it belongs to.",
   saveFirst: "Finish what you typed first: save it, send it or clear it.",
   closeAgain: "What you typed is not saved. Close again to discard it.",
-  stillSaving: "Still saving. Close again to leave; the save goes on.",
+  stillSaving: "Still saving. You can close this once it is done.",
   readWhy: "The details say why.",
   draftKept: "What you typed is still in the form. Save to replace the other version, or Cancel to keep it.",
   position: (at, of) => `${at} of ${of}`,
@@ -545,7 +545,7 @@ const ru: Words = {
   needProject: "Выберите проект задачи.",
   saveFirst: "Сначала сохраните, отправьте или очистите набранный текст.",
   closeAgain: "Набранный текст не сохранен. Закройте еще раз, чтобы его отбросить.",
-  stillSaving: "Еще сохраняю. Закройте еще раз, чтобы выйти, сохранение продолжится.",
+  stillSaving: "Еще сохраняю. Окно можно будет закрыть, когда закончу.",
   readWhy: "Причина в подробностях.",
   draftKept:
     "Ваш текст остался в форме. Сохраните, чтобы заменить другую версию, или нажмите «Отмена», чтобы оставить ее.",
@@ -734,7 +734,7 @@ const es: Words = {
   needProject: "Elige el proyecto de la tarea.",
   saveFirst: "Primero guarda, envía o borra lo que escribiste.",
   closeAgain: "Lo que escribiste no está guardado. Cierra otra vez para descartarlo.",
-  stillSaving: "Aún guardando. Cierra otra vez para salir, el guardado sigue.",
+  stillSaving: "Aún guardando. Podrás cerrar cuando termine.",
   readWhy: "Los detalles dicen por qué.",
   draftKept:
     "Lo que escribiste sigue en el formulario. Guarda para reemplazar la otra versión o pulsa Cancelar para conservarla.",

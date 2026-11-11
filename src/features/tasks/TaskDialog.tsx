@@ -27,7 +27,7 @@ export function TaskDialog() {
   const [held, setHeld] = useState<"step" | "close" | null>(null)
   if (held && !dirty) setHeld(null)
   const opened = useTasks((s) => s.opened)
-  const busy = useTasks((s) => (s.open ? Boolean(s.busy[s.open]) : false))
+  const [saving, setSaving] = useState(false)
   const content = useRef<HTMLDivElement>(null)
   // A step replaces the element that held focus; the keyboard's place stays in the dialog.
   // biome-ignore lint/correctness/useExhaustiveDependencies: it runs for each task opened
@@ -70,10 +70,6 @@ export function TaskDialog() {
 
   const close = () => {
     if (useTasks.getState().open) {
-      if (dirty && held !== "close") {
-        setHeld("close")
-        return
-      }
       useTasks.getState().toggle(null)
       return
     }
@@ -81,11 +77,21 @@ export function TaskDialog() {
     if (last.current) document.querySelector<HTMLElement>(`[data-opens="${last.current}"]`)?.focus()
   }
 
+  // A running save keeps the dialog: if memo refuses it, the typed text and the reason must still be here.
+  const canClose = () => {
+    if (saving || (dirty && held !== "close")) {
+      setHeld("close")
+      return false
+    }
+    return true
+  }
+
   return (
     <Dialog
       open={Boolean(open)}
       title={open ? m.details(open) : ""}
       onClose={close}
+      canClose={canClose}
       wide="xl"
       scroll
       tall
@@ -125,7 +131,7 @@ export function TaskDialog() {
               held ? "text-[0.85rem] text-bad" : "text-[0.8rem] text-ink-dim",
             )}
           >
-            {held === "close" ? (busy ? m.stillSaving : m.closeAgain) : held ? m.saveFirst : m.keysHint}
+            {held === "close" ? (saving ? m.stillSaving : m.closeAgain) : held ? m.saveFirst : m.keysHint}
           </p>
         </div>
       }
@@ -147,10 +153,19 @@ export function TaskDialog() {
             setHeld("step")
           }}
         >
-          <Details task={task} onDirty={setDirty} />
+          <Details task={task} onDirty={setDirty} onSaving={setSaving} />
         </div>
       ) : failed ? (
-        <TaskError reading lead={m.openFailed(open ?? "")} raw={failed} />
+        <TaskError
+          reading
+          lead={m.openFailed(open ?? "")}
+          raw={failed}
+          action={
+            <Button size="sm" onClick={() => void useTasks.getState().openTask(open ?? "")}>
+              {m.tryAgain}
+            </Button>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-[0.6rem] pb-[0.6rem]">
           <Skeleton className="h-[2.4rem] w-full" label={m.readingTask} />
