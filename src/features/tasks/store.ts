@@ -32,7 +32,7 @@ export type Detach = { parent: string; project: string }
 /** A write Memo refused because the task changed after the page read it. */
 export type Stale = { key: string; last: TaskEvent | null }
 /** A line under the board or table that says what a write did beyond what the owner saw: "HRB-3 is now High". */
-export type Note = { key: string; label: string | null; column: State | null }
+export type Note = { key: string; label: string | null; column: State | null; text?: string }
 
 type TasksState = {
   /** The tour's example rows are on screen (onboarding/demo.ts): a read waits until they go. */

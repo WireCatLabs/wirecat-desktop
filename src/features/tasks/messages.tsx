@@ -104,6 +104,11 @@ type Words = {
   openMail: string
   saveBeforeOpen: string
   foundHidden: (n: number) => string
+  projectOnlyField: (field: string) => string
+  projectOnlyStates: string
+  foundClosed: string
+  foundIn: (source: string) => string
+  foundDrop: (state: string) => string
   agentNone: string
   waitsHeading: string
   nothingBlocks: string
@@ -304,6 +309,14 @@ const en: Words = {
   openChat: "Open in the chat",
   openMail: "Open the email",
   saveBeforeOpen: "Save or cancel your changes to the task first.",
+  projectOnlyField: (field) =>
+    `${field}: Memo keeps it for project tasks only, and this task was found in your messages. To set it, make a project task with New task and close this one as Done.`,
+  projectOnlyStates: "Project tasks only",
+  foundClosed:
+    "Memo keeps a task from messages closed once it is closed. If it needs work again, make a project task with New task.",
+  foundIn: (source) => `From messages: ${source}`,
+  foundDrop: (state) =>
+    `Memo only closes a task from messages: drop it on Done or Dismissed. ${state} is for project tasks.`,
   foundHidden: (n) =>
     `${plural("en", n, { one: "# task from messages is", other: "# tasks from messages are" })} not shown: Memo applies search and filters to project tasks only. Clear the search to see them.`,
   agentNone: "No agent",
@@ -528,6 +541,14 @@ const ru: Words = {
   openChat: "Открыть в чате",
   openMail: "Открыть письмо",
   saveBeforeOpen: "Сначала сохраните или отмените изменения в задаче.",
+  projectOnlyField: (field) =>
+    `${field}: Memo хранит это только у задач проекта, а эта задача найдена в ваших сообщениях. Чтобы задать это, создайте задачу проекта кнопкой «Новая задача» и закройте эту как «Готово».`,
+  projectOnlyStates: "Только у задач проекта",
+  foundClosed:
+    "Закрытая задача из сообщений остается закрытой: Memo не открывает ее снова. Если по ней снова нужна работа, создайте задачу проекта кнопкой «Новая задача».",
+  foundIn: (source) => `Из сообщений: ${source}`,
+  foundDrop: (state) =>
+    `Задачу из сообщений Memo может только закрыть: перенесите ее в «Готово» или «Отклонено». Статус «${state}» есть только у задач проекта.`,
   foundHidden: (n) =>
     `Задачи из сообщений (${formatNumber(n, "ru")}) не показаны: Memo применяет поиск и фильтры только к задачам проектов. Очистите поиск, чтобы их увидеть.`,
   agentNone: "Без агента",
@@ -753,6 +774,14 @@ const es: Words = {
   openChat: "Abrir en el chat",
   openMail: "Abrir el correo",
   saveBeforeOpen: "Primero guarda o cancela los cambios de la tarea.",
+  projectOnlyField: (field) =>
+    `${field}: Memo lo guarda solo en las tareas de un proyecto, y esta tarea se encontró en tus mensajes. Para ponerlo, crea una tarea de proyecto con Nueva tarea y cierra esta como Hecha.`,
+  projectOnlyStates: "Solo tareas de proyecto",
+  foundClosed:
+    "Memo mantiene cerrada una tarea de los mensajes una vez cerrada. Si necesita trabajo otra vez, crea una tarea de proyecto con Nueva tarea.",
+  foundIn: (source) => `De los mensajes: ${source}`,
+  foundDrop: (state) =>
+    `Memo solo cierra una tarea de los mensajes: suéltala en Hechas o Descartadas. ${state} es para tareas de proyecto.`,
   foundHidden: (n) =>
     `Las tareas de los mensajes (${formatNumber(n, "es")}) no se muestran: Memo aplica la búsqueda y los filtros solo a las tareas de proyectos. Borra la búsqueda para verlas.`,
   agentNone: "Sin agente",

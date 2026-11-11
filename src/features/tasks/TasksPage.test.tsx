@@ -98,7 +98,15 @@ describe("Tasks", () => {
       moved: [],
     })
     await user.click(within(chat).getByRole("combobox", { name: "Status of INDBB44DA4-7" }))
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Open", "Done", "Dismissed"])
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Open",
+      "Done",
+      "Dismissed",
+      "Todo",
+      "Progress",
+    ])
+    expect(screen.getByRole("option", { name: "Todo" })).toHaveAttribute("aria-disabled", "true")
+    expect(screen.getByRole("group", { name: "Project tasks only" })).toBeInTheDocument()
     await user.click(screen.getByRole("option", { name: "Dismissed" }))
     expect(close).toHaveBeenCalledWith("INDBB44DA4-7", 1, { state: "dismissed", account: "telegram:220195113" })
     // A closed found task stays closed, so its status is text again.
@@ -180,7 +188,8 @@ describe("Tasks", () => {
     )
     expect(within(dialog).queryByRole("alert")).toBeNull()
     await user.keyboard("{Escape}")
-    expect(within(column).getByRole("button", { name: "Q-1 Hand over the keys" })).not.toHaveAttribute(
+    // A found task's card is carried too: memo closes it when it is dropped on Done or Dismissed.
+    expect(within(column).getByRole("button", { name: "Q-1 Hand over the keys" })).toHaveAttribute(
       "aria-roledescription",
     )
 
@@ -700,6 +709,93 @@ describe("Tasks", () => {
     )
     const todo = screen.getByRole("region", { name: /^Todo, 3 tasks/ })
     expect(within(todo).getAllByRole("button", { name: /^(OPS|HRB)-\d+ / })[0]).toHaveAccessibleName(/^OPS-3/)
+  })
+
+  it("moves a card to another column by pointer, saves its status, and counts the columns again", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    const move = vi.spyOn(platform, "taskMove")
+    render(<TasksPage />)
+    const card = await screen.findByRole("button", { name: /^HOME-2 / }, { timeout: 4000 })
+    const progress = document.querySelector('[data-column="in_progress"]') as HTMLElement
+    const label = () => screen.getByRole("region", { name: /^Progress, / }).getAttribute("aria-label") ?? ""
+    const counted = () => Number(/(\d+) tasks?/.exec(label())?.[1])
+    const before = counted()
+    document.elementsFromPoint = () => [progress]
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
+      { target: card, coords: { clientX: 400, clientY: 60 } },
+      { keys: "[/MouseLeft]", target: card },
+    ])
+    await waitFor(() =>
+      expect(move).toHaveBeenCalledWith(
+        "HOME-2",
+        expect.any(Number),
+        expect.objectContaining({ state: "in_progress" }),
+      ),
+    )
+    await waitFor(() => expect(counted()).toBe(before + 1))
+  })
+
+  it("closes a found task dropped on Done, and says why it cannot go to Progress", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    const found = {
+      key: "Q-3",
+      project: "IN0BB44DA4",
+      projectName: null,
+      createdBy: null,
+      title: "Can you send the lease?",
+      description: null,
+      kind: "question",
+      state: "open" as const,
+      priority: null,
+      priorityLabel: null,
+      agent: null,
+      revision: 1,
+      parent: null,
+      dueAt: null,
+      closedAt: null,
+      claimedBy: null,
+      claimedUntil: null,
+      assignees: [],
+      ready: null,
+      blockedBy: [],
+      createdAt: "2026-11-08T09:12:00.000Z",
+      updatedAt: null,
+      account: "telegram:1",
+    }
+    vi.spyOn(platform, "taskChats").mockResolvedValue({ tasks: [found], more: false })
+    const move = vi.spyOn(platform, "taskMove")
+    const update = vi.spyOn(platform, "taskUpdate").mockResolvedValue({
+      kind: "saved",
+      task: { ...found, state: "done", revision: 2 },
+      label: null,
+      renumbered: [],
+      moved: [],
+    })
+    render(<TasksPage />)
+    const card = await screen.findByRole("button", { name: /^Q-3 / }, { timeout: 4000 })
+    const carry = async (to: string) => {
+      const column = document.querySelector(`[data-column="${to}"]`) as HTMLElement
+      document.elementsFromPoint = () => [column]
+      await user.pointer([
+        { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
+        { target: card, coords: { clientX: 400, clientY: 60 } },
+        { keys: "[/MouseLeft]", target: card },
+      ])
+    }
+    await carry("in_progress")
+    expect(
+      await screen.findByText(/Memo only closes a task from messages: drop it on Done or Dismissed/),
+    ).toBeInTheDocument()
+    expect(update).not.toHaveBeenCalled()
+    await carry("done")
+    await waitFor(() => expect(update).toHaveBeenCalledWith("Q-3", 1, { state: "done", account: "telegram:1" }))
+    expect(move).not.toHaveBeenCalled()
+    expect(await screen.findByRole("region", { name: /^Done, \d+ tasks/ })).toContainElement(
+      screen.getByRole("button", { name: /^Q-3 / }),
+    )
   })
 
   it("opens a card on a click, never at the end of a drag", async () => {

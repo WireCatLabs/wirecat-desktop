@@ -12,7 +12,11 @@ export function Note() {
   const note = useTasks((s) => s.note)
   const label = note?.label && (LABELS as readonly string[]).includes(note.label) ? m.labels[note.label as Label] : null
   const text = note
-    ? [note.column ? m.movedTo(note.key, m.states[note.column]) : "", label ? m.nowLabel(note.key, label) : ""]
+    ? [
+        note.text ?? "",
+        note.column ? m.movedTo(note.key, m.states[note.column]) : "",
+        label ? m.nowLabel(note.key, label) : "",
+      ]
         .filter(Boolean)
         .join(" ")
     : ""
