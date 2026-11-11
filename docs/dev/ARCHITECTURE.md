@@ -380,8 +380,8 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.80 or newer (`memory.minVersion` in the catalog: the first memo whose
-relationships carry their role list and the document at an end, and that adds an owner's own role); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.82 or newer (`memory.minVersion` in the catalog: 0.131.80 and 0.131.81 crash on
+`relationships list include:ended`, which the page calls); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`,
 `actions list status:proposed --brief` (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list.
 `actions list` also holds People's `identity_link` and `identity_split` rows and every rejected `relationship`, and has no `kind:` field, so Rust drops them after the read, with any kind the page has no words for and no text of its own; one page reads up to four of memo's pages of what waits so they cannot push it back; a failed activity log still
