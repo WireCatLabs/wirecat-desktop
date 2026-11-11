@@ -1,11 +1,12 @@
-import { ChevronDown, ExternalLink, FileText, Mail, MessagesSquare, Video } from "lucide-react"
+import { ExternalLink, FileText, Mail, MessagesSquare, Video } from "lucide-react"
 import { useId, useState } from "react"
-import { refKind, sourceKindOf } from "@/domain/memory"
+import { citedLabelOf, sourceKindOf } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { CopyButton } from "@/ui/CopyButton"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
@@ -13,13 +14,14 @@ import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
 import { savedAt } from "./labels"
 import { memoryMessages } from "./messages"
+import { findingsMessages } from "./messages-findings"
 import { useMemory } from "./store"
 
 const SOURCE_ICONS = { meeting: Video, mail: Mail, message: MessagesSquare, note: FileText }
 
 const sourceIcon = (kind: string) => {
   const Icon = SOURCE_ICONS[sourceKindOf(kind)]
-  return <Icon className="size-[1.1rem]" aria-hidden />
+  return <Icon className="size-[1.1rem] shrink-0" aria-hidden />
 }
 
 /** One source; clicked, it opens what it says in place: the message among its neighbours, or the note. */
@@ -28,14 +30,18 @@ export function SourceItem({ source: s }: { source: MemorySource }) {
   const lang = useLang()
   const [open, setOpen] = useState(false)
   const id = useId()
+  const opens = !!s.ref && !s.missing
   const head = (
     <>
       <span className="mt-[0.15rem] text-ink-soft">{sourceIcon(s.kind)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <span className="selectable text-[0.9rem] font-medium">
-            {s.sender ?? s.title ?? s.ref ?? s.kind}
-            {s.sender && s.title && <span className="font-normal text-ink-soft"> · {s.title}</span>}
+          <span className="flex min-w-0 items-baseline gap-[0.35rem]">
+            <span className="selectable min-w-0 text-[0.9rem] font-medium [overflow-wrap:anywhere]">
+              {s.sender ?? s.title ?? (s.ref ? citedLabelOf(s.ref).short : s.kind)}
+              {s.sender && s.title && <span className="font-normal text-ink-soft"> · {s.title}</span>}
+            </span>
+            {opens && <ExpandChevron open={open} className="translate-y-[0.2rem] group-hover:text-ink" />}
           </span>
           {s.at && <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{savedAt(s.at, lang)}</span>}
         </span>
@@ -64,23 +70,33 @@ export function SourceItem({ source: s }: { source: MemorySource }) {
         className="group flex cursor-pointer gap-[0.8rem] px-[0.9rem] py-[0.7rem] transition-colors duration-(--motion-fast) hover:bg-app-2"
       >
         {head}
-        <ChevronDown
-          className={cx(
-            "mt-[0.2rem] size-4 shrink-0 text-ink-dim transition-transform duration-(--motion-fast)",
-            open && "rotate-180",
-          )}
-          aria-hidden
-        />
       </TextButton>
       <Collapse open={open} id={id}>
-        <SourceContextView reference={ref} />
+        <SourceContextView reference={ref} withRef />
       </Collapse>
     </li>
   )
 }
 
 /** What memo reads back for a cited ref. Each kind memo cannot read says so instead of failing. */
-export function SourceContextView({ reference }: { reference: string }) {
+export function SourceContextView({ reference, withRef = false }: { reference: string; withRef?: boolean }) {
+  const f = useMessages(findingsMessages)
+  return (
+    <>
+      {withRef && (
+        <p className="flex min-w-0 items-center gap-[0.4rem] border-line border-t bg-app-2/70 py-[0.2rem] pr-[0.4rem] pl-[0.9rem]">
+          <span className="selectable min-w-0 flex-1 font-mono text-[0.85rem] text-ink-dim [overflow-wrap:anywhere]">
+            {reference}
+          </span>
+          <CopyButton value={reference} label={f.copyRef} />
+        </p>
+      )}
+      <ContextBody reference={reference} />
+    </>
+  )
+}
+
+function ContextBody({ reference }: { reference: string }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
   const ctx = useMemory((s) => s.contexts[reference])
@@ -187,22 +203,45 @@ export function Sources({ entry }: { entry: MemoryEntry }) {
   )
 }
 
-export function CitedRef({ reference, shown, onToggle }: { reference: string; shown: boolean; onToggle: () => void }) {
+/** A cited source in words: memo's sender and title when the batch's sources name it, else what and where it is. */
+export function citedText(
+  reference: string,
+  sources: readonly MemorySource[] | undefined,
+  kinds: Record<string, string>,
+) {
+  const known = sources?.find((s) => s.ref === reference)
+  const named = [known?.sender, known?.title].filter(Boolean).join(" · ")
+  if (named) return named
+  const l = citedLabelOf(reference)
+  return [kinds[l.kind], l.where, l.short].filter(Boolean).join(" · ")
+}
+
+export function CitedRef({
+  reference,
+  label,
+  shown,
+  onToggle,
+}: {
+  reference: string
+  label: string
+  shown: boolean
+  onToggle: () => void
+}) {
   const m = useMessages(memoryMessages)
   return (
     <button
       type="button"
       aria-expanded={shown}
-      aria-label={m.showContext(reference)}
+      aria-label={m.showContext(label)}
       onClick={onToggle}
       className={cx(
-        "inline-flex cursor-pointer items-center gap-[0.3rem] rounded-[0.25rem] font-mono transition-colors duration-(--motion-fast) hover:text-brand",
+        "inline-flex min-w-0 max-w-full cursor-pointer items-center gap-[0.35rem] rounded-[0.25rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-brand",
         shown && "text-brand",
       )}
     >
-      {sourceIcon(refKind(reference))}
-      {reference}
-      <ExpandChevron open={shown} className="size-[0.85rem]" />
+      {sourceIcon(citedLabelOf(reference).kind)}
+      <span className="min-w-0 truncate">{label}</span>
+      <ExpandChevron open={shown} className="size-[0.9rem] text-current" />
     </button>
   )
 }

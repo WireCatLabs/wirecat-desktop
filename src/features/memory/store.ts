@@ -128,6 +128,8 @@ type MemoryState = {
   answerReview(ref: string, answer: ReviewAnswer, reason?: string): Promise<boolean>
   askForget(ref: string | null): void
   skip(ref: string, finding: string, skipped: boolean): void
+  /** Marks every finding of a batch approved, or every one rejected; nothing is saved until Save. */
+  skipAll(ref: string, skipped: boolean): void
   /** Opens a record where it is, in its tab, with the search and its group made to show it; false when not read. */
   reveal(ref: string, from: string): boolean
   /** Opens on the Tasks page the task `from` became (`task:<id>`); an error stays on the `from` row. */
@@ -489,6 +491,11 @@ export const useMemory = create<MemoryState>((set, get) => {
       set((s) => {
         const now = (s.skipped[ref] ?? []).filter((id) => id !== finding)
         return { skipped: { ...s.skipped, [ref]: skipped ? [...now, finding] : now } }
+      }),
+    skipAll: (ref, skipped) =>
+      set((s) => {
+        const ids = s.entries.find((e) => e.ref === ref)?.findings?.map((f) => f.id) ?? []
+        return { skipped: { ...s.skipped, [ref]: skipped ? ids : [] } }
       }),
   }
 })

@@ -350,7 +350,8 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
   ("Soon", "update to search"). A reason only in a tooltip does not count. Rule 5's delete dialogs keep their own gate.
 - **What opens shows that it opens.** A row, group, section or detail that expands carries a chevron (`ExpandChevron`,
   `src/ui/ExpandChevron.tsx`) at the right edge of what is clicked, pointing down and turning over while open, as on
-  Guides. A button that opens a panel (Manage) carries it after its label. Inline "show more" links keep theirs before
+  Guides. A record's title on Memory carries it right after the title's text, where the eye already is (owner,
+  2026-11-11), and its text shows the pointer, not the text cursor, though it still selects with a drag. A button that opens a panel (Manage) carries it after its label. Inline "show more" links keep theirs before
   the text. The Logs table keeps its chevron in the last column and fits a 960 px window without scrolling sideways.
 
 ### Status Lamp (signature)

@@ -226,16 +226,9 @@ const en = {
     ]
       .filter((p) => !p.startsWith("0 "))
       .join(" and ")} to review`,
-  findingsHead: (project: string) => `What Approve creates in ${project}`,
   findingsFor: (project: string) => `Findings for ${project}`,
   findingsReviewed: (created: number, rejected: number) =>
     created === 0 ? "Findings, all rejected" : `Findings: ${created} created, ${rejected} rejected`,
-  findingsNote: (ticked: number, total: number, project: string): string =>
-    ticked === 0
-      ? "Nothing is ticked. Reject turns them all down."
-      : ticked === total
-        ? `Approve creates all ${total} in ${project}: facts as accepted, tasks on its board.`
-        : `Approve creates the ${plural("en", ticked, { one: "ticked one", other: "# ticked ones" })} in ${project}: facts as accepted, tasks on its board. The others are rejected.`,
   findingKinds: {
     fact: "Fact",
     task: "Task",
@@ -253,16 +246,10 @@ const en = {
   } as Record<string, string>,
   mailTitle: (n: number, mailbox: string) =>
     `Found in the mail of ${mailbox}: ${plural("en", n, { one: "# finding", other: "# findings" })} to review`,
-  mailHead: (mailbox: string) => `What an agent found in the mail of ${mailbox}. Tick what to keep`,
   mailFor: (mailbox: string) => `Found in the mail of ${mailbox}`,
-  mailNote: (ticked: number, total: number): string =>
-    ticked === 0
-      ? "Nothing is ticked. Reject turns them all down."
-      : `Approve keeps ${ticked === total ? "all of them" : plural("en", ticked, { one: "the ticked one", other: "the # ticked ones" })}, each as its label says: a task, a fact, an invoice and so on. Nothing is sent to anyone.${ticked === total ? "" : " The others are rejected."}`,
   openMail: "Open the email",
   outcomes: { accepted: "Created", rejected: "Rejected" } as Record<string, string>,
   cites: "Cites",
-  include: (text: string) => `Include: ${text}`,
   noContent: "Nothing else is known about this action.",
   wouldDo: "What it would do",
   wouldSend: "The whole text",
@@ -291,11 +278,11 @@ const en = {
   sourcesCount: "Sources",
   moreActions: "More actions",
   reviewFindings: (n: number) => `Review ${n}`,
-  approveFindings: (n: number) => `Approve ${n}`,
-  approveShown: (n: number) => `Approve ${n}`,
+  approveShown: (n: number) => `Approve all on this page: ${n}`,
   approveShownHint: (n: number) =>
     `Approves the ${n} facts and memories shown here with these filters. Tasks, agents' findings, and rows in another tab, filtered out or in a folded group keep waiting for you.`,
-  approvedShown: (n: number) => `Approved ${n}`,
+  approvedShown: (n: number) =>
+    `Done: ${plural("en", n, { one: "# record", other: "# records" })} on this page approved.`,
   showContext: (what: string) => `Show ${what} in context`,
   readingContext: "Reading it…",
   contextFailed: "Could not read it.",
@@ -502,14 +489,9 @@ const ru: typeof en = {
     ]
       .filter((p) => !p.startsWith("0 "))
       .join(" и ")} на проверку`,
-  findingsHead: (project: string) => `Что создаст «Одобрить» в ${project}`,
   findingsFor: (project: string) => `Находки для ${project}`,
   findingsReviewed: (created: number, rejected: number) =>
     created === 0 ? "Находки, все отклонены" : `Находки: создано ${created}, отклонено ${rejected}`,
-  findingsNote: (ticked: number, total: number, project: string): string =>
-    ticked === 0
-      ? "Ничего не отмечено. «Отклонить» отклонит всё."
-      : `«Одобрить» создаст ${ticked === total ? "все находки" : `отмеченные (${ticked})`} в ${project}: факты как принятые, задачи на его доске.${ticked === total ? "" : " Остальные будут отклонены."}`,
   findingKinds: {
     fact: "Факт",
     task: "Задача",
@@ -520,23 +502,17 @@ const ru: typeof en = {
     memory: "Память",
     link: "Связь",
     new_contact: "Новый контакт",
-    invoice: "Счёт",
-    payment: "Платёж",
+    invoice: "Счет",
+    payment: "Платеж",
     order: "Заказ",
     order_update: "Статус заказа",
   } as Record<string, string>,
   mailTitle: (n: number, mailbox: string) =>
     `Найдено в почте ${mailbox}: ${plural("ru", n, { one: "# находка", few: "# находки", many: "# находок", other: "# находки" })} на проверку`,
-  mailHead: (mailbox: string) => `Что агент нашёл в почте ${mailbox}. Отметьте, что сохранить`,
   mailFor: (mailbox: string) => `Найдено в почте ${mailbox}`,
-  mailNote: (ticked: number, total: number): string =>
-    ticked === 0
-      ? "Ничего не отмечено. «Отклонить» отклонит всё."
-      : `«Одобрить» сохранит ${ticked === total ? "все находки" : `отмеченные (${ticked})`}, каждую как написано на её метке: задачу, факт, счёт и так далее. Никому ничего не отправляется.${ticked === total ? "" : " Остальные будут отклонены."}`,
   openMail: "Открыть письмо",
   outcomes: { accepted: "Создано", rejected: "Отклонено" } as Record<string, string>,
   cites: "Ссылается на",
-  include: (text: string) => `Включить: ${text}`,
   noContent: "Больше об этом действии ничего не известно.",
   wouldDo: "Что будет сделано",
   wouldSend: "Весь текст",
@@ -565,11 +541,11 @@ const ru: typeof en = {
   sourcesCount: "Источники",
   moreActions: "Другие действия",
   reviewFindings: (n) => `Проверить ${n}`,
-  approveFindings: (n) => `Одобрить ${n}`,
-  approveShown: (n) => `Одобрить ${n}`,
+  approveShown: (n) => `Одобрить все на странице: ${n}`,
   approveShownHint: (n) =>
-    `Одобряет факты и воспоминания, показанные здесь с этими фильтрами: ${n}. Задачи, находки агентов и записи в другой вкладке, отфильтрованные или в свёрнутой группе по-прежнему ждут решения.`,
-  approvedShown: (n) => `Одобрено: ${n}`,
+    `Одобряет факты и воспоминания, показанные здесь с этими фильтрами: ${n}. Задачи, находки агентов и записи в другой вкладке, отфильтрованные или в свернутой группе, по-прежнему ждут решения.`,
+  approvedShown: (n) =>
+    `Готово: на этой странице одобрено ${plural("ru", n, { one: "# запись", few: "# записи", many: "# записей", other: "# записи" })}.`,
   showContext: (what: string) => `Показать ${what} в контексте`,
   readingContext: "Читаю…",
   contextFailed: "Не удалось прочитать.",
@@ -776,14 +752,9 @@ const es: typeof en = {
     ]
       .filter((p) => !p.startsWith("0 "))
       .join(" y ")} por revisar`,
-  findingsHead: (project: string) => `Lo que Aprobar crea en ${project}`,
   findingsFor: (project: string) => `Hallazgos para ${project}`,
   findingsReviewed: (created: number, rejected: number) =>
     created === 0 ? "Hallazgos, todos rechazados" : `Hallazgos: ${created} creados, ${rejected} rechazados`,
-  findingsNote: (ticked: number, total: number, project: string): string =>
-    ticked === 0
-      ? "No hay nada marcado. Rechazar los rechaza todos."
-      : `Aprobar crea ${ticked === total ? "los hallazgos" : `los ${ticked} marcados`} en ${project}: los hechos como aceptados, las tareas en su tablero.${ticked === total ? "" : " Los demás se rechazan."}`,
   findingKinds: {
     fact: "Hecho",
     task: "Tarea",
@@ -801,16 +772,10 @@ const es: typeof en = {
   } as Record<string, string>,
   mailTitle: (n: number, mailbox: string) =>
     `Encontrado en el correo de ${mailbox}: ${plural("es", n, { one: "# hallazgo", other: "# hallazgos" })} por revisar`,
-  mailHead: (mailbox: string) => `Lo que un agente encontró en el correo de ${mailbox}. Marca lo que quieres guardar`,
   mailFor: (mailbox: string) => `Encontrado en el correo de ${mailbox}`,
-  mailNote: (ticked: number, total: number): string =>
-    ticked === 0
-      ? "No hay nada marcado. Rechazar los rechaza todos."
-      : `Aprobar guarda ${ticked === total ? "todos los hallazgos" : `los ${ticked} marcados`}, cada uno como dice su etiqueta: una tarea, un hecho, una factura, etc. No se envía nada a nadie.${ticked === total ? "" : " Los demás se rechazan."}`,
   openMail: "Abrir el correo",
   outcomes: { accepted: "Creado", rejected: "Rechazado" } as Record<string, string>,
   cites: "Cita",
-  include: (text: string) => `Incluir: ${text}`,
   noContent: "No se sabe nada más de esta acción.",
   wouldDo: "Lo que haría",
   wouldSend: "El texto completo",
@@ -839,11 +804,11 @@ const es: typeof en = {
   sourcesCount: "Fuentes",
   moreActions: "Más acciones",
   reviewFindings: (n) => `Revisar ${n}`,
-  approveFindings: (n) => `Aprobar ${n}`,
-  approveShown: (n) => `Aprobar ${n}`,
+  approveShown: (n) => `Aprobar todo en esta página: ${n}`,
   approveShownHint: (n) =>
     `Aprueba los ${n} hechos y recuerdos que se ven aquí con estos filtros. Las tareas, los hallazgos de agentes y lo que está en otra pestaña, filtrado o en un grupo plegado siguen pendientes.`,
-  approvedShown: (n) => `Aprobados: ${n}`,
+  approvedShown: (n) =>
+    `Hecho: ${plural("es", n, { one: "# registro aprobado", other: "# registros aprobados" })} en esta página.`,
   showContext: (what: string) => `Mostrar ${what} en contexto`,
   readingContext: "Leyéndolo…",
   contextFailed: "No se pudo leer.",

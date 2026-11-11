@@ -4,7 +4,7 @@ import { matcher, parseQuery, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { useLogs } from "../logs/store"
 import { useTasks } from "../tasks/store"
 import { MEMORY_RUNS } from "./Activity"
@@ -159,7 +159,7 @@ describe("Memory", () => {
     expect(await screen.findByText("Deal. I'll send them Thursday evening.")).toBeInTheDocument()
   })
 
-  it("approves only the findings on screen and ticked, with their count on the button; the rest stay unapproved", async () => {
+  it("saves only the findings approved one by one, naming the count on Save; the rest are rejected", async () => {
     const confirm = vi.spyOn(platform, "memoryConfirm")
     const user = userEvent.setup()
     render(<MemoryPage />)
@@ -167,11 +167,12 @@ describe("Memory", () => {
     const batch = row(/2 facts and 2 tasks to review/)
     await user.click(within(batch).getByRole("button", { name: "Review 4" }))
     expect(confirm).not.toHaveBeenCalled()
-    expect(screen.getByText("What Approve creates in Northbridge Bench")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Findings for Northbridge Bench" })).toBeInTheDocument()
 
-    await user.click(screen.getByRole("checkbox", { name: /Ask Tom Becker for read access/ }))
-    expect(screen.getByText(/creates the 3 ticked ones in Northbridge Bench/)).toBeInTheDocument()
-    await user.click(within(batch).getByRole("button", { name: "Approve 3" }))
+    const tom = screen.getByRole("group", { name: /Decision on: Ask Tom Becker for read access/ })
+    await user.click(within(tom).getByRole("radio", { name: /Reject/ }))
+    expect(confirm).not.toHaveBeenCalled()
+    await user.click(within(batch).getByRole("button", { name: "Save: create 3, reject 1" }))
     await waitFor(() => expect(within(batch).getAllByText(/^Created/)).toHaveLength(3), { timeout: 3000 })
     const [, accept] = confirm.mock.calls[0] ?? []
     expect(accept).toHaveLength(3)
@@ -189,7 +190,7 @@ describe("Memory", () => {
     expect(useTasks.getState().open).toBe("HRB-12")
   })
 
-  it("lists what an approved findings batch created, each one a click away", async () => {
+  it("lists what an approved findings batch created, each one editable from there", async () => {
     const user = userEvent.setup()
     useNav.setState({ active: "memory" })
     render(<MemoryPage />)
@@ -197,14 +198,14 @@ describe("Memory", () => {
     const batch = row(/Findings: 2 created, 1 rejected/)
     await user.click(within(batch).getByRole("button", { name: "What it created" }))
     expect(within(batch).getByRole("button", { name: "What it created" })).toHaveAttribute("aria-expanded", "true")
-    await user.click(within(batch).getByRole("button", { name: /Open the fact/ }))
+    await user.click(within(batch).getByRole("button", { name: "Edit the fact" }))
     expect(useMemory.getState().open).toBe("fact:22")
     expect(useMemory.getState().tab).toBe("all")
-    const fact = row(/Both pilot clinics sign the data agreement/)
-    await waitFor(() => expect(within(fact).getByRole("button", { name: /Both pilot clinics sign/ })).toHaveFocus())
+    expect(useMemory.getState().correcting).toBe("fact:22")
+    act(() => useMemory.getState().startCorrect(null))
 
     await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: /What it created/ }))
-    await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: /Open the task/ }))
+    await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: "Edit the task" }))
     await waitFor(() => expect(useTasks.getState().open).toBe("HRB-14"))
   })
 
