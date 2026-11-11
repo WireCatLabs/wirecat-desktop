@@ -14,6 +14,7 @@ export const SearchAnswerSchema = v.variant("kind", [
     paged: v.boolean(),
     notes: v.array(v.string()),
     total: v.nullable(v.object({ value: v.number(), relation: v.picklist(["eq", "gte"]) })),
+    coverage: v.optional(v.nullable(v.object({ messages: v.number(), chats: v.number() }))),
   }),
   v.object({
     kind: v.literal("queryError"),

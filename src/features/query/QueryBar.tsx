@@ -1,4 +1,4 @@
-import { ExternalLink, Search, X } from "lucide-react"
+import { ExternalLink, type LucideIcon, MessagesSquare, Search, User, X } from "lucide-react"
 import { Fragment, type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { Parsed, Term } from "@/domain/runs"
 import type { QueryOption, QueryOptions } from "@/domain/search"
@@ -54,7 +54,7 @@ export function QueryBar(props: Props) {
     caret.current = null
   }, [query])
 
-  const chips = useMemo(() => chipsOf(parsed, props.named), [parsed, props.named])
+  const chips = useMemo(() => chipsOf(parsed, props.named, m.fields), [parsed, props.named, m.fields])
   const covered = (t: Term) => chips.some((c) => c.term === t && !opened(c.term, selection))
 
   const suggestions = useMemo(() => suggest(query, cursor, all), [suggest, query, cursor, all])
@@ -209,6 +209,10 @@ export function QueryBar(props: Props) {
               el.focus()
               el.setSelectionRange(t.start, t.end)
               sync()
+            }}
+            onRemove={(t) => {
+              removeTerm(t)
+              input.current?.focus()
             }}
           />
         </div>
@@ -365,12 +369,12 @@ type FieldTerm = Extract<Term, { kind: "field" }>
 export type Chip = { term: FieldTerm; label: string; shown: string }
 
 /** Field terms whose id has a name to show; the rest of the query stays plain text. */
-export function chipsOf(parsed: Parsed, named: Props["named"]): Chip[] {
+export function chipsOf(parsed: Parsed, named: Props["named"], fields: Record<string, string> = {}): Chip[] {
   if (!named) return []
   return parsed.terms.flatMap((t) => {
     if (t.kind !== "field") return []
     const label = named(t.field, t.value)
-    return label ? [{ term: t, label, shown: `${t.negate ? "-" : ""}${t.field}: ${label}` }] : []
+    return label ? [{ term: t, label, shown: `${t.negate ? "-" : ""}${fields[t.field] ?? t.field}: ${label}` }] : []
   })
 }
 
@@ -378,6 +382,8 @@ export function chipsOf(parsed: Parsed, named: Props["named"]): Chip[] {
 const opened = (t: FieldTerm, sel: Span | null) =>
   sel !== null &&
   (sel.start === sel.end ? sel.start > t.start && sel.start < t.end : sel.start < t.end && sel.end > t.start)
+
+const FIELD_ICON: Record<string, LucideIcon> = { from: User, chat: MessagesSquare }
 
 /**
  * Each chip is drawn over its term and holds the term's own text, invisible, so it is exactly as wide as the letters
@@ -389,6 +395,7 @@ function Chips(props: {
   selection: Span | null
   disabled: boolean | undefined
   onPick: (t: FieldTerm) => void
+  onRemove: (t: FieldTerm) => void
 }) {
   const m = useMessages(queryMessages)
   const parts: React.ReactNode[] = []
@@ -397,39 +404,56 @@ function Chips(props: {
     parts.push(<span key={`gap-${term.start}`}>{props.query.slice(at, term.start)}</span>)
     const raw = props.query.slice(term.start, term.end)
     const hidden = opened(term, props.selection)
+    const Icon = FIELD_ICON[term.field]
     parts.push(
-      <button
+      <span
         key={term.start}
-        type="button"
-        tabIndex={-1}
-        title={`${shown}\n${raw}`}
-        aria-label={m.editTerm(shown)}
-        disabled={props.disabled}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => props.onPick(term)}
         className={cx(
-          "relative cursor-pointer whitespace-pre border-0 bg-transparent p-0 font-[inherit] text-transparent",
-          "transition-opacity duration-(--motion-fast) motion-reduce:transition-none",
+          "relative inline-block whitespace-pre transition-opacity duration-(--motion-fast) motion-reduce:transition-none",
           hidden ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100",
         )}
       >
-        {raw}
-        <span
-          aria-hidden
-          className={cx(
-            "absolute -inset-x-[0.2rem] -inset-y-[0.25rem] flex items-center overflow-hidden rounded-[0.3rem] border",
-            "border-line-strong bg-app-2 px-[0.25rem] font-sans text-[0.95rem] hover:bg-app-3",
-          )}
+        <button
+          type="button"
+          tabIndex={-1}
+          title={`${shown}\n${raw}`}
+          aria-label={m.editTerm(shown)}
+          disabled={props.disabled}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => props.onPick(term)}
+          className="cursor-pointer whitespace-pre border-0 bg-transparent p-0 font-[inherit] text-transparent"
         >
-          <span className="min-w-0 truncate text-ink-soft">
-            <span className={term.negate ? "text-bad" : "text-ink-soft"}>
-              {term.negate ? "-" : ""}
-              {term.field}:
-            </span>{" "}
-            <span className="font-medium text-ink">{label}</span>
+          {raw}
+          <span
+            aria-hidden
+            className={cx(
+              "absolute -inset-x-[0.2rem] -inset-y-[0.25rem] flex items-center gap-[0.25rem] overflow-hidden",
+              "rounded-[0.35rem] pr-[1.25rem] pl-[0.3rem] font-sans text-[0.95rem]",
+              term.negate ? "bg-bad/15 hover:bg-bad/25" : "bg-brand-soft hover:bg-brand/20",
+            )}
+          >
+            {term.negate && <span className="text-bad">−</span>}
+            {Icon ? (
+              <Icon className={cx("size-[0.9rem] shrink-0", term.negate ? "text-bad" : "text-brand")} />
+            ) : (
+              <span className="shrink-0 text-ink-soft">{term.field}:</span>
+            )}
+            <span className="min-w-0 truncate font-medium text-ink">{label}</span>
           </span>
-        </span>
-      </button>,
+        </button>
+        <button
+          type="button"
+          tabIndex={-1}
+          title={m.removeTerm(shown)}
+          aria-label={m.removeTerm(shown)}
+          disabled={props.disabled}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => props.onRemove(term)}
+          className="absolute top-1/2 -right-[0.05rem] grid size-[1.15rem] -translate-y-1/2 cursor-pointer place-items-center rounded-[0.25rem] border-0 bg-transparent p-0 text-ink-soft hover:bg-app/60 hover:text-ink"
+        >
+          <X className="size-[0.8rem]" aria-hidden />
+        </button>
+      </span>,
     )
     at = term.end
   }

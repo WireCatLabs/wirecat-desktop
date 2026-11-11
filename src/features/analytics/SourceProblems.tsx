@@ -1,6 +1,5 @@
-import { useEffect, useRef } from "react"
 import { findTool, ownerId, signsInHere } from "@/domain/catalog"
-import { InstallLine, openToolAt, syncKey, useSync, useTerminal } from "@/features/tools"
+import { InstallLine, openToolAt, useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
@@ -15,7 +14,7 @@ import { useAnalytics } from "./store"
 const nameOf = (id: string) => findTool(id)?.name ?? id
 
 /**
- * What stands between a card and its numbers, each with the one action that fixes it: install, update, sign in, load.
+ * What stands between a card and its numbers, each with the one action that fixes it: install, update, sign in.
  * The tool's own words are folded under "Details", never the first thing the owner reads.
  */
 export function SourceProblems({ problems, className }: { problems: readonly Problem[]; className?: string }) {
@@ -42,10 +41,8 @@ function ProblemLine({ problem: p }: { problem: Problem }) {
         ? m.old(tool)
         : p.kind === "signedOut"
           ? m.signedOut(tool, p.profile)
-          : p.kind === "empty"
-            ? m.empty(tool, p.profile)
-            : m.failed(tool, p.profile)
-  const detail = p.kind === "old" || p.kind === "empty" || p.kind === "failed" ? p.detail : ""
+          : m.failed(tool, p.profile)
+  const detail = p.kind === "old" || p.kind === "failed" ? p.detail : ""
   return (
     <div className="flex flex-col gap-1.5 text-[0.9rem] text-ink-soft">
       <p>
@@ -75,15 +72,7 @@ function Action({ problem: p }: { problem: Problem }) {
   const m = useMessages(problemMessages)
   const tool = nameOf(p.tool)
   const session = useTools((s) => s.sessions[ownerId(p.tool)])
-  const run = useSync((s) => ("profile" in p ? s.runs[syncKey(p.tool, p.profile)] : undefined))
   const reload = useAnalytics((s) => s.reload)
-  const phase = run?.phase
-  const was = useRef(phase)
-  // The counts are kept for the session; a load that just finished is the moment to read them again.
-  useEffect(() => {
-    if (was.current === "running" && phase === "done") reload()
-    was.current = phase
-  }, [phase, reload])
   if ((p.kind === "missing" || p.kind === "old") && session && !session.outcome)
     return <InstallLine session={session} name={tool} />
   switch (p.kind) {
@@ -111,14 +100,6 @@ function Action({ problem: p }: { problem: Problem }) {
         </>
       )
     }
-    case "empty":
-      return run?.phase === "running" ? (
-        <span className="text-[0.9rem]">{m.loading}</span>
-      ) : (
-        <Button size="sm" onClick={() => useSync.getState().start(p.tool, p.profile)}>
-          {m.load}
-        </Button>
-      )
     case "failed":
       return (
         <>

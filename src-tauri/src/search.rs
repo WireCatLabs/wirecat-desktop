@@ -31,6 +31,12 @@ enum Relation {
     Gte,
 }
 
+#[derive(Debug, Serialize, PartialEq, Clone, Copy)]
+pub struct Coverage {
+    pub messages: u64,
+    pub chats: u64,
+}
+
 #[derive(Debug, Serialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Answer {
@@ -44,6 +50,8 @@ pub enum Answer {
         notes: Vec<String>,
         /// Every match, not only this page (cli-core 0.501.0+); older tools print none.
         total: Option<Total>,
+        /// How much a messenger's search read, so the page says it in the owner's language.
+        coverage: Option<Coverage>,
     },
     /// A closed `query.*` reason; `span` counts UTF-16 units of the query as typed, as JavaScript does.
     #[serde(rename_all = "camelCase")]
@@ -322,18 +330,29 @@ pub(crate) fn read_shaped(shape: SearchShape, paged: bool, out: &run::Output, li
             // drive says nothing about more pages; a full page may have one.
             SearchShape::ItemHits => hits.len() as u64 >= u64::from(limit),
         };
-    let mut all: Vec<String> = body["missing"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|m| m["why"].as_str().map(str::to_string))
-        .collect();
-    for note in notes {
-        if !all.contains(&note) {
+    let why: Vec<&str> = body["missing"].as_array().into_iter().flatten().filter_map(|m| m["why"].as_str()).collect();
+    let coverage = why.iter().find_map(|w| coverage_of(w));
+    let mut all: Vec<String> = Vec::new();
+    for note in why.into_iter().map(str::to_string).chain(notes) {
+        let dropped = coverage.is_some() && about_coverage(&note);
+        if !dropped && !all.contains(&note) {
             all.push(note);
         }
     }
-    Answer::Hits { hits, has_more, paged, notes: all, total }
+    Answer::Hits { hits, has_more, paged, notes: all, total, coverage }
+}
+
+/// The tool's `searched 392,237 messages in 1,390 chats — …`: its JSON has the numbers only inside this sentence.
+fn coverage_of(why: &str) -> Option<Coverage> {
+    let number = |text: &str| text.replace(',', "").parse().ok();
+    let (messages, rest) = why.strip_prefix("searched ")?.split_once(" message")?;
+    let chats = rest.split_once(" in ")?.1.split_once(" chat")?.0;
+    Some(Coverage { messages: number(messages)?, chats: number(chats)? })
+}
+
+/// The tool's account of what it read and what its limits left out: the owner asked for the short line alone.
+fn about_coverage(note: &str) -> bool {
+    coverage_of(note).is_some() || note.starts_with("the history limits")
 }
 
 fn nothing_searched(meta: &Value) -> bool {
@@ -562,8 +581,22 @@ mod tests {
                 paged: true,
                 notes: vec!["searched 3 chats".into(), "no serve keeps it".into()],
                 total: None,
+                coverage: None,
             }
         );
+    }
+
+    #[test]
+    fn says_what_it_read_as_numbers_and_drops_the_tools_sentences() {
+        let body = r#"{"items":[],"page":{"has_more":false},"missing":[
+            {"field":"coverage","why":"searched 392,237 messages in 1,390 chats — 11 never fetched, 365 behind"},
+            {"field":"history_limits","why":"the history limits (history_* settings) left history of 365 chats out"},
+            {"field":"other","why":"the mail was not searched"}]}"#;
+        let stderr = "searched 392,237 messages in 1,390 chats — 11 never fetched, 365 behind\n";
+        let Answer::Hits { notes, coverage, .. } = read(src("tg"), &output(0, body, stderr), 50) else { panic!() };
+        assert_eq!(coverage, Some(Coverage { messages: 392_237, chats: 1390 }));
+        assert_eq!(notes, ["the mail was not searched"]);
+        assert_eq!(coverage_of("searched 1 message in 1 chat"), Some(Coverage { messages: 1, chats: 1 }));
     }
 
     #[test]
@@ -660,7 +693,7 @@ mod tests {
         for id in ["tg", "max", "wa"] {
             let Answer::Hits { hits, notes, .. } = read(src(id), &output(0, body, stderr), 50) else { panic!("{id}") };
             assert!(hits.is_empty(), "{id}");
-            assert_eq!(notes.len(), 2, "{id}: {notes:?}");
+            assert_eq!(notes.len(), 1, "{id}: {notes:?}");
         }
     }
 
@@ -697,11 +730,12 @@ mod tests {
             paged: true,
             notes: vec!["n".into()],
             total: Some(Total { value: 144, relation: Relation::Gte }),
+            coverage: Some(Coverage { messages: 9, chats: 2 }),
         };
         assert_eq!(
             serde_json::to_value(hits).unwrap(),
             json!({"kind": "hits", "hits": [{"ref": "msg:1"}], "hasMore": true, "paged": true, "notes": ["n"],
-                "total": {"value": 144, "relation": "gte"}})
+                "total": {"value": 144, "relation": "gte"}, "coverage": {"messages": 9, "chats": 2}})
         );
         let error = Answer::QueryError { reason: "query.invalid-syntax".into(), message: "m".into(), span: None };
         assert_eq!(

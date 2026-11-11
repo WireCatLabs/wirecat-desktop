@@ -41,7 +41,7 @@ export function ReplyTime() {
       {r.loading && !r.ready.length ? (
         <CardSkeleton label={m.replyTitle} />
       ) : !r.ready.length ? (
-        live.length ? (
+        r.problems.length ? (
           <SourceProblems problems={r.problems} />
         ) : (
           <p className="text-[0.9rem] text-ink-soft">{m.noMessengers}</p>
@@ -110,7 +110,7 @@ export function WaitingOnYou() {
       {r.loading && !r.ready.length ? (
         <CardSkeleton label={m.waitingTitle} />
       ) : !r.ready.length ? (
-        live.length ? (
+        r.problems.length ? (
           <SourceProblems problems={r.problems} />
         ) : (
           <p className="text-[0.9rem] text-ink-soft">{m.noMessengers}</p>

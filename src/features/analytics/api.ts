@@ -1,7 +1,14 @@
 import { type UseQueryResult, useQueries, useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
-import { addDays, type Period, weekOf } from "@/domain/analytics"
-import type { Aggregate, CountRow, MessageCounts, Which } from "@/platform/analytics-schemas"
+import * as v from "valibot"
+import { addDays, EVERY_STATE, type Period, weekOf } from "@/domain/analytics"
+import {
+  type Aggregate,
+  type CountRow,
+  type MessageCounts,
+  TaskSourcesSchema,
+  type Which,
+} from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
 import { queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
@@ -31,6 +38,7 @@ const run = limiter(3)
 export type ExtraAnswers = {
   profile: string
   rows: CountRow[]
+  privateOnly?: boolean | undefined
   failed?: { message: string; code: string | null; old: boolean }
 }[]
 
@@ -111,7 +119,7 @@ export function useExtraQueries(
               const answer = await run(() => platform.messageStats(id, profile, ask, asked.zone)).catch(
                 (e): MessageCounts => ({ kind: "failed", message: message(e), code: null }),
               )
-              if (answer.kind === "ready") return { profile, rows: answer.rows }
+              if (answer.kind === "ready") return { profile, rows: answer.rows, privateOnly: answer.privateOnly }
               return {
                 profile,
                 rows: [],
@@ -153,18 +161,37 @@ export function useAggregateQuery(which: Which, id: string, asked: Asked | null,
   })
 }
 
-/** Closed tasks this week and on the same days last week, from memo's own counts; null until both answer or if not. */
-export function useClosedWeeks(today: string) {
+/** memo's tasks found in chats and meetings over calendar days; null on a memo too old to count them. */
+async function chatTasks(from: string, to: string, zone: string) {
+  const answer = await platform
+    .analyticsAggregate("memo", "taskSources", null, "30d", zone, { from, to })
+    .catch(() => null)
+  if (answer?.kind !== "ready") return null
+  const parsed = v.safeParse(TaskSourcesSchema, answer.body)
+  return parsed.success ? parsed.output : null
+}
+
+/** `tasks counts` reads project tasks only, so chat tasks are added from memo's own per-chat counts. */
+async function tasksIn(from: string, to: string, zone: string) {
+  const [closed, made, chats] = await Promise.all([
+    platform.taskCounts(`state:(done OR dismissed) closed:[${from} TO ${to}]`),
+    platform.taskCounts(`${EVERY_STATE} created:[${from} TO ${to}]`),
+    chatTasks(from, to, zone),
+  ])
+  return { closed: closed.total + (chats?.closed ?? 0), created: chats ? made.total + chats.created : null }
+}
+
+/** Tasks made and closed this week and on the same days last week; null until they answer. */
+export function useTaskWeeks(today: string, zone: string) {
   const q = useQuery({
-    queryKey: ["analytics", "closedWeeks", today],
+    queryKey: ["analytics", "taskWeeks", today, zone],
     queryFn: async () => {
       const monday = weekOf(today)
-      const range = (from: string, to: string) => `state:(done OR dismissed) closed:[${from} TO ${to}]`
       const [now, last] = await Promise.all([
-        platform.taskCounts(range(monday, today)),
-        platform.taskCounts(range(addDays(monday, -7), addDays(today, -7))),
+        tasksIn(monday, today, zone),
+        tasksIn(addDays(monday, -7), addDays(today, -7), zone),
       ])
-      return { now: now.total, last: last.total }
+      return { now, last }
     },
     ...SESSION,
   })

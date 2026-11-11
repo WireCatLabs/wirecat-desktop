@@ -27,6 +27,7 @@ import { ProjectActivitySchema } from "@/platform/analytics-schemas"
 import type { StoreInfo } from "@/platform/archive-schemas"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { InfoTip } from "@/ui/InfoTip"
 import { Pager } from "@/ui/Pager"
 import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
@@ -35,10 +36,11 @@ import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./ch
 import { Explorer } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
+import { MessengerSwitch, useMessengerChoice } from "./messenger-switch"
 import { MEMO_MISSING } from "./problems"
 import { duration, readParts, useInboxTotals, useOldestOpen } from "./reads"
 import { SourceProblems } from "./SourceProblems"
-import { MESSENGERS, useAggregate, useAnalytics, useShownSources } from "./store"
+import { MESSENGERS, useAggregate, useAnalytics, useExtra, useShownSources } from "./store"
 import { useMessengerProblems } from "./useProblems"
 
 type M = typeof analyticsMessages.en
@@ -344,48 +346,66 @@ export function People() {
   const m = useMessages(analyticsMessages)
   const sources = useShownSources()
   const hide = useAnalytics((s) => s.hideNames)
-  const refreshing = useAnalytics((s) => s.refreshing)
   const [by, setBy] = useState<"senders" | "chats">("senders")
+  const counts = useExtra({ by: by === "senders" ? "sender" : "chat", only: "close", previous: false })
   const loading = MESSENGERS.some((x) => sources[x.id]?.state === "loading")
-  const ready = MESSENGERS.flatMap((x) => {
-    const s = sources[x.id]
-    return s?.state === "ready" ? [{ ...x, s }] : []
-  })
-  const none = !loading && ready.length === 0
-  const rows = topRows(Object.fromEntries(ready.map((r) => [r.provider, r.s[by]])), 10)
+  const none = !loading && !MESSENGERS.some((x) => sources[x.id]?.state === "ready")
+  const { ids, picked, choose } = useMessengerChoice(counts.bySource, counts.loading)
+  const rows = topRows(
+    Object.fromEntries(
+      MESSENGERS.filter((x) => picked === "all" || picked === x.id).map((x) => [
+        x.provider,
+        counts.bySource[x.id] ?? [],
+      ]),
+    ),
+    10,
+  )
+  const shownSources = MESSENGERS.filter((x) => rows.some((r) => r.source === x.provider))
   const sourceName = useSourceName()
   const names = (n: string | null) => (n === null ? m.unnamed : hide ? initials(n) : n)
 
   return (
     <Panel id="an-people" title={m.people} source={`stats messages show --by ${by === "senders" ? "sender" : "chat"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Segmented<"senders" | "chats">
-          size="md"
-          label={m.people}
-          value={by}
-          onChange={setBy}
-          options={[
-            { value: "senders", label: m.byPeople },
-            { value: "chats", label: m.byChats },
-          ]}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented<"senders" | "chats">
+            size="md"
+            label={m.people}
+            value={by}
+            onChange={setBy}
+            options={[
+              { value: "senders", label: m.byPeople },
+              { value: "chats", label: m.byChats },
+            ]}
+          />
+          <MessengerSwitch ids={ids} value={picked} onChange={choose} />
+          <InfoTip label={m.closeLabel}>{counts.privateOnly ? m.closeTipOld : m.closeTip}</InfoTip>
+        </div>
         <p className="text-[0.85rem] text-ink-dim">{m.namesStay}</p>
       </div>
       {none ? (
         <Note>{m.noMessengers}</Note>
-      ) : loading && ready.length === 0 ? (
+      ) : counts.loading ? (
         <Skeleton className="h-[15rem] w-full rounded-[0.2rem]" label={m.people} />
       ) : rows.length === 0 ? (
-        <Note>{m.nobody}</Note>
+        counts.problems.length ? (
+          <SourceProblems problems={counts.problems} />
+        ) : (
+          <Note>{m.nobody}</Note>
+        )
       ) : (
         <div className="reveal flex min-h-[15rem] flex-col gap-3">
           <Legend
-            series={ready.map((r) => ({ id: r.provider, label: messengerName(r.id), color: colorOf(r.provider) }))}
+            series={shownSources.map((r) => ({
+              id: r.provider,
+              label: messengerName(r.id),
+              color: colorOf(r.provider),
+            }))}
           />
           <RankBars
             label={by === "senders" ? m.peopleLabel : m.chatsLabel}
             unit={m.messagesN}
-            stale={refreshing}
+            stale={counts.stale}
             rows={rows.map((r) => ({
               id: r.id,
               title: `${names(r.name)} · ${sourceName(r.source)}`,
@@ -541,7 +561,6 @@ export function Tasks() {
   const oldest = useOldestOpen()
   // Tasks found in messages and meetings stay in each account's inbox until sorted; the board counts projects only.
   const inbox = useInboxTotals()
-  const made = inbox?.created ?? null
   const unsorted = inbox?.open ?? null
   const grain = taskGrain(period)
   return (
@@ -573,8 +592,18 @@ export function Tasks() {
               value={formatNumber(tasks.data.open.due.find((d) => d.value === "today")?.count ?? 0)}
             />
             <Stat label={m.oldestOpen} value={oldest ? duration(Date.now() - Date.parse(oldest), m, lang) : "—"} />
-            <Stat label={m.closedIn} value={formatNumber(tasks.data.closed.total)} note={m.period[period]} />
-            {made !== null && <Stat label={m.madeIn} value={formatNumber(made)} note={m.period[period]} />}
+            <Stat
+              label={m.closedIn}
+              value={formatNumber(tasks.data.closed.total + (inbox?.closed ?? 0))}
+              note={m.period[period]}
+            />
+            {inbox && (
+              <Stat
+                label={m.madeIn}
+                value={formatNumber(tasks.data.created.total + inbox.created)}
+                note={m.period[period]}
+              />
+            )}
           </Stats>
           {preview ? (
             <div className="flex flex-col gap-2">

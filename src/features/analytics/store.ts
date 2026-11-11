@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { create } from "zustand"
-import { closedRanges, closedTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
+import { closedRanges, closedTerm, createdTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
 import type { Run } from "@/domain/runs"
 import { useLogs } from "@/features/logs"
 import { useMemory } from "@/features/memory"
@@ -23,7 +23,7 @@ import { fresh } from "@/shared/fresh"
 import { listProfiles, queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 import { analyticsKeys, earlierAnswer, installed, limiter, useAggregateQuery, useExtraQueries } from "./api"
-import { failure, type Problem } from "./problems"
+import { failure, holdsNothing, type Problem } from "./problems"
 
 /** The messengers that count their own messages, and the source each writes into storage. */
 export const MESSENGERS = [
@@ -60,6 +60,7 @@ export type TaskNumbers = {
   open: TaskCounts
   overdue: TaskCounts
   closed: TaskCounts
+  created: TaskCounts
   /** Closed tasks per bar, oldest first; empty for all time. */
   bars: { key: string; count: number }[]
 }
@@ -227,6 +228,8 @@ export function useExtra(
   problems: Problem[]
   loading: boolean
   stale: boolean
+  /** A copy could not tell a group's size, so `close` counted only its private chats. */
+  privateOnly: boolean
 } {
   const current = useAnalytics((s) => s.period)
   const period = spec.period ?? current
@@ -249,7 +252,7 @@ export function useExtra(
     { enabled: enabled && !(previous && period === "all"), own },
   )
   return useMemo(() => {
-    if (!enabled) return { bySource: {}, byProfile: {}, problems: [], loading: false, stale: false }
+    if (!enabled) return { bySource: {}, byProfile: {}, problems: [], loading: false, stale: false, privateOnly: false }
     const settled = asking.length > 0 && results.every((r) => r !== undefined)
     const earlier = settled ? [] : asking.map((id) => earlierAnswer(id, { by, only, previous, range, full }))
     const stale = !settled && asking.length > 0 && earlier.every((e) => e !== undefined)
@@ -257,22 +260,24 @@ export function useExtra(
     const bySource: Record<string, CountRow[]> = {}
     const byProfile: Record<string, CountRow[]> = {}
     const problems: Problem[] = []
+    let privateOnly = false
     asking.forEach((id, n) => {
       const answers = use[n]
       if (!answers || (ids.length && !ids.includes(id))) return
       const chosen = answers.filter((a) => !profiles.length || profiles.includes(a.profile))
       const ready = chosen.filter((a) => !a.failed)
       if (ready.length) bySource[id] = sumRows(ready.map((a) => a.rows))
+      privateOnly ||= ready.some((a) => a.privateOnly)
       for (const a of ready) byProfile[`${id}/${a.profile}`] = a.rows
       for (const a of chosen)
-        if (a.failed)
+        if (a.failed && !holdsNothing(a.failed.code))
           problems.push(
             a.failed.old
               ? { kind: "old", tool: id, detail: a.failed.message }
-              : failure(id, a.profile, a.failed.message, a.failed.code),
+              : failure(id, a.profile, a.failed.message),
           )
     })
-    return { bySource, byProfile, problems, loading: !settled && !stale, stale }
+    return { bySource, byProfile, problems, loading: !settled && !stale, stale, privateOnly }
   }, [enabled, asking, results, ids, profiles, by, only, previous, range, full])
 }
 
@@ -340,10 +345,11 @@ export const useAnalytics = create<State>((set, get) => {
   const loadTasks = async (period: Period, today: string, mine: number, run: ReturnType<typeof limiter>) => {
     if (installed("memo") === false) return set({ tasks: { state: "missing" } })
     try {
-      const [open, overdue, closed, bars] = await Promise.all([
+      const [open, overdue, closed, created, bars] = await Promise.all([
         run(() => platform.taskCounts("")),
         run(() => platform.taskCounts("overdue:true")),
         run(() => platform.taskCounts(closedTerm(period))),
+        run(() => platform.taskCounts(createdTerm(period))),
         Promise.all(
           closedRanges(period, today).map(async (r) => ({
             key: r.key,
@@ -351,7 +357,7 @@ export const useAnalytics = create<State>((set, get) => {
           })),
         ),
       ])
-      if (round === mine) set({ tasks: { state: "ready", data: { open, overdue, closed, bars } } })
+      if (round === mine) set({ tasks: { state: "ready", data: { open, overdue, closed, created, bars } } })
     } catch (e) {
       if (round === mine) set({ tasks: { state: "error", error: message(e) } })
     }

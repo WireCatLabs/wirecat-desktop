@@ -51,6 +51,13 @@ describe("QueryBar names", () => {
     expect(bar).toHaveValue("a")
   })
 
+  it("takes the whole term out with the chip's own remove button", async () => {
+    const user = userEvent.setup()
+    render(<Bar start="invoice from:6034997871" />)
+    await user.click(screen.getByRole("button", { name: "Remove from: Милочка" }))
+    expect(screen.getByRole("combobox", { name: "Search" })).toHaveValue("invoice")
+  })
+
   it("edits the id as text once the caret is inside the term", async () => {
     const user = userEvent.setup()
     render(<Bar start="from:6034997871" />)

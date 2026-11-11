@@ -1,9 +1,11 @@
+import * as v from "valibot"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Aggregate, MessageCounts } from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@/testing/render"
-import { useClosedWeeks } from "./api"
+import { useTaskWeeks } from "./api"
 import { MeetingDays } from "./daily"
+import { readParts } from "./reads"
 import { useAnalytics, useExtra } from "./store"
 
 afterEach(() => vi.restoreAllMocks())
@@ -100,6 +102,27 @@ describe("extra message counts", () => {
   })
 })
 
+describe("a profile that holds nothing", () => {
+  it("makes no notice: an empty or test account is not a problem", async () => {
+    useAnalytics.setState({ profilesOf: { tg: ["test"], max: [], wa: [] }, signedOut: {} })
+    vi.spyOn(platform, "messageStats").mockResolvedValue({
+      kind: "failed",
+      message: "nothing stored",
+      code: "not_found",
+    })
+    const { result } = renderHook(() => useExtra({ by: "hour", only: "close", previous: false }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.problems).toEqual([])
+  })
+
+  it("makes no notice from a tool's aggregate either, and a real failure still does", () => {
+    const parts = (code: string) => [{ profile: "test", answer: { kind: "failed", message: "x", code } as const }]
+    const schema = v.unknown()
+    expect(readParts([["max", { state: "ready", parts: parts("not_found") }]], schema).problems).toEqual([])
+    expect(readParts([["max", { state: "ready", parts: parts("busy") }]], schema).problems).toHaveLength(1)
+  })
+})
+
 describe("closed tasks this week and last", () => {
   it("are null while memo counts and when it cannot, then both numbers", async () => {
     const counts = vi.spyOn(platform, "taskCounts").mockRejectedValueOnce(new Error("memo is busy"))
@@ -113,11 +136,26 @@ describe("closed tasks this week and last", () => {
       due: none,
       agent: none,
     })
-    const failed = renderHook(() => useClosedWeeks("2026-11-05"))
+    const chats = vi.spyOn(platform, "analyticsAggregate").mockResolvedValue({
+      kind: "ready",
+      body: { open: 9, created: 12, closed: 11, median_close_ms: null, mean_open_age_ms: null, rows: [] },
+    })
+    const failed = renderHook(() => useTaskWeeks("2026-11-05", "UTC"))
     expect(failed.result.current).toBeNull()
-    await waitFor(() => expect(counts).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(counts).toHaveBeenCalled())
     expect(failed.result.current).toBeNull()
-    const { result } = renderHook(() => useClosedWeeks("2026-11-06"))
-    await waitFor(() => expect(result.current).toEqual({ now: 3, last: 3 }))
+    const { result } = renderHook(() => useTaskWeeks("2026-11-06", "UTC"))
+    await waitFor(() =>
+      expect(result.current).toEqual({ now: { closed: 14, created: 15 }, last: { closed: 14, created: 15 } }),
+    )
+    expect(chats).toHaveBeenCalledWith("memo", "taskSources", null, "30d", "UTC", {
+      from: "2026-11-02",
+      to: "2026-11-06",
+    })
+    chats.mockResolvedValue({ kind: "old", message: "needs memo" })
+    const { result: old } = renderHook(() => useTaskWeeks("2026-11-07", "UTC"))
+    await waitFor(() =>
+      expect(old.current).toEqual({ now: { closed: 3, created: null }, last: { closed: 3, created: null } }),
+    )
   })
 })

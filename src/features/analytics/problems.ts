@@ -1,29 +1,19 @@
 /**
  * Why a card has no numbers from a tool or one of its profiles, in the terms its button acts on: install the tool,
- * update it, sign the profile in, load what it has, or (a failure the page cannot fix) say so and keep the tool's own
- * words for "Details".
+ * update it, sign the profile in, or (a failure the page cannot fix) say so and keep the tool's own words for "Details".
  */
 export type Problem =
   | { kind: "missing"; tool: string }
   | { kind: "old"; tool: string; detail: string }
   | { kind: "signedOut"; tool: string; profile: string }
-  | { kind: "empty"; tool: string; profile: string; detail: string }
   | { kind: "failed"; tool: string; profile: string | null; detail: string; command?: string }
 
-/**
- * A profile that answered `not_found` is signed in but holds nothing yet: the page always reads with `--offline`, so
- * the tool's advice to run without it is not one the owner can follow from here.
- */
-export function failure(
-  tool: string,
-  profile: string | null,
-  message: string,
-  code?: string | null,
-  command?: string,
-): Problem {
-  if (code === "not_found" && profile !== null) return { kind: "empty", tool, profile, detail: message }
+export function failure(tool: string, profile: string | null, message: string, command?: string): Problem {
   return { kind: "failed", tool, profile, detail: message, ...(command ? { command } : {}) }
 }
+
+/** A profile that answered `not_found` holds nothing yet: an empty or test account, not worth a line on this page. */
+export const holdsNothing = (code: string | null | undefined) => code === "not_found"
 
 export const problemKey = (p: Problem) => `${p.kind}:${p.tool}:${"profile" in p ? (p.profile ?? "") : ""}`
 

@@ -276,7 +276,7 @@ const NOT_REORDERED: &str = "not reordered by the model: ";
 /// memo's `order` note leaves the general notes: the outcome says it, in the owner's language. No `meta.ranking`, no
 /// outcome: the window then claims nothing about the order.
 fn with_outcome(answer: search::Answer, body: Option<&Value>) -> HarderAnswer {
-    let search::Answer::Hits { hits, has_more, paged, notes, total } = answer else {
+    let search::Answer::Hits { hits, has_more, paged, notes, total, coverage } = answer else {
         return HarderAnswer { answer, outcome: None };
     };
     let order = body
@@ -299,7 +299,7 @@ fn with_outcome(answer: search::Answer, body: Option<&Value>) -> HarderAnswer {
             cost_usd: r["cost_usd"].as_f64(),
         }
     });
-    HarderAnswer { answer: search::Answer::Hits { hits, has_more, paged, notes, total }, outcome }
+    HarderAnswer { answer: search::Answer::Hits { hits, has_more, paged, notes, total, coverage }, outcome }
 }
 
 /// One search the owner asked to search harder: the question and its first hits go to the model he agreed to.

@@ -18,6 +18,8 @@ const UNMUTED: &str = "muted:false";
 const MUTED_FIELD: &str = "muted:";
 /// Reply times and waiting chats learned `muted:` apart from search, so a copy is remembered for each on its own.
 const MUTED_REPLIES: &str = "muted: replies";
+/// The key under which a copy too old for `participants_count` is remembered, so it counts private chats alone.
+const SIZE_FIELD: &str = "participants_count:";
 // Longer than the `--timeout 60s` in the templates, so the tool's own time-limit answer comes back, not a kill.
 const TIMEOUT: Duration = Duration::from_secs(90);
 /// Ranked rows for senders and chats; the page shows ten and keeps the rest for its table.
@@ -100,6 +102,8 @@ pub enum Only {
     Private,
     Group,
     Channel,
+    /// Personal conversations: private chats and groups under ten people, the owner's ruling for these counts.
+    Close,
 }
 
 impl Only {
@@ -115,6 +119,7 @@ impl Only {
             Self::Private => Some("kind:private"),
             Self::Group => Some("kind:group"),
             Self::Channel => Some("kind:channel"),
+            Self::Close => Some("(kind:private OR (kind:group participants_count<10))"),
         }
     }
 }
@@ -152,13 +157,17 @@ fn validate_day(day: &str) -> Result<(), String> {
 
 impl Range {
     fn term(&self) -> Result<String, String> {
+        self.term_on("date")
+    }
+
+    fn term_on(&self, field: &str) -> Result<String, String> {
         validate_day(&self.from)?;
         match &self.to {
             Some(to) => {
                 validate_day(to)?;
-                Ok(format!("date:[{} TO {to}]", self.from))
+                Ok(format!("{field}:[{} TO {to}]", self.from))
             }
-            None => Ok(format!("date>={}", self.from)),
+            None => Ok(format!("{field}>={}", self.from)),
         }
     }
 }
@@ -225,6 +234,9 @@ pub enum Counts {
         rows: Vec<Row>,
         /// More rows than the limit: the tool cut the list.
         more: bool,
+        /// Asked for `Close` of a copy that cannot tell a group's size, so only private chats are counted.
+        #[serde(rename = "privateOnly", skip_serializing_if = "std::ops::Not::not")]
+        private_only: bool,
     },
     /// The installed version has no `stats messages show`: the answer is "update it".
     Old { message: String },
@@ -308,14 +320,48 @@ pub fn messages(tool: &Tool, profile: &str, ask: Ask, timezone: &str) -> Result<
     if let Some(message) = REFUSED.known(&tool.id, STATS, &bin) {
         return Ok(Counts::Old { message });
     }
-    let unmuted = REFUSED.known(&tool.id, MUTED_FIELD, &bin).is_none();
-    let counts = count(tool, &bin, &args(src, profile, &ask, timezone, unmuted)?, &ask)?;
+    let private = Ask { only: Only::Private, ..ask.clone() };
+    if ask.only == Only::Close && REFUSED.known(&tool.id, SIZE_FIELD, &bin).is_some() {
+        return Ok(private_only(unmuted_count(tool, &bin, src, profile, &private, timezone)?));
+    }
+    let counts = unmuted_count(tool, &bin, src, profile, &ask, timezone)?;
+    if let Counts::Failed { message, .. } = &counts
+        && ask.only == Only::Close
+        && unknown_size(message)
+    {
+        REFUSED.remember(&tool.id, SIZE_FIELD, &bin, message);
+        return Ok(private_only(unmuted_count(tool, &bin, src, profile, &private, timezone)?));
+    }
+    Ok(counts)
+}
+
+fn unknown_size(message: &str) -> bool {
+    message.contains("query.unknown-field") && message.contains("participants_count")
+}
+
+fn private_only(counts: Counts) -> Counts {
+    match counts {
+        Counts::Ready { total, rows, more, .. } => Counts::Ready { total, rows, more, private_only: true },
+        other => other,
+    }
+}
+
+fn unmuted_count(
+    tool: &Tool,
+    bin: &std::path::Path,
+    src: &StatsSource,
+    profile: &str,
+    ask: &Ask,
+    timezone: &str,
+) -> Result<Counts, String> {
+    let unmuted = REFUSED.known(&tool.id, MUTED_FIELD, bin).is_none();
+    let counts = count(tool, bin, &args(src, profile, ask, timezone, unmuted)?, ask)?;
     if let Counts::Failed { message, .. } = &counts
         && unmuted
         && unknown_muted(message)
     {
-        REFUSED.remember(&tool.id, MUTED_FIELD, &bin, message);
-        return count(tool, &bin, &args(src, profile, &ask, timezone, false)?, &ask);
+        REFUSED.remember(&tool.id, MUTED_FIELD, bin, message);
+        return count(tool, bin, &args(src, profile, ask, timezone, false)?, ask);
     }
     Ok(counts)
 }
@@ -328,7 +374,7 @@ fn count(tool: &Tool, bin: &std::path::Path, runs: &[Vec<String>], ask: &Ask) ->
         let out = crate::memo_server::run_tool(tool, bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
         let counts = read(&out);
         match counts {
-            Counts::Ready { total, rows, more } => {
+            Counts::Ready { total, rows, more, .. } => {
                 if open_ended && n > 0 && total == 0 {
                     break;
                 }
@@ -366,7 +412,7 @@ impl Sum {
 
     fn done(mut self) -> Counts {
         self.rows.sort_by(|a, b| a.key.cmp(&b.key));
-        Counts::Ready { total: self.total, rows: self.rows, more: self.more }
+        Counts::Ready { total: self.total, rows: self.rows, more: self.more, private_only: false }
     }
 }
 
@@ -374,9 +420,18 @@ impl Sum {
 #[derive(Debug, Serialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Aggregate {
-    Ready { body: Value },
-    Old { message: String },
-    Failed { message: String },
+    Ready {
+        body: Value,
+    },
+    Old {
+        message: String,
+    },
+    Failed {
+        message: String,
+        /// The tool's error code, such as `not_found` for a profile that holds nothing yet.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        code: Option<String>,
+    },
 }
 
 const AGGREGATES: [&str; 10] = [
@@ -400,6 +455,7 @@ pub fn aggregate_args(
     src: &AggregateSource,
     profile: Option<&str>,
     period: Period,
+    range: Option<&Range>,
     timezone: &str,
     unmuted: bool,
 ) -> Result<Vec<String>, String> {
@@ -412,8 +468,9 @@ pub fn aggregate_args(
         (false, None) => {}
     }
     let days = period.days();
-    let since = match (&src.date, days) {
-        (Some(field), Some(days)) => Some(format!("{field}>={days}d")),
+    let since = match (&src.date, range, days) {
+        (Some(field), Some(range), _) => Some(range.term_on(field)?),
+        (Some(field), None, Some(days)) => Some(format!("{field}>={days}d")),
         _ => None,
     };
     let terms: Vec<String> = since.into_iter().chain(unmuted.then(|| UNMUTED.to_string())).collect();
@@ -453,6 +510,7 @@ pub fn aggregate(
     which: &str,
     profile: Option<&str>,
     period: Period,
+    range: Option<&Range>,
     timezone: &str,
 ) -> Result<Aggregate, String> {
     let name = AGGREGATES.iter().find(|n| **n == which).ok_or("not a known count")?;
@@ -464,13 +522,13 @@ pub fn aggregate(
         return Ok(Aggregate::Old { message: format!("needs {} {min} or newer", tool.bin) });
     }
     let unmuted = COUNTS_MESSAGES.contains(name) && REFUSED.known(&tool.id, MUTED_REPLIES, &bin).is_none();
-    let answer = run_aggregate(tool, &bin, &aggregate_args(src, profile, period, timezone, unmuted)?)?;
-    if let Aggregate::Failed { message } = &answer
+    let answer = run_aggregate(tool, &bin, &aggregate_args(src, profile, period, range, timezone, unmuted)?)?;
+    if let Aggregate::Failed { message, .. } = &answer
         && unmuted
         && unknown_muted(message)
     {
         REFUSED.remember(&tool.id, MUTED_REPLIES, &bin, message);
-        return run_aggregate(tool, &bin, &aggregate_args(src, profile, period, timezone, false)?);
+        return run_aggregate(tool, &bin, &aggregate_args(src, profile, period, range, timezone, false)?);
     }
     Ok(answer)
 }
@@ -489,7 +547,8 @@ fn run_aggregate(tool: &Tool, bin: &std::path::Path, args: &[String]) -> Result<
         .as_ref()
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
-    Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message } })
+    let code = json.as_ref().and_then(|v| v["error"]["code"].as_str()).map(str::to_string);
+    Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message, code } })
 }
 
 /// The answer sits under `item`; an older envelope put it first in `items`.
@@ -517,7 +576,7 @@ fn read(out: &run::Output) -> Counts {
             .collect::<Vec<_>>();
         let total = b["total"].as_u64().unwrap_or_else(|| rows.iter().map(|r| r.count).sum());
         let more = v["meta"]["truncated"].as_bool().unwrap_or(false);
-        return Counts::Ready { total, rows, more };
+        return Counts::Ready { total, rows, more, private_only: false };
     }
     let message = json
         .as_ref()
@@ -597,15 +656,36 @@ mod tests {
         assert!(runs.len() > 1);
         assert!(runs.iter().all(|a| a.last().unwrap().ends_with(" from:me muted:false")), "{runs:?}");
         let tg = catalog::tool("tg").unwrap();
-        let r = aggregate_args(&tg.aggregates["responses"], Some("p"), Period::Week, "UTC", true).unwrap();
+        let r = aggregate_args(&tg.aggregates["responses"], Some("p"), Period::Week, None, "UTC", true).unwrap();
         assert_eq!(&r[r.len() - 2..], ["--", "date>=7d muted:false"]);
-        let ever = aggregate_args(&tg.aggregates["responses"], Some("p"), Period::All, "UTC", true).unwrap();
+        let ever = aggregate_args(&tg.aggregates["responses"], Some("p"), Period::All, None, "UTC", true).unwrap();
         assert_eq!(&ever[ever.len() - 2..], ["--", "muted:false"]);
-        let waiting = aggregate_args(&tg.aggregates["waiting"], Some("p"), Period::Week, "UTC", true).unwrap();
+        let waiting = aggregate_args(&tg.aggregates["waiting"], Some("p"), Period::Week, None, "UTC", true).unwrap();
         assert_eq!(&waiting[waiting.len() - 2..], ["--", "muted:false"]);
-        let plain = aggregate_args(&tg.aggregates["waiting"], Some("p"), Period::Week, "UTC", false).unwrap();
+        let plain = aggregate_args(&tg.aggregates["waiting"], Some("p"), Period::Week, None, "UTC", false).unwrap();
         assert!(!plain.iter().any(|a| a == "--" || a.starts_with('{')), "{plain:?}");
         assert!(COUNTS_MESSAGES.iter().all(|n| AGGREGATES.contains(n)));
+    }
+
+    #[test]
+    fn close_chats_are_one_parenthesised_term_and_a_copy_without_the_size_field_is_told_apart() {
+        let a = one(Ask { only: Only::Close, ..ask(Period::Month, By::Sender) });
+        assert_eq!(a.last().unwrap(), "date>=30d (kind:private OR (kind:group participants_count<10))");
+        assert!(unknown_size("search: query.unknown-field at position 39 — no field \"participants_count\""));
+        assert!(!unknown_size("search: query.unknown-field at position 1 — no field \"muted\""));
+    }
+
+    #[test]
+    fn a_task_count_takes_calendar_days_on_its_own_date_field() {
+        let memo = catalog::tool("memo").unwrap();
+        let range = Range { from: "2026-11-09".into(), to: Some("2026-11-11".into()) };
+        let a =
+            aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, Some(&range), "UTC", false).unwrap();
+        assert_eq!(&a[a.len() - 2..], ["--", "created:[2026-11-09 TO 2026-11-11]"]);
+        let bad = Range { from: "next week".into(), to: None };
+        assert!(
+            aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, Some(&bad), "UTC", false).is_err()
+        );
     }
 
     #[test]
@@ -686,7 +766,8 @@ mod tests {
             Counts::Ready {
                 total: 7,
                 more: true,
-                rows: vec![row("2026-09-01", 3), row("2026-10-02", 2), row("2026-10-03", 2)]
+                rows: vec![row("2026-09-01", 3), row("2026-10-02", 2), row("2026-10-03", 2)],
+                private_only: false,
             }
         );
     }
@@ -726,6 +807,7 @@ mod tests {
                     Row { key: "me".into(), name: None, count: 7 },
                     Row { key: "42".into(), name: Some("Ana".into()), count: 5 },
                 ],
+                private_only: false,
             }
         );
     }
@@ -751,36 +833,42 @@ mod tests {
             }
         }
         let zm = catalog::tool("zm").unwrap();
-        let a = aggregate_args(&zm.aggregates["meetings"], Some("personal"), Period::Week, "UTC", false).unwrap();
+        let a = aggregate_args(&zm.aggregates["meetings"], Some("personal"), Period::Week, None, "UTC", false).unwrap();
         assert_eq!(&a[a.len() - 2..], ["--", "started_at>=7d"]);
         let week =
-            aggregate_args(&zm.aggregates["meetingsWeek"], Some("p"), Period::Month, "Europe/Madrid", false).unwrap();
+            aggregate_args(&zm.aggregates["meetingsWeek"], Some("p"), Period::Month, None, "Europe/Madrid", false)
+                .unwrap();
         assert!(week.windows(2).any(|w| w == ["--since-time", "30d"]));
         assert!(week.windows(2).any(|w| w == ["--timezone", "Europe/Madrid"]));
-        let ever = aggregate_args(&zm.aggregates["meetingsSeries"], Some("p"), Period::All, "UTC", false).unwrap();
+        let ever =
+            aggregate_args(&zm.aggregates["meetingsSeries"], Some("p"), Period::All, None, "UTC", false).unwrap();
         assert!(!ever.iter().any(|w| w == "--since-time" || w.starts_with('{')));
         assert!(ever.windows(2).any(|w| w == ["--limit", &ALL_ROWS.to_string()]));
         let memo = catalog::tool("memo").unwrap();
-        let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, "UTC", false).unwrap();
+        let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, None, "UTC", false).unwrap();
         assert_eq!(&t[t.len() - 2..], ["--", "created>=30d"]);
-        let week = aggregate_args(&memo.aggregates["projectActivity"], None, Period::Week, "UTC", false).unwrap();
+        let week = aggregate_args(&memo.aggregates["projectActivity"], None, Period::Week, None, "UTC", false).unwrap();
         assert!(week.windows(2).any(|w| w == ["--since-time", "7d"]));
-        let all = aggregate_args(&memo.aggregates["projectActivity"], None, Period::All, "UTC", false).unwrap();
+        let all = aggregate_args(&memo.aggregates["projectActivity"], None, Period::All, None, "UTC", false).unwrap();
         assert!(all.windows(2).any(|w| w == ["--since-time", "all"]));
         let mail = catalog::tool("email").unwrap();
-        assert!(aggregate_args(&mail.aggregates["mail"], None, Period::Week, "UTC", false).is_err());
-        let m = aggregate_args(&mail.aggregates["mail"], Some("ya"), Period::Week, "UTC", false).unwrap();
+        assert!(aggregate_args(&mail.aggregates["mail"], None, Period::Week, None, "UTC", false).is_err());
+        let m = aggregate_args(&mail.aggregates["mail"], Some("ya"), Period::Week, None, "UTC", false).unwrap();
         assert_eq!(&m[..4], ["ya", "stats", "messages", "show"]);
         assert!(m.windows(2).any(|w| w == ["--limit", "50"]));
         let tg = catalog::tool("tg").unwrap();
-        let c = aggregate_args(&tg.aggregates["coverage"], Some("personal"), Period::All, "UTC", false).unwrap();
+        let c = aggregate_args(&tg.aggregates["coverage"], Some("personal"), Period::All, None, "UTC", false).unwrap();
         assert_eq!(&c[..4], ["personal", "store", "chats", "status"]);
     }
 
     #[test]
     fn answers_serialize_as_the_interface_reads_them() {
-        let c =
-            Counts::Ready { total: 1, rows: vec![Row { key: "2026-11-01".into(), name: None, count: 1 }], more: false };
+        let c = Counts::Ready {
+            total: 1,
+            rows: vec![Row { key: "2026-11-01".into(), name: None, count: 1 }],
+            more: false,
+            private_only: false,
+        };
         assert_eq!(
             serde_json::to_value(c).unwrap(),
             json!({"kind":"ready","total":1,"more":false,"rows":[{"key":"2026-11-01","name":null,"count":1}]})
@@ -800,7 +888,7 @@ mod tests {
                 for which in ["responses", "waiting", "coverage"] {
                     for period in [Period::Month, Period::All] {
                         let started = std::time::Instant::now();
-                        let answer = aggregate(tool, which, Some(&p.name), period, "Europe/Madrid");
+                        let answer = aggregate(tool, which, Some(&p.name), period, None, "Europe/Madrid");
                         let kind = match &answer {
                             Ok(Aggregate::Ready { body }) if body.as_object().is_some_and(|o| !o.is_empty()) => "ready",
                             Ok(Aggregate::Ready { .. }) => "empty",

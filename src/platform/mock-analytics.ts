@@ -92,6 +92,7 @@ const ONLY_SHARE: Record<Only, number> = {
   private: 0.46,
   group: 0.41,
   channel: 0.13,
+  close: 0.58,
 }
 
 function days(id: string, profile: string, ask: Ask, today: string): CountRow[] {
@@ -400,7 +401,7 @@ export const analyticsMock = (
 
   // Only the Analytics page asks for closed tasks by a date range; the Tasks page never does.
   async taskCounts(query) {
-    const range = /closed:\[(\d{4}-\d{2}-\d{2}) TO (\d{4}-\d{2}-\d{2})\]$/.exec(query)
+    const range = /(?:closed|created):\[(\d{4}-\d{2}-\d{2}) TO (\d{4}-\d{2}-\d{2})\]$/.exec(query)
     if (!range) return base.taskCounts(query)
     const counts = await base.taskCounts("closed:>=1d")
     const [, from = "", to = ""] = range

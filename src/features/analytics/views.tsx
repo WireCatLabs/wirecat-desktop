@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import * as v from "valibot"
 import {
   addDays,
@@ -15,11 +15,14 @@ import { findTool } from "@/domain/catalog"
 import { formatDate, formatNumber, formatRelative, useLang, useMessages } from "@/i18n"
 import { CoverageSchema } from "@/platform/analytics-schemas"
 import { cx } from "@/ui/cx"
+import { InfoTip } from "@/ui/InfoTip"
 import { Lamp } from "@/ui/Lamp"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { NumbersTable, Stat } from "./charts"
 import { colorOf, longKey, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
+import { MessengerSwitch, useMessengerChoice } from "./messenger-switch"
 import { SourceProblems } from "./SourceProblems"
 import { MESSENGERS, useAggregate, useAnalytics, useExtra } from "./store"
 
@@ -34,65 +37,95 @@ const byProvider = <T,>(bySource: Record<string, T>) =>
 export function WhenYouTalk() {
   const m = useMessages(analyticsMessages)
   const lang = useLang()
-  const hours = useExtra({ by: "hour", only: "all", previous: false })
+  const [who, setWho] = useState<"close" | "sent">("close")
+  const hours = useExtra({ by: "hour", only: who, previous: false })
   const period = useAnalytics((s) => s.period)
-  const grid = weekHours(Object.values(hours.bySource).flat())
+  const { ids, picked, choose } = useMessengerChoice(hours.bySource, hours.loading)
+  const grid = weekHours(picked === "all" ? Object.values(hours.bySource).flat() : (hours.bySource[picked] ?? []))
   const max = grid.flat().reduce((a, n) => Math.max(a, n), 1)
   const days = grid.map((_, i) =>
     formatDate(new Date(`${addDays(MONDAY, i)}T12:00:00Z`), { weekday: "short", timeZone: "UTC" }, lang),
   )
   const empty = !hours.loading && grid.flat().every((n) => n === 0)
-  if (hours.loading && Object.keys(hours.bySource).length === 0)
-    return <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.whenTitle} />
-  // A profile that did not answer is said as such: its silence is not "no messages".
-  if (empty)
-    return hours.problems.length ? (
-      <SourceProblems problems={hours.problems} />
-    ) : (
-      <p className="text-[0.9rem] text-ink-soft">{m.noMessages}</p>
-    )
   const off = offHours(grid)
   const pct = (n: number) => (off.total ? Math.round((n / off.total) * 100) : 0)
   return (
-    <div className={cx("flex flex-col gap-3 transition-opacity duration-(--motion-slow)", hours.stale && "opacity-55")}>
-      <dl className="m-0 grid grid-cols-2 gap-x-[1.2rem]">
-        <Stat label={m.offEvenings} value={`${pct(off.evenings)}%`} note={m.messagesN(off.evenings)} />
-        <Stat label={m.offWeekends} value={`${pct(off.weekends)}%`} note={m.messagesN(off.weekends)} />
-      </dl>
-      <div className="grid grid-cols-[2.6rem_repeat(24,minmax(0,1fr))] gap-[2px]" role="img" aria-label={m.heatTable}>
-        {grid.map((row, d) => (
-          <div key={days[d]} className="contents">
-            <span className="pr-2 text-right text-[0.85rem] leading-[1.35rem] text-ink-dim">{days[d]}</span>
-            {row.map((n, h) => (
-              <span
-                // biome-ignore lint/suspicious/noArrayIndexKey: the hour is the cell's place in the row
-                key={h}
-                title={`${days[d]} ${String(h).padStart(2, "0")}:00 · ${m.messagesN(n)}`}
-                className="block h-[1.35rem] rounded-[3px]"
-                style={{
-                  background:
-                    n === 0
-                      ? "var(--app-2)"
-                      : `color-mix(in oklab, var(--series-1) ${Math.round(15 + (n / max) * 85)}%, var(--app))`,
-                }}
-              />
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Segmented<"close" | "sent">
+          size="md"
+          label={m.whoLabel}
+          value={who}
+          onChange={setWho}
+          options={[
+            { value: "close", label: m.whoAll },
+            { value: "sent", label: m.whoMine },
+          ]}
+        />
+        <MessengerSwitch ids={ids} value={picked} onChange={choose} />
+        <InfoTip label={m.closeLabel}>
+          {who === "sent" ? m.mineTip : hours.privateOnly ? m.closeTipOld : m.closeTip}
+        </InfoTip>
+      </div>
+      {hours.loading && Object.keys(hours.bySource).length === 0 ? (
+        <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.whenTitle} />
+      ) : empty ? (
+        // A profile that did not answer is said as such: its silence is not "no messages".
+        hours.problems.length ? (
+          <SourceProblems problems={hours.problems} />
+        ) : (
+          <p className="text-[0.9rem] text-ink-soft">{m.noMessages}</p>
+        )
+      ) : (
+        <div
+          className={cx("flex flex-col gap-3 transition-opacity duration-(--motion-slow)", hours.stale && "opacity-55")}
+        >
+          <dl className="m-0 grid grid-cols-2 gap-x-[1.2rem]">
+            <Stat label={m.offEvenings} value={`${pct(off.evenings)}%`} note={m.messagesN(off.evenings)} />
+            <Stat label={m.offWeekends} value={`${pct(off.weekends)}%`} note={m.messagesN(off.weekends)} />
+          </dl>
+          <div
+            className="grid grid-cols-[2.6rem_repeat(24,minmax(0,1fr))] gap-[2px]"
+            role="img"
+            aria-label={m.heatTable}
+          >
+            {grid.map((row, d) => (
+              <div key={days[d]} className="contents">
+                <span className="pr-2 text-right text-[0.85rem] leading-[1.35rem] text-ink-dim">{days[d]}</span>
+                {row.map((n, h) => (
+                  <span
+                    // biome-ignore lint/suspicious/noArrayIndexKey: the hour is the cell's place in the row
+                    key={h}
+                    title={`${days[d]} ${String(h).padStart(2, "0")}:00 · ${m.messagesN(n)}`}
+                    className="block h-[1.35rem] rounded-[3px]"
+                    style={{
+                      background:
+                        n === 0
+                          ? "var(--app-2)"
+                          : `color-mix(in oklab, var(--series-1) ${Math.round(15 + (n / max) * 85)}%, var(--app))`,
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+            <span />
+            {HOURS.map((h) => (
+              <span key={h} aria-hidden className="text-center font-mono text-[0.8rem] text-ink-dim">
+                {h % 3 === 0 ? h : ""}
+              </span>
             ))}
           </div>
-        ))}
-        <span />
-        {HOURS.map((h) => (
-          <span key={h} aria-hidden className="text-center font-mono text-[0.8rem] text-ink-dim">
-            {h % 3 === 0 ? h : ""}
-          </span>
-        ))}
-      </div>
-      <NumbersTable
-        caption={m.heatTable}
-        head={[m.hourCol, ...days]}
-        rows={HOURS.map((h) => [`${String(h).padStart(2, "0")}:00`, ...grid.map((row) => row[h] ?? 0)])}
-      />
-      <p className="text-[0.85rem] text-ink-dim">{period === "all" ? `${m.offNote} ${m.lastYearOnly}` : m.offNote}</p>
-      <SourceProblems problems={hours.problems} />
+          <NumbersTable
+            caption={m.heatTable}
+            head={[m.hourCol, ...days]}
+            rows={HOURS.map((h) => [`${String(h).padStart(2, "0")}:00`, ...grid.map((row) => row[h] ?? 0)])}
+          />
+          <p className="text-[0.85rem] text-ink-dim">
+            {period === "all" ? `${m.offNote} ${m.lastYearOnly}` : m.offNote}
+          </p>
+          <SourceProblems problems={hours.problems} />
+        </div>
+      )}
     </div>
   )
 }
