@@ -180,7 +180,7 @@ function CheckRow({ item }: { item: CheckItem }) {
         </div>
         {item.fix?.kind === "path" && <PathFixButton tools={item.fix.tools} />}
         {item.fix?.kind === "tools" && (
-          <Button size="sm" variant="ghost" onClick={() => go("tools")}>
+          <Button size="sm" onClick={() => go("tools")}>
             {m.openTools}
           </Button>
         )}
