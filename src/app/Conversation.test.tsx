@@ -17,7 +17,7 @@ beforeEach(() => {
 })
 
 const link = (target: DeepLinkTarget) => act(() => deliver(target))
-const messages = () => screen.findByRole("list", { name: "Messages" }, { timeout: 4000 })
+const messages = () => screen.findByRole("list", { name: "Messages" })
 
 describe("a conversation a link opens", () => {
   it("shows the linked message highlighted among its neighbours, read only, and Back returns", async () => {
@@ -38,7 +38,7 @@ describe("a conversation a link opens", () => {
     expect(screen.queryByRole("button", { name: /send|reply|mark/i })).toBeNull()
     await user.click(screen.getByRole("button", { name: "Back" }))
     expect(useNav.getState().active).toBe("digests")
-  }, 15000)
+  })
 
   it("opens a chat on its newest messages and reads earlier ones on request, keeping the ones shown", async () => {
     const user = userEvent.setup()
@@ -58,7 +58,7 @@ describe("a conversation a link opens", () => {
     await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(64))
     expect(screen.getByText("This is where the conversation starts on this computer.")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Show earlier messages" })).toBeNull()
-  }, 15000)
+  })
 
   it("reads a picture of the chat with the owner's agent, or says picture reading is never", async () => {
     const user = userEvent.setup()
@@ -77,7 +77,7 @@ describe("a conversation a link opens", () => {
     await user.click(within(row).getByRole("button", { name: "Read the picture" }))
     expect(await within(row).findByText("TENANTS ONLY")).toBeInTheDocument()
     expect(read).toHaveBeenCalledWith("msg:telegram/1001/4004/57", 1)
-  }, 15000)
+  })
 
   it("reads later messages after a linked one", async () => {
     const user = userEvent.setup()
@@ -88,13 +88,13 @@ describe("a conversation a link opens", () => {
     expect(screen.getByText("This is where the conversation starts on this computer.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Show later messages" }))
     await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(43))
-  }, 15000)
+  })
 
   it("lays a mail thread out as emails, each with its subject and sender, quoted mail folded", async () => {
     const user = userEvent.setup()
     render(<App />)
     link({ type: "chat", provider: "email", account: "owner@example.com", chat: "5005" })
-    const list = await screen.findByRole("list", { name: "Emails of the thread" }, { timeout: 4000 })
+    const list = await screen.findByRole("list", { name: "Emails of the thread" })
     expect(within(list).getAllByRole("listitem")).toHaveLength(4)
     expect(within(list).getAllByRole("heading", { name: /Warehouse lease/ })).toHaveLength(4)
     expect(screen.getByText("owner@example.com")).toBeInTheDocument()
@@ -105,7 +105,7 @@ describe("a conversation a link opens", () => {
     expect(folds[0]).toHaveAttribute("aria-expanded", "false")
     await user.click(folds[0] as HTMLElement)
     expect(folds[0]).toHaveAttribute("aria-expanded", "true")
-  }, 15000)
+  })
 
   it("shows a message's text as text: no script, no image, links only for https and opened by the system", async () => {
     const user = userEvent.setup()
@@ -123,50 +123,40 @@ describe("a conversation a link opens", () => {
     await user.click(within(list).getByRole("button", { name: "https://docs.example.com/agenda?week=45" }))
     expect(open).toHaveBeenCalledWith("https://docs.example.com/agenda?week=45")
     expect(open).toHaveBeenCalledTimes(1)
-  }, 15000)
+  })
 
   it("says calmly what is missing, with the reference to copy", async () => {
     render(<App />)
     link({ type: "message", provider: "telegram", account: "9", chat: "2", message: "3" })
-    expect(
-      await screen.findByRole("heading", { name: "This account is not on this computer" }, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "This account is not on this computer" })).toBeInTheDocument()
     expect(screen.getByText("msg:telegram/9/2/3")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Open Tools" })).toBeInTheDocument()
 
     link({ type: "message", provider: "telegram", account: "1", chat: "2", message: "404" })
-    expect(
-      await screen.findByRole("heading", { name: "This message is not on this computer" }, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "This message is not on this computer" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Open its sync" })).toBeInTheDocument()
 
     vi.spyOn(platform, "conversationRead").mockResolvedValueOnce({ state: "missing", what: "thread" })
     link({ type: "chat", provider: "email", account: "owner@example.com", chat: "5005" })
-    expect(
-      await screen.findByRole("heading", { name: "WireCat can't list this mail thread yet" }, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "WireCat can't list this mail thread yet" })).toBeInTheDocument()
 
     vi.spyOn(platform, "conversationRead").mockResolvedValueOnce({ state: "noMemo" })
     link({ type: "chat", provider: "telegram", account: "1", chat: "2" })
-    expect(
-      await screen.findByText("This page reads Memo, which is not installed.", undefined, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("This page reads Memo, which is not installed.", undefined)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Install Memo" })).toBeInTheDocument()
-  }, 20000)
+  })
 
   it("offers to try again after a failed read", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "conversationRead").mockRejectedValueOnce(new Error("memo stopped after 60 s"))
     render(<App />)
     link({ type: "chat", provider: "telegram", account: "1", chat: "2" })
-    expect(
-      await screen.findByRole("heading", { name: "WireCat could not read this conversation" }, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "WireCat could not read this conversation" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Details" }))
     expect(await screen.findByText("memo stopped after 60 s")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Try again" }))
     expect(await messages()).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("is never the page the next launch reopens", () => {
     useNav.getState().go("logs")

@@ -4,7 +4,7 @@ import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { MemoryPage } from "./MemoryPage"
 
-const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
+const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" })
 
 describe("A mail findings batch", () => {
   it("opens a mail batch as each finding with its kind and the email it cites, and saves only the approved ones", async () => {

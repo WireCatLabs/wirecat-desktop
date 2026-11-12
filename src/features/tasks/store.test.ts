@@ -42,8 +42,8 @@ describe("the Tasks store", () => {
       return { ...counts, assignee: [{ value: "person:777", name: null, count: 1 }] }
     })
     await useTasks.getState().load()
-    await waitFor(() => expect(named).toHaveBeenCalledTimes(2), { timeout: 2000 })
-    await waitFor(() => expect(open).toBe(0), { timeout: 2000 })
+    await waitFor(() => expect(named).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(open).toBe(0))
     expect(most).toBe(1)
   })
 

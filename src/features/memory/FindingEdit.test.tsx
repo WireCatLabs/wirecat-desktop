@@ -5,7 +5,7 @@ import type { MemoryRead } from "@/platform/memory-schemas"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { MemoryPage } from "./MemoryPage"
 
-const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
+const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" })
 const SPANISH = "Add 40 Spanish queries to the evaluation set before the 12 November review"
 
 /** The memo the page reads, changed as `change` says. */

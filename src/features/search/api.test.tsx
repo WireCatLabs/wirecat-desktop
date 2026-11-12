@@ -11,7 +11,7 @@ afterEach(() => vi.restoreAllMocks())
 const CHATS: ValueItem[] = [{ value: "-1001001", label: "Design crit", detail: null }]
 
 async function open(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() => expect(useTools.getState().checked).toBe(true), { timeout: 4000 })
+  await waitFor(() => expect(useTools.getState().checked).toBe(true))
   for (const [box, option] of [
     ["Tool", "Telegram"],
     ["Profile", "personal"],
@@ -46,7 +46,7 @@ describe("the tool's own values in the search bar", () => {
     await act(async () => answer(CHATS))
     await typeField(user)
     expect(await screen.findByRole("option", { name: /Design crit/ })).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("leave the bar working when the tool cannot list them, and are asked again when the page opens again", async () => {
     const user = userEvent.setup()
@@ -63,5 +63,5 @@ describe("the tool's own values in the search bar", () => {
     render(<SearchPage />)
     await typeField(user)
     expect(await screen.findByRole("option", { name: /Design crit/ })).toBeInTheDocument()
-  }, 15000)
+  })
 })

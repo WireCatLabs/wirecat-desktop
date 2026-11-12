@@ -39,7 +39,7 @@ async function checkWork() {
   render(<Health tool={tg} />)
   await user.click(await screen.findByRole("button", { name: "More for work" }))
   await user.click(screen.getByRole("menuitem", { name: "Check" }))
-  await screen.findByText("The settings file is not valid JSON.", {}, { timeout: 3000 })
+  await screen.findByText("The settings file is not valid JSON.")
   return user
 }
 

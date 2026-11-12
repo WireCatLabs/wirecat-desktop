@@ -40,7 +40,7 @@ describe("a check that finds the message store damaged", () => {
     const step = vi.spyOn(platform, "storeRecoverStep").mockResolvedValue()
     const user = await check()
 
-    expect(await screen.findByText(report.what_happened, {}, { timeout: 3000 })).toBeTruthy()
+    expect(await screen.findByText(report.what_happened)).toBeTruthy()
     expect(recover).toHaveBeenCalledWith("wa")
     expect(screen.getByText(report.external_data_safe)).toBeTruthy()
     expect(screen.getAllByRole("button", { name: "Run" })).toHaveLength(2)

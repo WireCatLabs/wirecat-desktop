@@ -27,7 +27,7 @@ const listing = (found: Task[]) => {
 }
 
 const row = (key: string) => document.querySelector(`[data-row="${key}"]`) as HTMLElement
-const loaded = () => screen.findByRole("button", { name: /HRB-12 Send Kai the pricing table/ }, { timeout: 4000 })
+const loaded = () => screen.findByRole("button", { name: /HRB-12 Send Kai the pricing table/ })
 
 describe("a board column's page", () => {
   it("shows the first cards, and a card held by the keyboard past them too", () => {
@@ -146,7 +146,7 @@ describe("Tasks", () => {
     vi.spyOn(platform, "taskHistory").mockResolvedValue([])
     vi.spyOn(platform, "taskComments").mockResolvedValue([])
     render(<TasksPage />)
-    const column = await screen.findByRole("region", { name: /^Open, \d+ tasks/ }, { timeout: 4000 })
+    const column = await screen.findByRole("region", { name: /^Open, \d+ tasks/ })
     const cards = () => column.querySelectorAll("[data-card]")
     expect(cards()).toHaveLength(20)
     const total = Number(/\d+/.exec(column.getAttribute("aria-label") ?? "")?.[0])
@@ -681,11 +681,7 @@ describe("Tasks", () => {
     useTasks.setState({ view: "board" })
     const move = vi.spyOn(platform, "taskMove")
     render(<TasksPage />)
-    const card = await screen.findByRole(
-      "button",
-      { name: "OPS-3 Renew the domain and check the DNS records" },
-      { timeout: 4000 },
-    )
+    const card = await screen.findByRole("button", { name: "OPS-3 Renew the domain and check the DNS records" })
     card.focus()
     await user.keyboard(" ")
     expect(screen.getByText(/Picked up OPS-3/)).toBeInTheDocument()
@@ -704,7 +700,7 @@ describe("Tasks", () => {
     useTasks.setState({ view: "board" })
     const move = vi.spyOn(platform, "taskMove")
     render(<TasksPage />)
-    const card = await screen.findByRole("button", { name: /^HOME-2 / }, { timeout: 4000 })
+    const card = await screen.findByRole("button", { name: /^HOME-2 / })
     const progress = document.querySelector('[data-column="in_progress"]') as HTMLElement
     const label = () => screen.getByRole("region", { name: /^Progress, / }).getAttribute("aria-label") ?? ""
     const counted = () => Number(/(\d+) tasks?/.exec(label())?.[1])
@@ -763,7 +759,7 @@ describe("Tasks", () => {
       moved: [],
     })
     render(<TasksPage />)
-    await screen.findByRole("button", { name: /^Q-3 / }, { timeout: 4000 })
+    await screen.findByRole("button", { name: /^Q-3 / })
     // A card that changes column is a new element.
     const card = () => screen.getByRole("button", { name: /^Q-3 / })
     const column = document.querySelector('[data-column="in_progress"]') as HTMLElement
@@ -784,7 +780,7 @@ describe("Tasks", () => {
     useTasks.setState({ view: "board" })
     document.elementsFromPoint = () => []
     render(<TasksPage />)
-    const card = await screen.findByRole("button", { name: /^OPS-3 / }, { timeout: 4000 })
+    const card = await screen.findByRole("button", { name: /^OPS-3 / })
     await user.pointer([
       { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
       { target: card, coords: { clientX: 60, clientY: 40 } },
@@ -801,7 +797,7 @@ describe("Tasks", () => {
     useTasks.setState({ view: "board" })
     const move = vi.spyOn(platform, "taskMove")
     render(<TasksPage />)
-    const card = await screen.findByRole("button", { name: /^OPS-3 / }, { timeout: 4000 })
+    const card = await screen.findByRole("button", { name: /^OPS-3 / })
     const column = card.closest<HTMLElement>("[data-column]")
     document.elementsFromPoint = () => (column ? [column] : [])
     await user.keyboard("{Control>}")

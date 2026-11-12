@@ -16,7 +16,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["src/testing/setup.ts"],
     maxWorkers: 4,
-    // The app tests click through whole flows against the mock's real delays; 5 s fails them on a busy machine.
+    // A flow test renders the whole App in jsdom: seconds of real work, more than 5 s on a busy machine.
     testTimeout: 15_000,
     // The cached transform of a test keeps its old import.meta.glob result: a new messages file went unchecked by
     // catalogs.test.ts until the cache was deleted (RISK-100).

@@ -31,57 +31,53 @@ describe("Digests", () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
-    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
-    const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    const days = await screen.findByRole("navigation", { name: "Days" })
     expect(within(days).getAllByRole("button")).toHaveLength(4)
     expect(within(days).getAllByRole("button")[0]).toHaveAttribute("aria-current", "page")
-    const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    const today = await screen.findByRole("region", { name: "Today" })
     expect(today).toHaveTextContent("Anna Kotova · warehouse lease — Answer whether signing on Friday works")
     expect(today).toHaveTextContent("Igor Lapin asks: can the tile delivery move to the 20th?")
     expect(
       screen.getByText(/Viewed over 24 hr: Telegram, MAX, mail \(4 inboxes\) · 31 chats, 12 emails, 17 tasks/),
     ).toBeInTheDocument()
     expect(screen.getByText(/Telegram \(@ownerdemo\): sync fails since/)).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("opens an item's task, and a task group's list, inside the app", async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
-    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
-    await user.click(
-      await screen.findByRole("button", { name: "Open: Reconciliation for North Wind" }, { timeout: 4000 }),
-    )
-    expect(await screen.findByRole("dialog", {}, { timeout: 4000 })).toHaveTextContent("Task HRB-14")
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    await user.click(await screen.findByRole("button", { name: "Open: Reconciliation for North Wind" }))
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Task HRB-14")
     expect(useNav.getState().active).toBe("tasks")
 
     act(() => useNav.getState().back())
-    await user.click(await screen.findByRole("button", { name: "All overdue (5)" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "All overdue (5)" }))
     await waitFor(() => expect(useNav.getState().active).toBe("tasks"))
     expect(useTasks.getState().query).toBe("when:overdue")
-  }, 20000)
+  })
 
   it("shows an older run's text as it was", async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
-    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
-    const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    const days = await screen.findByRole("navigation", { name: "Days" })
     await user.click(within(days).getAllByRole("button")[3] as HTMLElement)
-    expect(await screen.findByText(/Pay November rent to Vector LLC/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText(/Pay November rent to Vector LLC/)).toBeInTheDocument()
     expect(screen.getByText(/here is its text as it was/)).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("opens a day from a digest link, and says when that day has no digest", async () => {
     render(<App />)
     act(() => deliver({ type: "digest", date: today() }))
-    await waitFor(() => expect(useNav.getState().active).toBe("digests"), { timeout: 4000 })
-    expect(await screen.findByRole("region", { name: "Settings" }, { timeout: 4000 })).toBeInTheDocument()
+    await waitFor(() => expect(useNav.getState().active).toBe("digests"))
+    expect(await screen.findByRole("region", { name: "Settings" })).toBeInTheDocument()
     act(() => deliver({ type: "digest", date: "2001-01-01" }))
-    expect(
-      await screen.findByRole("heading", { name: "This item is not on this computer" }, { timeout: 4000 }),
-    ).toBeInTheDocument()
-  }, 15000)
+    expect(await screen.findByRole("heading", { name: "This item is not on this computer" })).toBeInTheDocument()
+  })
 })
 
 describe("the new digest notification", () => {

@@ -102,7 +102,7 @@ describe("the skill offer after a first install", () => {
     const offer = await screen.findByRole("region", { name: "Teach your AI agents to use Telegram" })
     expect(within(offer).getByText("Light on context")).toBeTruthy()
     await userEvent.click(await within(offer).findByRole("button", { name: /^Add the skill for / }))
-    expect(await within(offer).findByText(/can now use Telegram\.$/, {}, { timeout: 5000 })).toBeTruthy()
+    expect(await within(offer).findByText(/can now use Telegram\.$/)).toBeTruthy()
   })
 
   it("is not offered after an update, which refreshes the copies already there", () => {

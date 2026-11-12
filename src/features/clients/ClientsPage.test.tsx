@@ -38,8 +38,8 @@ beforeEach(() => {
 })
 afterEach(() => vi.restoreAllMocks())
 
-const column = (name: RegExp) => screen.findByRole("region", { name }, { timeout: 4000 })
-const card = (title: string) => screen.findByRole("button", { name: title }, { timeout: 4000 })
+const column = (name: RegExp) => screen.findByRole("region", { name })
+const card = (title: string) => screen.findByRole("button", { name: title })
 
 describe("Clients on the base stages", () => {
   beforeEach(() => freshMemo())
@@ -477,7 +477,7 @@ describe("Clients as a table", () => {
     useClients.setState({ view: "table" })
   })
   const row = (title: string) =>
-    screen.findByRole("button", { name: title }, { timeout: 4000 }).then((b) => b.closest("[data-row]") as HTMLElement)
+    screen.findByRole("button", { name: title }).then((b) => b.closest("[data-row]") as HTMLElement)
 
   it("opens on the table, and remembers the board once chosen", async () => {
     const user = userEvent.setup()
@@ -537,7 +537,7 @@ describe("Confirming a CRM's stages", () => {
   it("opens the stage dialog by itself on the first read, once, and the notice stays until they are confirmed", async () => {
     const user = userEvent.setup()
     const { unmount } = render(<ClientsPage />)
-    const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" }, { timeout: 4000 })
+    const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })
     expect(within(map).getByRole("radio", { name: "Bitrix24 · northstar.example" })).toBeChecked()
     await user.click(within(map).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
@@ -575,7 +575,7 @@ describe("Accepting every CRM's suggestions from the notice", () => {
   const acceptAll = async () => {
     const user = userEvent.setup()
     render(<ClientsPage />)
-    await user.click(await screen.findByRole("button", { name: /stages to confirm/ }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: /stages to confirm/ }))
     await user.click(await screen.findByRole("button", { name: /^Accept all \(\d+\)$/ }))
   }
 
@@ -595,18 +595,16 @@ describe("Accepting every CRM's suggestions from the notice", () => {
       ],
     }))
     await acceptAll()
-    await waitFor(() => expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11"), { timeout: 4000 })
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11"))
     expect(confirm).toHaveBeenCalledWith("deal", "pipeline:9")
-    await waitFor(() => expect(screen.queryByRole("button", { name: /stages? to confirm/ })).toBeNull(), {
-      timeout: 4000,
-    })
+    await waitFor(() => expect(screen.queryByRole("button", { name: /stages? to confirm/ })).toBeNull())
     expect(confirm).not.toHaveBeenCalledWith("deal", "pipeline:own")
   })
 
   it("keeps the chip for a stage memo could not place, and says the suggestions are done", async () => {
     memoWith((r) => r)
     await acceptAll()
-    expect(await screen.findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText("Every suggestion is confirmed.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /1 stage to confirm/ })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /^Accept all/ })).toBeNull()
   })
@@ -643,7 +641,7 @@ describe("Importing from a CRM", () => {
     const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
     bitrix(["work"])
     render(<ClientsPage />)
-    await user.click(await screen.findByRole("button", { name: "Import from Bitrix24" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "Import from Bitrix24" }))
     await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
   })
 
@@ -652,7 +650,7 @@ describe("Importing from a CRM", () => {
     const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
     bitrix(["work", "personal"])
     render(<ClientsPage />)
-    await user.click(await screen.findByRole("button", { name: "Import from a CRM" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "Import from a CRM" }))
     expect(sync).not.toHaveBeenCalled()
     await user.click(screen.getByRole("menuitem", { name: "Import from Bitrix24 · personal" }))
     await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "personal", expect.any(Function)))
@@ -666,7 +664,7 @@ describe("Importing from a CRM", () => {
       return answer.kind === "base" ? { ...answer, cards: [] } : answer
     })
     render(<ClientsPage />)
-    expect(await screen.findByText("Nothing is imported from a CRM yet.", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText("Nothing is imported from a CRM yet.")).toBeInTheDocument()
     expect(
       screen.getByText("Only the deals of the CRM users you chose are imported, and the clients on them."),
     ).toBeInTheDocument()
@@ -684,7 +682,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await card("Site for Northstar")
     await user.click(screen.getAllByRole("button", { name: /^Map stages/ })[0] as HTMLElement)
     const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })
-    const column = (name: RegExp) => within(map).findByRole("region", { name }, { timeout: 4000 })
+    const column = (name: RegExp) => within(map).findByRole("region", { name })
     const badge = async (name: RegExp, stage: string) =>
       within(await column(name)).getByRole("button", { name: new RegExp(`^${stage}, `) })
     const columnAction = async (column: string, action: string) => {
@@ -747,7 +745,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await user.click(within(map).getByRole("button", { name: "Accept suggestions (1)" }))
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11")
-    expect(await within(map).findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeVisible()
+    expect(await within(map).findByText("Every suggestion is confirmed.")).toBeVisible()
     expect(within(map).queryByRole("region", { name: /^Unmapped/ })).toBeNull()
     expect(await column(/^Quote/)).toHaveTextContent("Estimate")
     await waitFor(() => expect(within(map).getByRole("radio", { name: "amocrm · acme.example" })).toHaveFocus())
@@ -760,7 +758,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(suggest).not.toHaveBeenCalled()
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))
     expect(suggest).toHaveBeenCalledWith("deal")
-    expect(await screen.findByRole("status", {}, { timeout: 4000 })).toHaveTextContent(/to check|Nothing to ask/)
+    expect(await screen.findByRole("status")).toHaveTextContent(/to check|Nothing to ask/)
     expect(confirm).not.toHaveBeenCalled()
   })
 

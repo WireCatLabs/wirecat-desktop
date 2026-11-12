@@ -87,14 +87,12 @@ it("allows it only after showing what one search sends, where, its price and the
     screen.getByRole("textbox", { name: /Address of another OpenAI-compatible service/ }),
     "https://openrouter.ai/api/v1",
   )
-  await waitFor(
-    () =>
-      expect(preview).toHaveBeenLastCalledWith("memo", {
-        provider: "openai",
-        model: "deepseek/deepseek-chat",
-        baseUrl: "https://openrouter.ai/api/v1",
-      }),
-    { timeout: 2000 },
+  await waitFor(() =>
+    expect(preview).toHaveBeenLastCalledWith("memo", {
+      provider: "openai",
+      model: "deepseek/deepseek-chat",
+      baseUrl: "https://openrouter.ai/api/v1",
+    }),
   )
   await waitFor(() => expect(screen.getByRole("button", { name: "Allow search harder with OpenAI" })).toBeEnabled())
   await user.click(screen.getByRole("button", { name: "Allow search harder with OpenAI" }))

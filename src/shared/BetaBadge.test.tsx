@@ -29,5 +29,5 @@ describe("beta badge", () => {
     const title = await screen.findByRole("heading", { level: 1, name: "Memory" })
     expect(within(title).queryByRole("img", { name: LABEL })).toBeNull()
     expect(within(title.parentElement as HTMLElement).getByRole("img", { name: LABEL })).toHaveAttribute("title", LABEL)
-  }, 15000)
+  })
 })

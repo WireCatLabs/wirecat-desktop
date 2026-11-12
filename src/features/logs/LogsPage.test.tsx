@@ -10,9 +10,7 @@ import { timing } from "./store"
 afterEach(() => vi.restoreAllMocks())
 
 const loaded = () =>
-  waitFor(() => expect(screen.getByRole("button", { name: "Read again" })).toHaveAttribute("aria-busy", "false"), {
-    timeout: 4000,
-  })
+  waitFor(() => expect(screen.getByRole("button", { name: "Read again" })).toHaveAttribute("aria-busy", "false"))
 
 const openSettings = async (user: ReturnType<typeof userEvent.setup>, name = "Log settings") => {
   await user.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }))
@@ -63,7 +61,7 @@ describe("Logs", () => {
     expect(at("started_at")).toBeLessThan(at("status"))
     expect(at("status")).toBeLessThan(at("cli_version"))
     expect(screen.getByRole("region", { name: "Steps" })).toHaveTextContent(/request the tool sent to WhatsApp/)
-  }, 15000)
+  })
 
   it("keeps failed runs only after the owner confirms, and goes back to every run by removing the setting", async () => {
     const user = userEvent.setup()
@@ -96,7 +94,7 @@ describe("Logs", () => {
     await user.click(within(back).getByRole("button", { name: "Keep every run" }))
     expect(unset).toHaveBeenCalledWith("tg", null, true, "record")
     await waitFor(() => expect(within(keeping).getAllByText(every)).toHaveLength(3))
-  }, 15000)
+  })
 
   it("on a tool from before every run was kept, turns it on with record true and off by removing it", async () => {
     const user = userEvent.setup()
@@ -123,7 +121,7 @@ describe("Logs", () => {
     expect(set).toHaveBeenCalledWith("max", null, true, "record", "true")
     await waitFor(() => expect(max).toHaveTextContent("Every run"))
     await platform.settingsUnset("max", null, true, "record")
-  }, 15000)
+  })
 
   it("says an older tool gets its logs with the next update instead of failing", async () => {
     const listRuns = platform.listRuns.bind(platform)
@@ -148,7 +146,7 @@ describe("Logs", () => {
     expect(within(sources).getByText("arrives with the next update of Zoom")).toBeInTheDocument()
     expect(within(sources).getByText("arrives with the next update of Memo")).toBeInTheDocument()
     expect(within(sources).getByText(/did not finish in time/)).toHaveClass("text-bad")
-  }, 15000)
+  })
 
   it("shows a tool without a keep setting as a plain fact, not a failure", async () => {
     const user = userEvent.setup()
@@ -160,7 +158,7 @@ describe("Logs", () => {
     expect(await within(email).findByText("Has no setting for which runs to keep")).toHaveClass("text-ink-dim")
     expect(within(email).queryByRole("combobox")).not.toBeInTheDocument()
     expect(within(email).queryByRole("button", { name: /Report/ })).not.toBeInTheDocument()
-  }, 15000)
+  })
 
   it("groups by a field from a facet header", async () => {
     const user = userEvent.setup()
@@ -170,7 +168,7 @@ describe("Logs", () => {
     await user.click(screen.getByRole("button", { name: "Group by Profile" }))
     expect(screen.getByRole("combobox", { name: "Group by" })).toHaveTextContent("Profile")
     expect(screen.getByRole("columnheader", { name: "Profile" })).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("shows what went wrong in a failed run, its masked command line, and filters by the agent's session", async () => {
     const user = userEvent.setup()
@@ -195,7 +193,7 @@ describe("Logs", () => {
     expect((screen.getByRole("combobox", { name: "Search runs" }) as HTMLInputElement).value).toMatch(
       /^-no_command:true error\.http\.status:429 session_id:[0-9a-f-]+$/,
     )
-  }, 15000)
+  })
 
   it("groups runs by conversation, each under a header with who held it, and its runs in time order", async () => {
     const user = userEvent.setup()
@@ -218,17 +216,14 @@ describe("Logs", () => {
     const browser = screen.getByRole("rowgroup", { name: "claude-ai" })
     expect(within(browser).getAllByRole("row")[0]).toHaveTextContent(/MCP over the internet\s*from .+3 runs\s*1 failed/)
     expect(screen.getByRole("rowgroup", { name: "WireCat Desktop" })).toHaveTextContent(/1 run\s*1 failed/)
-  }, 15000)
+  })
 
   it("speaks Russian: conversation headers count runs in Russian plural forms", async () => {
     useLanguage.setState({ choice: "ru" })
     const user = userEvent.setup()
     render(<LogsPage />)
-    await waitFor(
-      () => expect(screen.getByRole("button", { name: "Прочитать заново" })).toHaveAttribute("aria-busy", "false"),
-      {
-        timeout: 4000,
-      },
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Прочитать заново" })).toHaveAttribute("aria-busy", "false"),
     )
 
     expect(screen.getByRole("heading", { name: "Журнал" })).toBeInTheDocument()
@@ -243,7 +238,7 @@ describe("Logs", () => {
     expect(within(session).getAllByRole("row")[0]).toHaveTextContent(/MCP на этом компьютере · сеанс 5c0e9d41/)
     expect(within(session).getAllByRole("row")[0]).toHaveTextContent(/3 запуска\s*с ошибкой: 1/)
     expect(screen.getByRole("rowgroup", { name: "WireCat Desktop" })).toHaveTextContent(/1 запуск\s*с ошибкой: 1/)
-  }, 15000)
+  })
 
   it("shows a run's requests as lines, with the retry, the wait and the steps not kept marked", async () => {
     const user = userEvent.setup()
@@ -267,7 +262,7 @@ describe("Logs", () => {
     expect(screen.getByRole("region", { name: "Command line" })).toHaveTextContent(
       /Started by Claude Code through claude-code \(MCP on this computer\) in session 5c0e9d41/,
     )
-  }, 15000)
+  })
 
   it("lets the owner select a run's session id without filtering, and filters on Enter", async () => {
     const user = userEvent.setup()
@@ -292,7 +287,7 @@ describe("Logs", () => {
     id.focus()
     await user.keyboard("{Enter}")
     expect(search.value).toMatch(/session_id:5c0e9d41/)
-  }, 15000)
+  })
 
   it("says a success kept as its summary line has no steps to show", async () => {
     const user = userEvent.setup()
@@ -304,7 +299,7 @@ describe("Logs", () => {
     )
     await user.click(await screen.findByRole("button", { name: /^Show run tg messages search / }))
     expect(await screen.findByText(/keeps only this summary, not its steps/)).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("hides runs with no command by default, counts them, and lists them again once that filter is removed", async () => {
     const user = userEvent.setup()
@@ -326,7 +321,7 @@ describe("Logs", () => {
     await user.click(within(commands).getByRole("button", { name: /^Command: All \d+$/ }))
     expect(screen.getAllByRole("option", { name: /\(no command\)/ }).length).toBeGreaterThan(0)
     expect(screen.queryByRole("button", { name: "Show them" })).not.toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -357,7 +352,7 @@ describe("Logs pages", () => {
     await user.click(within(pager).getByRole("button", { name: "Next page" }))
     expect(within(pager).getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page")
     expect(rows()[0]?.getAttribute("aria-label")).not.toBe(first)
-  }, 15000)
+  })
 })
 
 describe("Logs snapshot", () => {
@@ -378,7 +373,7 @@ describe("Logs snapshot", () => {
 
     const progress = await screen.findByRole("progressbar", { name: "Tools read" })
     const total = Number(progress.getAttribute("aria-valuemax"))
-    await waitFor(() => expect(progress).toHaveAttribute("aria-valuenow", String(total - 1)), { timeout: 4000 })
+    await waitFor(() => expect(progress).toHaveAttribute("aria-valuenow", String(total - 1)))
     expect(rows()).toHaveLength(0)
     expect(progress.parentElement).toHaveTextContent(/of \d+ tools done, reading Telegram…$/)
 
@@ -387,7 +382,7 @@ describe("Logs snapshot", () => {
     expect(rows().length).toBeGreaterThan(0)
     const sources = await openSettings(userEvent.setup())
     expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("stops waiting for a slow tool, says so, and takes its answer in the next round without asking twice", async () => {
     timing.answer = 1000
@@ -414,7 +409,7 @@ describe("Logs snapshot", () => {
     await loaded()
     expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
     expect(spy.mock.calls.filter(([id]) => id === "tg")).toHaveLength(1)
-  }, 15000)
+  })
 })
 
 // Live rounds answered at once from each tool's first answer, so a round takes no mock wait.
@@ -462,23 +457,23 @@ describe("Logs live", () => {
     expect(live).toHaveAttribute("aria-pressed", "false")
     await user.click(live)
     expect(live).toHaveAttribute("aria-pressed", "true")
-    await waitFor(() => expect(calls).toBeGreaterThanOrEqual(perRound * 3), { timeout: 4000 })
+    await waitFor(() => expect(calls).toBeGreaterThanOrEqual(perRound * 3))
     // One read per tool at most at any moment: a second round never starts while one is running.
     expect(most).toBeLessThanOrEqual(tools.size)
     expect(screen.getByText("Updated just now")).toBeInTheDocument()
 
     let visibility = "hidden"
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => visibility })
-    await waitFor(() => expect(inFlight).toBe(0), { timeout: 4000 })
+    await waitFor(() => expect(inFlight).toBe(0))
     const paused = calls
     await sleep(1500)
     expect(calls).toBe(paused)
 
     visibility = "visible"
-    await waitFor(() => expect(calls).toBeGreaterThan(paused), { timeout: 4000 })
+    await waitFor(() => expect(calls).toBeGreaterThan(paused))
     await user.click(live)
     expect(live).toHaveAttribute("aria-pressed", "false")
-  }, 20000)
+  })
 
   it("puts new runs on top, and holds them behind a button while the reader is scrolled down", async () => {
     timing.live = 100
@@ -518,7 +513,7 @@ describe("Logs live", () => {
       added = 2
       await user.click(screen.getByRole("button", { name: "Live" }))
 
-      const more = await screen.findByRole("button", { name: "2 new runs" }, { timeout: 4000 })
+      const more = await screen.findByRole("button", { name: "2 new runs" })
       expect(screen.queryByRole("button", { name: /^Show run tg watch/ })).not.toBeInTheDocument()
       await user.click(more)
       expect(scrollTo).toHaveBeenCalled()
@@ -528,13 +523,11 @@ describe("Logs live", () => {
       expect(screen.queryByRole("button", { name: /new runs?$/ })).not.toBeInTheDocument()
 
       added = 3
-      expect(
-        await screen.findByRole("button", { name: /^Show run tg watch 2 / }, { timeout: 4000 }),
-      ).toBeInTheDocument()
+      expect(await screen.findByRole("button", { name: /^Show run tg watch 2 / })).toBeInTheDocument()
       expect(screen.queryByRole("button", { name: /new runs?$/ })).not.toBeInTheDocument()
       await user.click(screen.getByRole("button", { name: "Live" }))
     } finally {
       Reflect.deleteProperty(HTMLElement.prototype, "scrollTo")
     }
-  }, 20000)
+  })
 })

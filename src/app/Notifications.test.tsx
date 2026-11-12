@@ -76,7 +76,7 @@ describe("App notifications", () => {
   it("marks Agents once tools are installed, and never again after the owner opened it", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await vi.waitFor(() => expect(useTools.getState().checked).toBe(true), { timeout: 5000 })
+    await vi.waitFor(() => expect(useTools.getState().checked).toBe(true))
 
     const agents = screen.getByRole("button", { name: "Agents, something new here" })
     await user.click(agents)

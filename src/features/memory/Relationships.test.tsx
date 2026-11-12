@@ -4,7 +4,7 @@ import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { MemoryPage } from "./MemoryPage"
 
-const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
+const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" })
 const row = (text: RegExp) => screen.getByRole("button", { name: text }).closest("[data-row]") as HTMLElement
 
 it("shows an agent's relationship waiting under the person, with its role, no state word in its own tab, and approves it", async () => {

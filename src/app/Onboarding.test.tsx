@@ -46,7 +46,7 @@ describe("First start", () => {
     await user.click(await screen.findByRole("checkbox", { name: /Google Drive/ }))
     await user.click(screen.getByRole("button", { name: "Install 1 tool" }))
 
-    await user.click(await screen.findByRole("button", { name: "Fix" }, { timeout: 8000 }))
+    await user.click(await screen.findByRole("button", { name: "Fix" }))
     const panel = await screen.findByRole("region", { name: "Fix with an AI agent" })
     await user.click(await within(panel).findByRole("button", { name: "Open Claude Code" }))
     expect(fix.mock.calls[0]?.[0]).toBe("claude")
@@ -56,7 +56,7 @@ describe("First start", () => {
     expect(within(panel).getByText(/Paste this into any AI agent/)).toBeInTheDocument()
     vi.restoreAllMocks()
     useTools.setState({ sessions: {} })
-  }, 20000)
+  })
 
   it("installs the chosen tool, then lands on Tools and is not shown again", async () => {
     const user = userEvent.setup()
@@ -79,7 +79,7 @@ describe("First start", () => {
     expect(within(tips).getByText("Your agent runs the tools for you")).toBeInTheDocument()
     await user.click(within(tips).getByRole("button", { name: "Next tip" }))
     expect(await within(tips).findByText("Your documents, as text")).toBeInTheDocument()
-    expect(await within(progress).findByText("0.30.0", {}, { timeout: 8000 })).toBeInTheDocument()
+    expect(await within(progress).findByText("0.30.0")).toBeInTheDocument()
     expect(await screen.findByText(/see the new tools only after you restart them/)).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Continue" }))
@@ -103,7 +103,7 @@ describe("First start", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
     expect(stored()).toBe("done")
     expect(screen.queryByRole("button", { name: "Finish setup" })).not.toBeInTheDocument()
-  }, 15000)
+  })
 
   it("names the chosen tools on the Agents step before the installed ones are found", () => {
     useOnboarding.setState({ step: "agents", chosen: ["tg"] })

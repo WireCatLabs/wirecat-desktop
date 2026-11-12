@@ -124,7 +124,7 @@ describe("Add to memory", () => {
       within(panel).getByText(/Ollama \(llama3.2\) reads its text. It does not leave this computer./),
     ).toBeVisible()
 
-    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }, { timeout: 3000 }))
+    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }))
     await user.click(within(panel).getByRole("button", { name: "Suggest facts" }))
     expect(suggest).toHaveBeenCalledWith("document:42", "ollama", ["person:7"], false)
 
@@ -145,7 +145,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "We agreed delivery on the 28th with Lena.")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }, { timeout: 3000 }))
+    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }))
 
     await user.click(await within(panel).findByRole("button", { name: "Untick all" }))
     expect(within(panel).getByRole("button", { name: "Keep none" })).toBeInTheDocument()
@@ -222,7 +222,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.click(within(panel).getByRole("radio", { name: /Link/ }))
     await user.type(within(panel).getByRole("textbox", { name: "Web address" }), "https://example.org/plan")
-    const card = await within(panel).findByRole("region", { name: "What will be saved" }, { timeout: 3000 })
+    const card = await within(panel).findByRole("region", { name: "What will be saved" })
     expect(look).toHaveBeenCalledTimes(1)
     expect(look).toHaveBeenCalledWith("https://example.org/plan")
     expect(within(card).getByText("Q3 plan")).toBeInTheDocument()
@@ -403,7 +403,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }, { timeout: 3000 }))
+    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }))
     await user.click(within(panel).getByRole("button", { name: "Suggest facts" }))
 
     expect(await within(panel).findByText(/already decided on the Memory page/)).toBeInTheDocument()

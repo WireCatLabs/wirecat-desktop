@@ -18,12 +18,12 @@ afterEach(() => {
 it("points at a row's sync button when a tool can sync from its row", async () => {
   const user = userEvent.setup()
   render(<App />)
-  await screen.findAllByRole("button", { name: /^Sync .+ now$/ }, { timeout: 5000 })
+  await screen.findAllByRole("button", { name: /^Sync .+ now$/ })
   await user.click(screen.getByRole("button", { name: "Help" }))
   await user.click(screen.getByRole("menuitem", { name: "Take the tour" }))
   for (const title of ["Tools", "Status lamps", "One action per tool", "Sync", "Agents"]) {
-    const dialog = await screen.findByRole("dialog", { name: title }, { timeout: 3000 })
+    const dialog = await screen.findByRole("dialog", { name: title })
     await user.click(within(dialog).getByRole("button", { name: "Next" }))
   }
   expect(await screen.findByRole("dialog", { name: "How it works with your agent" })).toBeInTheDocument()
-}, 20000)
+})

@@ -46,7 +46,7 @@ describe("each tool's next steps on Done", () => {
     await user.click(await within(items).findByRole("button", { name: n.addAnother }))
     expect(useOnboarding.getState().open).toBe(false)
     expect(useNav.getState().active).toBe("tools")
-    await waitFor(() => expect(document.getElementById("profile-tg")).toHaveFocus(), { timeout: 3000 })
+    await waitFor(() => expect(document.getElementById("profile-tg")).toHaveFocus())
   })
 
   it("opens Logs filtered to the tool", async () => {

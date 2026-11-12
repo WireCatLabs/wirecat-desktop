@@ -72,11 +72,7 @@ const read = (entries: MemoryEntry[]) =>
 
 const opened = async (user: ReturnType<typeof userEvent.setup>) => {
   render(<MemoryPage />)
-  const head = await screen.findByRole(
-    "button",
-    { name: /The clinics confirmed the February pilot/ },
-    { timeout: 4000 },
-  )
+  const head = await screen.findByRole("button", { name: /The clinics confirmed the February pilot/ })
   expect(within(head).getByText("Source changed")).toBeInTheDocument()
   await user.click(head)
   return head.closest("[data-row]") as HTMLElement
