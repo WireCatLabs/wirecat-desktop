@@ -47,19 +47,27 @@ fn past_literal(b: &[u8], i: usize) -> usize {
     i + 1
 }
 
-/// The end of the item that starts at `i`: its `;`, or the brace that closes its body.
+/// The end of the item that starts at `i`: its `;` or `,` (a field), the brace that closes its body, or the brace that
+/// closes the struct or block around it, which stays.
 fn item_end(b: &[u8], mut i: usize) -> usize {
     let mut depth = 0;
+    let mut body = false;
     while i < b.len() {
         match b[i] {
-            b'{' => depth += 1,
+            b'(' | b'[' => depth += 1,
+            b'{' => {
+                depth += 1;
+                body = true;
+            }
+            b')' | b']' => depth -= 1,
+            b'}' if depth == 0 => return i,
             b'}' => {
                 depth -= 1;
-                if depth == 0 {
+                if depth == 0 && body {
                     return i + 1;
                 }
             }
-            b';' if depth == 0 => return i + 1,
+            b';' | b',' if depth == 0 => return i + 1,
             b'"' | b'\'' | b'r' => {
                 i = past_literal(b, i);
                 continue;
@@ -111,9 +119,14 @@ fn using(pattern: &str, allowed: &[&str]) -> Vec<String> {
 #[test]
 fn production_strips_comments_and_test_items_only() {
     let text = "fn a() { \"unknown command\" }\n/// unknown option\n#[cfg(test)]\nmod tests {\n    let c = '{';\n    \
-                fn b() { r#\"}\"# }\n}\nfn c() {}\n#[cfg(test)]\nuse x;\nfn d() {}";
+                fn b() { r#\"}\"# }\n}\nfn c() {}\n#[cfg(test)]\nuse x;\nfn d() {}\nstruct S {\n    #[cfg(test)]\n    \
+                n: HashMap<u8, u8>,\n}\nfn e() { S { #[cfg(test)] n: f(1, 2) } }\nfn g() {}";
     let kept = production(text);
     assert!(kept.contains("unknown command") && kept.contains("fn c()") && kept.contains("fn d()"), "{kept}");
+    assert!(
+        kept.contains("fn e()") && kept.contains("fn g()") && !kept.contains("HashMap") && !kept.contains("f(1"),
+        "{kept}"
+    );
     assert!(!kept.contains("unknown option") && !kept.contains("fn b()") && !kept.contains("use x"), "{kept}");
 }
 
