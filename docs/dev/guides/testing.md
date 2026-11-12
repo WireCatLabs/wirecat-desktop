@@ -20,12 +20,15 @@ for Rust.
   and the point of the test.
 - Do not assert classes, pixels, colours or long copy. A copy change should not break a test.
 - Spy on the platform method, not on fetch or Tauri: `vi.spyOn(platform, "removeCopy").mockResolvedValue(...)`.
-- Reset the stores you touch in `beforeEach`: `useTools.setState(useTools.getInitialState(), true)`.
-  [setup.ts](../../../src/testing/setup.ts) resets nav, language and kept state after each test.
-  **Target:** a shared `src/testing/render.tsx` does all resets and providers.
+- Do not reset stores by hand. [setup.ts](../../../src/testing/setup.ts) puts every store, the query client, the
+  language and saved settings back before and after each test; render with
+  [render.tsx](../../../src/testing/render.tsx), which adds the providers. Seed only the state the test needs.
 - Use the mock's scenarios instead of building fake data in each test when one exists (`src/platform/mock-*.ts`).
-- No real waits. A flow test calls `answerAtOnce()` ([mock-speed.ts](../../../src/testing/mock-speed.ts)) so the mock
-  answers at once, and waits for what the click starts (a focus move, a list) before it types or reads. A `vi.mock`
+- No real waits. The mock answers at once in every test ([mock-speed.ts](../../../src/testing/mock-speed.ts)); a test
+  of a loading state calls `answerAtOnce(false)` to get the real delays back. Wait for what the click starts (a focus
+  move, a list) before you type or read, with the default timeouts: no `{ timeout: }` on `waitFor`, `findBy` or the
+  test. A test of something that must take time uses fake timers or a small knob such as the logs' `timing`; a test
+  that waits out a crossfade calls `reduceMotion()` ([motion.ts](../../../src/testing/motion.ts)) instead. A `vi.mock`
   of `mock-delay` in a test file has no effect: [setup.ts](../../../src/testing/setup.ts) loads the mock first.
 - Every command line in `catalog/tools.json` is checked against the tools' own command lists in
   [commands.fixture.json](../../../src/features/guides/commands.fixture.json)
@@ -56,5 +59,5 @@ One heavy command at a time: not `pnpm test` and `cargo test` together.
 
 1. Domain function tested.
 2. Component tested by role, no class or pixel assertions.
-3. Stores reset.
+3. No store reset by hand, no real wait, no timeout above the default.
 4. `pnpm test` green, then `pnpm check` before the PR.
