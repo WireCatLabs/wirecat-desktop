@@ -27,6 +27,11 @@ for Rust.
 - No real waits. A flow test calls `answerAtOnce()` ([mock-speed.ts](../../../src/testing/mock-speed.ts)) so the mock
   answers at once, and waits for what the click starts (a focus move, a list) before it types or reads. A `vi.mock`
   of `mock-delay` in a test file has no effect: [setup.ts](../../../src/testing/setup.ts) loads the mock first.
+- Every command line in `catalog/tools.json` is checked against the tools' own command lists in
+  [commands.fixture.json](../../../src/features/guides/commands.fixture.json)
+  ([catalog-commands.test.ts](../../../src/domain/catalog-commands.test.ts)): an option a tool removed fails, and so
+  does a `null` gate on a command the tool has released. After a tool release, refresh the list with
+  `node scripts/guide-commands.mjs` (it runs only `commands --json` and `--help`, D-Bus off).
 - Write the test name as a sentence about behaviour, without a comment above it.
 - A new rule in `domain/` always gets a unit test. A new screen gets one flow test.
 
