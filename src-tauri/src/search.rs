@@ -816,10 +816,10 @@ mod tests {
     #[test]
     #[ignore = "needs the tools installed and signed in"]
     fn real_values() {
-        for (id, profile) in [("tg", "personal"), ("wa", "personal"), ("max", "mila")] {
-            let tool = catalog::tool(id).unwrap();
+        for (id, profile) in crate::probe::accounts() {
+            let tool = catalog::tool(&id).unwrap();
             for name in ["chats", "contacts", "tags"] {
-                let found = values(tool, Some(profile), name).unwrap();
+                let found = values(tool, profile.as_deref(), name).unwrap();
                 println!("{id} {name}: {}", found.len());
             }
         }
@@ -859,18 +859,10 @@ mod tests {
     #[test]
     #[ignore = "needs the tools installed and signed in"]
     fn real_search() {
-        let runs = [
-            ("tg", Some("personal")),
-            ("wa", Some("personal")),
-            ("zm", Some("personal")),
-            ("drive", Some("personal")),
-            ("memo", None),
-            ("email", Some("personal")),
-        ];
-        for (id, profile) in runs {
-            let tool = catalog::tool(id).unwrap();
+        for (id, profile) in crate::probe::accounts() {
+            let tool = catalog::tool(&id).unwrap();
             for query in ["hello", "bogus:x"] {
-                match search(tool, profile, query, 5, 1).unwrap() {
+                match search(tool, profile.as_deref(), query, 5, 1).unwrap() {
                     Answer::Hits { hits, has_more, notes, .. } => {
                         println!("{id} {query}: {} hits, has_more={has_more}, {} notes", hits.len(), notes.len());
                     }

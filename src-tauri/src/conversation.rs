@@ -666,6 +666,9 @@ mod tests {
     #[test]
     #[ignore = "needs memo and a synced store; the places come from the environment"]
     fn real_conversation() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let places = std::env::var("WIRECAT_REAL_PLACES").unwrap_or_default();
         for spec in places.split_whitespace() {
             let parts: Vec<&str> = spec.splitn(4, '/').collect();

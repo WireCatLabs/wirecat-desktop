@@ -170,6 +170,9 @@ mod tests {
     #[test]
     #[ignore = "needs tg installed"]
     fn real_tg() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let page = list(tg(), None, 50, 1).unwrap();
         let items = page["items"].as_array().unwrap();
         let mut keys: Vec<_> = items.iter().flat_map(|i| i.as_object().unwrap().keys().cloned()).collect();

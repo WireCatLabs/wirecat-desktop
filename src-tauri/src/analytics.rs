@@ -874,28 +874,25 @@ mod tests {
     }
 
     /// Times reply time and waiting on you against the owner's own store, through the page's own path. Read only:
-    /// `--offline --no-record`, counts only. `cargo test real_reply_counts_timing -- --ignored --nocapture`.
+    /// `--offline --no-record`, counts only.
+    /// `WIRECAT_PROBES=tg:personal cargo test real_reply_counts_timing -- --ignored --nocapture`.
     #[test]
     #[ignore = "reads the owner's real store"]
     fn real_reply_counts_timing() {
-        let only = std::env::var("TIMING_TOOLS").unwrap_or_else(|_| "tg,max,wa".into());
-        for id in only.split(',') {
-            let tool = catalog::tool(id).unwrap();
-            let Ok(Some(profiles)) = crate::tools::profiles(tool) else { continue };
-            for p in profiles {
-                for which in ["responses", "waiting", "coverage"] {
-                    for period in [Period::Month, Period::All] {
-                        let started = std::time::Instant::now();
-                        let answer = aggregate(tool, which, Some(&p.name), period, None, "Europe/Madrid");
-                        let kind = match &answer {
-                            Ok(Aggregate::Ready { body }) if body.as_object().is_some_and(|o| !o.is_empty()) => "ready",
-                            Ok(Aggregate::Ready { .. }) => "empty",
-                            Ok(Aggregate::Old { .. }) => "old",
-                            Ok(Aggregate::Failed { .. }) => "failed",
-                            Err(_) => "error",
-                        };
-                        println!("{id} {which} {period:?}: {kind} in {} ms", started.elapsed().as_millis());
-                    }
+        for (id, profile) in crate::probe::accounts() {
+            let (tool, Some(profile)) = (catalog::tool(&id).unwrap(), profile) else { continue };
+            for which in ["responses", "waiting", "coverage"] {
+                for period in [Period::Month, Period::All] {
+                    let started = std::time::Instant::now();
+                    let answer = aggregate(tool, which, Some(&profile), period, None, "Europe/Madrid");
+                    let kind = match &answer {
+                        Ok(Aggregate::Ready { body }) if body.as_object().is_some_and(|o| !o.is_empty()) => "ready",
+                        Ok(Aggregate::Ready { .. }) => "empty",
+                        Ok(Aggregate::Old { .. }) => "old",
+                        Ok(Aggregate::Failed { .. }) => "failed",
+                        Err(_) => "error",
+                    };
+                    println!("{id} {profile} {which} {period:?}: {kind} in {} ms", started.elapsed().as_millis());
                 }
             }
         }

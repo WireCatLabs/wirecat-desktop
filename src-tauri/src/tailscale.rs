@@ -667,6 +667,9 @@ mod tests {
     #[test]
     #[ignore = "turns Tailscale Funnel on and off on this computer; run alone, with nothing else of yours on Funnel"]
     fn two_tools_share_one_address_and_close_alone() {
+        if !crate::probe::allowed() {
+            return;
+        }
         // The records file must not be the owner's: `XDG_DATA_HOME=$(mktemp -d) cargo test … -- --ignored --exact`.
         let data = std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).expect("XDG_DATA_HOME set to a scratch folder");
         assert!(data.starts_with(std::env::temp_dir()) || data.starts_with("/var/tmp"), "{data:?}");

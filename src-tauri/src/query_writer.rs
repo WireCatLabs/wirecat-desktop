@@ -690,6 +690,9 @@ mod tests {
     #[test]
     #[ignore = "asks the real Claude Code"]
     fn real_agent() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let lines = std::fs::read_to_string(std::env::var("QUERIES").unwrap()).unwrap();
         let program = paths::find("claude").unwrap();
         for line in lines.lines().filter(|l| !l.trim().is_empty()) {

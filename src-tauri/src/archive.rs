@@ -514,6 +514,9 @@ mod tests {
     #[test]
     #[ignore = "needs a messenger tool installed"]
     fn real_store_info() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let info = info().unwrap().unwrap();
         println!(
             "answered by {}, schema {:?}, rows {:?}, search ready {:?}, breakdown {}",

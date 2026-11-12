@@ -215,6 +215,9 @@ mod tests {
     #[test]
     #[ignore = "reads the agents' settings on this computer"]
     fn real_mcp() {
+        if !crate::probe::allowed() {
+            return;
+        }
         for a in &AGENTS {
             match registrations(a.id) {
                 Ok(r) => {

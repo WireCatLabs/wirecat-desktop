@@ -604,6 +604,9 @@ mod tests {
     #[test]
     #[ignore = "needs the tools installed"]
     fn real_skills() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let found: Vec<_> =
             agents().into_iter().filter_map(|a| a.found_by.map(|f| format!("{} ({f})", a.name))).collect();
         println!("agents: {found:?}");

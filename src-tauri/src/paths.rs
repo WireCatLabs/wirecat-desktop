@@ -591,6 +591,9 @@ mod tests {
     #[test]
     #[ignore = "reads this computer's shell"]
     fn real_terminal() {
+        if !crate::probe::allowed() {
+            return;
+        }
         for bin in ["tg", "max", "wa", "zm", "drive", "memo"] {
             let bash =
                 bash_login_path(std::ffi::OsStr::new("/usr/local/bin:/usr/bin:/bin")).is_some_and(|p| finds(bin, &p));

@@ -67,6 +67,8 @@ mod permissions;
 mod person_profile;
 mod picture_reading;
 mod preflight;
+#[cfg(test)]
+mod probe;
 mod profile;
 mod provenance;
 mod public_address;

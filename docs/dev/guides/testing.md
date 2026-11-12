@@ -35,6 +35,17 @@ for Rust.
 - Write the test name as a sentence about behaviour, without a comment above it.
 - A new rule in `domain/` always gets a unit test. A new screen gets one flow test.
 
+## Probes
+
+A Rust test marked `#[ignore]` is a probe: it runs real tools, the network or an end to end script, never in CI.
+The probes that read the owner's real store or accounts, ask a real agent, or change this computer (Tailscale Funnel)
+return at once unless `WIRECAT_PROBES` names what they may touch ([probe.rs](../../../src-tauri/src/probe.rs)):
+`tool:profile` pairs, or a bare `tool` without profiles, comma-separated, such as
+`WIRECAT_PROBES=tg:personal,memo cargo test real_search -- --ignored --nocapture`. No profile is written into a probe.
+The others need the network (the community list, Node.js, cloudflared, npm), or a throwaway store and memo through
+`MEMO_BIN` or `MESSAGING_STORE`, as their `#[ignore]` reason says. Never run `cargo test -- --include-ignored` on
+the whole crate: it downloads about 60 MB and starts the end to end installs.
+
 ## Memory
 
 The machine is small. Check `free -g` before a suite. `vitest.config.ts` allows 4 workers. With less than about
