@@ -629,7 +629,7 @@ export function peopleMock(): Pick<
       const refused = (reason: string, message: string, organizations: { ref: string; name: string | null }[] = []) =>
         ({ kind: "refused", reason, message, organizations }) as const
       if (!m.shared) {
-        // As memo 0.132.0: on a match by name, the company's address is one of the two people's that the owner names.
+        // As memo 0.131.86: on a match by name, the company's address is one of the two people's that the owner names.
         const held = m.persons.flatMap((p) =>
           find(p).identities.flatMap((i) => (i.identity.startsWith("email:") ? [i.identity.slice(6)] : [])),
         )

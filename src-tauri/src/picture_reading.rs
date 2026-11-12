@@ -196,12 +196,12 @@ mod tests {
     #[test]
     fn no_memo_with_it_is_released_yet() {
         let (_, src) = memo().unwrap();
-        // TODO(#350): memo 0.132.0 (cli-core 0.643.0) once it is on npm.
+        // TODO(#350): memo 0.131.86 (cli-core 0.643.0) once it is on npm.
         assert_eq!(src.min_version, None);
         assert!(!gate(src, Some("9.0.0")));
-        let released = PictureReadingSource { min_version: Some("0.132.0".into()), show: vec![], set: vec![] };
+        let released = PictureReadingSource { min_version: Some("0.131.86".into()), show: vec![], set: vec![] };
         assert!(!gate(&released, Some("0.131.85")));
-        assert!(gate(&released, Some("0.132.0")));
+        assert!(gate(&released, Some("0.131.86")));
     }
 
     // Written from cli-core's `src/cli/picture-reading-command.ts` (#2881), not captured from a run.

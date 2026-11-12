@@ -21,7 +21,7 @@ export const CHANNELS = ["telegram", "max", "whatsapp", "mail", "meeting", "task
 type Channel = (typeof CHANNELS)[number]
 const isChannel = (kind: string): kind is Channel => (CHANNELS as readonly string[]).includes(kind)
 
-// memo 0.132.0's digest reads Drive, Calendar and a CRM but files them under these channels (a calendar event is a
+// memo 0.131.86's digest reads Drive, Calendar and a CRM but files them under these channels (a calendar event is a
 // `meeting`), as cli-core 0.643.0 checks them. A channel a later one adds is shown without one, not as plain text.
 const channel = v.fallback(v.nullish(v.picklist(CHANNELS), null), null)
 

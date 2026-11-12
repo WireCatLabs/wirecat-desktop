@@ -15,6 +15,9 @@ type State = {
   acknowledge(id: string): Promise<boolean>
 }
 
+// Each page part asks on mount, so answers overlap: only the latest may land, or an older one undoes a choice.
+let asked = 0
+
 /** The agents for the background jobs; shared by Settings, the mail agent and the digests. */
 export const useBackgroundAgents = create<State>((set, get) => ({
   agents: null,
@@ -22,16 +25,19 @@ export const useBackgroundAgents = create<State>((set, get) => ({
   busy: false,
   chooseError: null,
   async load() {
+    const mine = ++asked
     set({ error: null })
     try {
-      set({ agents: await platform.backgroundAgents() })
+      const agents = await platform.backgroundAgents()
+      if (mine === asked) set({ agents })
     } catch (e) {
-      set({ error: message(e) })
+      if (mine === asked) set({ error: message(e) })
     }
   },
   async choose(id) {
     if (get().busy) return
     set({ busy: true, chooseError: null })
+    asked++
     try {
       set({ agents: await platform.backgroundAgentChoose(id) })
     } catch (e) {
@@ -42,6 +48,7 @@ export const useBackgroundAgents = create<State>((set, get) => ({
   },
   async acknowledge(id) {
     set({ chooseError: null })
+    asked++
     try {
       const agents = await platform.backgroundAgentAcknowledge(id)
       set({ agents })

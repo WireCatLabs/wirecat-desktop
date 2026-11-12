@@ -514,9 +514,9 @@ mod tests {
         assert_eq!(src.base_url.min_version.as_deref(), Some("0.131.85"));
         assert!(!src.base_url.open(Some("0.131.84")));
         assert!(!Gate { min_version: None }.open(Some("9.0.0")));
-        let gate = Gate { min_version: Some("0.132.0".into()) };
+        let gate = Gate { min_version: Some("0.131.86".into()) };
         assert!(!gate.open(Some("0.131.84")));
-        assert!(gate.open(Some("0.132.0")));
+        assert!(gate.open(Some("0.131.86")));
         let choice = |base_url: &str| EnrichmentChoice {
             provider: "openai".into(),
             model: "m".into(),

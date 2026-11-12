@@ -432,10 +432,10 @@ mod tests {
             search: vec![],
         };
         assert!(!gate(&src, Some("9.0.0")));
-        src.min_version = Some("0.132.0".into());
+        src.min_version = Some("0.131.86".into());
         assert!(!gate(&src, Some("0.131.73")));
         assert!(!gate(&src, None));
-        assert!(gate(&src, Some("0.132.0")));
+        assert!(gate(&src, Some("0.131.86")));
         // The first memo on npm with `--harder` and `meta.ranking`.
         assert_eq!(memo_source().min_version.as_deref(), Some("0.131.74"));
     }

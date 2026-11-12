@@ -284,7 +284,7 @@ export const isCorrection = (text: string, original: string | null) =>
 type Finding = { id: string; kind: string; outcome?: string | null }
 
 /**
- * The findings still to decide. From memo 0.132.0 a batch decided in part stays waiting, its decided findings carrying
+ * The findings still to decide. From memo 0.131.86 a batch decided in part stays waiting, its decided findings carrying
  * their outcome: they are shown as decided and never named again.
  */
 export const waitingOf = <F extends Finding>(findings: readonly F[] | null) =>

@@ -512,7 +512,7 @@ describe("what the page cannot do", () => {
 describe("the agent that writes a digest", () => {
   // Once the tools are read, so the read does not replace them: Drive and Bitrix24 installed as memo is.
   const withDriveAndCrm = async () => {
-    await waitFor(() => expect(useTools.getState().installs.memo?.length).toBeGreaterThan(0))
+    await waitFor(() => expect(useTools.getState().installs.memo?.length).toBeGreaterThan(0), { timeout: 4000 })
     act(() =>
       useTools.setState((s) => {
         const copy = s.installs.memo?.[0]

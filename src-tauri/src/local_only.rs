@@ -177,9 +177,9 @@ mod tests {
         assert_eq!(src.min_version.as_deref(), Some("0.131.85"));
         assert!(!gate(src, Some("0.131.84")));
         assert!(!gate(&LocalOnlySource { min_version: None, show: vec![], on: vec![], off: vec![] }, Some("9.0.0")));
-        let released = LocalOnlySource { min_version: Some("0.132.0".into()), show: vec![], on: vec![], off: vec![] };
+        let released = LocalOnlySource { min_version: Some("0.131.86".into()), show: vec![], on: vec![], off: vec![] };
         assert!(!gate(&released, Some("0.131.84")));
-        assert!(gate(&released, Some("0.132.0")));
+        assert!(gate(&released, Some("0.131.86")));
     }
 
     #[test]

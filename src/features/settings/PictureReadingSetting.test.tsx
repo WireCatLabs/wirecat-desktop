@@ -23,7 +23,7 @@ describe("Reading pictures", () => {
   beforeEach(() => {
     usePictureReading.setState(usePictureReading.getInitialState(), true)
     useTools.setState({
-      installs: { memo: [{ path: "/bin/memo", version: "0.132.0", manager: "npm", problem: null }] },
+      installs: { memo: [{ path: "/bin/memo", version: "0.131.86", manager: "npm", problem: null }] },
     })
   })
 

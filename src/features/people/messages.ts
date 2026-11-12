@@ -157,8 +157,7 @@ const en = {
   companyMailbox: "Company mailbox",
   companyAddress: "Company address",
   companyAddressAsk: "Which of their addresses is the company's?",
-  companyAddressHelp:
-    "The address goes to the company, and these two stay apart. WireCat does not suggest them again on it.",
+  companyAddressHelp: "The address goes to the company and the two stay apart. WireCat stops suggesting them on it.",
   companyAddressRefused: "This is not one of their addresses at a company's domain. Pick another one.",
   companyDone: (mailbox: string) =>
     `${mailbox} is a company's mailbox now. The people stay apart and are not suggested again on it.`,
@@ -500,8 +499,7 @@ const ru: typeof en = {
   companyMailbox: "Ящик компании",
   companyAddress: "Адрес компании",
   companyAddressAsk: "Какой из их адресов принадлежит компании?",
-  companyAddressHelp:
-    "Адрес перейдет к компании, а эти двое останутся раздельно. WireCat больше не предложит их по нему.",
+  companyAddressHelp: "Адрес перейдет к компании, а эти двое останутся раздельно. WireCat не предложит их по нему.",
   companyAddressRefused: "Это не их адрес на домене компании. Выберите другой.",
   companyDone: (mailbox: string) =>
     `${mailbox} теперь ящик компании. Люди остаются раздельно, и WireCat больше не предложит их по этому адресу.`,
@@ -828,8 +826,7 @@ const es: typeof en = {
   companyMailbox: "Buzón de la empresa",
   companyAddress: "Dirección de la empresa",
   companyAddressAsk: "¿Cuál de sus direcciones es de la empresa?",
-  companyAddressHelp:
-    "La dirección pasa a la empresa y estas dos personas siguen separadas. WireCat no vuelve a sugerirlas por ella.",
+  companyAddressHelp: "La dirección pasa a la empresa y los dos siguen separados. WireCat deja de sugerirlos por ella.",
   companyAddressRefused: "No es una de sus direcciones en el dominio de una empresa. Elige otra.",
   companyDone: (mailbox: string) =>
     `${mailbox} es ahora el buzón de una empresa. Las personas siguen separadas y no se sugieren de nuevo por él.`,

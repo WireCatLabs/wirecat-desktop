@@ -1,7 +1,7 @@
 import type { MemoryEntry } from "./memory-schemas"
 import type { Platform } from "./types"
 
-// The findings of a staged batch as memo 0.132.0 answers them. `?memory-edit=old` is a memo before `actions edit`,
+// The findings of a staged batch as memo 0.131.86 answers them. `?memory-edit=old` is a memo before `actions edit`,
 // `stale` refuses the first edit as an agent restaged the batch. `?memory-partial=on` shows a batch decided in part at
 // a terminal: its first finding accepted, the rest still waiting.
 
