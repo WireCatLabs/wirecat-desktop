@@ -86,13 +86,15 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 
 ## Meetings from other services
 
-- **Needs memo first.** Transcript files (`.vtt`, `.srt`) added to memory as documents. The memo change is in
-  progress (cli-memo PR pending).
+- **Needs memo first.** Transcript files (`.vtt`, `.srt`) added to memory as documents, with their speakers:
+  `memo sources add` reads them since [cli-memo #826][memo-826], which arrives with the next memo release.
+- **Needs cli-core first.** A `.vtt` in a watched notes folder is still skipped: folder import uses cli-core's
+  readers, so cli-core needs a reader for it first.
 - **Desktop.** Google Meet saves a transcript as a Google Doc in the organizer's Drive
   ([Meet API overview][meet-api]). The drive tool already imports Drive folders, so choosing the "Meet Recordings"
   folder should make the transcripts searchable documents. Check this on a real Workspace account before promising
   it. A reader for the Meet REST API, which keeps transcript entries for 30 days, is a later step.
-- **Unexplored.** Yandex Telemost's public API is for Yandex 360 for business only ([access][telemost-access]). It
+- **Desktop, unexplored.** Yandex Telemost's public API is for Yandex 360 for business only ([access][telemost-access]). It
   creates meetings and reads the organization's settings. It has no method to read a summary, a transcript or a
   recording ([OpenAPI specification][telemost-openapi]). Summaries and recording links arrive by email, which the
   mail tool already stores. The owner's idea is to read the Telemost web app with the browser's cookies. Risks:
@@ -125,6 +127,7 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 [2026-11-01-guides]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-01-guides.md
 [2026-11-08-own-tool-review-v2]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-08-own-tool-review-v2.md
 [2026-11-09-people-clients-digests]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-09-people-clients-digests.md
+[memo-826]: https://github.com/WireCatLabs/cli-memo/pull/826
 [meet-api]: https://developers.google.com/workspace/meet/api/guides/overview
 [telemost-access]: https://yandex.ru/dev/telemost/doc/ru/access
 [telemost-openapi]: https://doc-static.yandex.net/dev/telemost/api-specification.yaml
