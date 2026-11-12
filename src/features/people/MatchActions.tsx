@@ -187,7 +187,8 @@ export function MatchActions({
               <Button
                 size="sm"
                 disabled={!!busy}
-                icon={busy === "reject" ? spin : <Building2 className="size-4" aria-hidden />}
+                busy={busy === "reject"}
+                icon={<Building2 className="size-4" aria-hidden />}
                 onClick={() =>
                   tooFew
                     ? few.fail()
