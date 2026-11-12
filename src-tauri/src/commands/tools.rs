@@ -198,29 +198,6 @@ pub async fn config_repair(id: String, profile: Option<String>) -> Result<config
     .await
 }
 
-/// What holds this account in the app now: its sync, an install or update of its package, or a sign-in.
-fn holder(tool: &'static catalog::Tool, profile: &str, running: &Running) -> Option<account::RemovalHolder> {
-    if running.busy(&crate::sync::key(tool, Some(profile))) {
-        Some(account::RemovalHolder::Sync)
-    } else if running.busy(&catalog::owner(tool).id) {
-        Some(account::RemovalHolder::Install)
-    } else if running.busy(&crate::signin::key(&tool.id)) {
-        Some(account::RemovalHolder::SignIn)
-    } else {
-        None
-    }
-}
-
-const HELD: &str = "Something else runs for this account, such as a sync. Stop it first.";
-
-fn held(holder: account::RemovalHolder) -> account::AccountRemoval {
-    account::AccountRemoval::Refused {
-        reason: account::RemovalRefusal::Busy,
-        holder: Some(holder),
-        message: HELD.into(),
-    }
-}
-
 /// The fallback for a tool too old for `account remove`; refused while its sync, an install or a sign-in runs.
 #[tauri::command]
 pub async fn account_sign_out(
@@ -231,8 +208,8 @@ pub async fn account_sign_out(
     crate::log::command("account_sign_out", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        if holder(tool, &profile, &running).is_some() {
-            return Err(AppError::Busy(HELD.into()));
+        if account::holder(tool, &profile, &running).is_some() {
+            return Err(AppError::Busy(account::HELD.into()));
         }
         attempt(move || account::sign_out(tool, &profile)).await
     })
@@ -260,8 +237,8 @@ pub async fn account_remove_plan(
     crate::log::command("account_remove_plan", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        if let Some(h) = holder(tool, &profile, &running) {
-            return Ok(held(h));
+        if let Some(h) = account::holder(tool, &profile, &running) {
+            return Ok(account::held(h));
         }
         attempt(move || account::remove(tool, &profile, delete_data, true)).await
     })
@@ -279,8 +256,8 @@ pub async fn account_remove(
     crate::log::command("account_remove", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        if let Some(h) = holder(tool, &profile, &running) {
-            return Ok(held(h));
+        if let Some(h) = account::holder(tool, &profile, &running) {
+            return Ok(account::held(h));
         }
         attempt(move || account::remove(tool, &profile, delete_data, false)).await
     })

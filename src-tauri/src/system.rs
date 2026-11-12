@@ -163,6 +163,20 @@ fn first_line(s: &str) -> String {
     s.lines().find(|l| !l.trim().is_empty()).unwrap_or("failed").trim().to_string()
 }
 
+/// Turns the app's start at login on or off, and answers whether it is on now.
+pub fn set_autostart(manager: &tauri_plugin_autostart::AutoLaunchManager, on: bool) -> Result<bool, String> {
+    // The entry names this very program: a test copy or a development build would start at every login instead.
+    if on && (sandbox().is_some() || cfg!(debug_assertions)) {
+        return Err("a test or development copy of WireCat does not start at login".into());
+    }
+    // Nothing to remove on a computer where it was never on; the platforms differ in how they say so.
+    if !on && !manager.is_enabled().unwrap_or(true) {
+        return Ok(false);
+    }
+    if on { manager.enable() } else { manager.disable() }.map_err(|e| e.to_string())?;
+    manager.is_enabled().map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

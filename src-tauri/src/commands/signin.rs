@@ -21,25 +21,7 @@ pub async fn sign_in(
         let tool = known_tool(&id)?;
         let prepared = signin::args(tool, &method, &profile, inputs.unwrap_or_default())?;
         let running = Arc::clone(&running);
-        blocking(move || {
-            let send = |e: signin::SignInEvent| {
-                let _ = on_event.send(e);
-            };
-            let key = signin::key(&tool.id);
-            if !running.start(&key) {
-                return send(signin::SignInEvent::Failed {
-                    message: format!(
-                        "A {} sign-in is still running or stopping. Try again in a few seconds.",
-                        tool.name
-                    ),
-                    code: None,
-                    reason: None,
-                });
-            }
-            signin::run(tool, &prepared, &|| !running.is_running(&key), &send);
-            running.finish(&key);
-        })
-        .await
+        blocking(move || signin::run_guarded(tool, &prepared, &running, &on_event)).await
     })
     .await
 }

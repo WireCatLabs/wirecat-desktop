@@ -1,7 +1,7 @@
 use super::{attempt, blocking, known_tool, valid_profile};
 use crate::error::AppError;
 use crate::install::Running;
-use crate::{catalog, sync, sync_schedule};
+use crate::{sync, sync_schedule};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -17,40 +17,8 @@ pub async fn sync_run(
     crate::log::command("sync_run", async move {
         let tool = known_tool(&id)?;
         let args = sync::args(tool, profile.as_deref())?;
-        run_guarded(tool, profile, args, Arc::clone(&running), on_event).await
-    })
-    .await
-}
-
-/// One sync per package and profile, none while the package installs; `args` are the catalog's words for this run.
-pub(super) async fn run_guarded(
-    tool: &'static catalog::Tool,
-    profile: Option<String>,
-    args: Vec<String>,
-    running: Arc<Running>,
-    on_event: Channel<sync::SyncEvent>,
-) -> Result<(), AppError> {
-    blocking(move || {
-        let send = |e: sync::SyncEvent| {
-            let _ = on_event.send(e);
-        };
-        let key = sync::key(tool, profile.as_deref());
-        let busy = running.busy(&catalog::owner(tool).id);
-        if busy || !running.start(&key) {
-            return send(sync::SyncEvent::Failed {
-                message: if busy {
-                    format!("{} is being installed or updated. Sync when it is done.", tool.name)
-                } else {
-                    "This sync is still running or stopping. Try again in a few seconds.".into()
-                },
-                code: None,
-                reason: Some("app.busy".into()),
-                run: None,
-                retry_after_ms: None,
-            });
-        }
-        sync::run(tool, &args, &|| !running.is_running(&key), &send);
-        running.finish(&key);
+        let running = Arc::clone(&running);
+        blocking(move || sync::run_guarded(tool, profile.as_deref(), &args, &running, &on_event)).await
     })
     .await
 }
@@ -124,13 +92,7 @@ pub async fn sync_schedule_test(
     crate::log::command("sync_schedule_test", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        let key = sync::key(tool, Some(&profile));
-        if running.busy(&catalog::owner(tool).id) || !running.start(&key) {
-            return Err(AppError::Busy(format!(
-                "{} is syncing {profile} already. Try again when it is done.",
-                tool.name
-            )));
-        }
+        let key = sync::claim(tool, Some(&profile), &running).map_err(AppError::Busy)?;
         let result = attempt(move || sync_schedule::test(tool, &profile)).await;
         running.finish(&key);
         result

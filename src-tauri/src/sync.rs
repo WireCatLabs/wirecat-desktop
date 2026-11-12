@@ -1,9 +1,11 @@
 use crate::catalog::{self, Tool};
+use crate::install::Running;
 use crate::run::{self, Line, RunError};
 use crate::{paths, runs};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
+use tauri::ipc::Channel;
 
 /// The tool's own `--timeout` (two hours in the catalog) ends a sync first and keeps what it fetched; this limit only
 /// catches a tool that ignores it.
@@ -139,6 +141,44 @@ pub fn key(tool: &'static Tool, profile: Option<&str>) -> String {
 /// The prefix every sync of a package's keys starts with, so an install can refuse while one runs.
 pub fn package_prefix(owner: &str) -> String {
     format!("sync:{owner}")
+}
+
+/// Starts the sync's key unless it runs already or its package installs; the refusal is the sentence the window shows.
+pub fn claim(tool: &'static Tool, profile: Option<&str>, running: &Running) -> Result<String, String> {
+    let key = key(tool, profile);
+    if running.busy(&catalog::owner(tool).id) {
+        return Err(format!("{} is being installed or updated. Sync when it is done.", tool.name));
+    }
+    if !running.start(&key) {
+        return Err("This sync is still running or stopping. Try again in a few seconds.".into());
+    }
+    Ok(key)
+}
+
+/// One sync per package and profile, none while the package installs; `args` are the catalog's words for this run.
+pub fn run_guarded(
+    tool: &'static Tool,
+    profile: Option<&str>,
+    args: &[String],
+    running: &Running,
+    events: &Channel<SyncEvent>,
+) {
+    let send = |e: SyncEvent| {
+        let _ = events.send(e);
+    };
+    match claim(tool, profile, running) {
+        Err(message) => send(SyncEvent::Failed {
+            message,
+            code: None,
+            reason: Some("app.busy".into()),
+            run: None,
+            retry_after_ms: None,
+        }),
+        Ok(key) => {
+            run(tool, args, &|| !running.is_running(&key), &send);
+            running.finish(&key);
+        }
+    }
 }
 
 /// The catalog's words with the profile the owner chose; a tool that syncs per profile never gets a default one.
@@ -433,6 +473,19 @@ fn read_last(shape: LastShape, v: &Value, profile: Option<&str>, whole: bool) ->
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn a_sync_waits_for_an_install_of_its_package_and_for_itself() {
+        let tool = catalog::catalog().tools.iter().find(|t| t.sync.is_some()).unwrap();
+        let running = Running::default();
+        let package = &catalog::owner(tool).id;
+        assert!(running.start(package));
+        assert!(claim(tool, Some("work"), &running).unwrap_err().contains("being installed"));
+        running.finish(package);
+        let key = claim(tool, Some("work"), &running).unwrap();
+        assert!(claim(tool, Some("work"), &running).unwrap_err().contains("still running"));
+        running.finish(&key);
+    }
 
     #[test]
     fn runs_the_catalogs_words_for_a_profile_the_owner_named() {

@@ -178,17 +178,25 @@ pub fn uninstall(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     guarded(tool, running, events, &uninstall_steps);
 }
 
+const HELD: &str = "Another operation on this tool is running, such as a sync or a sign-in. Stop it first.";
+
+/// Starts the package's install key unless a sync of it or a sign-in to one of its tools runs: npm would replace the
+/// program under either, which then fails halfway (or, on Windows, npm fails because the program is open).
+fn claim(tool: &Tool, running: &Running) -> bool {
+    let syncs = crate::sync::package_prefix(&tool.id);
+    running.start_unless(&tool.id, |k| {
+        k.starts_with(&syncs)
+            || crate::signin::signing_in(k)
+                .and_then(|id| crate::catalog::tool(id).ok())
+                .is_some_and(|t| crate::catalog::owner(t).id == tool.id)
+    })
+}
+
 type Steps<'a> = &'a dyn Fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent, Failure>;
 
 fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) -> bool {
-    // npm replaces the program under a running sync, which then fails halfway.
-    let syncs = crate::sync::package_prefix(&tool.id);
-    if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
-        let _ = events.send(InstallEvent::Failed {
-            reason: Reason::Failed,
-            message: "Another operation on this tool is running, such as a sync. Stop it first.".into(),
-            hint: None,
-        });
+    if !claim(tool, running) {
+        let _ = events.send(InstallEvent::Failed { reason: Reason::Failed, message: HELD.into(), hint: None });
         return false;
     }
     // A command server keeps running the program npm is about to replace, and may hold its files open.
@@ -523,12 +531,8 @@ pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
         );
     };
 
-    let syncs = crate::sync::package_prefix(&tool.id);
-    if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
-        return refused(
-            CopyRefusal::Busy,
-            "Another operation on this tool is running, such as a sync. Stop it first.".into(),
-        );
+    if !claim(tool, running) {
+        return refused(CopyRefusal::Busy, HELD.into());
     }
     let log = Mutex::new(Vec::new());
     let send = |e| {
@@ -851,6 +855,20 @@ mod tests {
         assert!(!running.start_unless("install:tg", |k| k.starts_with("sign-in:")));
         running.finish("sign-in:tg");
         assert!(running.start("sign-in:tg"));
+    }
+
+    #[test]
+    fn an_install_waits_for_a_sign_in_to_the_same_package() {
+        let tg = crate::catalog::tool("tg").unwrap();
+        let running = Running::default();
+        assert!(running.start(&crate::signin::key("tg")));
+        assert!(!claim(tg, &running), "npm would replace tg under its sign-in");
+        running.finish(&crate::signin::key("tg"));
+        assert!(claim(tg, &running));
+        running.finish("tg");
+        let other = crate::catalog::catalog().tools.iter().find(|t| crate::catalog::owner(t).id != "tg").unwrap();
+        assert!(running.start(&crate::signin::key(&other.id)));
+        assert!(claim(tg, &running), "a sign-in to another package does not hold this one");
     }
 
     #[test]

@@ -102,6 +102,21 @@ pub fn template(kind: &str, format: &str, locale: &str, account: Option<&str>) -
     v["text"].as_str().map(str::to_string).ok_or_else(|| "memo wrote no template".into())
 }
 
+/// The file name the save window offers for a template, and the template's text.
+pub fn template_file(
+    kind: &str,
+    format: &str,
+    locale: &str,
+    account: Option<&str>,
+) -> Result<(String, String), String> {
+    let text = template(kind, format, locale, account)?;
+    Ok((format!("{kind}-template.{format}"), text))
+}
+
+pub fn save_template(path: &Path, text: &str) -> Result<(), String> {
+    std::fs::write(path, text).map_err(|e| format!("The template could not be written: {e}"))
+}
+
 pub fn run_args(file: &Path, kind: Option<&str>, account: &str, dry_run: bool) -> Result<Vec<String>, String> {
     let path = file.to_str().ok_or("This file's name cannot be read. Rename it, then choose it again.")?;
     let mut args: Vec<String> = vec![
