@@ -54,6 +54,8 @@ pub struct Prepared {
     env: Vec<(String, Answer)>,
     /// The whole stdin of a method that reads its secret until EOF; nothing else is ever written to it.
     stdin: Option<Answer>,
+    /// Variables the tool would read ahead of what the owner typed; removed from this run.
+    unset: Vec<String>,
     _client: Option<ClientFile>,
 }
 
@@ -68,6 +70,7 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     let mut env = Vec::new();
     let mut stdin = None;
     let mut client = None;
+    let mut unset = Vec::new();
     if let Some(address) = inputs.address {
         args.extend([flag(method.address.as_ref(), "an address")?.clone(), valid_address(&address)?]);
     }
@@ -77,6 +80,13 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     }
     if let Some(portal) = inputs.portal {
         args.extend([flag(method.portal.as_ref(), "a portal")?.clone(), valid_portal(&portal)?]);
+    }
+    if app {
+        // b24 takes these ahead of --client-id and stdin, so one left in the owner's shell would win silently.
+        unset.extend([
+            format!("{}_BITRIX24_CLIENT_ID", tool.storage.env),
+            format!("{}_BITRIX24_CLIENT_SECRET", tool.storage.env),
+        ]);
     }
     if let Some(id) = inputs.app_id {
         args.extend([flag(method.app_id.as_ref(), "an application")?.clone(), valid_app_id(&id)?]);
@@ -101,7 +111,7 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     } else if inputs.oauth {
         args.extend(method.oauth.clone().ok_or_else(|| "This sign-in takes no browser choice.".to_string())?);
     }
-    Ok(Prepared { args, env, stdin, _client: client })
+    Ok(Prepared { args, env, stdin, unset, _client: client })
 }
 
 fn flag<'a>(name: Option<&'a String>, what: &str) -> Result<&'a String, String> {
@@ -303,6 +313,9 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
     for (name, value) in &prepared.env {
         cmd.env(name, value.as_str());
     }
+    for name in &prepared.unset {
+        cmd.env_remove(name);
+    }
     let mut parser = Parser::default();
     let mut outcome = None;
     let k = key(&tool.id);
@@ -438,6 +451,7 @@ mod tests {
         let prepared = args(b24, "webhook", "work", typed(&format!(" {hook} "))).unwrap();
         assert_eq!(prepared.args, ["work", "session", "start", "--json"]);
         assert_eq!(prepared.env.len(), 0);
+        assert!(prepared.unset.is_empty());
         assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some(hook));
         for bad in [
             "http://acme.bitrix24.ru/rest/12/s3cr3tk3y/",
@@ -482,6 +496,7 @@ mod tests {
         assert_eq!(prepared.env.len(), 0);
         assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some("k3y5ecr3t"));
         assert!(!prepared.args.iter().any(|a| a.contains("k3y5ecr3t")));
+        assert_eq!(prepared.unset, ["B24_BITRIX24_CLIENT_ID", "B24_BITRIX24_CLIENT_SECRET"]);
         for (portal, id) in [
             ("https://acme.bitrix24.ru/", "local.1"),
             ("acme", "local.1"),

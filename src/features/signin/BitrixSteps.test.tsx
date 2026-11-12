@@ -190,6 +190,23 @@ describe("Bitrix24's sign-in wizard", () => {
     expect(platform.signIn).toHaveBeenCalledTimes(2)
   })
 
+  it("brings a webhook that failed for another reason back to its paste step, address kept, and checks it again", async () => {
+    const dialog = open()
+    await toPaste(dialog)
+    await userEvent.type(within(dialog).getByLabelText("Webhook address"), HOOK)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
+    send({ event: "failed", code: "timeout", reason: "command.timed-out", message: "Bitrix24 did not answer in time" })
+    await settled()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Try again" }))
+    await settled()
+    expect(within(dialog).getByText(/The address you pasted is still here/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
+    expect(platform.signIn).toHaveBeenCalledTimes(2)
+    const [, method, , , inputs] = vi.mocked(platform.signIn).mock.calls[1] ?? []
+    expect(method).toBe("webhook")
+    expect(inputs).toEqual({ password: HOOK })
+  })
+
   const toApp = async (dialog: HTMLElement) => {
     await userEvent.type(within(dialog).getByLabelText("Portal address"), "acme.bitrix24.ru")
     await userEvent.click(within(dialog).getByRole("radio", { name: /Local application/ }))
