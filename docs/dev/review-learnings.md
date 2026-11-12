@@ -9,7 +9,9 @@ from.
 
 ## Ложные находки
 
-None yet.
+- **FIND-1.a · `src/features/tools/StorageFit.tsx:27` compares versions by hand instead of `gapOf`.** Not a gap.
+  The line checks whether an update exists, not whether the installed version is below a minimum, so `gapOf` does
+  not apply. Found by the fix agent. 2026-11-12, [review 2026-11-12](review-2026-11-12.md).
 
 ## Советы, которые навредили
 

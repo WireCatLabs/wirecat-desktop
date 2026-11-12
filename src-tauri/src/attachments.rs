@@ -88,7 +88,9 @@ fn messenger_of(place: &ChatPlace) -> Result<(&'static Tool, String), String> {
         .iter()
         .find(|t| t.bin == program && t.part_of.is_none())
         .ok_or_else(|| format!("{program} is not a messenger the app knows"))?;
-    let profile = shown.chat.profile.ok_or("No profile on this computer is signed in to this account.")?;
+    // Every listed profile is signed in to the same account, so any of them reads the same picture.
+    let profile =
+        shown.chat.profiles.into_iter().next().ok_or("No profile on this computer is signed in to this account.")?;
     Ok((tool, profile))
 }
 

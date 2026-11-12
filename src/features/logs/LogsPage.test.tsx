@@ -408,10 +408,12 @@ describe("Logs snapshot", () => {
     const sources = await openSettings(user)
     expect(within(sources).getByText("did not answer in 1 s")).toBeInTheDocument()
 
+    // The next round waits long enough on any machine, so it is the held answer it takes, not another time limit.
+    timing.answer = 30_000
     await user.click(screen.getByRole("button", { name: "Read again" }))
     answerTg()
     await loaded()
-    expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
+    expect(await within(runsOf(sources, "Telegram")).findByText(/^\d+\+? runs$/)).toBeInTheDocument()
     expect(spy.mock.calls.filter(([id]) => id === "tg")).toHaveLength(1)
   })
 })

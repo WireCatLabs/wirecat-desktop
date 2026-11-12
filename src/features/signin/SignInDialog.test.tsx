@@ -260,7 +260,9 @@ describe("answering what the tool asks", () => {
       () => expect(within(dialog).queryByText("Switching to phone sign-in…", { selector: STAGE_TEXT })).toBeNull(),
       { timeout: MOTION.hold + MOTION.swap + 1000 },
     )
-    expect(within(dialog).getByRole("textbox", { name: "Phone number, international format" })).toHaveFocus()
+    await vi.waitFor(() =>
+      expect(within(dialog).getByRole("textbox", { name: "Phone number, international format" })).toHaveFocus(),
+    )
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Use QR code instead" }))
     expect(within(dialog).getByRole("heading", { name: "Sign in with a QR code" })).toBeInTheDocument()

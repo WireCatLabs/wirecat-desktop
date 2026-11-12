@@ -18,11 +18,13 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   notarize:
     runs-on: macos-latest
+    permissions:
+      contents: write
     timeout-minutes: 150
     environment: release
     steps:

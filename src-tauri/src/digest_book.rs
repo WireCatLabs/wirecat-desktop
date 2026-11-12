@@ -13,7 +13,7 @@ use crate::digest_schedule::{self, DigestSchedules, OtherSchedule, Route, is_tim
 use crate::enrichment::Gate;
 use crate::picture_reading::checked_model;
 use crate::skills::{call, failure};
-use crate::{digests, redact, tools};
+use crate::{digests, memo_cli, redact, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -320,7 +320,7 @@ fn message(json: Option<&Value>) -> Option<&str> {
 
 /// memo has no `digest <verb>` yet.
 fn older(json: Option<&Value>, verb: &str) -> bool {
-    message(json).is_some_and(|m| m.starts_with(&format!("unknown command '{verb}'")))
+    message(json).is_some_and(|m| m.starts_with(&memo_cli::unknown_command_text(verb)))
 }
 
 fn memo() -> Result<Result<&'static Tool, DigestBook>, String> {
@@ -548,7 +548,7 @@ pub fn save(spec: &DigestSpec, create: bool) -> Result<DigestBook, String> {
     let agent = agent_for(spec, create, open)?;
     let args = save_args(spec, create, agent.as_ref(), open)?;
     let json = match write(memo, &args, CALL) {
-        Err(said) if said.contains("unknown option '--agent'") => {
+        Err(said) if said.contains(&memo_cli::unknown_option_text("--agent")) => {
             let plain =
                 without_agent(&args).ok_or("Update Memo to write digests in an agent other than Claude Code.")?;
             write(memo, &plain, CALL)?
@@ -597,7 +597,7 @@ pub fn set_scheduled(name: &str, on: bool) -> Result<DigestBook, String> {
     };
     let args = timer_args(name, on);
     let json = match write(memo, &args, CALL) {
-        Err(said) if said.contains("unknown option '--agent'") => {
+        Err(said) if said.contains(&memo_cli::unknown_option_text("--agent")) => {
             let plain =
                 without_agent(&args).ok_or("Update Memo to write digests in an agent other than Claude Code.")?;
             write(memo, &plain, CALL)?

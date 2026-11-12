@@ -75,7 +75,7 @@ fn memo() -> Result<Option<&'static Tool>, String> {
 /// A memo from before the command answers with a usage error naming it.
 fn unknown_command(json: Option<&Value>, names: &[&str]) -> bool {
     json.and_then(|v| v["error"]["message"].as_str())
-        .is_some_and(|m| names.iter().any(|n| m.starts_with(&format!("unknown command '{n}'"))))
+        .is_some_and(|m| names.iter().any(|n| m.starts_with(&crate::memo_cli::unknown_command_text(n))))
 }
 
 fn text_of(v: &Value) -> Option<String> {

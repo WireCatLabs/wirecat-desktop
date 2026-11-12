@@ -36,6 +36,16 @@ pub fn unknown_to_cli(text: &str) -> bool {
     ["unknown command", "unknown option", "too many arguments"].iter().any(|w| text.contains(w))
 }
 
+/// How commander starts its refusal of a command an older release lacks, for a check that needs the command's name.
+pub fn unknown_command_text(name: &str) -> String {
+    format!("unknown command '{name}'")
+}
+
+/// How commander starts its refusal of an option an older release lacks.
+pub fn unknown_option_text(option: &str) -> String {
+    format!("unknown option '{option}'")
+}
+
 impl From<Failure> for String {
     fn from(f: Failure) -> String {
         f.message
