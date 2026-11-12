@@ -10,7 +10,7 @@
 
 use crate::catalog::{self, Tool};
 use crate::skills::{body, call, failure};
-use crate::{redact, tools};
+use crate::{memo_cli, redact, tools};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -400,11 +400,14 @@ fn error_starts(json: Option<&Value>, prefixes: &[&str]) -> bool {
 
 /// memo checks its required options before its unknown ones, so 0.131.72 asks for `--from` first.
 fn old_range(json: Option<&Value>) -> bool {
-    error_starts(json, &["unknown option '--since-time'", "required option '--from"])
+    error_starts(json, &[memo_cli::unknown_option_text("--since-time").as_str(), "required option '--from"])
 }
 
 fn unknown_command(json: Option<&Value>) -> bool {
-    error_starts(json, &["unknown command 'digest'", "unknown command 'backfill'"])
+    error_starts(
+        json,
+        &[memo_cli::unknown_command_text("digest").as_str(), &memo_cli::unknown_command_text("backfill")],
+    )
 }
 
 /// Without `yes`, memo only prices the days; with it, memo builds them, writes each as that day's run and delivers

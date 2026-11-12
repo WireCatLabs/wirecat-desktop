@@ -73,7 +73,8 @@ fn call(tool: &Tool, args: &[String], timeout: Duration) -> Result<(run::Output,
 }
 
 fn refuses_profiles(json: Option<&Value>) -> bool {
-    json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| m.contains("unknown option '--profiles'"))
+    json.and_then(|v| v["error"]["message"].as_str())
+        .is_some_and(|m| m.contains(&crate::memo_cli::unknown_option_text("--profiles")))
 }
 
 fn without_profiles(args: &[String]) -> Vec<String> {
@@ -331,7 +332,8 @@ pub fn revoke(tool: &Tool) -> Result<(), String> {
 }
 
 fn unknown_revoke(json: Option<&Value>) -> bool {
-    json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| m.contains("unknown command 'revoke'"))
+    json.and_then(|v| v["error"]["message"].as_str())
+        .is_some_and(|m| m.contains(&crate::memo_cli::unknown_command_text("revoke")))
 }
 
 /// Every address must be on the connector's own origin: the server builds them from its public address.

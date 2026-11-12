@@ -224,7 +224,7 @@ pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {
 /// A CLI from before `skill status` says so as a usage error; anything else is a real failure.
 fn unsupported(json: Option<&Value>) -> bool {
     json.and_then(|v| v["error"]["message"].as_str())
-        .is_some_and(|m| m.starts_with("unknown command 'status'") || m.starts_with("unknown command 'skill'"))
+        .is_some_and(|m| ["status", "skill"].iter().any(|c| m.starts_with(&crate::memo_cli::unknown_command_text(c))))
 }
 
 fn copy_status(target: &str, t: &Value) -> TargetStatus {
