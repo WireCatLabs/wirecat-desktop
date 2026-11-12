@@ -146,13 +146,15 @@ pub fn package_prefix(owner: &str) -> String {
 /// Starts the sync's key unless it runs already or its package installs; the refusal is the sentence the window shows.
 pub fn claim(tool: &'static Tool, profile: Option<&str>, running: &Running) -> Result<String, String> {
     let key = key(tool, profile);
-    if running.busy(&catalog::owner(tool).id) {
-        return Err(format!("{} is being installed or updated. Sync when it is done.", tool.name));
+    let package = &catalog::owner(tool).id;
+    if running.start_unless(&key, |k| k == package) {
+        return Ok(key);
     }
-    if !running.start(&key) {
-        return Err("This sync is still running or stopping. Try again in a few seconds.".into());
-    }
-    Ok(key)
+    Err(if running.busy(package) {
+        format!("{} is being installed or updated. Sync when it is done.", tool.name)
+    } else {
+        "This sync is still running or stopping. Try again in a few seconds.".into()
+    })
 }
 
 /// One sync per package and profile, none while the package installs; `args` are the catalog's words for this run.

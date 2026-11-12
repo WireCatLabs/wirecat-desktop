@@ -30,7 +30,7 @@ impl Failure {
     }
 }
 
-/// What commander, which every WireCat CLI parses its words with, says when the installed version lacks a command or
+/// What commander, which every `WireCat` CLI parses its words with, says when the installed version lacks a command or
 /// an option the app passes: the tool is older than the app expects, not broken.
 pub fn unknown_to_cli(text: &str) -> bool {
     ["unknown command", "unknown option", "too many arguments"].iter().any(|w| text.contains(w))
