@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import { ReportThis } from "@/shared/ReportThis"
@@ -81,12 +80,7 @@ export function AddPerson() {
             }}
             className={cx(fieldClass, "selectable flex-1 basis-[16rem]", invalidBorder)}
           />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={s.adding}
-            icon={s.adding ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-          >
+          <Button type="submit" size="sm" disabled={s.adding} busy={s.adding}>
             {anyway ? m.addAnyway : m.add}
           </Button>
         </span>

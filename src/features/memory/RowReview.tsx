@@ -1,4 +1,4 @@
-import { Check, LoaderCircle, TriangleAlert } from "lucide-react"
+import { Check, TriangleAlert } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { can, causeOf, type ReviewChoice, reviewChoices } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
@@ -160,7 +160,6 @@ function Answers({ entry }: { entry: MemoryEntry }) {
   useEffect(() => {
     if (asking) input.current?.focus({ preventScroll: true })
   }, [asking])
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   const choices = reviewChoices(entry, revoke)
   const act = (choice: ReviewChoice) => {
     if (choice === "correct") startCorrect(entry.ref)
@@ -204,7 +203,7 @@ function Answers({ entry }: { entry: MemoryEntry }) {
           </p>
           {empty.hint}
           <span className="flex gap-2">
-            <Button type="submit" size="sm" disabled={!!busy} icon={busy === "dismiss" ? spin : undefined}>
+            <Button type="submit" size="sm" disabled={!!busy} busy={busy === "dismiss"}>
               {m.dismissNow}
             </Button>
             <Button size="sm" onClick={() => setAsking(false)}>
@@ -221,7 +220,7 @@ function Answers({ entry }: { entry: MemoryEntry }) {
               variant={choice === "stillTrue" ? "secondary" : "ghost"}
               disabled={!!busy}
               title={m.answersHint[choice]}
-              icon={busy === choice ? spin : undefined}
+              busy={busy === choice}
               onClick={() => act(choice)}
             >
               {m.answers[choice]}

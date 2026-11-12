@@ -163,7 +163,6 @@ type Handlers = {
 function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: AccountsText["remove"]; on: Handlers }) {
   const { tool, profile, phase, m, on } = props
   const signOutWords = tool.accountRemove?.signOut ?? null
-  const spinner = <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
   switch (phase.step) {
     case "checking":
     case "choose":
@@ -183,12 +182,7 @@ function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: A
           <Button variant="secondary" onClick={on.close} aria-disabled={running || undefined}>
             {m.cancel}
           </Button>
-          <Button
-            variant="danger"
-            aria-disabled={running || undefined}
-            onClick={running ? () => undefined : () => on.remove(phase.del, phase.removal)}
-          >
-            {running && spinner}
+          <Button variant="danger" busy={running} onClick={() => on.remove(phase.del, phase.removal)}>
             {running ? m.removing : label}
           </Button>
         </>
@@ -232,8 +226,7 @@ function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: A
       )
     case "signingOut":
       return (
-        <Button variant="danger" aria-disabled onClick={() => undefined}>
-          {spinner}
+        <Button variant="danger" busy>
           {m.running}
         </Button>
       )

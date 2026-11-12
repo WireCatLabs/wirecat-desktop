@@ -1,4 +1,4 @@
-import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useId, useState } from "react"
 import { can, stateOf, toneOf } from "@/domain/memory"
 import { relationParts, roleIdOf, roleLabel, roleListFor } from "@/domain/relationships"
@@ -196,7 +196,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
           type="submit"
           variant={proposal ? "primary" : "secondary"}
           disabled={!!busy}
-          icon={busy === "correct" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          busy={busy === "correct"}
         >
           {proposal ? x.saveAndApprove : x.save}
         </Button>
@@ -210,13 +210,8 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
             className="ml-auto text-bad hover:text-bad"
             disabled={!!busy}
             onClick={() => void removeRelation(entry.ref)}
-            icon={
-              busy === "remove" ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Trash2 className="size-4" aria-hidden />
-              )
-            }
+            busy={busy === "remove"}
+            icon={<Trash2 className="size-4" aria-hidden />}
           >
             {busy === "remove" ? x.removing : x.remove}
           </Button>
@@ -293,12 +288,7 @@ function AddRole({ list, taken, onAdded }: { list: string; taken: readonly strin
                 invalidBorder,
               )}
             />
-            <Button
-              size="sm"
-              disabled={busy}
-              icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-              onClick={() => void add()}
-            >
+            <Button size="sm" disabled={busy} busy={busy} onClick={() => void add()}>
               {x.addRole}
             </Button>
             <Button size="sm" variant="secondary" onClick={close}>

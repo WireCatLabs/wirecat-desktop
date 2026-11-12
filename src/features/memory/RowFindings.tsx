@@ -333,13 +333,7 @@ function FindingEdit({ entry, finding: x, onClose }: { entry: MemoryEntry; findi
         )
       })}
       <span className="flex flex-wrap gap-2">
-        <Button
-          type="submit"
-          size="sm"
-          variant="primary"
-          disabled={!!busy}
-          icon={busy === "edit" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-        >
+        <Button type="submit" size="sm" variant="primary" disabled={!!busy} busy={busy === "edit"}>
           {f.saveEdit}
         </Button>
         <Button size="sm" disabled={!!busy} onClick={onClose}>

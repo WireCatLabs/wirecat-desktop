@@ -357,13 +357,8 @@ function Actions({ fields }: { fields: ReportFields }) {
         className="min-w-[9.5rem]"
         aria-keyshortcuts="Control+Enter Meta+Enter"
         disabled={!context || phase === "sending"}
-        icon={
-          phase === "sending" || preparing ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <Send className="size-4" aria-hidden />
-          )
-        }
+        busy={phase === "sending" || preparing}
+        icon={<Send className="size-4" aria-hidden />}
       >
         {phase === "sending" ? m.sending : preparing ? m.preparing : phase === "failed" ? m.tryAgain : m.send}
       </Button>

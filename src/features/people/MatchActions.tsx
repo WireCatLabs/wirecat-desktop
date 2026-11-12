@@ -1,4 +1,4 @@
-import { Building2, Check, LoaderCircle } from "lucide-react"
+import { Building2, Check } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { reasonOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
@@ -88,7 +88,6 @@ export function MatchActions({
   const done = open.length === 0
   const among = open.filter((x) => x.persons.every((p) => chosen.includes(p)))
   const said = (ref: string) => asked.current.get(ref) ?? name(ref)
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   const confirm = () => {
     for (const p of people) asked.current.set(p, name(p))
@@ -161,7 +160,7 @@ export function MatchActions({
               {m.rejectHint}
             </p>
             <span className="flex gap-2">
-              <Button type="submit" size="sm" disabled={!!busy} icon={busy ? spin : undefined}>
+              <Button type="submit" size="sm" disabled={!!busy} busy={!!busy}>
                 {m.rejectNow}
               </Button>
               <Button size="sm" onClick={() => setAsking(false)}>
@@ -176,7 +175,7 @@ export function MatchActions({
               size="sm"
               variant="primary"
               disabled={!!busy}
-              icon={busy === "confirm" ? spin : undefined}
+              busy={busy === "confirm"}
               onClick={() => (tooFew ? few.fail() : confirm())}
             >
               {confirmLabel}

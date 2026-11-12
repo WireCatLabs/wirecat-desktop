@@ -1,4 +1,4 @@
-import { FileText, LoaderCircle, ScanText } from "lucide-react"
+import { FileText, ScanText } from "lucide-react"
 import { useState } from "react"
 import { toolOfProvider } from "@/domain/links"
 import { useMessages } from "@/i18n"
@@ -86,13 +86,8 @@ export function FileActions({ messageRef, file }: { messageRef: string; file: Fi
             size="sm"
             variant="ghost"
             disabled={busy}
-            icon={
-              busy ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <ScanText className="size-4" aria-hidden />
-              )
-            }
+            busy={busy}
+            icon={<ScanText className="size-4" aria-hidden />}
             onClick={() => void read()}
           >
             {m.read}

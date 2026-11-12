@@ -1,4 +1,4 @@
-import { FolderOpen, LoaderCircle, Wrench } from "lucide-react"
+import { FolderOpen, Wrench } from "lucide-react"
 import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import type { Finding } from "@/domain/doctor"
@@ -65,17 +65,7 @@ export function ConfigRepair(props: {
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <Button
-          size="sm"
-          onClick={repair}
-          icon={
-            running ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Wrench className="size-4" aria-hidden />
-            )
-          }
-        >
+        <Button size="sm" onClick={repair} busy={running} icon={<Wrench className="size-4" aria-hidden />}>
           {running ? m.repairing : m.repair}
         </Button>
       </div>

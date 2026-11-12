@@ -57,13 +57,7 @@ export function JsonActions({ dirty }: { dirty: boolean }) {
       >
         {m.revert}
       </Button>
-      <Button
-        size="sm"
-        variant="primary"
-        onClick={() => void save()}
-        disabled={st.saving}
-        icon={st.saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : undefined}
-      >
+      <Button size="sm" variant="primary" onClick={() => void save()} disabled={st.saving} busy={st.saving}>
         {st.saving ? m.saving : m.save}
       </Button>
       {unchanged.hint}

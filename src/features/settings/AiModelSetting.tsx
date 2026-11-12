@@ -400,7 +400,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
                 ? saveFirst.fail((lang) => aiModelMessages[lang].checkSaveFirst)
                 : void useAiModel.getState().check()
             }
-            icon={busy === "check" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+            busy={busy === "check"}
           >
             {busy === "check" ? m.checking : m.check}
           </Button>

@@ -1,4 +1,4 @@
-import { LoaderCircle, TriangleAlert } from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { readerOff, tooOldFor } from "@/domain/memory-add"
@@ -148,7 +148,7 @@ export function ReaderChoice({ readers, describedBy }: { readers: Reader[]; desc
             if (marked === chosen) return need.fail(m.sameReader)
             void useReaders.getState().choose(marked)
           }}
-          icon={busy === "choose" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          busy={busy === "choose"}
         >
           {m.use}
         </Button>

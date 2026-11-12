@@ -1,4 +1,4 @@
-import { CheckCheck, Columns3, Handshake, ListChecks, LoaderCircle, Lock, Rows3, UserRoundPlus } from "lucide-react"
+import { CheckCheck, Columns3, Handshake, ListChecks, Lock, Rows3, UserRoundPlus } from "lucide-react"
 import { useEffect } from "react"
 import { crmsOf, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf, findTool } from "@/domain/catalog"
@@ -160,13 +160,8 @@ function Notices({ read, kind, settled }: { read: Based; kind: Kind; settled: bo
               <Button
                 size="sm"
                 variant="primary"
-                icon={
-                  confirming ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <CheckCheck className="size-4" aria-hidden />
-                  )
-                }
+                busy={confirming}
+                icon={<CheckCheck className="size-4" aria-hidden />}
                 onClick={() => confirming || confirm.mutate(pending.map((p) => p.pipeline))}
               >
                 {s.acceptEvery(suggestions)}

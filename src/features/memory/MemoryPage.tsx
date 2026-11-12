@@ -1,4 +1,4 @@
-import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import {
   byReviewRank,
@@ -367,17 +367,7 @@ function ApproveShown({ refs }: { refs: string[] }) {
   }
   return (
     <span className="flex items-center gap-[0.35rem]">
-      <Button
-        size="sm"
-        onClick={approve}
-        icon={
-          running ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <Check className="size-4" aria-hidden />
-          )
-        }
-      >
+      <Button size="sm" onClick={approve} busy={running} icon={<Check className="size-4" aria-hidden />}>
         {m.approveShown(refs.length)}
       </Button>
       <InfoTip label={f.approveAllAbout} align="end">
@@ -538,7 +528,6 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
     setRunning(null)
     setResult(x.bulkDone(approve ? done : 0, approve ? 0 : done, failed))
   }
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   return (
     <span className="flex shrink-0 items-center gap-2">
       {said}
@@ -548,7 +537,8 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
         disabled={!!running}
         title={x.rejectAllHint}
         onClick={() => void decide(false)}
-        icon={running === "reject" ? spin : <X className="size-4" aria-hidden />}
+        busy={running === "reject"}
+        icon={<X className="size-4" aria-hidden />}
       >
         {x.rejectAll(waiting.length)}
       </Button>
@@ -557,7 +547,8 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
         disabled={!!running}
         title={x.approveAllHint}
         onClick={() => void decide(true)}
-        icon={running === "approve" ? spin : <Check className="size-4" aria-hidden />}
+        busy={running === "approve"}
+        icon={<Check className="size-4" aria-hidden />}
       >
         {x.approveAll(waiting.length)}
       </Button>

@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { accountLabel, canSplit, cleanName } from "@/domain/people"
 import { useMessages } from "@/i18n"
@@ -58,7 +57,7 @@ export function SplitDialog() {
           <Button onClick={close}>{m.cancel}</Button>
           <Button
             disabled={!!busy}
-            icon={busy === "unlink" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+            busy={busy === "unlink"}
             onClick={() =>
               canSplit(chosen, identities) ? ref && void unlink(ref, ordered).then(() => setChosen([])) : need.fail()
             }

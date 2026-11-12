@@ -1,4 +1,4 @@
-import { FileText, Link2, LoaderCircle, Paperclip } from "lucide-react"
+import { FileText, Link2, Paperclip } from "lucide-react"
 import { useEffect, useId } from "react"
 import { fileName, isLink, missingOf, type Way, wordCount } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
@@ -82,12 +82,7 @@ export function SourceStep() {
       <Refusal />
       {need.hint}
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!!busy}
-          icon={busy === "save" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-        >
+        <Button type="submit" variant="primary" disabled={!!busy} busy={busy === "save"}>
           {busy === "save" ? m.saving[draft.way] : m.save}
         </Button>
       </div>
@@ -200,7 +195,7 @@ function FileInput({ problem }: { problem: string | undefined }) {
         disabled={!!busy}
         aria-describedby={problem}
         onClick={() => void pickFile()}
-        icon={busy === "pick" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        busy={busy === "pick"}
       >
         {path ? m.chooseOther : m.chooseFile}
       </Button>

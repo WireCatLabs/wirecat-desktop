@@ -1,4 +1,4 @@
-import { Check, LoaderCircle } from "lucide-react"
+import { Check } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { Identity, PersonDetail, Split } from "@/platform/people-schemas"
@@ -63,7 +63,6 @@ export function SplitCard({ split }: { split: Split }) {
   const leaving: (Identity | string)[] = split.identities.map((ref) => held.current[ref] ?? ref)
   const from = split.merge ? person?.merges.find((x) => x.id === split.merge)?.from : null
   const evidence = split.evidence.filter((e) => !split.identities.includes(e) && e !== split.merge)
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   return (
     <article
@@ -156,7 +155,7 @@ export function SplitCard({ split }: { split: Split }) {
             />
             {reason.hint}
             <span className="flex gap-2">
-              <Button type="submit" size="sm" disabled={!!busy} icon={busy ? spin : undefined}>
+              <Button type="submit" size="sm" disabled={!!busy} busy={!!busy}>
                 {m.keepNow}
               </Button>
               <Button size="sm" onClick={() => setAsking(false)}>
@@ -170,7 +169,7 @@ export function SplitCard({ split }: { split: Split }) {
               size="sm"
               variant="primary"
               disabled={!!busy}
-              icon={busy === "confirm" ? spin : undefined}
+              busy={busy === "confirm"}
               onClick={() => void decideSplit(split.id, "confirm")}
             >
               {split.op === "unmerge" ? m.undo : m.splitNow}

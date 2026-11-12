@@ -1,4 +1,4 @@
-import { Check, LoaderCircle } from "lucide-react"
+import { Check } from "lucide-react"
 import { useId, useState } from "react"
 import { chosenReader, MENDED_IN_SETTINGS } from "@/domain/memory-add"
 import { personName } from "@/domain/people"
@@ -54,7 +54,7 @@ export function SavedStep() {
             variant="primary"
             disabled={!!busy}
             onClick={() => suggestWith(readers ?? [])}
-            icon={busy === "suggest" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+            busy={busy === "suggest"}
           >
             {busy === "suggest" ? m.suggesting : m.suggest}
           </Button>

@@ -1,4 +1,4 @@
-import { Building2, Check, LoaderCircle } from "lucide-react"
+import { Building2, Check } from "lucide-react"
 import { useId, useState } from "react"
 import { formatList, useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -27,13 +27,8 @@ export function CompanyButton({ group }: { group: MatchGroup }) {
     <Button
       size="sm"
       disabled={!!busy}
-      icon={
-        busy ? (
-          <LoaderCircle className="size-4 animate-spin" aria-hidden />
-        ) : (
-          <Building2 className="size-4" aria-hidden />
-        )
-      }
+      busy={Boolean(busy)}
+      icon={<Building2 className="size-4" aria-hidden />}
       onClick={() => void usePeople.getState().resolveMailbox(group.key, open(group), {})}
     >
       {m.companyMailbox}
@@ -71,13 +66,8 @@ export function CompanyAddress({
             size="sm"
             disabled={!!busy}
             aria-pressed={asked === a}
-            icon={
-              busy && asked === a ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Building2 className="size-4" aria-hidden />
-              )
-            }
+            busy={Boolean(busy) && asked === a}
+            icon={<Building2 className="size-4" aria-hidden />}
             onClick={() => void usePeople.getState().resolveMailbox(group.key, open(group), { mailbox: a })}
           >
             <span className="selectable font-mono text-[0.88rem]">{a}</span>
@@ -265,7 +255,7 @@ function MailboxUsers({ group, organization }: { group: MatchGroup; organization
         <Button
           size="sm"
           disabled={!!busy}
-          icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          busy={Boolean(busy)}
           onClick={() => {
             if (picked.length === 0) return error.fail((l) => peopleMessages[l].mailboxUsersNone)
             void usePeople.getState().saveMailboxUsers(group.key, organization, picked)

@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { chosenReader } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { useReaders } from "@/shared/readers-store"
@@ -23,7 +22,6 @@ export function FactsStep() {
   const facts = findings.filter((f) => f.kind === "fact").length
   const reader = useReaders((s) => chosenReader(s.readers ?? []))
   const decided = batch !== null && batch.status !== "proposed"
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   return (
     <div className="flex flex-col gap-[1rem]">
@@ -75,12 +73,7 @@ export function FactsStep() {
       <ReaderLine />
       <Refusal />
       <div className="flex flex-wrap gap-3">
-        <Button
-          variant="primary"
-          disabled={!!busy}
-          onClick={() => void keep()}
-          icon={busy === "keep" ? spin : undefined}
-        >
+        <Button variant="primary" disabled={!!busy} onClick={() => void keep()} busy={busy === "keep"}>
           {decided ? m.done : findings.length === 0 ? m.keepNone : m.keep(ticked)}
         </Button>
         {reused && reader && (
@@ -88,7 +81,7 @@ export function FactsStep() {
             variant="ghost"
             disabled={!!busy}
             onClick={() => void suggest(reader.id, true)}
-            icon={busy === "suggest" ? spin : undefined}
+            busy={busy === "suggest"}
           >
             {m.readAgain}
           </Button>

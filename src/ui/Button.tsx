@@ -1,3 +1,4 @@
+import { LoaderCircle } from "lucide-react"
 import type { ButtonHTMLAttributes, ReactNode } from "react"
 import { cx } from "./cx"
 
@@ -17,9 +18,19 @@ const sizes: Record<ButtonSize, string> = {
   sm: "h-8 px-3 text-[0.875rem] rounded-[0.35rem]",
 }
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; icon?: ReactNode }
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  icon?: ReactNode
+  /** Its own action runs: a spinner in place of the icon, and presses are ignored. */
+  busy?: boolean
+}
 
-export function Button({ variant = "secondary", size = "md", icon, className, children, type, ...rest }: Props) {
+/** The spinner of a busy button, for a control that draws its own button (SplitButton's main action). */
+export const busyIcon = <LoaderCircle className="size-4 shrink-0 motion-safe:animate-spin" aria-hidden />
+
+export function Button(props: Props) {
+  const { variant = "secondary", size = "md", icon, busy = false, className, children, type, onClick, ...rest } = props
   return (
     <button
       type={type ?? "button"}
@@ -34,8 +45,15 @@ export function Button({ variant = "secondary", size = "md", icon, className, ch
         className,
       )}
       {...rest}
+      // Not disabled: a disabled button drops keyboard focus to the page (UX-67).
+      aria-disabled={busy || rest["aria-disabled"]}
+      aria-busy={busy || rest["aria-busy"]}
+      onClick={(e) => {
+        if (!busy) return onClick?.(e)
+        e.preventDefault()
+      }}
     >
-      {icon}
+      {busy ? busyIcon : icon}
       {children}
     </button>
   )

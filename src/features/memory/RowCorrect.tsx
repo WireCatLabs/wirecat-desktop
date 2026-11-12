@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { isCorrection, oneLine, subjectOf } from "@/domain/memory"
 import { useMessages } from "@/i18n"
@@ -157,12 +156,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
       </p>
       {failed && <RowFailed failed={failed} />}
       <div className="flex gap-2">
-        <Button
-          size="sm"
-          type="submit"
-          disabled={busy}
-          icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-        >
+        <Button size="sm" type="submit" disabled={busy} busy={busy}>
           {m.save}
         </Button>
         <Button size="sm" disabled={busy} onClick={onDone}>

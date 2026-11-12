@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useLayoutEffect, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { ChatMessage } from "@/platform/bindings"
@@ -37,7 +36,7 @@ function Edge({ side, more }: { side: "older" | "newer"; more: boolean }) {
         size="sm"
         variant="ghost"
         disabled={busy}
-        icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        busy={busy}
         onClick={() => void useConversation.getState().more(side)}
       >
         {busy ? m.readingMore : side === "older" ? m.earlier : m.later}

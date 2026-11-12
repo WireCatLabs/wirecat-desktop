@@ -1,4 +1,4 @@
-import { Bot, LoaderCircle, Terminal } from "lucide-react"
+import { Bot, Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { readMailNotes } from "@/domain/mail-signin"
@@ -296,12 +296,7 @@ function BitrixActions() {
       <Button variant="secondary" onClick={close}>
         {m.cancel}
       </Button>
-      <Button
-        variant="primary"
-        onClick={begin}
-        disabled={comparing}
-        icon={comparing ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : undefined}
-      >
+      <Button variant="primary" onClick={begin} disabled={comparing} busy={comparing}>
         {label}
       </Button>
     </>

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, LoaderCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
 import { type CatalogTool, removeCommand } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
@@ -80,8 +80,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
             </Button>
           </>
         ) : phase.step === "running" ? (
-          <Button variant="danger" aria-disabled onClick={() => undefined}>
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          <Button variant="danger" busy>
             {m.removing}
           </Button>
         ) : result?.removed ? (
