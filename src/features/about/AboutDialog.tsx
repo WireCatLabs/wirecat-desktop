@@ -1,11 +1,11 @@
-import { Check, Copy } from "lucide-react"
-import { Fragment, useEffect, useState } from "react"
+import { Fragment } from "react"
 import { tools } from "@/domain/catalog"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { ExtLink } from "@/shared/ExtLink"
 import { useReport } from "@/shared/report-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
+import { CopyButton } from "@/ui/CopyButton"
 import { Dialog } from "@/ui/Dialog"
 import { LinkButton } from "@/ui/LinkButton"
 import { Monogram } from "@/ui/Logo"
@@ -70,7 +70,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
               {build && <Fact term={m.build}>{build}</Fact>}
               {readiness && <Fact term={m.system}>{`${readiness.os} ${readiness.arch}`}</Fact>}
             </dl>
-            <CopyButton text={versionLine(readiness)} />
+            <CopyButton value={versionLine(readiness)} label={m.copy} title={m.copyTitle(versionLine(readiness))} />
           </div>
           {installed.length > 0 && (
             <p className="mt-2 border-line border-t pt-2 text-[0.9rem] text-ink-dim">
@@ -121,35 +121,5 @@ function Fact({ term, children }: { term: string; children: string }) {
       <dt className="text-ink-dim">{term}</dt>
       <dd className="selectable min-w-0 font-mono text-ink tabular-nums">{children}</dd>
     </>
-  )
-}
-
-function CopyButton({ text }: { text: string }) {
-  const m = useMessages(aboutMessages)
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!copied) return
-    const t = setTimeout(() => setCopied(false), 1600)
-    return () => clearTimeout(t)
-  }, [copied])
-
-  const label = copied ? m.copied : m.copy
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={m.copyTitle(text)}
-      onClick={async () => {
-        await navigator.clipboard.writeText(text)
-        setCopied(true)
-      }}
-      className="grid size-8 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim transition-colors hover:bg-app-3 hover:text-ink"
-    >
-      {copied ? <Check className="size-4 text-ok" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-      <span className="sr-only" aria-live="polite">
-        {copied ? m.copiedAnnounce : ""}
-      </span>
-    </button>
   )
 }

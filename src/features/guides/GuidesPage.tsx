@@ -15,7 +15,7 @@ import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
-import { CopyTextButton } from "@/ui/CopyTextButton"
+import { CopyButton } from "@/ui/CopyButton"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { fieldFocus } from "@/ui/field"
@@ -439,10 +439,11 @@ function GuideBody(props: {
           </AutoHeight>
           <p className="text-[0.9rem] text-ink-dim">{launchers.length > 0 ? m.askHintOpen : m.askHint}</p>
           <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
-            <CopyTextButton
-              text={prompt}
+            <CopyButton
+              value={prompt}
               label={m.copy}
-              primary={!quiet && known && fit.ready}
+              text={m.copy}
+              variant={!quiet && known && fit.ready ? "primary" : "secondary"}
               className="min-w-[9rem]"
             />
             <AgentLaunch

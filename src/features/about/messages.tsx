@@ -16,10 +16,8 @@ const en = {
   report: "Report a problem",
   madeBy: (author: string, year: number) => `Made by ${author} · © ${year}`,
   license: (link: ReactNode): ReactNode => <>Free and open source under the {link}</>,
-  copied: "Copied",
   copy: "Copy version details",
   copyTitle: (text: string) => `Copy “${text}” for a bug report`,
-  copiedAnnounce: "Copied to the clipboard",
   close: "Close",
 }
 
@@ -38,10 +36,8 @@ const ru: typeof en = {
   report: "Сообщить о проблеме",
   madeBy: (author, year) => `Автор: ${author} · © ${year}`,
   license: (link) => <>Свободное ПО с открытым исходным кодом по лицензии {link}</>,
-  copied: "Скопировано",
   copy: "Скопировать сведения о версии",
   copyTitle: (text) => `Скопировать «${text}» для отчёта об ошибке`,
-  copiedAnnounce: "Скопировано в буфер обмена",
   close: "Закрыть",
 }
 
@@ -60,10 +56,8 @@ const es: typeof en = {
   report: "Informar de un problema",
   madeBy: (author, year) => `Hecho por ${author} · © ${year}`,
   license: (link) => <>Libre y de código abierto bajo la {link}</>,
-  copied: "Copiado",
   copy: "Copiar los datos de la versión",
   copyTitle: (text) => `Copiar «${text}» para un informe de error`,
-  copiedAnnounce: "Copiado al portapapeles",
   close: "Cerrar",
 }
 

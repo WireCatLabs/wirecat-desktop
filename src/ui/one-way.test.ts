@@ -30,6 +30,13 @@ describe("one component per job (docs/dev/ui-consistency.md)", () => {
     expect(using(box, ["ui/NoticeChips.tsx"])).toEqual([])
   })
 
+  it("writes to the clipboard only in CopyButton, which says when a copy fails", () => {
+    // LinkMenu offers a hand copy of the address on failure; McpServerRow copies a value it asks Rust for first.
+    expect(
+      using(/navigator\.clipboard/, ["ui/CopyButton.tsx", "app/LinkMenu.tsx", "features/tools/McpServerRow.tsx"]),
+    ).toEqual([])
+  })
+
   it("repeats the page frame only in Page and in the first-run setup", () => {
     expect(using(/px-\[2\.1rem\]/, ["shared/Page.tsx", "features/onboarding/Onboarding.tsx"])).toEqual([])
   })

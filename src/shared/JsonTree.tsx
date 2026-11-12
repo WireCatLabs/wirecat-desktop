@@ -1,8 +1,9 @@
-import { Check, ChevronRight, Copy, Filter, FilterX, Group } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ChevronRight, Filter, FilterX, Group } from "lucide-react"
+import { useState } from "react"
 import { inlineJson } from "@/domain/runs"
 import { useMessages } from "@/i18n"
 import { sharedMessages } from "@/shared/messages"
+import { CopyButton } from "@/ui/CopyButton"
 import { cx } from "@/ui/cx"
 
 /** Maps a leaf's path to a run field the query can filter on, or null when no run summary carries it. */
@@ -134,22 +135,11 @@ function LeafAction({ label, onClick, children }: { label: string; onClick: () =
 
 export function CopyValue({ value, label }: { value: string; label?: string }) {
   const m = useMessages(sharedMessages)
-  const [copied, setCopied] = useState(false)
-  useEffect(() => {
-    if (!copied) return
-    const t = setTimeout(() => setCopied(false), 1600)
-    return () => clearTimeout(t)
-  }, [copied])
   return (
-    <LeafAction
-      label={copied ? m.copied : (label ?? m.copyValue)}
-      onClick={() => navigator.clipboard.writeText(value).then(() => setCopied(true))}
-    >
-      {copied ? (
-        <Check className="size-[0.85rem] text-ok" aria-hidden />
-      ) : (
-        <Copy className="size-[0.85rem]" aria-hidden />
-      )}
-    </LeafAction>
+    <CopyButton
+      value={value}
+      label={label ?? m.copyValue}
+      className="size-[1.35rem] hover:bg-app [&_svg]:size-[0.85rem]"
+    />
   )
 }

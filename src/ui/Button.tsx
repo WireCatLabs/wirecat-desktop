@@ -1,23 +1,23 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react"
 import { cx } from "./cx"
 
-type Variant = "primary" | "secondary" | "ghost" | "danger"
-type Size = "lg" | "md" | "sm"
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger"
+export type ButtonSize = "lg" | "md" | "sm"
 
-const variants: Record<Variant, string> = {
+const variants: Record<ButtonVariant, string> = {
   primary: "bg-brand text-brand-ink border-transparent hover:bg-brand-hover active:bg-brand-hover",
   secondary: "bg-app text-ink border-line-strong hover:bg-app-2 hover:border-ink-dim/60 active:bg-app-3",
   ghost: "bg-transparent text-ink-soft border-transparent hover:bg-app-3 hover:text-ink active:bg-app-3",
   danger: "bg-app text-bad border-line-strong hover:bg-bad/5 hover:border-bad/60 active:bg-bad/10",
 }
 
-const sizes: Record<Size, string> = {
+const sizes: Record<ButtonSize, string> = {
   lg: "h-[2.9rem] px-[1.6rem] text-[1.02rem] rounded-[0.45rem]",
   md: "h-[2.4rem] px-[1.1rem] text-[0.95rem] rounded-[0.4rem]",
   sm: "h-8 px-3 text-[0.875rem] rounded-[0.35rem]",
 }
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size; icon?: ReactNode }
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; icon?: ReactNode }
 
 export function Button({ variant = "secondary", size = "md", icon, className, children, type, ...rest }: Props) {
   return (
