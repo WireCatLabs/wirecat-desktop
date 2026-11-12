@@ -466,7 +466,7 @@ describe("Logs live", () => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => visibility })
     await waitFor(() => expect(inFlight).toBe(0))
     const paused = calls
-    await sleep(1500)
+    await sleep(timing.live * 5)
     expect(calls).toBe(paused)
 
     visibility = "visible"
