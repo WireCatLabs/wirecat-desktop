@@ -88,7 +88,7 @@ const CLAIMS: Record<string, Claim[]> = {
   ],
 }
 
-const CAN_ADD = new Set(["claude", "codex"])
+const CAN_REMOVE = new Set(["claude", "codex"])
 const SOURCE: Record<string, string> = {
   claude: "~/.claude.json",
   codex: "codex mcp list --json",
@@ -303,7 +303,7 @@ export function agentsMock(versionOf: (id: string) => string | undefined, os: Pl
       const names = [...(servers[agent] ?? [])].sort()
       const unread = UNREAD[agent] ?? null
       const source = unread ?? SOURCE[agent] ?? agent
-      return { source, names, canAdd: CAN_ADD.has(agent), canRemove: CAN_ADD.has(agent), unread }
+      return { source, names, canRemove: CAN_REMOVE.has(agent), unread }
     },
     async mcpRemove(id, profile, agent) {
       await delay(700)

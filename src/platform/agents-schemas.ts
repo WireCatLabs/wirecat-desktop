@@ -92,7 +92,6 @@ export type AgentRun = v.InferOutput<typeof AgentRunSchema>
 export const RegistrationsSchema = v.object({
   source: v.string(),
   names: v.array(v.string()),
-  canAdd: v.boolean(),
   canRemove: v.boolean(),
   /** Where the owner can look when the app does not read this agent's servers. */
   unread: v.optional(v.nullable(v.string()), null),

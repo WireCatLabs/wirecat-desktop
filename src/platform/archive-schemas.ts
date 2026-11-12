@@ -43,7 +43,6 @@ export const StoreInfoSchema = v.nullable(
     speaks: v.nullable(count),
     writable: v.nullable(v.boolean()),
     rows: v.record(v.string(), count),
-    searchReady: v.nullable(v.boolean()),
     breakdown: v.nullable(BreakdownSchema),
     facts: v.nullable(FileFactsSchema),
   }),

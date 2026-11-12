@@ -28,7 +28,6 @@ const LineSchema = v.looseObject({
 export type ReceiptLine = v.InferOutput<typeof LineSchema>
 
 export const ReceiptSchema = v.looseObject({
-  dry_run: v.optional(v.boolean()),
   created: v.number(),
   updated: v.number(),
   unchanged: v.number(),

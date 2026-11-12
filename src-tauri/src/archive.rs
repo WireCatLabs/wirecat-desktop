@@ -69,7 +69,6 @@ pub struct StoreInfo {
     pub writable: Option<bool>,
     /// Row counts per table, whichever tables this store version has.
     pub rows: BTreeMap<String, u64>,
-    pub search_ready: Option<bool>,
     /// Absent from tools older than the breakdown in `store info`.
     pub breakdown: Option<Breakdown>,
     /// Absent from tools older than the file facts in `store info`.
@@ -216,7 +215,6 @@ fn shape(answered_by: &str, item: &Value) -> StoreInfo {
             .flatten()
             .filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n)))
             .collect(),
-        search_ready: item["word_index"]["ready"].as_bool(),
         breakdown: breakdown(item),
         facts: facts(item),
     }
@@ -414,7 +412,6 @@ mod tests {
         let info = shape("tg", &plain());
         assert_eq!(info.rows["accounts"], 14);
         assert_eq!(info.schema, Some(29));
-        assert_eq!(info.search_ready, Some(true));
         assert!(info.breakdown.is_none());
     }
 
@@ -519,11 +516,10 @@ mod tests {
         }
         let info = info().unwrap().unwrap();
         println!(
-            "answered by {}, schema {:?}, rows {:?}, search ready {:?}, breakdown {}",
+            "answered by {}, schema {:?}, rows {:?}, breakdown {}",
             info.answered_by,
             info.schema,
             info.rows,
-            info.search_ready,
             info.breakdown.is_some()
         );
     }

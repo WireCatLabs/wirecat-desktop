@@ -212,8 +212,8 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     },
     async mcpRegistrations(agent) {
       await delay(300)
-      const canAdd = agent === "claude" || agent === "codex"
-      return { source: "~/.claude.json", names: SERVERS[agent] ?? [], canAdd, canRemove: canAdd, unread: null }
+      const canRemove = agent === "claude" || agent === "codex"
+      return { source: "~/.claude.json", names: SERVERS[agent] ?? [], canRemove, unread: null }
     },
     async taskClaims(id) {
       await delay(400)
