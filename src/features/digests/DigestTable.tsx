@@ -7,6 +7,7 @@ import type { DigestItem } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
+import { EmptyState } from "@/ui/EmptyState"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Lamp } from "@/ui/Lamp"
@@ -216,12 +217,15 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
         )}
       </FilterBar>
       {rows.length === 0 ? (
-        <p className="flex flex-wrap items-center gap-3 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft">
+        <EmptyState
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setQuery("")}>
+              {m.list.clear}
+            </Button>
+          }
+        >
           {m.list.noMatch}
-          <Button size="sm" variant="ghost" onClick={() => setQuery("")}>
-            {m.list.clear}
-          </Button>
-        </p>
+        </EmptyState>
       ) : (
         <DataTable
           label={m.table}

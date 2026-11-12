@@ -1,9 +1,8 @@
-import { ChevronRight } from "lucide-react"
-import { type ReactNode, useId, useState } from "react"
+import type { ReactNode } from "react"
 import type { RunError } from "@/domain/runs"
 import { useMessages } from "@/i18n"
-import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { Disclosure } from "@/ui/Disclosure"
 import { noticeBox } from "@/ui/notice"
 import { logsMessages } from "./messages"
 
@@ -69,33 +68,16 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
 
 function Stack({ frames }: { frames: string[] }) {
   const m = useMessages(logsMessages)
-  const [open, setOpen] = useState(false)
-  const id = useId()
   return (
-    <div>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 rounded-[0.3rem] text-[0.9rem] font-medium text-ink-dim hover:text-ink"
-      >
-        <ChevronRight
-          aria-hidden
-          className={cx("size-[0.9rem] transition-transform duration-(--motion-fast)", open && "rotate-90")}
-        />
-        {m.whereInTool(frames.length)}
-      </button>
-      <Collapse open={open} id={id} className="pt-[0.35rem]">
-        <ol className="selectable overflow-x-auto rounded-[0.45rem] border border-line bg-app px-[0.8rem] py-[0.5rem] font-mono text-[0.85rem] text-ink-soft">
-          {frames.map((f, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: frames repeat in recursion and never reorder
-            <li key={i} className="whitespace-pre">
-              {f}
-            </li>
-          ))}
-        </ol>
-      </Collapse>
-    </div>
+    <Disclosure summary={m.whereInTool(frames.length)}>
+      <ol className="selectable overflow-x-auto rounded-[0.45rem] border border-line bg-app px-[0.8rem] py-[0.5rem] font-mono text-[0.85rem] text-ink-soft">
+        {frames.map((f, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: frames repeat in recursion and never reorder
+          <li key={i} className="whitespace-pre">
+            {f}
+          </li>
+        ))}
+      </ol>
+    </Disclosure>
   )
 }

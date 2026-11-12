@@ -10,7 +10,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
-import { ExpandChevron } from "@/ui/ExpandChevron"
+import { Disclosure } from "@/ui/Disclosure"
 import { copiesMessages } from "./messages-copies"
 
 export type Copy = ToolState["installs"][number]
@@ -31,14 +31,12 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
   const [phase, setPhase] = useState<Phase>({ step: "confirm" })
   const [shown, setShown] = useState<Copy | null>(copy)
   const [opened, setOpened] = useState<Copy | null>(null)
-  const [showLog, setShowLog] = useState(false)
   // Each opening starts at the question; the last copy stays shown while the dialog fades out.
   if (copy !== opened) {
     setOpened(copy)
     if (copy) {
       setShown(copy)
       setPhase({ step: "confirm" })
-      setShowLog(false)
     }
   }
   const target = copy ?? shown
@@ -134,28 +132,17 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
           </>
         )}
         {result && result.log.length > 0 && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowLog((v) => !v)}
-              aria-expanded={showLog}
-              className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover"
+          <Disclosure summary={m.showLog}>
+            <pre
+              role="log"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
+              tabIndex={0}
+              aria-label={m.log}
+              className="selectable max-h-48 overflow-auto whitespace-pre-wrap rounded-[0.4rem] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft [overflow-wrap:anywhere]"
             >
-              {showLog ? m.hideLog : m.showLog}
-              <ExpandChevron open={showLog} className="text-current" />
-            </button>
-            <Collapse open={showLog}>
-              <pre
-                role="log"
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
-                tabIndex={0}
-                aria-label={m.log}
-                className="selectable mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-[0.4rem] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft [overflow-wrap:anywhere]"
-              >
-                {result.log.join("\n")}
-              </pre>
-            </Collapse>
-          </div>
+              {result.log.join("\n")}
+            </pre>
+          </Disclosure>
         )}
       </div>
     </Dialog>
