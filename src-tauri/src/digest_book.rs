@@ -7,16 +7,16 @@
 //! (a second digest, several times, weekdays, sources, a run that is not sent) is refused before memo runs.
 //! Titles, briefs and routes are the owner's own words and leave Rust unmasked, like the digest itself; never logged.
 
+use crate::background_agent::{self, AgentTrouble, Pick};
 use crate::catalog::Tool;
 use crate::digest_schedule::{self, DigestSchedules, OtherSchedule, Route, is_time, route};
 use crate::skills::{call, failure};
-use crate::{digests, paths, redact};
+use crate::{digests, redact};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
 
 pub const MORNING: &str = "morning-digest";
-const HARNESS: &str = "claude";
 /// memo's `DIGEST_SOURCES`: what a digest can read.
 const SOURCES: [&str; 6] = ["telegram", "max", "whatsapp", "mail", "meetings", "tasks"];
 const WEEKDAYS: [&str; 7] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -39,7 +39,7 @@ pub enum DigestBook {
         need: String,
     },
     /// `named`: this memo keeps digests by name (`digest list`); without it there is only `morning-digest`.
-    /// `harness`: Claude Code is on PATH, so a digest can be written.
+    /// `harness`: an agent for background jobs is ready, so a new digest can be written.
     #[serde(rename_all = "camelCase")]
     Ready {
         digests: Vec<DigestItem>,
@@ -71,6 +71,10 @@ pub struct DigestItem {
     pub spent_today_usd: Option<f64>,
     pub last: Option<DigestRun>,
     pub next_at: Option<String>,
+    /// The agent that writes it, `None` from a memo that does not say.
+    pub agent: Option<String>,
+    /// Why its last run failed, when the agent's own words say: no credit, a limit, signed out.
+    pub trouble: Option<AgentTrouble>,
 }
 
 /// The last run, without its output: the output quotes messages and the page reads the day itself.
@@ -96,6 +100,10 @@ pub struct DigestSpec {
     pub max_cost_usd: f64,
     pub max_cost_per_day_usd: f64,
     pub scheduled: bool,
+    /// The agent to write it: on an edit, the digest's own unless the owner moves it; `None` on a new one is the
+    /// agent for background jobs.
+    #[serde(default)]
+    pub agent: Option<String>,
 }
 
 /// Where a run made now goes: everywhere the schedule sends it, only into the app, or to some of its routes.
@@ -135,7 +143,8 @@ fn usd(value: f64) -> String {
 }
 
 /// Every value of the form checked, and the options `digest add|edit` take; the times sorted and once each.
-fn spec_options(spec: &DigestSpec) -> Result<Vec<String>, String> {
+/// `costed`: the agent reports what a run costs; memo refuses the caps for one that does not.
+fn spec_options(spec: &DigestSpec, costed: bool) -> Result<Vec<String>, String> {
     check_name(&spec.name)?;
     let title = spec.title.trim();
     if title.is_empty() || title.chars().count() > MAX_TITLE || title.chars().any(char::is_control) {
@@ -186,15 +195,22 @@ fn spec_options(spec: &DigestSpec) -> Result<Vec<String>, String> {
         args.push("--deliver-to=none".into());
     }
     args.extend(spec.routes.iter().map(|r| format!("--deliver-to={r}")));
-    args.push(format!("--max-cost={}", usd(spec.max_cost_usd)));
-    args.push(format!("--max-cost-per-day={}", usd(spec.max_cost_per_day_usd)));
+    if costed {
+        args.push(format!("--max-cost={}", usd(spec.max_cost_usd)));
+        args.push(format!("--max-cost-per-day={}", usd(spec.max_cost_per_day_usd)));
+    }
     Ok(args)
 }
 
-fn save_args(spec: &DigestSpec, create: bool) -> Result<Vec<String>, String> {
-    let options = spec_options(spec)?;
+/// `agent` is already checked against what this memo starts; `None` leaves memo's own: claude on `add`, the
+/// digest's own on `edit`.
+fn save_args(spec: &DigestSpec, create: bool, agent: Option<&Pick>) -> Result<Vec<String>, String> {
+    let options = spec_options(spec, agent.is_none_or(|a| a.costed))?;
     let mut args = words(&["digest", if create { "add" } else { "edit" }, &spec.name]);
     args.extend(options);
+    if let Some(agent) = agent {
+        args.extend(["--agent".to_string(), agent.id.clone()]);
+    }
     // An open digest's brief has its own card and memo verb; an edit that sent it would undo that card's save.
     if create {
         if let Some(b) = spec.brief.as_deref().map(str::trim).filter(|b| !b.is_empty()) {
@@ -256,8 +272,27 @@ fn memo() -> Result<Result<&'static Tool, DigestBook>, String> {
     }))
 }
 
-fn harness() -> bool {
-    !paths::find_all(HARNESS).is_empty()
+/// The agent to name: one this memo starts and limits (Claude Code for a memo that cannot list its own), the agent for
+/// background jobs on a new digest, none on an edit that keeps the digest's own.
+fn agent_for(spec: &DigestSpec, create: bool) -> Result<Option<Pick>, String> {
+    if spec.agent.is_none() && !create {
+        return Ok(None);
+    }
+    let pick = background_agent::pick(spec.agent.as_deref())?;
+    // `digest add|edit` takes no `--allow-dangerous`, so memo would refuse it; said here, in words, before memo.
+    if pick.ack {
+        return Err(format!("Memo cannot write digests in {} yet. Choose another agent for them.", pick.id));
+    }
+    Ok(Some(pick))
+}
+
+/// A memo from before `digest --agent` writes every digest with claude: asking it for claude is asking for nothing.
+fn without_agent(args: &[String]) -> Option<Vec<String>> {
+    let at = args.iter().position(|a| a == "--agent")?;
+    if args.get(at + 1)? != "claude" {
+        return None;
+    }
+    Some(args.iter().enumerate().filter(|(i, _)| *i != at && *i != at + 1).map(|(_, a)| a.clone()).collect())
 }
 
 fn text(v: &Value) -> Option<String> {
@@ -272,9 +307,8 @@ fn strings(v: &Value) -> Vec<String> {
 fn item_of(i: &Value, schedules: &[OtherSchedule]) -> Option<DigestItem> {
     let name = i["name"].as_str().filter(|n| check_name(n).is_ok())?.to_string();
     let last = &i["last"];
-    let spent_today_usd = i["spent_today_usd"]
-        .as_f64()
-        .or_else(|| schedules.iter().find(|s| s.name == name).and_then(|s| s.spent_today_usd));
+    let schedule = schedules.iter().find(|s| s.name == name);
+    let spent_today_usd = i["spent_today_usd"].as_f64().or_else(|| schedule.and_then(|s| s.spent_today_usd));
     Some(DigestItem {
         name,
         title: text(&i["title"]),
@@ -293,6 +327,9 @@ fn item_of(i: &Value, schedules: &[OtherSchedule]) -> Option<DigestItem> {
             cost_usd: last["cost_usd"].as_f64(),
         }),
         next_at: text(&i["next_at"]),
+        agent: text(&i["harness"]).or_else(|| schedule.and_then(|s| s.harness.clone())),
+        trouble: background_agent::trouble_of_run(last, i["harness"].as_str())
+            .or_else(|| schedule.and_then(|s| s.trouble.clone())),
     })
 }
 
@@ -333,6 +370,8 @@ fn read_old(schedules: DigestSchedules, has_days: bool) -> DigestBook {
             spent_today_usd: d.spent_today_usd,
             last: d.last.map(|l| DigestRun { ok: l.exit_code == 0, at: l.at, cost_usd: l.cost_usd }),
             next_at: None,
+            agent: None,
+            trouble: None,
         }),
         None if has_days => Some(DigestItem {
             name: MORNING.into(),
@@ -348,6 +387,8 @@ fn read_old(schedules: DigestSchedules, has_days: bool) -> DigestBook {
             spent_today_usd: None,
             last: None,
             next_at: None,
+            agent: None,
+            trouble: None,
         }),
         None => None,
     };
@@ -372,7 +413,10 @@ pub fn book() -> Result<DigestBook, String> {
     }
     match json {
         Some(v) if out.code == Some(0) => {
-            Ok(read_named(&v, schedules?, harness(), || digests::list(None).is_ok_and(|d| !d.is_empty())))
+            let schedules = schedules?;
+            // `schedule list`'s read has already asked which agent runs the jobs; once is enough.
+            let harness = matches!(schedules, DigestSchedules::Ready { harness: true, .. });
+            Ok(read_named(&v, schedules, harness, || digests::list(None).is_ok_and(|d| !d.is_empty())))
         }
         j => Err(failure(&out, j.as_ref())),
     }
@@ -389,12 +433,20 @@ fn write(memo: &Tool, args: &[String], timeout: Duration) -> Result<Option<Value
 
 /// `create` adds a new digest; otherwise memo replaces the settings of the one named.
 pub fn save(spec: &DigestSpec, create: bool) -> Result<DigestBook, String> {
-    let args = save_args(spec, create)?;
+    let agent = agent_for(spec, create)?;
+    let args = save_args(spec, create, agent.as_ref())?;
     let memo = match memo()? {
         Ok(memo) => memo,
         Err(shown) => return Ok(shown),
     };
-    let json = write(memo, &args, CALL)?;
+    let json = match write(memo, &args, CALL) {
+        Err(said) if said.contains("unknown option '--agent'") => {
+            let plain =
+                without_agent(&args).ok_or("Update Memo to write digests in an agent other than Claude Code.")?;
+            write(memo, &plain, CALL)?
+        }
+        answer => answer?,
+    };
     if older(json.as_ref(), &args[1]) {
         let (time, routes) = fits_old(spec)?;
         if spec.scheduled {
@@ -436,7 +488,14 @@ pub fn set_scheduled(name: &str, on: bool) -> Result<DigestBook, String> {
         Err(shown) => return Ok(shown),
     };
     let args = timer_args(name, on);
-    let json = write(memo, &args, CALL)?;
+    let json = match write(memo, &args, CALL) {
+        Err(said) if said.contains("unknown option '--agent'") => {
+            let plain =
+                without_agent(&args).ok_or("Update Memo to write digests in an agent other than Claude Code.")?;
+            write(memo, &plain, CALL)?
+        }
+        answer => answer?,
+    };
     if older(json.as_ref(), &args[1]) {
         if name != MORNING || on {
             return Err("this needs a newer Memo".into());
@@ -486,13 +545,14 @@ mod tests {
             max_cost_usd: 0.5,
             max_cost_per_day_usd: 1.0,
             scheduled: true,
+            agent: None,
         }
     }
 
     #[test]
     fn builds_digest_add_with_every_time_once_and_in_order() {
         assert_eq!(
-            save_args(&spec(), true).unwrap().join(" "),
+            save_args(&spec(), true, None).unwrap().join(" "),
             "digest add evening --title=Evening digest --at=08:30 --at=18:00 --source=all \
              --deliver-to=telegram-bot:personal/user:1001 --max-cost=0.5 --max-cost-per-day=1 --from-app --json"
         );
@@ -503,7 +563,7 @@ mod tests {
             scheduled: false,
             ..spec()
         };
-        let args = save_args(&weekly, false).unwrap();
+        let args = save_args(&weekly, false, None).unwrap();
         assert_eq!(args[..3], words(&["digest", "edit", "evening"]));
         for want in ["--at=mon,fri 08:30", "--at=mon,fri 18:00", "--source=mail"] {
             assert!(args.contains(&want.to_string()), "{want}");
@@ -512,14 +572,22 @@ mod tests {
             !args.iter().any(|a| a == "--source=all" || a == "--paused" || a.starts_with("--text")),
             "an edit leaves the brief and the timer to their own verbs"
         );
-        let added = save_args(&weekly, true).unwrap();
+        let pick = |id: &str, costed, ack| Pick { id: id.into(), costed, ack };
+        let moved = save_args(&weekly, false, Some(&pick("gemini", false, false))).unwrap();
+        assert!(moved.windows(2).any(|w| w == ["--agent", "gemini"]));
+        assert!(!moved.iter().any(|a| a.starts_with("--max-cost")), "memo refuses a cap for an agent with no cost");
+        assert!(!args.iter().any(|a| a == "--agent"), "an edit without one keeps the digest's own");
+        let claude = save_args(&weekly, true, Some(&pick("claude", true, false))).unwrap();
+        assert!(!without_agent(&claude).unwrap().iter().any(|a| a == "--agent" || a == "claude"));
+        assert_eq!(without_agent(&moved), None, "an older memo cannot write it in gemini: the owner is told");
+        let added = save_args(&weekly, true, None).unwrap();
         assert!(added.contains(&"--paused".to_string()));
         assert!(added.contains(&"--text=-- skip newsletters".to_string()));
     }
 
     #[test]
     fn an_edit_that_empties_a_list_says_so() {
-        let args = save_args(&DigestSpec { routes: vec![], ..spec() }, false).unwrap();
+        let args = save_args(&DigestSpec { routes: vec![], ..spec() }, false, None).unwrap();
         assert!(args.contains(&"--deliver-to=none".to_string()));
         assert!(args.contains(&"--source=all".to_string()));
         assert_eq!(timer_args("evening", false).join(" "), "digest pause evening --from-app --json");
@@ -531,7 +599,7 @@ mod tests {
         let bad = |change: fn(&mut DigestSpec)| {
             let mut s = spec();
             change(&mut s);
-            save_args(&s, true).is_err()
+            save_args(&s, true, None).is_err()
         };
         assert!(bad(|s| s.name = "--yes".into()));
         assert!(bad(|s| s.name = "Evening".into()));
@@ -606,6 +674,8 @@ mod tests {
                     spent_today_usd: Some(0.4),
                     max_cost_usd: None,
                     max_cost_per_day_usd: None,
+                    harness: None,
+                    trouble: None,
                 })
                 .into(),
             harness: true,
@@ -640,6 +710,38 @@ mod tests {
         };
         assert!(rests(true));
         assert!(!rests(false));
+    }
+
+    #[test]
+    fn reads_the_agent_that_writes_each_digest() {
+        let list = json!({"items": [
+            {"name": "evening", "times": ["18:00"], "scheduled": true, "harness": "codex", "model": null},
+            {"name": "weekly", "times": ["09:00"], "scheduled": true}
+        ]});
+        let none = || DigestSchedules::Ready { digest: None, others: vec![], harness: true };
+        let DigestBook::Ready { digests, .. } = read_named(&list, none(), true, || false) else { panic!() };
+        assert_eq!(digests[0].agent.as_deref(), Some("codex"));
+        assert_eq!(digests[1].agent, None, "a memo before `--agent` does not say");
+    }
+
+    #[test]
+    fn a_digest_takes_its_failure_from_its_own_schedule_run() {
+        let runs = std::env::temp_dir().join(format!("wc-digest-runs-{}", std::process::id())).join("runs");
+        std::fs::create_dir_all(&runs).unwrap();
+        let report = runs.join("1.md");
+        std::fs::write(&report, "").unwrap();
+        std::fs::write(runs.join("1.log"), "Credit balance is too low").unwrap();
+        let listed = json!({"items": [{"name": "evening", "harness": "claude", "kind": "agent", "when": "daily at 18:00",
+            "last": {"at": "2026-11-11T18:00:00Z", "exit_code": 1, "output": report.to_string_lossy()}}]});
+        let DigestSchedules::Ready { others, .. } = digest_schedule::read(&listed, true) else { panic!() };
+        let list = json!({"items": [{"name": "evening", "times": ["18:00"], "scheduled": true,
+            "last": {"at": "2026-11-11T18:00:00Z", "ok": false}}]});
+        let book = DigestSchedules::Ready { digest: None, others, harness: true };
+        let DigestBook::Ready { digests, .. } = read_named(&list, book, true, || false) else { panic!() };
+        let trouble = digests[0].trouble.as_ref().expect("memo's digest list keeps no run files; its schedule does");
+        assert_eq!((trouble.agent.as_deref(), trouble.kind), (Some("claude"), background_agent::TroubleKind::NoCredit));
+        assert_eq!(digests[0].agent.as_deref(), Some("claude"));
+        std::fs::remove_dir_all(runs.parent().unwrap()).unwrap();
     }
 
     #[test]

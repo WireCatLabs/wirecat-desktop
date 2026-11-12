@@ -4,8 +4,8 @@ const en = {
   title: "Mail agent",
   what: "Reads new mail and proposes tasks, invoices, orders and facts for you to accept. It never sends anything and never decides for you.",
   toggle: "Run on a schedule",
-  toggleHelp: (every: string) =>
-    `Checks for new mail every ${every} and runs in Claude Code. One run costs at most $1.`,
+  toggleHelp: (every: string, agent: string | null, capped: boolean) =>
+    `Checks for new mail every ${every}${agent ? ` and runs in ${agent}` : ""}.${capped ? " One run costs at most $1." : ""}`,
   every: "How often",
   changing: "Changing…",
   failedEvery: "Could not change how often it runs.",
@@ -15,7 +15,16 @@ const en = {
   openMemo: "Open Memo",
   old: (version: string | null, need: string) =>
     `${version ? `Memo ${version}` : "This Memo"} is too old for the mail agent. Update it to ${need} or later.`,
-  noHarness: "Claude Code is not installed. The agent runs in it: install Claude Code, then turn this on.",
+  noHarness: "No agent on this computer can run it. Settings, «Agent for background jobs», says why for each.",
+  needAgent: "Choose the agent it runs in first.",
+  pickOther: "Choose another agent for background jobs, then switch the mail agent to it.",
+  resave: (name: string) =>
+    `Memo now checks how each agent is started, so this schedule does not run until it is saved again. It is saved as it is: in ${name}, at the same interval.`,
+  resaveUnknown:
+    "Memo now checks how each agent is started, so this schedule does not run until it is saved again. Memo does not say which agent it ran in: turn it off and on again, and choose the agent.",
+  resaveButton: "Save again",
+  otherChosen: (chosen: string, running: string) =>
+    `You chose ${chosen} for background jobs, but the mail agent still runs in ${running}.`,
   aboutClaude: "About Claude Code",
   lastRun: (ago: string) => `Last run ${ago}`,
   ok: "finished",
@@ -42,8 +51,8 @@ const ru: typeof en = {
   title: "Почтовый агент",
   what: "Читает новую почту и предлагает задачи, счета, заказы и факты, которые вы принимаете сами. Он ничего не отправляет и ничего не решает за вас.",
   toggle: "Запускать по расписанию",
-  toggleHelp: (every) =>
-    `Проверяет новую почту каждые ${every} и работает в Claude Code. Один запуск стоит не больше $1.`,
+  toggleHelp: (every, agent, capped) =>
+    `Проверяет новую почту каждые ${every}${agent ? ` и работает в ${agent}` : ""}.${capped ? " Один запуск стоит не больше $1." : ""}`,
   every: "Как часто",
   changing: "Меняю…",
   failedEvery: "Не удалось изменить частоту запуска.",
@@ -53,7 +62,17 @@ const ru: typeof en = {
   openMemo: "Открыть Memo",
   old: (version, need) =>
     `${version ? `Memo ${version}` : "Эта версия Memo"} слишком старая для почтового агента. Обновите её до ${need} или новее.`,
-  noHarness: "Claude Code не установлен. Агент работает в нём: установите Claude Code, затем включите агента.",
+  noHarness:
+    "Ни один агент на этом компьютере не может его запускать. В настройках, «Агент для фоновых задач», сказано, почему для каждого.",
+  needAgent: "Сначала выберите, в каком агенте он работает.",
+  pickOther: "Выберите другого агента для фоновых задач, затем переведите на него почтового агента.",
+  resave: (name) =>
+    `Memo теперь проверяет, как запускается каждый агент, поэтому это расписание не запускается, пока его не сохранят заново. Оно сохранится как есть: в ${name}, с тем же интервалом.`,
+  resaveUnknown:
+    "Memo теперь проверяет, как запускается каждый агент, поэтому это расписание не запускается, пока его не сохранят заново. Memo не сообщает, в каком агенте оно работало: выключите и включите его снова и выберите агента.",
+  resaveButton: "Сохранить заново",
+  otherChosen: (chosen, running) =>
+    `Для фоновых задач вы выбрали ${chosen}, но почтовый агент пока работает в ${running}.`,
   aboutClaude: "О Claude Code",
   lastRun: (ago) => `Последний запуск ${ago}`,
   ok: "прошёл успешно",
@@ -93,8 +112,8 @@ const es: typeof en = {
   title: "Agente de correo",
   what: "Lee el correo nuevo y propone tareas, facturas, pedidos y datos para que tú los aceptes. Nunca envía nada ni decide por ti.",
   toggle: "Ejecutar con horario",
-  toggleHelp: (every) =>
-    `Busca correo nuevo cada ${every} y se ejecuta en Claude Code. Cada ejecución cuesta como mucho 1 $.`,
+  toggleHelp: (every, agent, capped) =>
+    `Busca correo nuevo cada ${every}${agent ? ` y se ejecuta en ${agent}` : ""}.${capped ? " Cada ejecución cuesta como mucho 1 $." : ""}`,
   every: "Con qué frecuencia",
   changing: "Cambiando…",
   failedEvery: "No se pudo cambiar la frecuencia.",
@@ -105,7 +124,16 @@ const es: typeof en = {
   old: (version, need) =>
     `${version ? `Memo ${version}` : "Esta versión de Memo"} es demasiado antigua para el agente de correo. Actualízala a ${need} o posterior.`,
   noHarness:
-    "Claude Code no está instalado. El agente se ejecuta en él: instala Claude Code y luego enciende el agente.",
+    "Ningún agente de este equipo puede ejecutarlo. Ajustes, «Agente para tareas en segundo plano», dice por qué para cada uno.",
+  needAgent: "Elige primero en qué agente se ejecuta.",
+  pickOther: "Elige otro agente para las tareas en segundo plano y luego cambia el agente de correo a él.",
+  resave: (name) =>
+    `Memo ahora comprueba cómo se inicia cada agente, así que esta programación no se ejecuta hasta guardarla de nuevo. Se guarda tal cual: en ${name}, con el mismo intervalo.`,
+  resaveUnknown:
+    "Memo ahora comprueba cómo se inicia cada agente, así que esta programación no se ejecuta hasta guardarla de nuevo. Memo no dice en qué agente se ejecutaba: apágala y vuelve a encenderla, y elige el agente.",
+  resaveButton: "Guardar de nuevo",
+  otherChosen: (chosen, running) =>
+    `Elegiste ${chosen} para las tareas en segundo plano, pero el agente de correo aún se ejecuta en ${running}.`,
   aboutClaude: "Acerca de Claude Code",
   lastRun: (ago) => `Última ejecución ${ago}`,
   ok: "terminó bien",

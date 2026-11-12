@@ -5,6 +5,8 @@ import { editorMessages } from "@/features/digests/messages-editors"
 import { useTasks } from "@/features/tasks"
 import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { agentsFixture } from "@/platform/mock-background-agent"
+import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
@@ -26,6 +28,7 @@ beforeEach(() => {
     pageSize: 50,
   })
   useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
+  useBackgroundAgents.setState({ agents: null, error: null, busy: false, chooseError: null })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
 })
 
@@ -47,6 +50,8 @@ const morning: DigestItem = {
   maxCostPerDayUsd: 1,
   spentTodayUsd: 0.27,
   last: { at: new Date(Date.now() - 3_600_000).toISOString(), ok: true, costUsd: 0.27 },
+  agent: "claude",
+  trouble: null,
   nextAt: null,
 }
 const weekly: DigestItem = {
@@ -403,28 +408,63 @@ describe("getting a digest now", () => {
   }, 15000)
 })
 
+describe("the agent that writes it", () => {
+  it("names the agent with no credit, keeps its words under Details and moves the digest only on a click", async () => {
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "gemini"], "gemini"))
+    const failed: DigestItem = {
+      ...morning,
+      last: { ...(morning.last as NonNullable<DigestItem["last"]>), ok: false },
+      trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
+    }
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([{ ...failed, agent: "gemini" }]))
+    const user = await openMorning(ready([failed]))
+
+    expect(await screen.findByText("Claude Code has no credit left, so the run failed.")).toBeInTheDocument()
+    expect(screen.getByText(/Written by Claude Code\./)).toBeInTheDocument()
+    expect(save).not.toHaveBeenCalled()
+    await user.click(screen.getByRole("button", { name: "Switch to Gemini CLI" }))
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "morning-digest", agent: "gemini" }), false)
+    // The failed run was Claude Code's: once Gemini CLI writes it, that refusal is history, and Gemini CLI reports no cost.
+    expect(await screen.findByText(/Written by Gemini CLI\. Gemini CLI does not report/)).toBeInTheDocument()
+    expect(screen.queryByText(/has no credit left/)).not.toBeInTheDocument()
+  }, 15000)
+
+  it("never offers Codex for a digest, even confirmed: memo cannot write digests in it yet", async () => {
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "codex"], "codex", true, true))
+    const failed: DigestItem = {
+      ...morning,
+      last: { ...(morning.last as NonNullable<DigestItem["last"]>), ok: false },
+      trouble: { agent: "claude", kind: "limit", line: "You've hit your session limit" },
+    }
+    await openMorning(ready([failed]))
+
+    expect(await screen.findByText("Claude Code reached its usage limit, so the run failed.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
+  }, 15000)
+})
+
 describe("what the page cannot do", () => {
-  it("says Claude Code is missing, links to Agents and keeps Create off", async () => {
+  it("says no agent is ready or chosen, links to Settings and keeps Create off", async () => {
     const user = await openPage(ready([], { harness: false }))
-    const go = await screen.findByRole("button", { name: "Install it in Agents" }, { timeout: 4000 })
-    expect(screen.getByText(/Digests are written by Claude Code, which is not installed/)).toBeInTheDocument()
+    const go = await screen.findByRole("button", { name: "Choose it in Settings" }, { timeout: 4000 })
+    expect(screen.getByText(/No agent for background jobs is ready or chosen/)).toBeInTheDocument()
     const starter = screen.getByRole("region", { name: "No digests yet" })
     await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     expect(within(dialog).getByRole("button", { name: "Create" })).toBeDisabled()
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
     await user.click(go)
-    expect(useNav.getState().active).toBe("agents")
+    expect(useNav.getState().active).toBe("settings")
   }, 15000)
 
-  it("prints why a digest's own actions are off beside them when Claude Code is missing", async () => {
+  it("prints why a digest's own actions are off beside them when no agent is ready", async () => {
     await openMorning(ready([{ ...morning, scheduled: false }], { harness: false }))
     const getNow = screen.getByRole("button", { name: "Get now" })
     expect(getNow).toBeDisabled()
     expect(screen.getByRole("button", { name: "Put on schedule" })).toBeDisabled()
     const settings = screen.getByRole("heading", { name: "Settings" })
     const between = screen
-      .getAllByText(/Digests are written by Claude Code, which is not installed/)
+      .getAllByText(/No agent for background jobs is ready or chosen/)
       .filter(
         (n) =>
           getNow.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING &&

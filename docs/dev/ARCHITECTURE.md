@@ -206,6 +206,29 @@ src-tauri/src/
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
                 schedule's own and turns on at the one chosen, the catalog's `every` (30m) only when none is known.
+                The agent (`{harness}`) is the one the page passes, else `background_agent.rs`'s choice. A schedule
+                cli-core's start guard stopped (skip `agent.refused`, "save it again") is offered «Save again»: the
+                same agent and interval, the owner's choice untouched. A skip older than the schedule's `created_at`
+                is dropped, since memo keeps it until the next run.
+  background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents page
+                finds (`skills::agents`) and every one memo starts (`schedule agents list`: id, name, programs,
+                `reports_cost`, `restricted`, `installed`) is listed; one that cannot run a job carries why (not
+                installed, program not found, memo cannot start it, needs a newer Memo, or memo cannot limit its
+                commands: `restricted` is false, so a message it reads could make it run anything; the owner decided
+                those run no background job, and memo's `restricted_reason` says why), never hidden. Desktop names no
+                agent as allowed: only one memo marks restricted is offered or accepted, or one memo marks
+                `allowed_with_ack` (Codex) once the owner confirmed its warning (`acknowledge`, kept per agent in the
+                same file); its mail-agent schedule then carries `ACK_FLAG` (`--allow-dangerous`). `digest add|edit`
+                takes no such option yet, so a digest is never moved to it. memo's `installed` and its
+                `programs` decide "ready" (Cursor: `cursor-agent` or `agent`, never the `cursor` editor). A memo
+                without the list gets Claude Code, and Codex greyed: that memo cannot say which agent it limits.
+                The owner's pick is kept in the app's data folder, because memo has no default; several ready and
+                none chosen is a question, never a guess, and a chosen agent that went away asks again. A failed run's
+                stderr, and its report while it is one short answer, are matched against the agents' documented
+                refusals (no credit, usage limit, signed out); only that line, masked, reaches the page; a digest's
+                come from its `schedule list` run, as `digest list` keeps no run files. Digests take it through memo's
+                `digest add|edit --agent`, an edit naming the digest's own. memo refuses the cost caps for an agent
+                that reports no cost, so they are left out of its arguments and off the page.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   deep_link.rs  `wirecat://open/v1/…` links (Tauri's deep-link plugin, with single-instance first so a click reaches the
                 running window): parsed to the v1 grammar of cli-core's `links.ts`, checked against its shared fixture

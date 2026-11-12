@@ -11,6 +11,13 @@ export type AccountRemoved =
 /**  `was_signed_in` is false when the tool found no sign-in to end. */
 { result: "signedOut"; wasSignedIn: boolean } | { result: "failed"; message: string };
 
+/**  Why an agent refused a run, sorted from its own words; `line` is that sentence, masked. */
+export type AgentTrouble = {
+	agent: string | null,
+	kind: TroubleKind,
+	line: string,
+};
+
 export type Area = {
 	/**  A tool id, or `shared` for the archive every tool reads. */
 	id: string,
@@ -376,7 +383,7 @@ export type Diagnosis = {
 export type DigestBook = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
 /**
  *  `named`: this memo keeps digests by name (`digest list`); without it there is only `morning-digest`.
- *  `harness`: Claude Code is on PATH, so a digest can be written.
+ *  `harness`: an agent for background jobs is ready, so a new digest can be written.
  */
 { state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean; 
 /**
@@ -402,6 +409,10 @@ export type DigestItem = {
 	spentTodayUsd: number | null,
 	last: DigestRun | null,
 	nextAt: string | null,
+	/**  The agent that writes it, `None` from a memo that does not say. */
+	agent: string | null,
+	/**  Why its last run failed, when the agent's own words say: no credit, a limit, signed out. */
+	trouble: AgentTrouble | null,
 };
 
 /**  The last run, without its output: the output quotes messages and the page reads the day itself. */
@@ -423,6 +434,11 @@ export type DigestSpec = {
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
 	scheduled: boolean,
+	/**
+	 *  The agent to write it: on an edit, the digest's own unless the owner moves it; `None` on a new one is the
+	 *  agent for background jobs.
+	 */
+	agent?: string | null,
 };
 
 export type DigestTemplate = { state: "noMemo" } | 
@@ -652,7 +668,7 @@ export type LoginCode = {
 };
 
 export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
-/**  `harness`: whether the agent program is on PATH, so turning it on can work. */
+/**  `harness`: whether an agent memo may run a job in is ready, so turning it on can work. */
 { state: "off"; harness: boolean } | 
 /**
  *  `spent_today_usd` is `None` where memo does not report it; the caps are `None` from a memo built on cli-core older than 0.584, and
@@ -660,7 +676,7 @@ export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | 
  */
 { state: "on"; when: string; 
 /**  `30m` when memo's `when` is one of the catalog's intervals. */
-every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null };
+every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null; agent: string | null; trouble: AgentTrouble | null };
 
 export type Mailbox = {
 	profile: string,
@@ -797,6 +813,10 @@ export type OtherSchedule = {
 	spentTodayUsd: number | null,
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
+	/**  The agent it starts, `None` from a memo that does not say. */
+	harness: string | null,
+	/**  Why its last run failed, when the agent's own words say: memo's `digest list` keeps no run files. */
+	trouble: AgentTrouble | null,
 };
 
 /**  The commands the manifest declares, grouped by what they ask to touch; each is its words joined by spaces. */
@@ -1272,6 +1292,8 @@ export type ToolState = {
 	/**  Newest first: the first one is the copy the app runs (`program`); the rest are left unused. */
 	installs: Install[],
 };
+
+export type TroubleKind = "noCredit" | "limit" | "signedOut";
 
 export type TunnelRoute = {
 	tool: string,

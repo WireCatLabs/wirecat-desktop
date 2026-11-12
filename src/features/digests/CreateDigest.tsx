@@ -2,6 +2,7 @@ import { CalendarDays, Plus, Sun } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
 import { type Lang, useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec } from "@/platform/bindings"
+import { costed, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
@@ -193,6 +194,7 @@ export function CreateDialog({
   const working = draft !== null && busy[draft.name] === "save"
   const problem = draft && problemOf(draft, onDays)
 
+  const agents = useAgentsLoaded()
   return (
     <Dialog
       open={start !== null}
@@ -228,6 +230,7 @@ export function CreateDialog({
         <div ref={form} className="flex flex-col gap-4">
           {!harness && <NoHarness />}
           <DigestFields
+            costed={costed(agents, agents?.effective ?? "claude")}
             spec={draft}
             onChange={setDraft}
             onDays={onDays}

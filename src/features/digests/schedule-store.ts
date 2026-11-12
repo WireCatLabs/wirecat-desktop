@@ -76,6 +76,8 @@ export function specOf(item: DigestItem, title: string, remembered: Remembered |
     maxCostUsd: item.maxCostUsd ?? old?.maxCostUsd ?? DEFAULT_CAPS.maxCostUsd,
     maxCostPerDayUsd: item.maxCostPerDayUsd ?? old?.maxCostPerDayUsd ?? DEFAULT_CAPS.maxCostPerDayUsd,
     scheduled: item.scheduled,
+    // memo keeps the digest's agent when it is named again; naming it lets Rust leave out the caps it refuses.
+    agent: item.agent,
   }
 }
 

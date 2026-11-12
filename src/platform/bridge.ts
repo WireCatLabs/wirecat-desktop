@@ -20,6 +20,7 @@ import {
 import { AiCheckedSchema, AiModelListSchema, AiModelSchema, AiOffSchema } from "./ai-model-schemas"
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
+import { BackgroundAgentsSchema } from "./background-agent-schemas"
 import type { BackupEvent } from "./backup-schemas"
 import type { NotesModelEvent } from "./bindings"
 import { commandError } from "./command-error"
@@ -378,7 +379,11 @@ function createTauri(): Platform {
     backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
     backgroundRun: (id, profile, action) => invoke("background_run", { id, profile, action }),
     mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
-    mailAgentSet: (id, on, every) => invoke("mail_agent_set", { id, on, every: every ?? null }),
+    mailAgentSet: (id, on, every, agent) =>
+      invoke("mail_agent_set", { id, on, every: every ?? null, agent: agent ?? null }),
+    backgroundAgents: () => call(BackgroundAgentsSchema, "background_agents"),
+    backgroundAgentChoose: (id) => call(BackgroundAgentsSchema, "background_agent_choose", { id }),
+    backgroundAgentAcknowledge: (id) => call(BackgroundAgentsSchema, "background_agent_acknowledge", { id }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     enrichmentStatus: (id) => invoke("enrichment_status", { id }),
     enrichmentPreview: (id, provider, model) => invoke("enrichment_preview", { id, provider, model }),

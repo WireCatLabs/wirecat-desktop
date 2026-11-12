@@ -2,9 +2,10 @@
 //! are memo's `schedule agent` and `schedule remove`; memo writes the systemd timer, launchd agent or scheduled task.
 //! Nothing here writes a timer.
 
+use crate::background_agent::{self, AgentTrouble, Pick};
 use crate::catalog::{self, Tool};
 use crate::skills::{body, call, failure, too_old};
-use crate::{paths, redact, tools};
+use crate::{redact, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -17,10 +18,8 @@ pub struct MailAgentSource {
     pub min_version: String,
     /// The schedule's name, as `schedule list` shows it.
     pub name: String,
-    /// The agent program the schedule starts; memo refuses the schedule when it is not on PATH.
-    pub harness: String,
     pub list: Vec<String>,
-    /// `schedule agent`'s words; `{every}` is the interval the owner chose.
+    /// `schedule agent`'s words; `{every}` is the interval the owner chose, `{harness}` the agent for background jobs.
     pub on: Vec<String>,
     /// The interval when the owner has not chosen one: never a guess that would change a schedule he set.
     pub every: String,
@@ -37,7 +36,7 @@ pub enum MailAgent {
         version: Option<String>,
         need: String,
     },
-    /// `harness`: whether the agent program is on PATH, so turning it on can work.
+    /// `harness`: whether an agent memo may run a job in is ready, so turning it on can work.
     #[serde(rename_all = "camelCase")]
     Off {
         harness: bool,
@@ -49,10 +48,12 @@ pub enum MailAgent {
         when: String,
         /// `30m` when memo's `when` is one of the catalog's intervals.
         every: Option<String>,
-        last: Option<LastRun>,
+        last: Option<Box<LastRun>>,
         spent_today_usd: Option<f64>,
         max_cost_usd: Option<f64>,
         max_cost_per_day_usd: Option<f64>,
+        agent: Option<String>,
+        trouble: Option<AgentTrouble>,
     },
 }
 
@@ -100,19 +101,31 @@ pub fn status(tool: &Tool) -> Result<MailAgent, String> {
     };
     let (out, json) = call(via, &src.list, Duration::from_secs(30))?;
     match json {
-        Some(v) if out.code == Some(0) => Ok(read(src, &v)),
+        Some(v) if out.code == Some(0) => {
+            Ok(read(src, &v, background_agent::mail_triage(), background_agent::any_ready))
+        }
         j => Err(failure(&out, j.as_ref())),
     }
 }
 
-fn read(src: &MailAgentSource, v: &Value) -> MailAgent {
+/// `agent` is the note kept here, for a memo whose `schedule list` does not name the agent; `ready` is asked only when
+/// the schedule is off.
+fn read(src: &MailAgentSource, v: &Value, agent: Option<String>, ready: impl FnOnce() -> bool) -> MailAgent {
     let found = v["items"].as_array().into_iter().flatten().find(|i| i["name"].as_str() == Some(src.name.as_str()));
-    let Some(item) = found else { return MailAgent::Off { harness: !paths::find_all(&src.harness).is_empty() } };
+    let Some(item) = found else { return MailAgent::Off { harness: ready() } };
     let when = item["when"].as_str().unwrap_or_default().to_string();
+    // A schedule made before the note: only claude's command line carries the per-run cap memo reports.
+    let agent = item["harness"]
+        .as_str()
+        .map(str::to_string)
+        .or(agent)
+        .or_else(|| item["max_cost_usd"].as_f64().map(|_| "claude".to_string()));
     MailAgent::On {
+        trouble: background_agent::trouble_of_run(&item["last"], agent.as_deref()),
+        agent,
         every: crate::sync_schedule::interval_of(&src.choices, &when),
         when,
-        last: last_run(&item["last"]),
+        last: last_run(&item["last"]).map(|l| Box::new(since_saved(l, item["created_at"].as_str()))),
         spent_today_usd: item["spent_today_usd"].as_f64(),
         max_cost_usd: item["max_cost_usd"].as_f64(),
         max_cost_per_day_usd: item["max_cost_per_day_usd"].as_f64(),
@@ -129,6 +142,20 @@ fn last_run(v: &Value) -> Option<LastRun> {
     })
 }
 
+/// memo keeps a run's skip until the next run, even across a save; one from before the schedule was saved last is
+/// history, as is its "save it again". Both times are memo's own UTC ISO strings, so they order as text.
+fn since_saved(mut last: LastRun, saved: Option<&str>) -> LastRun {
+    let utc = |t: &str| t.ends_with('Z');
+    if let (Some(skip), Some(saved)) = (&last.skipped, saved)
+        && utc(&skip.at)
+        && utc(saved)
+        && skip.at.as_str() < saved
+    {
+        last.skipped = None;
+    }
+    last
+}
+
 fn skipped(v: &Value) -> Option<Skipped> {
     Some(Skipped {
         at: v["at"].as_str()?.to_string(),
@@ -137,19 +164,40 @@ fn skipped(v: &Value) -> Option<Skipped> {
     })
 }
 
-fn on_args(src: &MailAgentSource, every: Option<&str>) -> Result<Vec<String>, String> {
+/// memo refuses the cost caps for an agent that does not report what a run costs, so its schedule goes without them.
+fn on_args(src: &MailAgentSource, every: Option<&str>, agent: &Pick) -> Result<Vec<String>, String> {
     let every = every.unwrap_or(&src.every);
     if !src.choices.iter().any(|c| c == every) {
         return Err(format!("not an interval the mail agent offers: {every}"));
     }
-    Ok(src.on.iter().map(|w| if w == "{every}" { every.to_string() } else { w.clone() }).collect())
+    let mut args = Vec::new();
+    let mut words = src.on.iter();
+    while let Some(w) = words.next() {
+        if !agent.costed && (w == "--max-cost" || w == "--max-cost-per-day") {
+            words.next();
+            continue;
+        }
+        args.push(match w.as_str() {
+            "{every}" => every.to_string(),
+            "{harness}" => agent.id.clone(),
+            _ => w.clone(),
+        });
+    }
+    if agent.ack {
+        args.push(background_agent::ACK_FLAG.into());
+    }
+    Ok(args)
 }
 
 /// Turns the schedule on, or changes its interval (memo replaces a schedule of the same name), or off; memo's words
-/// come back when it refuses, masked.
-pub fn set(tool: &Tool, on: bool, every: Option<&str>) -> Result<MailAgent, String> {
+/// come back when it refuses, masked. `agent` is the owner's pick for this job, else the agent for background jobs.
+pub fn set(tool: &Tool, on: bool, every: Option<&str>, agent: Option<&str>) -> Result<MailAgent, String> {
     let src = source(tool)?;
-    let args = if on { on_args(src, every)? } else { src.off.clone() };
+    let harness = if on { Some(background_agent::pick(agent)?) } else { None };
+    let args = match &harness {
+        Some(h) if on => on_args(src, every, h)?,
+        _ => src.off.clone(),
+    };
     let via = match gate(src)? {
         Ok(via) => via,
         Err(shown) => return Ok(shown),
@@ -160,6 +208,8 @@ pub fn set(tool: &Tool, on: bool, every: Option<&str>) -> Result<MailAgent, Stri
     if out.code != Some(0) && !gone {
         return Err(failure(&out, json.as_ref()));
     }
+    // The schedule is memo's and already changed; a lost note only hides which agent runs it.
+    let _ = background_agent::set_mail_triage(if on { harness.as_ref().map(|h| h.id.as_str()) } else { None });
     status(tool)
 }
 
@@ -186,10 +236,11 @@ mod tests {
     #[test]
     fn runs_memos_own_schedule_commands() {
         let s = src();
+        let claude = Pick { id: "claude".into(), costed: true, ack: false };
         assert_eq!(s.via, "memo");
         assert_eq!(s.list.join(" "), "schedule list name:mail-triage --no-record --json");
         assert_eq!(
-            on_args(s, None).unwrap(),
+            on_args(s, None, &claude).unwrap(),
             [
                 "schedule",
                 "agent",
@@ -205,9 +256,21 @@ mod tests {
                 "--json"
             ]
         );
-        assert_eq!(on_args(s, Some("15m")).unwrap()[6], "15m");
-        assert!(on_args(s, Some("1m")).is_err());
-        assert!(on_args(s, Some("--yes")).is_err());
+        assert_eq!(on_args(s, Some("15m"), &claude).unwrap()[6], "15m");
+        let gemini = on_args(s, None, &Pick { id: "gemini".into(), costed: false, ack: false }).unwrap();
+        assert_eq!(gemini[3], "gemini");
+        assert!(!gemini.contains(&background_agent::ACK_FLAG.to_string()));
+        let codex = on_args(s, None, &Pick { id: "codex".into(), costed: false, ack: true }).unwrap();
+        assert_eq!(codex[3], "codex");
+        assert_eq!(
+            codex.last().map(String::as_str),
+            Some(background_agent::ACK_FLAG),
+            "the owner confirmed its warning"
+        );
+        assert!(!codex.iter().any(|w| w.starts_with("--max-cost")), "memo refuses a cap for an agent with no cost");
+        assert!(!codex.contains(&"1".to_string()), "the cap's value goes with it");
+        assert!(on_args(s, Some("1m"), &claude).is_err());
+        assert!(on_args(s, Some("--yes"), &claude).is_err());
         assert_eq!(s.off.join(" "), "schedule remove mail-triage --json");
         assert_eq!(s.waiting.join(" "), "review status --no-record --json");
         assert!(source(catalog::tool("tg").unwrap()).is_err());
@@ -221,31 +284,36 @@ mod tests {
                 "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "Invoice from Ana Ruiz", "trace_id": "t1"}}
         ]});
         assert_eq!(
-            read(src(), &v),
+            read(src(), &v, Some("claude".into()), || true),
             MailAgent::On {
                 when: "every 5m".into(),
                 every: Some("5m".into()),
-                last: Some(LastRun {
+                last: Some(Box::new(LastRun {
                     at: "2026-11-05T21:54:36Z".into(),
                     exit_code: 0,
                     reason: None,
                     failures: None,
                     skipped: None
-                }),
+                })),
                 spent_today_usd: Some(0.42),
                 max_cost_usd: None,
                 max_cost_per_day_usd: None,
+                agent: Some("claude".into()),
+                trouble: None,
             }
         );
     }
 
     #[test]
     fn a_missing_schedule_is_off_and_a_failed_run_keeps_its_streak() {
-        assert!(matches!(read(src(), &json!({"items": []})), MailAgent::Off { .. }));
+        assert!(matches!(read(src(), &json!({"items": []}), None, || true), MailAgent::Off { .. }));
         let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m", "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 1, "output": "", "reason": "provider_error (claude.exit)",
             "failures": 2}}]});
-        let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v) else { panic!("on") };
+        let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v, Some("claude".into()), || true)
+        else {
+            panic!("on")
+        };
         assert_eq!(last.reason.as_deref(), Some("provider_error (claude.exit)"));
         assert_eq!(last.failures, Some(2));
         assert_eq!(last.skipped, None);
@@ -259,7 +327,9 @@ mod tests {
             "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
             "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "cost.day-cap"}}}]});
-        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } = read(src(), &v) else {
+        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, agent, .. } =
+            read(src(), &v, None, || true)
+        else {
             panic!("on")
         };
         assert_eq!(
@@ -267,6 +337,24 @@ mod tests {
             Some(Skipped { at: "2026-11-05T22:04:36Z".into(), why: why.into(), reason: Some("cost.day-cap".into()) })
         );
         assert_eq!((max_cost_usd, max_cost_per_day_usd), (Some(1.0), Some(5.0)));
+        assert_eq!(agent.as_deref(), Some("claude"), "only claude's command line has a per-run cap");
+    }
+
+    #[test]
+    fn forgets_a_skip_from_before_the_schedule_was_saved_again() {
+        let why = "schedule mail-triage does not run: it was saved by an older version, which kept no agent to rebuild \
+                   its start from; save it again to run it";
+        let item = |created: &str| {
+            json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 30m", "harness": "claude",
+                "created_at": created, "last": {"at": "2026-11-11T08:00:00.000Z", "exit_code": 0,
+                "skipped": {"at": "2026-11-12T09:30:00.000Z", "why": why, "reason": "agent.refused"}}}]})
+        };
+        let skip = |v: &Value| match read(src(), v, None, || true) {
+            MailAgent::On { last: Some(last), .. } => last.skipped.map(|s| s.reason),
+            _ => panic!("on"),
+        };
+        assert_eq!(skip(&item("2026-10-01T10:00:00.000Z")), Some(Some("agent.refused".into())));
+        assert_eq!(skip(&item("2026-11-12T09:31:00.000Z")), None, "saved again after the refusal");
     }
 
     #[test]
@@ -285,11 +373,13 @@ mod tests {
             spent_today_usd: Some(1.5),
             max_cost_usd: Some(1.0),
             max_cost_per_day_usd: Some(0.0),
+            agent: Some("codex".into()),
+            trouble: None,
         };
         assert_eq!(
             serde_json::to_value(on).unwrap(),
             json!({"state": "on", "when": "every 5m", "every": "5m", "last": null, "spentTodayUsd": 1.5, "maxCostUsd": 1.0,
-                "maxCostPerDayUsd": 0.0})
+                "maxCostPerDayUsd": 0.0, "agent": "codex", "trouble": null})
         );
         assert_eq!(serde_json::to_value(MailAgent::NoMemo).unwrap(), json!({"state": "noMemo"}));
         assert_eq!(
