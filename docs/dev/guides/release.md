@@ -2,7 +2,7 @@
 
 A release is a tag `v<version>` on `main`. GitHub Actions builds, signs and publishes it with nobody in the loop.
 What `latest.json` holds and how a copy reads it: [updater-api.md](../updater-api.md). How CI signs:
-[the first release plan](../plans/2026-10-29-first-release.md#signing). Signing setup is in [signing.md](../signing.md).
+[signing.md](../signing.md#how-ci-signs). The owner's setup is in the same file.
 
 ## Steps
 
@@ -44,3 +44,24 @@ draft and the tag (`git push origin :refs/tags/v<version>`) and run `bin/tag-rel
 - A release with a missing platform in `latest.json` is not published. Re-run that system's build job.
 - A catalog `minVersion` (`catalog/tools.json`) names only a CLI version already on npm. Set it in a Desktop PR after
   that CLI's release (owner's ruling, 2026-11-09).
+
+## Why it is built this way
+
+- **Linux on ubuntu-22.04.** An AppImage runs only where glibc is at least as new as the build machine's; 22.04
+  reaches more systems than 24.04.
+- **One universal macOS `.dmg`.** One download for every Mac, and one job fills both `darwin-aarch64` and
+  `darwin-x86_64` in `latest.json`. Cost: a bigger file and a longer build.
+- **Windows NSIS only.** NSIS installs per user, so neither the install nor an update asks for administrator rights
+  (rule 6). ssign cannot sign an MSI anyway.
+
+## Known risks
+
+- **`latest.json` can lose a platform.** Each build adds its own platforms and uploads the file again, so two builds
+  that finish together can overwrite each other. `publish` catches it; re-run the build whose platform is missing.
+- **File names that differ only in case** break the Windows and macOS builds (their file systems ignore case), while
+  Linux and the `web` job pass.
+- **Download links in `latest.json` are GitHub API asset URLs** (tauri-action 1.0.0, #1315), rate-limited without a
+  login (60 an hour per address). Updates are rare, so this should not matter.
+- **Dependabot #6** (glib 0.18, GHSA-wrw7-89jp-8q8g) cannot be fixed by a bump: Tauri 2.12 needs gtk 0.18, which pins
+  glib below 0.20 ([tauri#16264](https://github.com/tauri-apps/tauri/issues/16264)). The app does not call the
+  affected iterator.
