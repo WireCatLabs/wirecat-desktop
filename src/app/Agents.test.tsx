@@ -6,6 +6,7 @@ import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { reduceMotion } from "@/testing/motion"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -43,6 +44,7 @@ describe("Agents", () => {
   })
 
   it("lists every known agent, dims the ones not found and opens on the first one with skills to set up", async () => {
+    reduceMotion()
     await openAgents()
     const list = await screen.findByRole("tablist", { name: "Agents" })
     const claude = await foundTab(/^Claude Code.*to set up/)
@@ -52,8 +54,7 @@ describe("Agents", () => {
     await foundTab(/^Gemini CLI.*Not found/)
 
     expect(within(pane()).getByRole("heading", { name: "Claude Code" })).toBeInTheDocument()
-    // Right after loading the pane shows the line twice for a moment; it settles on one.
-    await waitFor(() => expect(within(pane()).getAllByText(/Update MAX/)).toHaveLength(1))
+    expect(await within(pane()).findAllByText(/Update MAX/)).toHaveLength(1)
     expect(within(pane()).getAllByText(/Update Zoom/)).toHaveLength(1)
     await waitFor(() => expect(screen.getAllByRole("button", { name: /Check again|Checking/ })).toHaveLength(1))
   })
