@@ -27,6 +27,7 @@ const en = {
     portal: () => "Your portal",
     webhook: () => "Make a webhook",
     paste: () => "Paste and check",
+    localApp: () => "Your local application",
     done: () => "Done",
   } as Record<WizardStep, (name: string) => string>,
   method: {
@@ -235,6 +236,7 @@ const ru: WizardText = {
     portal: () => "Ваш портал",
     webhook: () => "Создайте вебхук",
     paste: () => "Вставьте и проверьте",
+    localApp: () => "Локальное приложение",
     done: () => "Готово",
   },
   method: {
@@ -446,6 +448,7 @@ const es: WizardText = {
     portal: () => "Tu portal",
     webhook: () => "Crea un webhook",
     paste: () => "Pega y comprueba",
+    localApp: () => "Tu aplicación local",
     done: () => "Listo",
   },
   method: {

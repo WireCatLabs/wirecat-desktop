@@ -1,4 +1,4 @@
-import type { WebhookScope } from "@/domain/bitrix-signin"
+import type { AppProblem, WebhookScope } from "@/domain/bitrix-signin"
 import type { Messages } from "@/i18n"
 
 type Problem = { title: string; cause: string }
@@ -11,6 +11,13 @@ const en = {
     placeholder: "mycompany.bitrix24.ru",
     hint: "A whole address copied from the browser works too: only the portal's name is kept.",
     missing: "Enter your portal's address, such as mycompany.bitrix24.ru.",
+    way: "How to sign in",
+    ways: {
+      webhook: { name: "Incoming webhook", detail: "Quickest. Acts as the employee who makes it." },
+      app: { name: "Local application", detail: "Acts as the employee who signs in, in the browser." },
+    },
+    tooOld: (version: string, need: string) =>
+      `Bitrix24's tool here is ${version}. A local application needs ${need} or newer: update it on the Tools page, or use the webhook.`,
   },
   webhook: {
     title: "Make an incoming webhook",
@@ -68,6 +75,62 @@ const en = {
       cause: "Check the portal's address and your connection. Back changes the address.",
     },
   } as Record<"malformed" | "scope" | "refused" | "unreachable", Problem>,
+  app: {
+    title: "Make a local application",
+    lead: (host: string) =>
+      `A local application lets WireCat work in ${host} with the rights of the employee who signs in. You make it once, in Bitrix24. Its sign-in renews by itself.`,
+    open: "Open Developer resources",
+    steps: {
+      open: (host: string) => `Open Developer resources on ${host}. Choose Other, then Local application.`,
+      server: "Choose Server. Paste this address into Your handler path:",
+      install: 'Leave Initial installation path empty, and leave "Application completes the installation itself" off.',
+      rights: "Under the access permissions, tick these three.",
+      save: "Press Save. Copy the Application ID (client_id) and the Application key (client_secret) into the fields below.",
+    },
+    copyHandler: "Copy the handler path",
+    docs: "Full guide on wirecat.dev",
+    idLabel: "Application ID (client_id)",
+    idPlaceholder: "local.0123abcd.45678901",
+    keyLabel: "Application key (client_secret)",
+    show: "Show the key",
+    hide: "Hide the key",
+    keyHint: "It stays on this computer, in the system keyring.",
+    kept: "The key you typed is still here. Type it again only if you changed it in Bitrix24.",
+    missingId: "Paste the Application ID Bitrix24 shows, such as local.0123abcd.45678901.",
+    missingKey: "Paste the Application key Bitrix24 shows beside the ID.",
+    browser:
+      "Next, the portal's sign-in opens in the browser. Allow the application, and the browser hands the sign-in back to WireCat.",
+    acts: "The agent acts with the rights of the employee who signs in: it sees and changes only what they can.",
+    time: "About 5 minutes",
+    signIn: "Sign in in the browser",
+    again: "Sign in again",
+    problem: {
+      refused: {
+        title: "Bitrix24 refused the Application ID or key.",
+        cause: "Copy both again from the application's page, and check that it is saved on this portal.",
+      },
+      payment: {
+        title: "Bitrix24 gives applications no access on this plan.",
+        cause: "The portal's plan does not allow it. Use the incoming webhook instead: Back, then Incoming webhook.",
+      },
+      wrongPortal: {
+        title: "The browser signed in to another portal.",
+        cause: "Sign in to the portal you typed on the first step, or change it there.",
+      },
+      unreachable: {
+        title: "WireCat could not reach Bitrix24's sign-in.",
+        cause: "Check your connection and try again in a minute.",
+      },
+      scope: {
+        title: "The application may not read who signed in.",
+        cause: "In Bitrix24, open the application, tick Users (basic), user_basic, save, and sign in again.",
+      },
+      invalid: {
+        title: "Bitrix24's tool refused what was typed.",
+        cause: "Check the portal's address and the Application ID.",
+      },
+    } as Record<AppProblem["kind"], Problem>,
+  },
   wrongPortal: (host: string, portal: string) => ({
     title: `This webhook is for ${host}, not ${portal}.`,
     cause: `Make the webhook on ${portal}, or use ${host} instead.`,
@@ -90,6 +153,13 @@ const ru: BitrixText = {
     placeholder: "mycompany.bitrix24.ru",
     hint: "Подойдет и полный адрес из браузера: сохраняется только имя портала.",
     missing: "Введите адрес портала, например mycompany.bitrix24.ru.",
+    way: "Как войти",
+    ways: {
+      webhook: { name: "Входящий вебхук", detail: "Быстрее всего. Действует от имени сотрудника, создавшего его." },
+      app: { name: "Локальное приложение", detail: "Действует от имени сотрудника, который входит в браузере." },
+    },
+    tooOld: (version, need) =>
+      `Здесь установлена версия Битрикс24 ${version}. Для локального приложения нужна ${need} или новее: обновите ее на странице «Инструменты» или войдите через вебхук.`,
   },
   webhook: {
     title: "Создайте входящий вебхук",
@@ -146,6 +216,63 @@ const ru: BitrixText = {
       cause: "Проверьте адрес портала и подключение. Кнопка «Назад» позволяет изменить адрес.",
     },
   },
+  app: {
+    title: "Создайте локальное приложение",
+    lead: (host) =>
+      `Локальное приложение позволяет WireCat работать в ${host} с правами сотрудника, который входит. Его создают один раз, в Битрикс24. Вход продлевается сам.`,
+    open: "Открыть «Разработчикам»",
+    steps: {
+      open: (host) => `Откройте раздел «Разработчикам» на ${host}. Выберите «Другое», затем «Локальное приложение».`,
+      server: "Выберите «Серверное». В поле «Путь вашего обработчика» вставьте этот адрес:",
+      install:
+        "«Путь для первоначальной установки» оставьте пустым. Галочку о том, что приложение само завершает установку, не ставьте.",
+      rights: "В правах доступа отметьте эти три.",
+      save: "Нажмите «Сохранить». Скопируйте код приложения (client_id) и ключ приложения (client_secret) в поля ниже.",
+    },
+    copyHandler: "Скопировать путь обработчика",
+    docs: "Подробная инструкция на wirecat.dev",
+    idLabel: "Код приложения (client_id)",
+    idPlaceholder: "local.0123abcd.45678901",
+    keyLabel: "Ключ приложения (client_secret)",
+    show: "Показать ключ",
+    hide: "Скрыть ключ",
+    keyHint: "Он хранится на этом компьютере, в системной связке ключей.",
+    kept: "Введенный ключ сохранен здесь. Введите его снова, только если изменили его в Битрикс24.",
+    missingId: "Вставьте код приложения из Битрикс24, например local.0123abcd.45678901.",
+    missingKey: "Вставьте ключ приложения, он рядом с кодом в Битрикс24.",
+    browser: "Дальше в браузере откроется вход в портал. Разрешите доступ приложению, и браузер вернет вход в WireCat.",
+    acts: "Агент действует с правами сотрудника, который входит: видит и меняет только то, что может он.",
+    time: "Около 5 минут",
+    signIn: "Войти в браузере",
+    again: "Войти снова",
+    problem: {
+      refused: {
+        title: "Битрикс24 отклонил код или ключ приложения.",
+        cause: "Скопируйте оба еще раз со страницы приложения и проверьте, что оно сохранено на этом портале.",
+      },
+      payment: {
+        title: "На этом тарифе Битрикс24 не дает доступ приложениям.",
+        cause: "Тариф портала этого не позволяет. Войдите через входящий вебхук: «Назад», затем «Входящий вебхук».",
+      },
+      wrongPortal: {
+        title: "В браузере выполнен вход в другой портал.",
+        cause: "Войдите в портал, указанный на первом шаге, или измените адрес там.",
+      },
+      unreachable: {
+        title: "WireCat не смог связаться со входом Битрикс24.",
+        cause: "Проверьте подключение и попробуйте через минуту.",
+      },
+      scope: {
+        title: "Приложению не хватает права читать пользователей.",
+        cause:
+          "В Битрикс24 откройте приложение, отметьте «Пользователи (базовые)», user_basic, сохраните и войдите снова.",
+      },
+      invalid: {
+        title: "Инструмент Битрикс24 не принял введенное.",
+        cause: "Проверьте адрес портала и код приложения.",
+      },
+    },
+  },
   wrongPortal: (host, portal) => ({
     title: `Этот вебхук для ${host}, а не для ${portal}.`,
     cause: `Создайте вебхук на ${portal} или используйте ${host}.`,
@@ -166,6 +293,13 @@ const es: BitrixText = {
     placeholder: "mycompany.bitrix24.es",
     hint: "También vale la dirección completa copiada del navegador: solo se guarda el nombre del portal.",
     missing: "Escribe la dirección de tu portal, por ejemplo mycompany.bitrix24.es.",
+    way: "Cómo iniciar sesión",
+    ways: {
+      webhook: { name: "Webhook entrante", detail: "Lo más rápido. Actúa como el empleado que lo crea." },
+      app: { name: "Aplicación local", detail: "Actúa como el empleado que inicia sesión en el navegador." },
+    },
+    tooOld: (version, need) =>
+      `La herramienta de Bitrix24 aquí es ${version}. Una aplicación local necesita ${need} o posterior: actualízala en la página Herramientas o usa el webhook.`,
   },
   webhook: {
     title: "Crea un webhook entrante",
@@ -221,6 +355,63 @@ const es: BitrixText = {
     unreachable: {
       title: "WireCat no pudo conectar con el portal.",
       cause: "Revisa la dirección del portal y tu conexión. Atrás permite cambiar la dirección.",
+    },
+  },
+  app: {
+    title: "Crea una aplicación local",
+    lead: (host) =>
+      `Una aplicación local permite a WireCat trabajar en ${host} con los permisos del empleado que inicia sesión. Se crea una sola vez, en Bitrix24. La sesión se renueva sola.`,
+    open: "Abrir Recursos para desarrolladores",
+    steps: {
+      open: (host) => `Abre Recursos para desarrolladores en ${host}. Elige Otro y luego Aplicación local.`,
+      server: "Elige Servidor. Pega esta dirección en la ruta de tu controlador:",
+      install:
+        "Deja vacía la ruta de instalación inicial y deja sin marcar la opción de que la aplicación completa la instalación por sí misma.",
+      rights: "En los permisos de acceso, marca estos tres.",
+      save: "Pulsa Guardar. Copia el ID de la aplicación (client_id) y la clave de la aplicación (client_secret) en los campos de abajo.",
+    },
+    copyHandler: "Copiar la ruta del controlador",
+    docs: "Guía completa en wirecat.dev",
+    idLabel: "ID de la aplicación (client_id)",
+    idPlaceholder: "local.0123abcd.45678901",
+    keyLabel: "Clave de la aplicación (client_secret)",
+    show: "Mostrar la clave",
+    hide: "Ocultar la clave",
+    keyHint: "Se queda en este ordenador, en el llavero del sistema.",
+    kept: "La clave que escribiste sigue aquí. Escríbela de nuevo solo si la cambiaste en Bitrix24.",
+    missingId: "Pega el ID de la aplicación que muestra Bitrix24, por ejemplo local.0123abcd.45678901.",
+    missingKey: "Pega la clave de la aplicación que Bitrix24 muestra junto al ID.",
+    browser:
+      "Después se abre en el navegador el inicio de sesión del portal. Permite la aplicación y el navegador devuelve la sesión a WireCat.",
+    acts: "El agente actúa con los permisos del empleado que inicia sesión: ve y cambia solo lo que esa persona puede.",
+    time: "Unos 5 minutos",
+    signIn: "Iniciar sesión en el navegador",
+    again: "Iniciar sesión de nuevo",
+    problem: {
+      refused: {
+        title: "Bitrix24 rechazó el ID o la clave de la aplicación.",
+        cause: "Copia los dos de nuevo desde la página de la aplicación y comprueba que está guardada en este portal.",
+      },
+      payment: {
+        title: "Bitrix24 no da acceso a aplicaciones en este plan.",
+        cause: "El plan del portal no lo permite. Usa el webhook entrante: Atrás y luego Webhook entrante.",
+      },
+      wrongPortal: {
+        title: "El navegador inició sesión en otro portal.",
+        cause: "Inicia sesión en el portal que escribiste en el primer paso, o cámbialo allí.",
+      },
+      unreachable: {
+        title: "WireCat no pudo conectar con el inicio de sesión de Bitrix24.",
+        cause: "Revisa tu conexión y vuelve a intentarlo en un minuto.",
+      },
+      scope: {
+        title: "La aplicación no puede leer quién inició sesión.",
+        cause: "En Bitrix24, abre la aplicación, marca Usuarios (básico), user_basic, guarda e inicia sesión de nuevo.",
+      },
+      invalid: {
+        title: "La herramienta de Bitrix24 rechazó lo escrito.",
+        cause: "Revisa la dirección del portal y el ID de la aplicación.",
+      },
     },
   },
   wrongPortal: (host, portal) => ({

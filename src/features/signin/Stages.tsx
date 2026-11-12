@@ -21,6 +21,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import {
   APP_KEYS,
   BITRIX,
+  BITRIX_APP,
   keptAnswer,
   linkIn,
   methodOf,
@@ -72,8 +73,12 @@ export const isKeys = (s: SignInView) =>
  * Which stage is on screen; a new value cross-fades to the next one. Both app keys are one stage, so their guide stays
  * put while the question under it changes; every other question is a stage of its own.
  */
-/** Bitrix24's webhook is checked on its paste step: the step stays on screen while b24 runs. */
-export const checksInPlan = (s: Pick<SignInView, "tool" | "phase">) => s.tool === BITRIX && running(s.phase)
+/**
+ * Bitrix24's webhook is checked on its paste step: the step stays on screen while b24 runs. The local application
+ * goes on to the browser instead.
+ */
+export const checksInPlan = (s: Pick<SignInView, "tool" | "method" | "phase">) =>
+  s.tool === BITRIX && s.method !== BITRIX_APP && running(s.phase)
 
 export function stageKey(s: SignInView) {
   if (s.phase === "plan" || checksInPlan(s)) return `plan:${s.method}:${checksInPlan(s) ? "paste" : s.planStep}`

@@ -125,6 +125,8 @@ export function explainFailure(f: FailureInput): ExplainedFailure {
       return retry("signedOut", null)
     case "oauth.expired":
       return retry("signInExpired", null)
+    case "oauth.timeout":
+      return retry("browserNoReturn")
     case "provider.rate-limited":
       return retry("rateLimited", null)
   }

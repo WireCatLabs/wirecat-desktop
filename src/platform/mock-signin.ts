@@ -26,6 +26,9 @@ import type { Platform } from "./types"
 // Bitrix24 (`?signin=bitrix`, `?signin-plan=bitrix&b24-step=webhook|paste`): the webhook is checked, then saved;
 // `?signin-fail=bitrix:scope|malformed|webhook-refused|duplicate|network` fails with b24's reasons, and `?b24-same=1`
 // has profile work already on acme.bitrix24.ru as employee 12, so the window refuses the sample webhook itself.
+// The local application (`?signin=bitrix:app`, `?signin-plan=bitrix:app&b24-step=app`): the portal's page opens in the
+// browser, then it is saved; `?signin-fail=bitrix:app-refused|app-payment|app-portal|app-timeout` fails with b24's
+// reasons, the first three back on the application's form.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -104,7 +107,15 @@ const GOOGLE_URL = `https://accounts.google.com/o/oauth2/v2/auth?${MOCK_CLIENT}`
 const ZOOM_REDIRECT = "https://wirecat.dev/zoom-callback"
 
 const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
-  async bitrix(s) {
+  async bitrix(s, method) {
+    if (method === "app") {
+      s.emit({
+        event: "openUrl",
+        url: "https://acme.bitrix24.ru/oauth/authorize/?client_id=local.0123abcd",
+        purpose: null,
+      })
+      if (await s.wait(4000)) return STOPPED
+    }
     if (await s.wait(1500)) return STOPPED
     return { event: "done", alreadyLinked: false, received: null }
   },
@@ -404,6 +415,31 @@ const FAILURES: Record<
     code: "authentication_error",
     reason: "webhook.refused",
     message: () => "Bitrix24 refused this webhook (NO_AUTH_FOUND)",
+  },
+  "app-refused": {
+    first: "browser",
+    code: "authentication_error",
+    reason: "oauth.expired",
+    message: () =>
+      "Bitrix24 refused the application's code or key (INVALID_CLIENT): check both, and that the local application is saved in this portal",
+  },
+  "app-payment": {
+    first: "browser",
+    code: "authentication_error",
+    reason: "oauth.expired",
+    message: () => "Bitrix24 issues no tokens until the portal's plan is paid (PAYMENT_REQUIRED)",
+  },
+  "app-portal": {
+    first: "browser",
+    code: "authentication_error",
+    reason: "oauth.mismatch",
+    message: () => "Bitrix24 signed in to another portal than acme.bitrix24.ru; sign in with that portal's address",
+  },
+  "app-timeout": {
+    first: "browser",
+    code: "timeout",
+    reason: "oauth.timeout",
+    message: () => "Bitrix24 sign-in timed out",
   },
   duplicate: {
     code: "conflict",

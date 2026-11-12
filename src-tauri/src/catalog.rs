@@ -183,9 +183,16 @@ pub struct SignInMethod {
     /// The words that make a new profile sign in by OAuth with the tool's own app (mail's `--method oauth`).
     #[serde(default)]
     pub oauth: Option<Vec<String>>,
-    /// The typed secret is the tool's whole stdin, closed after it: b24 reads its webhook address until EOF.
+    /// The typed secret is the tool's whole stdin, closed after it: b24 reads its webhook address, or its local
+    /// application's key, until EOF.
     #[serde(default)]
     pub stdin: bool,
+    /// The flag that takes the portal a local application signs in to (b24's `--portal`).
+    #[serde(default)]
+    pub portal: Option<String>,
+    /// The flag that takes that application's id (b24's `--client-id`); its key goes on stdin, never as a flag.
+    #[serde(default)]
+    pub app_id: Option<String>,
 }
 
 /// `commands` lists every command with its effects and, from cli-core 0.408, whether the profile may run it.

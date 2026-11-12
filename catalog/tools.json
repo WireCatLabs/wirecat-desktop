@@ -2249,15 +2249,25 @@
       "settings": null,
       "signIn": {
         "gives": "Lets your agent read and change the portal's CRM with the rights of the employee who made the webhook.",
-        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm, user_basic and department scopes.",
+        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm, user_basic and department scopes. Or a local application's ID and key, from Developer resources → Other → Local application, signed in in the browser.",
         "identity": ["{profile}", "session", "status", "--no-record", "--json"],
         "identityCheck": "--check",
+        "pick": true,
         "methods": [
           {
             "id": "webhook",
             "label": "Incoming webhook",
             "words": ["{profile}", "session", "start", "--json"],
             "stdin": true
+          },
+          {
+            "id": "app",
+            "label": "Local application",
+            "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true,
+            "portal": "--portal",
+            "appId": "--client-id",
+            "minVersion": "0.14.0"
           }
         ]
       },

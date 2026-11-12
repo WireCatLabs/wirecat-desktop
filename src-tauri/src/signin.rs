@@ -43,6 +43,9 @@ pub struct Inputs {
     /// Sign in in the browser with the tool's own app, which a new mail profile for Gmail would not do by itself.
     #[serde(default)]
     pub oauth: bool,
+    /// The portal a local application signs in to; its id and key come with it, the key in `password`.
+    pub portal: Option<String>,
+    pub app_id: Option<String>,
 }
 
 /// A run ready to start: its words, the variables it reads, and the client file it may name, removed with this.
@@ -51,6 +54,8 @@ pub struct Prepared {
     env: Vec<(String, Answer)>,
     /// The whole stdin of a method that reads its secret until EOF; nothing else is ever written to it.
     stdin: Option<Answer>,
+    /// Variables the tool would read ahead of what the owner typed; removed from this run.
+    unset: Vec<String>,
     _client: Option<ClientFile>,
 }
 
@@ -65,12 +70,32 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     let mut env = Vec::new();
     let mut stdin = None;
     let mut client = None;
+    let mut unset = Vec::new();
     if let Some(address) = inputs.address {
         args.extend([flag(method.address.as_ref(), "an address")?.clone(), valid_address(&address)?]);
     }
+    let app = method.portal.is_some();
+    if app && (inputs.portal.is_none() || inputs.app_id.is_none() || inputs.password.is_none()) {
+        return Err("A local application signs in with its portal, Application ID and Application key.".into());
+    }
+    if let Some(portal) = inputs.portal {
+        args.extend([flag(method.portal.as_ref(), "a portal")?.clone(), valid_portal(&portal)?]);
+    }
+    if app {
+        // b24 takes these ahead of --client-id and stdin, so one left in the owner's shell would win silently.
+        unset.extend([
+            format!("{}_BITRIX24_CLIENT_ID", tool.storage.env),
+            format!("{}_BITRIX24_CLIENT_SECRET", tool.storage.env),
+        ]);
+    }
+    if let Some(id) = inputs.app_id {
+        args.extend([flag(method.app_id.as_ref(), "an application")?.clone(), valid_app_id(&id)?]);
+    }
     if let Some(password) = inputs.password {
         let password = Answer::new(password);
-        if method.stdin {
+        if app {
+            stdin = Some(valid_app_key(&password)?);
+        } else if method.stdin {
             stdin = Some(valid_webhook(&password)?);
         } else if password.is_empty() || password.len() > 1024 || password.chars().any(char::is_control) {
             return Err("The app password is one line of at most 1024 characters.".into());
@@ -86,7 +111,7 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     } else if inputs.oauth {
         args.extend(method.oauth.clone().ok_or_else(|| "This sign-in takes no browser choice.".to_string())?);
     }
-    Ok(Prepared { args, env, stdin, _client: client })
+    Ok(Prepared { args, env, stdin, unset, _client: client })
 }
 
 fn flag<'a>(name: Option<&'a String>, what: &str) -> Result<&'a String, String> {
@@ -177,6 +202,43 @@ fn valid_webhook(address: &Answer) -> Result<Answer, String> {
     Ok(Answer::new(text.to_string()))
 }
 
+/// A portal's host as b24's `--portal` takes it: no scheme, port or path, so nothing but a name reaches the flag.
+fn valid_portal(portal: &str) -> Result<String, String> {
+    let host = portal.trim().to_ascii_lowercase();
+    let shaped = host.len() <= 253
+        && host.contains('.')
+        && !host.starts_with(['-', '.'])
+        && !host.ends_with('.')
+        && host.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '-'));
+    if !shaped {
+        return Err("Type the portal's address, such as mycompany.bitrix24.ru.".into());
+    }
+    Ok(host)
+}
+
+/// Bitrix24 shows the Application ID as `local.<hex>.<digits>`; any shape of id is let through, never one that reads
+/// as a flag.
+fn valid_app_id(id: &str) -> Result<String, String> {
+    let id = id.trim();
+    let shaped = !id.is_empty()
+        && id.len() <= 128
+        && !id.starts_with('-')
+        && id.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+    if !shaped {
+        return Err("This is not an Application ID. Copy the client_id Bitrix24 shows for the application.".into());
+    }
+    Ok(id.to_string())
+}
+
+/// The application's key; the error never repeats it.
+fn valid_app_key(key: &Answer) -> Result<Answer, String> {
+    let text = key.trim();
+    if text.is_empty() || text.len() > 256 || text.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return Err("This is not an Application key. Copy the client_secret Bitrix24 shows for the application.".into());
+    }
+    Ok(Answer::new(text.to_string()))
+}
+
 /// The owner's client JSON in a folder only they can open, for one run; the tool keeps the client with its sign-in,
 /// so the file goes when the run ends.
 struct ClientFile {
@@ -250,6 +312,9 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
     let mut cmd = run::command(&bin, &refs, Some(&paths::search_path()));
     for (name, value) in &prepared.env {
         cmd.env(name, value.as_str());
+    }
+    for name in &prepared.unset {
+        cmd.env_remove(name);
     }
     let mut parser = Parser::default();
     let mut outcome = None;
@@ -386,6 +451,7 @@ mod tests {
         let prepared = args(b24, "webhook", "work", typed(&format!(" {hook} "))).unwrap();
         assert_eq!(prepared.args, ["work", "session", "start", "--json"]);
         assert_eq!(prepared.env.len(), 0);
+        assert_eq!(prepared.unset.len(), 0);
         assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some(hook));
         for bad in [
             "http://acme.bitrix24.ru/rest/12/s3cr3tk3y/",
@@ -401,6 +467,56 @@ mod tests {
         assert!(
             args(b24, "webhook", "work", Inputs { address: Some("me@x.com".into()), ..Inputs::default() }).is_err()
         );
+    }
+
+    #[test]
+    fn a_local_application_passes_its_portal_and_id_as_flags_and_its_key_only_on_stdin() {
+        let b24 = catalog::tool("bitrix").unwrap();
+        let typed = |portal: &str, id: &str, key: &str| Inputs {
+            portal: Some(portal.into()),
+            app_id: Some(id.into()),
+            password: Some(key.into()),
+            ..Inputs::default()
+        };
+        let prepared =
+            args(b24, "app", "work", typed(" Acme.Bitrix24.ru ", "local.0123abcd.45678901", " k3y5ecr3t ")).unwrap();
+        assert_eq!(
+            prepared.args,
+            [
+                "work",
+                "session",
+                "start",
+                "--json",
+                "--portal",
+                "acme.bitrix24.ru",
+                "--client-id",
+                "local.0123abcd.45678901"
+            ]
+        );
+        assert_eq!(prepared.env.len(), 0);
+        assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some("k3y5ecr3t"));
+        assert!(!prepared.args.iter().any(|a| a.contains("k3y5ecr3t")));
+        assert_eq!(prepared.unset, ["B24_BITRIX24_CLIENT_ID", "B24_BITRIX24_CLIENT_SECRET"]);
+        for (portal, id) in [
+            ("https://acme.bitrix24.ru/", "local.1"),
+            ("acme", "local.1"),
+            ("-x.ru", "local.1"),
+            ("acme.ru:8443", "local.1"),
+            ("acme.ru", "--help"),
+            ("acme.ru", "local 1"),
+            ("acme.ru", ""),
+        ] {
+            assert!(args(b24, "app", "work", typed(portal, id, "k")).is_err(), "{portal} {id}");
+        }
+        for bad in ["s3cr3t key", "s3cr3t\nx", ""] {
+            let error = args(b24, "app", "work", typed("acme.ru", "local.1", bad)).err().unwrap();
+            assert!(bad.is_empty() || !error.contains("s3cr3t"), "{error}");
+        }
+        let without_key =
+            Inputs { portal: Some("acme.ru".into()), app_id: Some("local.1".into()), ..Inputs::default() };
+        assert!(args(b24, "app", "work", without_key).is_err(), "b24 would read an empty key as a webhook");
+        let hook = Inputs { portal: Some("acme.ru".into()), ..Inputs::default() };
+        assert!(args(b24, "webhook", "work", hook).is_err(), "the webhook takes no portal");
     }
 
     #[test]
