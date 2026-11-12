@@ -1,5 +1,3 @@
-export { crmNeed, useNeed } from "@/shared/needs"
-export { ToolNeeded } from "@/shared/ToolNeeded"
 export { AccountRow } from "./AccountRow"
 export { useProfiles, useSearchHarder } from "./api"
 export { ClearDataOffer } from "./ClearDataOffer"

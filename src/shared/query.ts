@@ -34,9 +34,20 @@ export function resetQueryClient() {
   client = create()
 }
 
+/** Each key starts with the tool, so one invalidation can reach every answer of a tool. */
+export const toolKeys = {
+  profiles: (id: string) => ["tool", id, "profiles"] as const,
+  enrichment: (id: string) => ["tool", id, "enrichment"] as const,
+  searchHarder: (id: string) => ["tool", id, "searchHarder"] as const,
+  background: (id: string, profile: string) => ["tool", id, "background", profile] as const,
+  permissions: (id: string, profile: string | null) => ["tool", id, "permissions", profile] as const,
+  /** Every permissions answer of the tool: the defaults show through in each profile. */
+  allPermissions: (id: string) => ["tool", id, "permissions"] as const,
+}
+
 /** A tool's profiles. Several features list them, so they share one key and one answer. */
 export const profilesQuery = (id: string) =>
-  queryOptions({ queryKey: ["tool", id, "profiles"], queryFn: () => platform.listProfiles(id) })
+  queryOptions({ queryKey: toolKeys.profiles(id), queryFn: () => platform.listProfiles(id) })
 
 /**
  * A tool's profiles for a store outside React: pages that open together ask once, and a page opened within 10 s takes

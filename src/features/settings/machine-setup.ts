@@ -5,7 +5,7 @@ import { platform } from "@/platform/bridge"
 import { errorText } from "@/shared/errors"
 import { type MachineChoices, useMachineSetup } from "@/shared/machine-setup-store"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { listProfiles, queryClient } from "@/shared/query"
+import { listProfiles, queryClient, toolKeys } from "@/shared/query"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 
@@ -122,7 +122,7 @@ async function live(tool: string, profile: string, on: boolean) {
     const idle = now.state === "stopped" && now.startsAtLogin !== true
     if (on ? !kept : !idle) {
       const outcome = await platform.backgroundRun(tool, profile, on ? "keep" : "uninstall")
-      void queryClient().invalidateQueries({ queryKey: ["tool", tool, "background", profile] })
+      void queryClient().invalidateQueries({ queryKey: toolKeys.background(tool, profile) })
       if (outcome.fault) return put(tool, profile, "live", failed(outcome.fault.message))
     }
     put(tool, profile, "live", { phase: "done" })

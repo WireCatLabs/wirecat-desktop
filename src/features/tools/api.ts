@@ -9,14 +9,7 @@ import { errorText } from "@/shared/errors"
 
 export type { EnrichmentChoice }
 
-import { profilesQuery } from "@/shared/query"
-
-export const toolKeys = {
-  enrichment: (id: string) => ["tool", id, "enrichment"] as const,
-  searchHarder: (id: string) => ["tool", id, "searchHarder"] as const,
-  background: (id: string, profile: string) => ["tool", id, "background", profile] as const,
-  permissions: (id: string, profile: string | null) => ["tool", id, "permissions", profile] as const,
-}
+import { profilesQuery, toolKeys } from "@/shared/query"
 
 /** Re-reading is how the app learns that a sign-in finished: the terminal reports nothing back. */
 export function useProfiles(id: string) {
@@ -86,7 +79,7 @@ export function useSetPermission(id: string, profile: string | null) {
         : platform.settingsSet(id, profile, profile === null, setting, level)
     },
     // The defaults show through in every profile, so each permissions answer of the tool is read again.
-    onSettled: () => client.invalidateQueries({ queryKey: ["tool", id, "permissions"] }),
+    onSettled: () => client.invalidateQueries({ queryKey: toolKeys.allPermissions(id) }),
   })
 }
 
