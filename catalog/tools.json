@@ -1849,7 +1849,7 @@
       "people": {
         "minVersion": "0.131.84",
         "companyMailbox": { "minVersion": "0.131.86" },
-        "oneCompany": { "minVersion": "0.131.999" }
+        "oneCompany": { "minVersion": "0.131.87" }
       },
       "digests": {
         "minVersion": "0.131.75",

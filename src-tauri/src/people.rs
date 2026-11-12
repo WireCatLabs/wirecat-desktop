@@ -1440,10 +1440,10 @@ mod tests {
     }
 
     #[test]
-    fn one_company_stays_closed_until_its_memo_is_released() {
+    fn one_company_opens_with_memo_0_131_87() {
         let tool = memo().unwrap();
         assert!(!one_company_open(tool, Some("0.131.86")));
-        assert!(one_company_open(tool, Some("0.132.0")));
+        assert!(one_company_open(tool, Some("0.131.87")));
     }
 
     #[test]
