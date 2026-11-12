@@ -28,7 +28,7 @@ for Rust.
   of a loading state calls `answerAtOnce(false)` to get the real delays back. Wait for what the click starts (a focus
   move, a list) before you type or read, with the default timeouts: no `{ timeout: }` on `waitFor`, `findBy` or the
   test. A test of something that must take time uses fake timers or a small knob such as the logs' `timing`; a test
-  that waits out a crossfade calls `reduceMotion()` ([motion.ts](../../../src/testing/motion.ts)) instead. A `vi.mock`
+  that waits for a fade to end calls `reduceMotion()` ([motion.ts](../../../src/testing/motion.ts)) instead. A `vi.mock`
   of `mock-delay` in a test file has no effect: [setup.ts](../../../src/testing/setup.ts) loads the mock first.
 - Every command line in `catalog/tools.json` is checked against the tools' own command lists in
   [commands.fixture.json](../../../src/features/guides/commands.fixture.json)
