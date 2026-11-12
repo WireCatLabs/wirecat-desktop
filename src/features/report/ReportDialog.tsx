@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, LoaderCircle, LockKeyhole, Send } from "lucide-react"
+import { CircleCheck, LoaderCircle, LockKeyhole, Send } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { issueBody, LIMITS, newIssueUrl, type ReportFields, type ReportProblem, validateReport } from "@/domain/report"
@@ -13,6 +13,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure } from "@/ui/Disclosure"
+import { FieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { Monogram } from "@/ui/Logo"
 import { Select, type SelectGroup } from "@/ui/Select"
@@ -245,12 +246,7 @@ function Field({
         </p>
       )}
       {children({ id, "aria-invalid": Boolean(problem), "aria-describedby": describedBy || undefined })}
-      {problem && (
-        <p id={`${id}-error`} className="flex items-center gap-1.5 text-[0.9rem] text-bad">
-          <CircleAlert className="size-3.5 shrink-0" aria-hidden />
-          {m.missing[problem.field]}
-        </p>
-      )}
+      <FieldError id={`${id}-error`}>{problem && m.missing[problem.field]}</FieldError>
     </div>
   )
 }

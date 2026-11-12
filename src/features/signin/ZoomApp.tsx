@@ -9,10 +9,12 @@ import { OpenLink } from "@/shared/OpenLink"
 import { keptAnswer, type Need, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
+import { Collapse } from "@/ui/Collapse"
 import { CopyButton } from "@/ui/CopyButton"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { useFieldError } from "@/ui/FieldError"
 import { AnswerForm } from "./AnswerForm"
 import { signinMessages } from "./messages"
 import { setupMessages } from "./messages-setup"
@@ -220,15 +222,12 @@ function ClientIdForm() {
   const [value, setValue] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const need = useFieldError(id)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!tool || !profile) return
-    if (!value.trim()) {
-      setError(m.clientIdEmpty)
-      document.getElementById(id)?.focus()
-      return
-    }
+    if (!value.trim()) return need.fail(m.clientIdEmpty)
     setSaving(true)
     setError(null)
     try {
@@ -254,14 +253,17 @@ function ClientIdForm() {
         onChange={(e) => {
           setValue(e.target.value)
           setError(null)
+          need.clear()
         }}
-        aria-invalid={error !== null}
-        aria-describedby={`${id}-error`}
+        {...need.field}
         className={FIELD}
       />
-      <p id={`${id}-error`} role={error ? "alert" : undefined} className="min-h-[1.3rem] text-body text-bad">
-        {error}
-      </p>
+      {need.hint}
+      <Collapse open={error !== null}>
+        <p role="alert" className="selectable text-body text-bad">
+          {error}
+        </p>
+      </Collapse>
       <Button type="submit" variant="primary" disabled={saving} className="self-start" data-autofocus>
         {saving ? m.saving : m.saveAndSignIn}
       </Button>
@@ -279,15 +281,12 @@ function NoApp() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
+  const need = useFieldError(`${id}-folder`)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!tool) return
-    if (!folder.trim()) {
-      setError(wm.noApp.needFolder)
-      document.getElementById(`${id}-folder`)?.focus()
-      return
-    }
+    if (!folder.trim()) return need.fail(wm.noApp.needFolder)
     setSaving(true)
     setError(null)
     try {
@@ -325,11 +324,13 @@ function NoApp() {
             onChange={(e) => {
               setFolder(e.target.value)
               setError(null)
+              need.clear()
             }}
-            aria-invalid={error !== null}
-            aria-describedby={`${id}-hint`}
+            {...need.field}
+            aria-describedby={need.field["aria-describedby"] ?? `${id}-hint`}
             className={FIELD}
           />
+          {need.hint}
           <p id={`${id}-hint`} className="text-[0.85rem] text-ink-soft">
             {wm.noApp.folderHint}
           </p>
@@ -344,9 +345,11 @@ function NoApp() {
             onChange={(e) => setZone(e.target.value)}
             className={FIELD}
           />
-          <p role={error ? "alert" : undefined} className="min-h-[1.3rem] text-[0.9rem] text-bad">
-            {error}
-          </p>
+          <Collapse open={error !== null}>
+            <p role="alert" className="selectable text-[0.9rem] text-bad">
+              {error}
+            </p>
+          </Collapse>
           <Button type="submit" size="sm" variant="secondary" disabled={saving} className="self-start">
             {saving ? wm.noApp.saving : wm.noApp.save}
           </Button>

@@ -12,6 +12,7 @@ import { CopyButton } from "@/ui/CopyButton"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { mailMessages } from "./messages-mail"
 import { telegramMessages } from "./messages-telegram"
 
@@ -188,6 +189,7 @@ export function GoogleClient({
   const [secret, setSecret] = useState("")
   const [shown, setShown] = useState(false)
   const wrongId = clientId.trim() !== "" && !GOOGLE_CLIENT.test(clientId.trim())
+  const idNeed = useFieldError(`${id}-id`, { live: { problem: wrongId ? m.client.idWrong : null, early: true } })
   const update = (nextId: string, nextSecret: string) => {
     const good = GOOGLE_CLIENT.test(nextId.trim()) && nextSecret.trim() !== ""
     setClientFile(good ? nextId.trim() : null, good ? clientJson(nextId, nextSecret) : undefined)
@@ -239,13 +241,16 @@ export function GoogleClient({
             setClientId(e.target.value)
             update(e.target.value, secret)
           }}
-          aria-invalid={wrongId}
-          aria-describedby={`${id}-id-hint`}
+          {...idNeed.field}
+          aria-describedby={idNeed.field["aria-describedby"] ?? `${id}-id-hint`}
           className={FIELD}
         />
-        <p id={`${id}-id-hint`} className={cx("text-[0.9rem]", wrongId ? "text-bad" : "text-ink-soft")}>
-          {wrongId ? m.client.idWrong : m.client.idHint}
-        </p>
+        {idNeed.hint}
+        {idNeed.error === null && (
+          <p id={`${id}-id-hint`} className="text-[0.9rem] text-ink-soft">
+            {m.client.idHint}
+          </p>
+        )}
         <label htmlFor={`${id}-secret`} className="text-[0.9rem] font-medium text-ink">
           {m.client.secret}
         </label>

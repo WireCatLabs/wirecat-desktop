@@ -19,6 +19,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
@@ -283,14 +284,14 @@ function Suggestions(props: { group: string; sources: string[]; all: Member[]; o
 function NewGroup({ taken }: { taken: string[] }) {
   const m = useMessages(groupsMessages)
   const [name, setName] = useState("")
-  const [problem, setProblem] = useState<string | null>(null)
+  const need = useFieldError("groups-new")
   const why = { empty: m.nameEmpty, reserved: m.nameReserved, chars: m.nameChars, taken: m.nameTaken }
   const create = () => {
     const p = nameProblem(name, taken)
-    if (p) return setProblem(why[p])
+    if (p) return need.fail(why[p])
     useGroups.getState().draft(name.trim())
     setName("")
-    setProblem(null)
+    need.clear()
   }
   return (
     <form
@@ -308,21 +309,18 @@ function NewGroup({ taken }: { taken: string[] }) {
         value={name}
         maxLength={64}
         placeholder={m.newName}
-        aria-invalid={problem !== null || undefined}
-        aria-describedby={problem ? "groups-new-problem" : undefined}
+        {...need.field}
         onChange={(e) => {
           setName(e.target.value)
-          setProblem(null)
+          need.clear()
         }}
         className={cx(
-          "selectable h-[2.4rem] w-full rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
+          "selectable h-[2.4rem] w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
           fieldFocus,
-          problem ? "border-bad" : "border-line-strong",
+          invalidBorder,
         )}
       />
-      <p id="groups-new-problem" className="min-h-[1.3rem] text-[0.85rem] text-bad">
-        {problem}
-      </p>
+      {need.hint}
       <Button type="submit" size="sm" icon={<Plus className="size-4" aria-hidden />} className="self-start">
         {m.create}
       </Button>

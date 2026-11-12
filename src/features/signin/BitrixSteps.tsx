@@ -16,6 +16,7 @@ import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError } from "@/ui/FieldError"
 import { SecretField } from "@/ui/SecretField"
 import { Numbered } from "./MailSteps"
 import { type BitrixText, bitrixMessages } from "./messages-bitrix"
@@ -267,11 +268,7 @@ function LocalApp() {
           aria-describedby={planMissing === "appId" ? `${id}-id-hint` : undefined}
           className={FIELD}
         />
-        {planMissing === "appId" && (
-          <p id={`${id}-id-hint`} role="alert" className="text-[0.9rem] leading-snug text-bad">
-            {m.missingId}
-          </p>
-        )}
+        <FieldError id={`${id}-id-hint`}>{planMissing === "appId" && m.missingId}</FieldError>
         <label htmlFor={`${id}-key`} className="mt-1 text-[1.05rem] font-medium text-ink">
           {m.keyLabel}
         </label>

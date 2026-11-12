@@ -11,6 +11,7 @@ import { CopyField } from "@/ui/CopyField"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError } from "@/ui/FieldError"
 import { focusInPlace } from "@/ui/motion"
 import { noticeBox } from "@/ui/notice"
 import { SecretField } from "@/ui/SecretField"
@@ -162,11 +163,7 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
                 aria-describedby={error ? `${fid}-error` : undefined}
                 className={FIELD}
               />
-              {error && (
-                <p id={`${fid}-error`} role="alert" className="text-[0.9rem] text-bad">
-                  {error}
-                </p>
-              )}
+              <FieldError id={`${fid}-error`}>{error}</FieldError>
             </div>
           )
         })}

@@ -76,12 +76,14 @@ it("adds from all, never takes from it, and makes a new group with its first acc
   expect(await column(/^clients/).findByText("email:me@work.example")).toBeInTheDocument()
 })
 
-it("refuses a group name Memo would refuse before asking it", async () => {
+it("refuses a group name Memo would refuse before asking it, at the field, with focus in it", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue(ready)
   render(<GroupsSetting />)
   await userEvent.type(await screen.findByRole("textbox", { name: "New group" }), "all")
   await userEvent.click(screen.getByRole("button", { name: "Create" }))
-  expect(screen.getByText("All and bots already mean something else.")).toBeInTheDocument()
+  expect(screen.getByRole("alert")).toHaveTextContent("All and bots already mean something else.")
+  expect(screen.getByRole("textbox", { name: "New group" })).toHaveFocus()
+  expect(screen.getByRole("textbox", { name: "New group" })).toHaveAttribute("aria-invalid", "true")
 })
 
 it("asks for a memo update on an older memo, in the words every page uses", async () => {

@@ -16,6 +16,7 @@ import {
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { Disclosure } from "@/ui/Disclosure"
+import { useFieldError } from "@/ui/FieldError"
 import { BitrixSteps } from "./BitrixSteps"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
 import { mailMessages } from "./messages-mail"
@@ -183,6 +184,19 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
   const [password, setTyped] = useState("")
   const chosen = tool ? methodOf(tool, method) : undefined
   const askPassword = Boolean(chosen?.password) && !ownFile
+  const addressNeed = useFieldError(`${id}-address`, {
+    live: { problem: missing === "address" ? m.needAddress : null },
+  })
+  const passwordNeed = useFieldError(`${id}-password`, {
+    live: { problem: missing === "password" ? m.needPassword : null },
+  })
+  const failAddress = addressNeed.fail
+  const failPassword = passwordNeed.fail
+  // The store says what is missing when Start is pressed; the field shows it, is marked and takes focus.
+  useEffect(() => {
+    if (missing === "address") failAddress()
+    if (missing === "password") failPassword()
+  }, [missing, failAddress, failPassword])
   // The field and what the run sends stay the same: a provider switched back starts both empty. Only for a field of
   // its own: the app password step keeps what it was given.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the field appears
@@ -203,10 +217,10 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
             spellCheck={false}
             value={address}
             onChange={(e) => useSignIn.setState({ address: e.target.value, planMissing: null })}
-            aria-invalid={missing === "address"}
-            aria-describedby={missing === "address" ? `${id}-missing` : undefined}
+            {...addressNeed.field}
             className={FIELD}
           />
+          {addressNeed.hint}
         </>
       )}
       {askPassword && (
@@ -225,15 +239,12 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
               setPassword(e.target.value)
               useSignIn.setState({ planMissing: null })
             }}
-            aria-invalid={missing === "password"}
-            aria-describedby={missing === "password" ? `${id}-missing` : undefined}
+            {...passwordNeed.field}
             className={FIELD}
           />
+          {passwordNeed.hint}
         </>
       )}
-      <p id={`${id}-missing`} role={missing ? "alert" : undefined} className="min-h-[1.3rem] text-[0.9rem] text-bad">
-        {missing === "address" ? m.needAddress : missing === "password" ? m.needPassword : null}
-      </p>
     </section>
   )
 }

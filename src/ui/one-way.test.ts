@@ -37,6 +37,25 @@ describe("one component per job (docs/dev/ui-consistency.md)", () => {
     ).toEqual([])
   })
 
+  it("writes a field's error only through FieldError (rule 10)", () => {
+    // A red line that a field points at by id: a field error written by hand, without the focus move or the Collapse.
+    const handError =
+      /<(?:p|span|div)\b[^>]*\bid=[^>]*\btext-bad\b[^>]*>|<(?:p|span|div)\b[^>]*\btext-bad\b[^>]*\bid=[^>]*>/
+    expect(
+      using(handError, [
+        "ui/FieldError.tsx",
+        // A length counter that turns red; the field is not refused.
+        "features/digests/BriefCard.tsx",
+        // Live lines that switch between a hint and a problem as the owner types; not yet moved to the hook.
+        "features/query/QueryBar.tsx",
+        "features/search/QueryDraft.tsx",
+        "features/storage/BackupPassword.tsx",
+        // Its own problem order across a group of fields (data-problem), focused by the form.
+        "features/digests/ScheduleCard.tsx",
+      ]),
+    ).toEqual([])
+  })
+
   it("repeats the page frame only in Page and in the first-run setup", () => {
     expect(using(/px-\[2\.1rem\]/, ["shared/Page.tsx", "features/onboarding/Onboarding.tsx"])).toEqual([])
   })

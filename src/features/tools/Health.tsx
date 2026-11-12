@@ -20,7 +20,8 @@ import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { focusInPlace, MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
+import { useFieldError } from "@/ui/FieldError"
+import { MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { AccountRow, AccountRowPlaceholder } from "./AccountRow"
 import { useProfiles } from "./api"
@@ -280,14 +281,12 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
   const m = useMessages(toolsMessages).health
   const { tool, label = m.profileName } = props
   const [name, setName] = useState("")
-  const [tried, setTried] = useState(false)
   const valid = isValidProfile(name)
-  const problem = name === "" ? (tried ? m.nameEmpty : null) : valid ? null : m.nameInvalid
-  const refuse = () => {
-    setTried(true)
-    focusInPlace(document.getElementById(id))
-  }
   const id = `profile-${tool.id}`
+  const need = useFieldError(id, {
+    live: { problem: name === "" ? m.nameEmpty : valid ? null : m.nameInvalid, early: name !== "" },
+  })
+  const refuse = () => need.fail()
   const open = () => useTerminal.getState().open(tool.id, name)
 
   const here = signsInHere(tool)
@@ -318,8 +317,8 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
           placeholder={m.accountName}
           spellCheck={false}
           autoComplete="off"
-          aria-invalid={problem !== null}
-          aria-describedby={`${id}-hint`}
+          {...need.field}
+          aria-describedby={need.field["aria-describedby"] ?? `${id}-hint`}
           className="h-8 min-w-[9rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.875rem] text-ink aria-[invalid=true]:border-bad"
         />
         {here && (
@@ -337,11 +336,8 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
           {here ? m.openTerminal : m.openTerminalToSignIn}
         </Button>
       </div>
-      {problem ? (
-        <p id={`${id}-hint`} role="alert" className="text-[0.9rem] text-bad">
-          {problem}
-        </p>
-      ) : (
+      {need.hint}
+      {need.error === null && (
         <p id={`${id}-hint`} className="text-[0.9rem] leading-snug text-ink-soft">
           {(here ? m.nameHintHere : m.nameHintTerminal)(
             <code className="font-mono whitespace-nowrap text-ink">{setupCommand(tool, valid ? name : "<name>")}</code>,
