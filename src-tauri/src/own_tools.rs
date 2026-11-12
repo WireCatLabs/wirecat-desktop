@@ -1,4 +1,4 @@
-//! Own tools: a CLI the owner adds by its npm name, without a review by us (docs/dev/plans/2026-11-07-own-tools.md).
+//! Own tools: a CLI the owner adds by its npm name, without a review by us (docs/dev/cli-registry.md).
 //! Discovery reads npm only: the package's registry data, its provenance as `provenance.rs` reads it, and the
 //! manifest `contracts/wirecat.json` out of the tarball, checked against `dist.integrity`. Nothing from the package runs
 //! until the owner confirmed twice; then `install.rs` installs the reviewed version, the tool's `--wcat-describe` must

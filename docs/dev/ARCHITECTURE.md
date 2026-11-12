@@ -5,6 +5,24 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 
 New here? Read [the architecture report](architecture-report.md) first. Rules per kind of change are in [guides/](guides/).
 
+## Contracts with other programs
+
+Shapes that the app and a tool, or the app and a server, must both follow. Change the file first, then both sides.
+
+| With | Contract |
+| --- | --- |
+| A tool's sign-in (`session start`) | [signin-api.md](signin-api.md) |
+| A tool's sync | [sync-api.md](sync-api.md) |
+| A tool's run log (`runs list`, `runs show`) | [runs-api.md](runs-api.md) |
+| A tool's HTTP MCP server and its public address | [mcp-server-api.md](mcp-server-api.md) |
+| `wirecat-funnel`, WireCat's own Tailscale connection | [funnel-api.md](funnel-api.md) |
+| The Analytics page's counts | [analytics-api.md](analytics-api.md) |
+| memo's `digest` commands | [digests-api.md](digests-api.md) |
+| An own tool's manifest and refusals | [cli-registry.md](cli-registry.md#your-own-tools-not-checked) |
+| The WireCat API: bug reports | [report-api.md](report-api.md) |
+| The WireCat API: notifications | [notifications-api.md](notifications-api.md) |
+| The release workflow: `latest.json` for updates | [updater-api.md](updater-api.md) |
+
 ## The layers
 
 ```text
@@ -76,7 +94,7 @@ src-tauri/src/
                 before it (`stats` in the catalog), local store only. `analytics_aggregate` runs one of a tool's
                 `aggregates` (reply time, waiting on you, chat coverage, mail per day, `zm meetings list`, `memo stats
                 tasks show`); "unknown command" is shown as the update that brings it. Names shown unmasked, an exception to rule 4 like
-                search.rs: never logged or put in a report. Plan `docs/dev/plans/2026-11-02-analytics.md`.
+                search.rs: never logged or put in a report. Contract: [analytics-api.md](analytics-api.md).
   query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
                 signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
@@ -103,7 +121,7 @@ src-tauri/src/
   tailscale.rs  Tailscale Funnel for an MCP server: its state, `tailscale login`, and Funnel on and off for ports the app set up.
   funnel_helper.rs WireCat's own Tailscale connection, `wirecat-funnel` (catalog entry `funnel`, a helper the pages do
                 not list): `start`/`status`/`stop --json` and `route add|remove` of a tool's three paths, for a computer
-                without the Tailscale app. Its funnels join `tailscale_funnels`, marked `via: wirecat`.
+                without the Tailscale app. Its funnels join `tailscale_funnels`, marked `via: wirecat`. Contract: [funnel-api.md](funnel-api.md).
   tailscale_install.rs Tailscale's official installer or package, downloaded into Downloads and handed to the system.
   tailscale_linux.rs Tailscale's install commands for this Linux, from /etc/os-release and lists of known releases.
   cloudflare.rs  A Cloudflare tunnel on the owner's own domain: login, the tunnel and its DNS record, cloudflared run in the background.
@@ -249,7 +267,7 @@ src-tauri/src/
                 morning digest's `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and
                 announces a run newer than the last one it announced.
   digest_book.rs the Digests page's table: `memo digest list|add|edit|run|pause|resume|remove` (the contract in
-                docs/dev/plans/2026-11-09-people-clients-digests.md, "Digests by name"), every write with `--from-app`.
+                [digests-api.md](digests-api.md)), every write with `--from-app`.
                 A memo without `digest list` has only `morning-digest`, kept as a schedule: the page reads it through
                 digest_schedule.rs and refuses what that memo cannot do (a second digest, several times, weekdays,
                 sources, a run that is not sent) before memo runs.
@@ -278,7 +296,8 @@ src-tauri/src/
   local_only.rs Settings "Only this computer": memo's `models local-only show|set`, and where each feature sends data.
   digest_routes.rs what a digest's route form offers: tg's bots and own users, mail's mailboxes; read only.
   memory_edit.rs the owner's changes to a relationship, and decisions on many relationship proposals at once.
-  memory_preview.rs a source before it is added: a picked file read here, a web page read by memo (never by the app).
+  memory_preview.rs a source before it is added: a picked file read here, a web page read by memo (never by the app):
+                `sources preview <url> --json --no-record`; a memo without it gives no preview.
   records_import.rs Storage's import: `memo records templates show`, then `records check` and `records import` of the
                 file chosen in the system's window.
   config_repair.rs a tool's broken config file mended through its own repair command; values are never printed.

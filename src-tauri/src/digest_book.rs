@@ -1,6 +1,6 @@
 //! The Digests page's table: every digest memo keeps by name, through
-//! `memo digest list|add|edit|run|pause|resume|remove` (docs/dev/plans/2026-11-09-people-clients-digests.md,
-//! "Digests by name"; memo's own help is the source of truth).
+//! `memo digest list|add|edit|run|pause|resume|remove` (docs/dev/digests-api.md;
+//! memo's own help is the source of truth).
 //!
 //! A memo without `digest list` has one digest, `morning-digest`, kept as a schedule: the page then reads
 //! `schedule list` and writes through `schedule agent|remove|run` (`digest_schedule.rs`), and what that memo cannot do

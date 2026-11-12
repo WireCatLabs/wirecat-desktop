@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 // WireCat's own Tailscale connection: `wirecat-funnel` (WireCatLabs/funnel-cli), a tsnet helper that joins the
 // owner's tailnet as its own device and serves Funnel with no Tailscale app and no administrator rights. Desktop only
 // runs its fixed commands (rule 2) and adds or removes the tool's three paths, the same ones `tailscale.rs` mounts.
-// Plan: `docs/dev/plans/2026-11-03-funnel-helper.md`.
+// Contract: `docs/dev/funnel-api.md`.
 
 pub const ID: &str = "funnel";
 pub const START: &str = "funnel-helper-start";

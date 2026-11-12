@@ -49,7 +49,7 @@ export const MessageCountsSchema = v.variant("kind", [
 
 /**
  * What no tool can count yet, filled only by the browser build so the page's design can be judged. The real app answers
- * null and the page shows each part as arriving with an update (plan `docs/dev/plans/2026-11-02-analytics.md`).
+ * null and the page shows each part as arriving with an update.
  */
 export type AnalyticsPreview = {
   /** Tasks made and closed per week, oldest first; `week` is the Monday it starts on. */
