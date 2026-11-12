@@ -37,7 +37,7 @@ export function AgentList({ entries }: { entries: readonly AgentEntry[] }) {
           id={e.id}
           className={({ isSelected }) =>
             cx(
-              "relative flex min-h-[3.9rem] items-center gap-3 rounded-[0.45rem] border px-4 py-2 text-left transition-colors duration-(--motion-fast)",
+              "relative flex min-h-[3.9rem] items-center gap-3 rounded-inset border px-4 py-2 text-left transition-colors duration-(--motion-fast)",
               "@min-[52rem]:-mr-px @min-[52rem]:rounded-r-none @min-[52rem]:border-r-0",
               isSelected ? "z-10 border-line-strong bg-app" : "border-transparent hover:bg-app-3/60",
             )

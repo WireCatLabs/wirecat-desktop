@@ -199,7 +199,7 @@ export function Explorer() {
         )}
       </div>
       {loading && buckets.every((b) => b.total === 0) ? (
-        <Skeleton className="h-[16.2rem] w-full rounded-[0.2rem]" />
+        <Skeleton className="h-[16.2rem] w-full rounded-rack" />
       ) : measure === "tasks" && period === "all" ? (
         <p className="text-[0.9rem] text-ink-soft">{m.allTimeClosed}</p>
       ) : (
@@ -232,7 +232,7 @@ export function ExplorerSkeleton() {
           </Control>
         ))}
       </div>
-      <Skeleton className="h-[16.2rem] w-full rounded-[0.2rem]" />
+      <Skeleton className="h-[16.2rem] w-full rounded-rack" />
     </div>
   )
 }

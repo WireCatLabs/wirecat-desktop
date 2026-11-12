@@ -1,5 +1,17 @@
-import { QueryClient, queryOptions } from "@tanstack/react-query"
+import { focusManager, QueryClient, queryOptions } from "@tanstack/react-query"
 import { platform } from "@/platform/bridge"
+
+// react-query watches only whether the page is visible. The desktop window stays visible while the owner works in a
+// browser, so coming back to it is a focus event; only a query that sets refetchOnWindowFocus reads again then.
+focusManager.setEventListener((onFocus) => {
+  const back = () => onFocus()
+  window.addEventListener("focus", back)
+  document.addEventListener("visibilitychange", back)
+  return () => {
+    window.removeEventListener("focus", back)
+    document.removeEventListener("visibilitychange", back)
+  }
+})
 
 // A failed call is a tool's own answer (not installed, refused), not a dropped packet: asking again at once gives the
 // same answer later. Focus and reconnect would start tool processes the owner did not ask for.
@@ -22,9 +34,20 @@ export function resetQueryClient() {
   client = create()
 }
 
+/** Each key starts with the tool, so one invalidation can reach every answer of a tool. */
+export const toolKeys = {
+  profiles: (id: string) => ["tool", id, "profiles"] as const,
+  enrichment: (id: string) => ["tool", id, "enrichment"] as const,
+  searchHarder: (id: string) => ["tool", id, "searchHarder"] as const,
+  background: (id: string, profile: string) => ["tool", id, "background", profile] as const,
+  permissions: (id: string, profile: string | null) => ["tool", id, "permissions", profile] as const,
+  /** Every permissions answer of the tool: the defaults show through in each profile. */
+  allPermissions: (id: string) => ["tool", id, "permissions"] as const,
+}
+
 /** A tool's profiles. Several features list them, so they share one key and one answer. */
 export const profilesQuery = (id: string) =>
-  queryOptions({ queryKey: ["tool", id, "profiles"], queryFn: () => platform.listProfiles(id) })
+  queryOptions({ queryKey: toolKeys.profiles(id), queryFn: () => platform.listProfiles(id) })
 
 /**
  * A tool's profiles for a store outside React: pages that open together ask once, and a page opened within 10 s takes

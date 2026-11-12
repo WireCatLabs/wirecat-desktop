@@ -1,6 +1,8 @@
 import { useEffect } from "react"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+import { LANGUAGE_KEY } from "@/domain/storage-keys"
+import { safeStorage } from "@/shared/safe-storage"
 
 export const LANGS = ["en", "ru", "es"] as const
 export type Lang = (typeof LANGS)[number]
@@ -13,8 +15,8 @@ type LanguageState = { choice: LangChoice; set(choice: LangChoice): void }
 
 export const useLanguage = create<LanguageState>()(
   persist((set) => ({ choice: "system", set: (choice) => set({ choice }) }), {
-    name: "wirecat.language",
-    storage: createJSONStorage(() => localStorage),
+    name: LANGUAGE_KEY,
+    storage: createJSONStorage(() => safeStorage),
   }),
 )
 
@@ -28,7 +30,7 @@ export function systemLang(preferred: readonly string[] = globalThis.navigator?.
   return "en"
 }
 
-export const resolveLang = (choice: LangChoice): Lang => (choice === "system" ? systemLang() : choice)
+const resolveLang = (choice: LangChoice): Lang => (choice === "system" ? systemLang() : choice)
 export const currentLang = () => resolveLang(useLanguage.getState().choice)
 export const useLang = () => resolveLang(useLanguage((s) => s.choice))
 
@@ -69,6 +71,13 @@ export function plural(lang: Lang, n: number, forms: PluralForms): string {
   return form.replaceAll("#", formatNumber(n, lang))
 }
 
+/**
+ * Russian counts take all three forms, so none is forgotten: `pluralRu(5, ["# версия", "# версии", "# версий"])` →
+ * "5 версий". A fraction takes `few`, as Russian does.
+ */
+export const pluralRu = (n: number, [one, few, many]: readonly [string, string, string]) =>
+  plural("ru", n, { one, few, many, other: few })
+
 export const formatNumber = (n: number, lang: Lang = currentLang()) => n.toLocaleString(lang)
 
 export const formatList = (items: readonly string[], lang: Lang = currentLang()) =>
@@ -76,6 +85,3 @@ export const formatList = (items: readonly string[], lang: Lang = currentLang())
 
 export const formatDate = (at: Date | number | string, options: Intl.DateTimeFormatOptions, lang = currentLang()) =>
   new Date(at).toLocaleString(lang, options)
-
-export const formatRelative = (value: number, unit: Intl.RelativeTimeFormatUnit, lang: Lang = currentLang()) =>
-  new Intl.RelativeTimeFormat(lang, { numeric: "auto" }).format(value, unit)

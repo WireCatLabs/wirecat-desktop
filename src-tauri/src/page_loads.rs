@@ -186,6 +186,9 @@ fn search_page(visit: &str) {
 #[test]
 #[ignore = "runs the installed tools; prints timings"]
 fn page_loads() {
+    if !crate::probe::allowed() {
+        return;
+    }
     let started = Instant::now();
     let _ = paths::search_path();
     println!("login shell PATH and node checks: {} ms", started.elapsed().as_millis());

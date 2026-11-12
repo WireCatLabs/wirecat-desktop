@@ -10,6 +10,8 @@ const en = {
   done: "Done",
   copied: "Copied",
   copiedAnnounce: "Copied to the clipboard",
+  copyFailed: "Could not copy",
+  copyFailedAnnounce: "Could not copy. Select the text and copy it by hand.",
   copyRef: (ref: string) => `Copy id: ${ref}`,
   decrease: "Less",
   increase: "More",
@@ -38,6 +40,9 @@ const en = {
   pageSize: "Rows per page",
   perPage: (n: string) => `${n} per page`,
   aboutPage: (title: string) => `About ${title}`,
+  copyCommand: "Copy the command",
+  notInstalled: "Not installed",
+  turningOff: "Turning off…",
 }
 
 const ru: typeof en = {
@@ -50,6 +55,8 @@ const ru: typeof en = {
   done: "Готово",
   copied: "Скопировано",
   copiedAnnounce: "Скопировано в буфер обмена",
+  copyFailed: "Не получилось скопировать",
+  copyFailedAnnounce: "Не получилось скопировать. Выделите текст и скопируйте его вручную.",
   copyRef: (ref) => `Скопировать id: ${ref}`,
   decrease: "Меньше",
   increase: "Больше",
@@ -78,6 +85,9 @@ const ru: typeof en = {
   pageSize: "Строк на странице",
   perPage: (n) => `${n} на странице`,
   aboutPage: (title) => `О разделе «${title}»`,
+  copyCommand: "Скопировать команду",
+  notInstalled: "Не установлен",
+  turningOff: "Выключаю…",
 }
 
 const es: typeof en = {
@@ -90,6 +100,8 @@ const es: typeof en = {
   done: "Listo",
   copied: "Copiado",
   copiedAnnounce: "Copiado al portapapeles",
+  copyFailed: "No se pudo copiar",
+  copyFailedAnnounce: "No se pudo copiar. Selecciona el texto y cópialo a mano.",
   copyRef: (ref) => `Copiar id: ${ref}`,
   decrease: "Menos",
   increase: "Más",
@@ -118,6 +130,9 @@ const es: typeof en = {
   pageSize: "Filas por página",
   perPage: (n) => `${n} por página`,
   aboutPage: (title) => `Sobre ${title}`,
+  copyCommand: "Copiar el comando",
+  notInstalled: "Sin instalar",
+  turningOff: "Desactivando…",
 }
 
 export const uiMessages: Messages<typeof en> = { en, ru, es }

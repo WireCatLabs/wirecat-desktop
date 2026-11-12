@@ -1,9 +1,8 @@
-import { LoaderCircle, TriangleAlert } from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
-import { readerOff, tooOldFor } from "@/domain/memory-add"
-import type { Gap } from "@/domain/needs"
-import { isNewer } from "@/domain/status"
+import { readerOff } from "@/domain/memory-add"
+import { type Gap, gapOf } from "@/domain/needs"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { goAiModel } from "@/shared/go-ai-model"
@@ -19,6 +18,7 @@ import { Pill } from "@/ui/Pill"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { useMemoGap } from "./memo-gap"
 import { readersMessages } from "./messages-readers"
 
 /** Readers that read with an API key: the one key is set in «AI model», never here. */
@@ -29,10 +29,7 @@ const KEYED = new Set(["key", "openai", "anthropic"])
  * even when only one reader exists. memo's `ai-model` reader uses the model and key set in «AI model».
  */
 export function ReadersSetting() {
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  // Known missing only from a finished detection (kept from the last run): Settings starts no scan of its own.
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   if (!memo && !gap) return null
   // Without memo there is nothing to choose, and asking would start a failing run on every visit.
   return <Readers gap={memo ? null : gap} />
@@ -42,10 +39,12 @@ function Readers({ gap }: { gap: Gap | null }) {
   const m = useMessages(readersMessages)
   const readers = useReaders((s) => s.readers)
   const error = useReaders((s) => s.error)
+  const refusedAsOld = useReaders((s) => s.old)
   const chooseError = useReaders((s) => s.chooseError)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
   const need = findTool("memo")?.memory?.minVersion
-  const old = version !== null && need !== undefined && isNewer(need, version)
+  const fit = need ? gapOf({ anyOf: ["memo"], minVersion: need }, () => ({ version })) : null
+  const old = fit !== "unknown" && fit?.kind === "old"
   const head = useId()
   const help = useId()
 
@@ -66,7 +65,7 @@ function Readers({ gap }: { gap: Gap | null }) {
       {gap ? (
         <ToolNeeded gap={gap} inline />
       ) : error ? (
-        tooOldFor(error) ? (
+        refusedAsOld ? (
           <ToolNeeded gap={{ kind: "old", tool: "memo", version, need: null }} inline />
         ) : (
           <ErrorNotice raw={error} inline>
@@ -148,7 +147,7 @@ export function ReaderChoice({ readers, describedBy }: { readers: Reader[]; desc
             if (marked === chosen) return need.fail(m.sameReader)
             void useReaders.getState().choose(marked)
           }}
-          icon={busy === "choose" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          busy={busy === "choose"}
         >
           {m.use}
         </Button>

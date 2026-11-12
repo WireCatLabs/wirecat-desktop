@@ -1,4 +1,5 @@
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   title: "The message store needs recovery",
@@ -13,7 +14,7 @@ const en = {
   run: "Run",
   running: "Running…",
   ran: "Done",
-  copy: "Copy the command",
+  copy: uiMessages.en.copyCommand,
   yourself: "Changes the store or stops a program: run it yourself in a terminal.",
   stepFailed: (error: string) => `The step failed: ${error}`,
   healthy: "The message store passed the check. Start the timers again if you stopped them.",
@@ -34,7 +35,7 @@ const ru: typeof en = {
   run: "Выполнить",
   running: "Выполняю…",
   ran: "Готово",
-  copy: "Скопировать команду",
+  copy: uiMessages.ru.copyCommand,
   yourself: "Меняет хранилище или останавливает программу: выполните её сами в терминале.",
   stepFailed: (error) => `Шаг не удался: ${error}`,
   healthy: "Хранилище сообщений прошло проверку. Если вы останавливали таймеры, запустите их снова.",
@@ -55,7 +56,7 @@ const es: typeof en = {
   run: "Ejecutar",
   running: "Ejecutando…",
   ran: "Hecho",
-  copy: "Copiar el comando",
+  copy: uiMessages.es.copyCommand,
   yourself: "Cambia el almacén o detiene un programa: ejecútalo tú en un terminal.",
   stepFailed: (error) => `El paso falló: ${error}`,
   healthy: "El almacén de mensajes pasó la comprobación. Si paraste los temporizadores, vuelve a iniciarlos.",

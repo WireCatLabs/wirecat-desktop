@@ -1,8 +1,7 @@
-import { ArrowUpFromLine, ExternalLink, EyeOff, HardDrive, ScrollText } from "lucide-react"
+import { ArrowUpFromLine, EyeOff, HardDrive, ScrollText } from "lucide-react"
 import type { ReactNode } from "react"
 import { useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { Dialog } from "@/ui/Dialog"
 import { privacyMessages } from "./messages"
 
@@ -18,16 +17,9 @@ export function PrivacyDialog({ open, onClose }: { open: boolean; onClose: () =>
       onClose={onClose}
       scroll
       footer={
-        <button
-          type="button"
-          title={policy}
-          onClick={() => platform.openUrl(policy)}
-          {...externalHref(policy)}
-          className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-        >
+        <ExtLink href={policy} className="font-medium">
           {m.policy}
-          <ExternalLink className="size-[0.85em] shrink-0" strokeWidth={1.8} aria-hidden />
-        </button>
+        </ExtLink>
       }
     >
       <div className="flex flex-col gap-5 pb-3">
@@ -38,7 +30,7 @@ export function PrivacyDialog({ open, onClose }: { open: boolean; onClose: () =>
         </Part>
 
         <Part icon={ArrowUpFromLine} title={m.sends.title}>
-          <dl className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line bg-app-2">
+          <dl className="flex flex-col divide-y divide-line rounded-inset border border-line bg-app-2">
             {sent.map((s) => (
               <div key={s.name} className="flex flex-col gap-0.5 px-4 py-2.5">
                 <dt className="flex flex-wrap items-baseline justify-between gap-x-3">

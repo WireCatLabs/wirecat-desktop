@@ -268,7 +268,7 @@ export function parseQuery(query: string): Parsed {
 }
 
 /** Every scalar at a dotted path; arrays on the way are walked, so `codes` or `partial.failures.stage` match any. */
-export function valuesAt(run: Run, path: string): string[] {
+function valuesAt(run: Run, path: string): string[] {
   if (path === NO_COMMAND) return [String(bare(run))]
   if (path === "kind") return Array.isArray(run.operations) && run.operations.includes(STORE_WRITE) ? [STORE_KIND] : []
   let current: unknown[] = [run]
@@ -393,7 +393,7 @@ export function clientOf(run: Run): RunClient | null {
 
 export const CONVERSATION = "conversation"
 /** Runs of one app with no session, connection or trace are one conversation until this long passes with no run. */
-export const CONVERSATION_GAP_MS = 30 * 60_000
+const CONVERSATION_GAP_MS = 30 * 60_000
 
 function directConversation(run: Run): string | null {
   const agent = obj(run.agent)

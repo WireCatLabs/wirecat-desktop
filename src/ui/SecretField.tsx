@@ -34,7 +34,7 @@ export function SecretField(props: Props) {
         aria-invalid={invalid}
         aria-describedby={describedBy}
         className={cx(
-          "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 pr-10 font-mono text-[1rem] text-ink",
+          "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 pr-10 font-mono text-[1rem] text-ink",
           "disabled:opacity-60 aria-[invalid=true]:border-bad",
         )}
       />
@@ -44,7 +44,7 @@ export function SecretField(props: Props) {
         aria-pressed={shown}
         aria-label={showLabel}
         title={shown ? hideLabel : showLabel}
-        className="absolute inset-y-0 right-0 grid w-10 place-items-center rounded-r-[0.35rem] text-ink-dim hover:text-ink"
+        className="absolute inset-y-0 right-0 grid w-10 place-items-center rounded-r-control text-ink-dim hover:text-ink"
       >
         {shown ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
       </button>

@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
+import { tooOld } from "@/platform/command-error"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { errorText as message } from "./errors"
 
@@ -7,6 +8,8 @@ type ReadersState = {
   /** null until memo answers. */
   readers: Reader[] | null
   error: string | null
+  /** The error is memo refusing a command it lacks: an update fixes it. */
+  old: boolean
   busy: "choose" | null
   chooseError: string | null
   load(): Promise<void>
@@ -17,14 +20,15 @@ type ReadersState = {
 export const useReaders = create<ReadersState>((set, get) => ({
   readers: null,
   error: null,
+  old: false,
   busy: null,
   chooseError: null,
   async load() {
-    set({ error: null })
+    set({ error: null, old: false })
     try {
       set({ readers: await platform.memoryReaders() })
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: message(e), old: tooOld(e) })
     }
   },
   async choose(id) {

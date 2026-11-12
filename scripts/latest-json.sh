@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Writes latest.json from the files the release sign jobs made, after checking each updater signature with minisign
-# against the public key every installed copy trusts (D6 in docs/dev/plans/2026-11-06-windows-signing-flow.md).
+# against the public key every installed copy trusts (docs/dev/updater-api.md).
 #   scripts/latest-json.sh <folder holding release-<os> folders> <tauri.conf.json> <version> <output file>
 # RELEASE_ID set: each file must also be the asset on that draft, byte for byte, and its URL is the asset's API URL
 # (the form tauri-action wrote, which the updater downloads). DRY_RUN=true: each folder brings its own throwaway key.

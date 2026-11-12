@@ -1,7 +1,5 @@
-import { type Messages, plural } from "@/i18n"
+import { type Messages, plural, pluralRu } from "@/i18n"
 
-const ruForms = (n: number, [one, few, many]: [string, string, string]) =>
-  plural("ru", n, { one, few, many, other: few })
 const esForms = (n: number, [one, other]: [string, string]) => plural("es", n, { one, other })
 
 const en = {
@@ -9,8 +7,7 @@ const en = {
   intro:
     "Records from a spreadsheet or another system: invoices, payments, organizations and the rest. Choose a type, " +
     "download its template, fill it in, then check the file before it goes in.",
-  readingTypes: "Asking memo which records it takes",
-  tooOld: "The installed memo cannot import files. Update it in Tools, then come back.",
+  readingTypes: "Asking Memo which records it takes",
   type: "Type",
   format: "Format",
   separator: "Separator",
@@ -30,6 +27,7 @@ const en = {
   sourceInvalid: "One word with a colon, such as sheet:rentals",
   nothingToImport: "The check found nothing to change in this file.",
   fileNeeded: "Choose the file to import first.",
+  typeNeeded: "Choose a type first, then download its template.",
   sourceNeeded: "Type the source first, as provider:account, such as sheet:rentals.",
   chooseFile: "Choose file",
   noFile: "No file chosen",
@@ -70,7 +68,6 @@ const ru: typeof en = {
     "Записи из таблицы или другой системы: счета, платежи, организации и остальное. Выберите тип, скачайте его " +
     "шаблон, заполните и проверьте файл, прежде чем загружать.",
   readingTypes: "Спрашиваю memo, какие записи он принимает",
-  tooOld: "Установленный memo не умеет импортировать файлы. Обновите его в разделе «Инструменты» и вернитесь.",
   type: "Тип",
   format: "Формат",
   separator: "Разделитель",
@@ -90,6 +87,7 @@ const ru: typeof en = {
   sourceInvalid: "Одно слово с двоеточием, например sheet:rentals",
   nothingToImport: "Проверка не нашла в этом файле ничего, что нужно менять.",
   fileNeeded: "Сначала выберите файл для импорта.",
+  typeNeeded: "Сначала выберите тип, затем скачайте его шаблон.",
   sourceNeeded: "Сначала введите источник в виде провайдер:аккаунт, например sheet:rentals.",
   chooseFile: "Выбрать файл",
   noFile: "Файл не выбран",
@@ -100,7 +98,7 @@ const ru: typeof en = {
   checkFirst: "Сначала проверьте файл. До импорта ничего не записывается.",
   checkedClean: "Проверка ошибок не нашла. Импорт запишет эти записи.",
   checkedRefused: (n) =>
-    `${ruForms(n, ["# запись не принята", "# записи не приняты", "# записей не принято"])} и будут пропущены. ` +
+    `${pluralRu(n, ["# запись не принята", "# записи не приняты", "# записей не принято"])} и будут пропущены. ` +
     "Исправьте файл и проверьте снова или импортируйте остальное.",
   failed: (why) => `memo не смог прочитать файл: ${why}`,
   done: "Импортировано.",
@@ -120,7 +118,7 @@ const ru: typeof en = {
   waitingList: "Сохранены, ждут то, на что ссылаются",
   waitingFor: (missing) => `нужно: ${missing}`,
   proposed: (n) =>
-    `${ruForms(n, ["# изменение ждёт", "# изменения ждут", "# изменений ждут"])} вашей проверки в разделе «Память».`,
+    `${pluralRu(n, ["# изменение ждёт", "# изменения ждут", "# изменений ждут"])} вашей проверки в разделе «Память».`,
   truncated: "Список обрезан; счётчики учитывают весь файл.",
 }
 
@@ -130,7 +128,6 @@ const es: typeof en = {
     "Registros de una hoja de cálculo o de otro sistema: facturas, pagos, organizaciones y el resto. Elige un tipo, " +
     "descarga su plantilla, rellénala y comprueba el archivo antes de importarlo.",
   readingTypes: "Preguntando a memo qué registros acepta",
-  tooOld: "El memo instalado no puede importar archivos. Actualízalo en Herramientas y vuelve.",
   type: "Tipo",
   format: "Formato",
   separator: "Separador",
@@ -150,6 +147,7 @@ const es: typeof en = {
   sourceInvalid: "Una palabra con dos puntos, por ejemplo sheet:rentals",
   nothingToImport: "La comprobación no encontró nada que cambiar en este archivo.",
   fileNeeded: "Elige primero el archivo que importar.",
+  typeNeeded: "Elige primero un tipo y luego descarga su plantilla.",
   sourceNeeded: "Escribe primero el origen como proveedor:cuenta, por ejemplo sheet:rentals.",
   chooseFile: "Elegir archivo",
   noFile: "Ningún archivo elegido",

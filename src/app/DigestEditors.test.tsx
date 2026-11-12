@@ -1,6 +1,5 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useDigestBook, useDigests } from "@/features/digests"
 import { editorMessages } from "@/features/digests/messages-editors"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -9,16 +8,6 @@ import { App } from "./App"
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })
-  useDigestBook.setState({
-    book: null,
-    error: null,
-    busy: {},
-    failed: null,
-    remembered: null,
-    open: null,
-    backfill: null,
-  })
-  useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
 })
 
@@ -28,7 +17,7 @@ async function openCard(name: string) {
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole("button", { name: /Digests/ }))
-  await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
+  await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
   const card = await screen.findByRole("region", { name })
   return { user, card }
 }
@@ -54,7 +43,7 @@ describe("what the digest collects", () => {
     await user.click(back)
     expect(undo).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(brief).toHaveValue(editorMessages.en.brief.template.daily))
-  }, 15000)
+  })
 
   it("shows memo's own words when it refuses the brief", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: null })
@@ -67,7 +56,7 @@ describe("what the digest collects", () => {
     expect(await within(card).findByRole("alert")).toHaveTextContent(
       "Not saved: only the owner changes the digest brief, not an agent",
     )
-  }, 15000)
+  })
 
   it("stops a brief over the limit before it reaches memo", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: "x".repeat(4000), chars: 4000 })
@@ -80,7 +69,7 @@ describe("what the digest collects", () => {
     await user.click(within(card).getByRole("button", { name: "Save" }))
     expect(save).not.toHaveBeenCalled()
     expect(brief).toHaveFocus()
-  }, 15000)
+  })
 
   it("keeps Save clickable on an unchanged or empty brief and says why at the field", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: "News only", chars: 9 })
@@ -92,14 +81,14 @@ describe("what the digest collects", () => {
     await user.clear(brief)
     expect(brief).toHaveAccessibleDescription(/Write what to collect first/)
     expect(save).not.toHaveBeenCalled()
-  }, 15000)
+  })
 
   it("asks for a memo update when this memo has no brief", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ state: "unsupported" })
     const { card } = await openCard("What to collect")
     expect(await within(card).findByText(/Update Memo on the Tools page to write them/)).toBeInTheDocument()
     expect(within(card).queryByRole("textbox")).not.toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 describe("how the digest looks", () => {
@@ -127,7 +116,7 @@ describe("how the digest looks", () => {
     await user.click(within(card).getByRole("button", { name: "Reset to default" }))
     expect(reset).toHaveBeenCalledWith("telegram", "en", undefined)
     expect(await within(card).findByText("The built-in template")).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("reads the template of the channel and language picked", async () => {
     const read = vi.spyOn(platform, "digestTemplate")
@@ -141,7 +130,7 @@ describe("how the digest looks", () => {
         '<div style="font-family',
       ),
     )
-  }, 15000)
+  })
 
   it("shows memo's check when it refuses a template", async () => {
     vi.spyOn(platform, "digestTemplateSave").mockRejectedValue(
@@ -151,11 +140,11 @@ describe("how the digest looks", () => {
     await user.type(await within(card).findByRole("textbox", { name: "Template" }), "{{%")
     await user.click(within(card).getByRole("button", { name: "Save" }))
     expect(await within(card).findByRole("alert")).toHaveTextContent('tag "for" not closed')
-  }, 15000)
+  })
 
   it("asks for a memo update when this memo has no templates", async () => {
     vi.spyOn(platform, "digestTemplate").mockResolvedValue({ state: "unsupported" })
     const { card } = await openCard("How it looks")
     expect(await within(card).findByText(/Update Memo on the Tools page to edit them/)).toBeInTheDocument()
-  }, 15000)
+  })
 })

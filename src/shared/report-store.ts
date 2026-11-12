@@ -3,6 +3,7 @@ import { type ReportFields, reportDetails, reportTool } from "@/domain/report"
 import { platform } from "@/platform/bridge"
 import type { ReportContext, ReportSent } from "@/platform/report-schemas"
 import type { AppError } from "@/shared/errors"
+import { errorText } from "./errors"
 
 /**
  * What the place that opened the report already knows: the tool, a first line, the steps, a masked log if any, and
@@ -34,8 +35,6 @@ type ReportState = {
   send(fields: ReportFields): Promise<void>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /**
  * The private part of a report: recent failed runs, plus the install log when a failed install opened it and the
  * window's recent errors when an error did.
@@ -63,7 +62,7 @@ export const useReport = create<ReportState>((set, get) => ({
     set({ open: true, prefill, context: null, contextError: null, phase: "edit", sent: null, error: null, key })
     platform.reportContext().then(
       (context) => get().key === key && set({ context }),
-      (e) => get().key === key && set({ contextError: message(e) }),
+      (e) => get().key === key && set({ contextError: errorText(e) }),
     )
   },
 
@@ -86,7 +85,7 @@ export const useReport = create<ReportState>((set, get) => ({
       )
       set({ phase: "sent", sent })
     } catch (e) {
-      set({ phase: "failed", error: message(e) })
+      set({ phase: "failed", error: errorText(e) })
     }
   },
 }))

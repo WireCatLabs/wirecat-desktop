@@ -7,6 +7,7 @@ import { platform } from "@/platform/bridge"
 import { useCompat } from "@/shared/compat-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { ToolRow } from "./ToolRow"
 
@@ -36,6 +37,7 @@ it("opens a row on a click and on Enter, but not when a drag over its text ends 
 })
 
 it("opens a row while the tool check is still running (BUG-24)", async () => {
+  answerAtOnce(false)
   render(<App />)
   const list = await screen.findByRole("list", { name: "WireCat tools" })
   const header = within(list).getByRole("button", { name: /^Telegram/ })
@@ -213,4 +215,17 @@ it("installs without asking when the check finds nothing", async () => {
   fireEvent.click(await within(row).findByRole("button", { name: "Install" }))
   await waitFor(() => expect(install).toHaveBeenCalledWith("drive", expect.any(Function)))
   expect(within(row).queryByRole("alert")).toBeNull()
+})
+
+it("gives an open tool's panel one purple button, with an account to sync and one to reconnect", async () => {
+  render(<App />)
+  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const header = within(list).getByRole("button", { name: /^Telegram/ })
+  const row = header.closest("li") as HTMLElement
+  await within(row).findByRole("button", { name: "Manage" })
+  fireEvent.click(header)
+  await within(row).findByRole("button", { name: /^Sync .* now$/ })
+  await within(row).findByRole("button", { name: "Reconnect" })
+  const primary = row.querySelectorAll('[data-variant="primary"]')
+  expect([...primary].map((b) => b.textContent)).toEqual(["Sign in here"])
 })

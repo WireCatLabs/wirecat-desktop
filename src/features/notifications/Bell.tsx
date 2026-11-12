@@ -1,9 +1,9 @@
-import { Bell as BellIcon, CircleArrowUp, ExternalLink, Megaphone, ShieldAlert, X } from "lucide-react"
+import { Bell as BellIcon, CircleArrowUp, Megaphone, ShieldAlert, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
+import { ago } from "@/i18n/ago"
 import type { Localized, Notification } from "@/platform/notifications-schemas"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { focusInPlace, reducedMotion } from "@/ui/motion"
@@ -17,11 +17,7 @@ const CLOSE_MS = 150
 
 function when(iso: string, lang: Lang, now = Date.now()) {
   const at = Date.parse(iso)
-  const ago = now - at
-  const rel = new Intl.RelativeTimeFormat(lang, { numeric: "auto" })
-  if (ago < 3_600_000) return rel.format(-Math.max(1, Math.round(ago / 60_000)), "minute")
-  if (ago < DAY) return rel.format(-Math.round(ago / 3_600_000), "hour")
-  if (ago < 7 * DAY) return rel.format(-Math.round(ago / DAY), "day")
+  if (now - at < 7 * DAY) return ago(iso, now, lang)
   return new Intl.DateTimeFormat(lang, { day: "numeric", month: "short", year: "numeric" }).format(at)
 }
 
@@ -90,7 +86,7 @@ export function Bell() {
         aria-controls={open ? panelId : undefined}
         onClick={() => useNotifications.getState().toggle()}
         className={cx(
-          "relative grid size-[2.2rem] place-items-center rounded-[0.4rem] text-ink-soft hover:bg-app-3 hover:text-ink",
+          "relative grid size-[2.2rem] place-items-center rounded-button text-ink-soft hover:bg-app-3 hover:text-ink",
           open && "bg-app-3 text-ink",
         )}
       >
@@ -133,7 +129,7 @@ function Panel({ id, leaving }: { id: string; leaving: boolean }) {
       aria-hidden={leaving || undefined}
       inert={leaving || undefined}
       className={cx(
-        "absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-[0.6rem] border border-line bg-app shadow-panel",
+        "absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-dialog border border-line bg-app shadow-panel",
         leaving
           ? "pointer-events-none animate-[dialog-out_var(--motion-exit)_var(--ease-out-quart)_forwards]"
           : "motion-safe:animate-[select-in_160ms_var(--ease-out-quart)]",
@@ -224,16 +220,9 @@ function Item({
             </p>
           ))}
         {n.link && (
-          <button
-            type="button"
-            title={n.link.url}
-            onClick={() => n.link && platform.openUrl(n.link.url)}
-            {...externalHref(n.link.url)}
-            className="mt-[0.55rem] inline-flex items-center gap-1 font-medium text-[0.95rem] text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-          >
+          <ExtLink href={n.link.url} className="mt-[0.55rem] text-[0.95rem] font-medium">
             {text(n.link.label, lang) || n.link.url}
-            <ExternalLink className="size-[0.85em] shrink-0" strokeWidth={1.8} aria-hidden />
-          </button>
+          </ExtLink>
         )}
       </div>
       <button
@@ -241,7 +230,7 @@ function Item({
         aria-label={m.dismiss(title)}
         title={m.dismiss(title)}
         onClick={onDismiss}
-        className="grid size-[1.9rem] shrink-0 place-items-center self-start rounded-[0.35rem] text-ink-dim opacity-60 hover:bg-app-3 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+        className="grid size-[1.9rem] shrink-0 place-items-center self-start rounded-control text-ink-dim opacity-60 hover:bg-app-3 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
       >
         <X className="size-[1rem]" strokeWidth={1.8} aria-hidden />
       </button>

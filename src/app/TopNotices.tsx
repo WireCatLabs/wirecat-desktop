@@ -1,6 +1,6 @@
-import { AlertTriangle, ExternalLink, X } from "lucide-react"
+import { AlertTriangle, X } from "lucide-react"
 import { useLang, useMessages } from "@/i18n"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { shownNotices, type TopNotice, useNotices } from "@/shared/notices-store"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -25,7 +25,7 @@ export function TopNotices() {
 function Notice({ notice: n }: { notice: TopNotice }) {
   const lang = useLang()
   const m = useMessages(appMessages)
-  const { dismiss, openLink } = useNotices.getState()
+  const { dismiss } = useNotices.getState()
   return (
     <li
       role="status"
@@ -42,16 +42,9 @@ function Notice({ notice: n }: { notice: TopNotice }) {
       <p className="selectable min-w-0 flex-1 text-ink leading-relaxed">
         {n.text[lang]}
         {n.link && (
-          <button
-            type="button"
-            title={n.link.url[lang]}
-            onClick={() => n.link && openLink(n.link.url[lang])}
-            {...externalHref(n.link.url[lang])}
-            className="ml-[0.5rem] inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-          >
+          <ExtLink href={n.link.url[lang]} className="ml-[0.5rem] font-medium">
             {n.link.label[lang]}
-            <ExternalLink className="size-[0.85em] shrink-0" strokeWidth={1.8} aria-hidden />
-          </button>
+          </ExtLink>
         )}
       </p>
       <button
@@ -59,7 +52,7 @@ function Notice({ notice: n }: { notice: TopNotice }) {
         aria-label={m.hideNotice}
         title={m.hideNotice}
         onClick={() => dismiss(n)}
-        className="grid size-[1.8rem] shrink-0 place-items-center rounded-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+        className="grid size-[1.8rem] shrink-0 place-items-center rounded-control text-ink-dim hover:bg-app-3 hover:text-ink"
       >
         <X className="size-[1rem]" strokeWidth={1.8} aria-hidden />
       </button>

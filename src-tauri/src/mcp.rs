@@ -19,8 +19,6 @@ enum Registry {
 struct AgentMcp {
     id: &'static str,
     registry: Registry,
-    /// The `mcp add` client name the `WireCat` tools register with, when they can.
-    client: Option<&'static str>,
     /// The agent's own command that removes a user-level server; `{name}` is a validated `WireCat` server name.
     remove: Option<(&'static str, &'static [&'static str])>,
 }
@@ -30,40 +28,30 @@ const AGENTS: [AgentMcp; 7] = [
     AgentMcp {
         id: "claude",
         registry: Registry::File { path: ".claude.json", key: "mcpServers" },
-        client: Some("claude-code"),
         remove: Some(("claude", &["mcp", "remove", "{name}", "--scope", "user"])),
     },
     AgentMcp {
         id: "codex",
         registry: Registry::Command { program: "codex", args: &["mcp", "list", "--json"] },
-        client: Some("codex"),
         remove: Some(("codex", &["mcp", "remove", "{name}"])),
     },
-    AgentMcp {
-        id: "cursor",
-        registry: Registry::File { path: ".cursor/mcp.json", key: "mcpServers" },
-        client: None,
-        remove: None,
-    },
+    AgentMcp { id: "cursor", registry: Registry::File { path: ".cursor/mcp.json", key: "mcpServers" }, remove: None },
     AgentMcp {
         id: "gemini",
         registry: Registry::File { path: ".gemini/settings.json", key: "mcpServers" },
-        client: None,
         remove: None,
     },
     AgentMcp {
         id: "opencode",
         registry: Registry::File { path: ".config/opencode/opencode.json", key: "mcp" },
-        client: None,
         remove: None,
     },
     AgentMcp {
         id: "hermes",
         registry: Registry::Unread { place: "mcp_servers in ~/.hermes/config.yaml" },
-        client: None,
         remove: None,
     },
-    AgentMcp { id: "openclaw", registry: Registry::Unread { place: "openclaw mcp list" }, client: None, remove: None },
+    AgentMcp { id: "openclaw", registry: Registry::Unread { place: "openclaw mcp list" }, remove: None },
 ];
 
 fn agent(id: &str) -> Result<&'static AgentMcp, String> {
@@ -77,8 +65,6 @@ pub struct Registrations {
     pub source: String,
     /// Only names a `WireCat` tool would register: `<bin>` or `<bin>-<profile>`.
     pub names: Vec<String>,
-    /// Whether the tools' own `mcp add` can register with this agent.
-    pub can_add: bool,
     pub can_remove: bool,
     /// Set when the app does not read this agent's servers: where the owner can look instead.
     pub unread: Option<&'static str>,
@@ -104,7 +90,6 @@ fn wirecat_names(keys: impl Iterator<Item = String>) -> Vec<String> {
 pub fn registrations(id: &str) -> Result<Registrations, String> {
     let a = agent(id)?;
     let can_remove = a.remove.is_some_and(|(program, _)| paths::find(program).is_some());
-    let can_add = a.client.is_some() && can_remove;
     match &a.registry {
         Registry::File { path, key } => {
             let home = paths::home().ok_or("no home folder")?;
@@ -112,7 +97,6 @@ pub fn registrations(id: &str) -> Result<Registrations, String> {
             Ok(Registrations {
                 source: format!("~/{path}"),
                 names: wirecat_names(keys_in(&file, key)?.into_iter()),
-                can_add,
                 can_remove,
                 unread: None,
             })
@@ -124,15 +108,11 @@ pub fn registrations(id: &str) -> Result<Registrations, String> {
                 .map_err(|e| e.to_string())?;
             let list = out.json().filter(|_| out.code == Some(0)).ok_or_else(|| failure(&out, None))?;
             let keys = list.as_array().into_iter().flatten().filter_map(|s| s["name"].as_str().map(str::to_string));
-            Ok(Registrations { source, names: wirecat_names(keys), can_add, can_remove, unread: None })
+            Ok(Registrations { source, names: wirecat_names(keys), can_remove, unread: None })
         }
-        Registry::Unread { place } => Ok(Registrations {
-            source: (*place).to_string(),
-            names: Vec::new(),
-            can_add,
-            can_remove,
-            unread: Some(place),
-        }),
+        Registry::Unread { place } => {
+            Ok(Registrations { source: (*place).to_string(), names: Vec::new(), can_remove, unread: Some(place) })
+        }
     }
 }
 
@@ -215,10 +195,13 @@ mod tests {
     #[test]
     #[ignore = "reads the agents' settings on this computer"]
     fn real_mcp() {
+        if !crate::probe::allowed() {
+            return;
+        }
         for a in &AGENTS {
             match registrations(a.id) {
                 Ok(r) => {
-                    println!("{}: {} via {} add={} remove={}", a.id, r.names.len(), r.source, r.can_add, r.can_remove);
+                    println!("{}: {} via {} remove={}", a.id, r.names.len(), r.source, r.can_remove);
                 }
                 Err(e) => println!("{}: error {e}", a.id),
             }

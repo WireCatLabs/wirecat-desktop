@@ -1,12 +1,14 @@
-import { Check, CheckCheck, LoaderCircle, Sparkles } from "lucide-react"
+import { Check, CheckCheck, Sparkles } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { crmsOf, crmToOpen, mapColumnsOf, mapDropOf, UNMAPPED, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import type { Kind } from "@/domain/clients"
-import { tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { CrmStageMap } from "@/platform/bindings"
+import { tooOld } from "@/platform/command-error"
 import { goAiModel } from "@/shared/go-ai-model"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { Board, BoardColumn, DragCopy, useBoardDrag, useSlide } from "@/ui/Board"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -44,25 +46,27 @@ function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
   const error = suggest.error ? message(suggest.error) : null
   const reason = error && /^(ai|stage)\.[\w.-]+$/.test(error) ? error : null
   const done = suggest.data
+  const version = useTools((st) => st.installs.memo?.[0]?.version ?? null)
   return (
     <>
       <Button
         size="sm"
-        disabled={busy || suggest.isPending}
-        icon={
-          suggest.isPending ? (
-            <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
-          ) : (
-            <Sparkles className="size-4" aria-hidden />
-          )
-        }
+        disabled={busy}
+        busy={suggest.isPending}
+        icon={<Sparkles className="size-4" aria-hidden />}
         onClick={() => suggest.mutate()}
       >
         {suggest.isPending ? s.suggesting : s.suggest}
       </Button>
       <span className="text-[0.85rem] text-ink-dim">{s.suggestHint}</span>
       <Collapse open={done !== undefined || error !== null}>
-        {error ? (
+        {tooOld(suggest.error) ? (
+          <ToolNeeded
+            inline
+            gap={{ kind: "old", tool: "memo", version, need: null }}
+            onGo={() => useClients.getState().openMap(null)}
+          />
+        ) : error ? (
           <ErrorNotice
             inline
             raw={error}
@@ -74,7 +78,7 @@ function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
               ) : undefined
             }
           >
-            {tooOldFor(error) ? s.suggestOld : ((reason && s.suggestWhy[reason]) ?? s.suggestFailed)}
+            {(reason && s.suggestWhy[reason]) ?? s.suggestFailed}
           </ErrorNotice>
         ) : (
           done && (
@@ -305,7 +309,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               {refs.length === 0 && b && (
                 <li
                   className={cx(
-                    "rounded-[0.45rem] border border-dashed px-[0.75rem] py-[1.1rem] text-center text-[0.9rem] transition-colors duration-(--motion-fast)",
+                    "rounded-inset border border-dashed px-[0.75rem] py-[1.1rem] text-center text-[0.9rem] transition-colors duration-(--motion-fast)",
                     drag?.to === id ? "border-brand/60 bg-brand-soft/50 text-ink" : "border-line-strong text-ink-dim",
                   )}
                 >
@@ -327,7 +331,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                           key={x.ref}
                           data-slide={x.ref}
                           className={cx(
-                            "rounded-[0.45rem] border bg-app transition-[border-color,box-shadow] duration-(--motion-fast)",
+                            "rounded-inset border bg-app transition-[border-color,box-shadow] duration-(--motion-fast)",
                             drag?.key === x.ref
                               ? "border-line-strong border-dashed bg-app-3 [&>*]:invisible"
                               : "border-line hover:border-line-strong",
@@ -347,7 +351,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                             onPointerDown={(e) => onPointerDown(e, x.ref)}
                             onKeyDown={(e) => onKeyDown(e, x.ref)}
                             onClick={() => onClick(x.ref)}
-                            className="flex cursor-grab touch-none items-baseline gap-[0.45rem] rounded-[0.45rem] px-[0.7rem] py-[0.5rem] text-[0.95rem] leading-snug text-ink select-none [-webkit-user-select:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+                            className="flex cursor-grab touch-none items-baseline gap-[0.45rem] rounded-inset px-[0.7rem] py-[0.5rem] text-[0.95rem] leading-snug text-ink select-none [-webkit-user-select:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
                           >
                             <StageBadge stage={x} kind={kind} />
                           </span>
@@ -361,7 +365,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                                 data-suggest={x.ref}
                                 disabled={busy}
                                 onClick={() => mapTo(x.ref, to.ref, nextAfter(x.ref))}
-                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
+                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-pill bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
                               >
                                 <Check className="size-[0.9rem] shrink-0" strokeWidth={2.4} aria-hidden />
                                 <span className="truncate">{names.stage(to.name)}</span>

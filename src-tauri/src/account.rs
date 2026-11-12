@@ -3,6 +3,7 @@
 //! older one only signs out with `session end`, which keeps everything else.
 
 use crate::catalog::{self, Tool};
+use crate::install::Running;
 use crate::{paths, redact, skills};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -130,6 +131,25 @@ pub enum RemovalHolder {
     SignIn,
 }
 
+/// What holds this account in the app now: its sync, an install or update of its package, or a sign-in.
+pub fn holder(tool: &'static Tool, profile: &str, running: &Running) -> Option<RemovalHolder> {
+    if running.busy(&crate::sync::key(tool, Some(profile))) {
+        Some(RemovalHolder::Sync)
+    } else if running.busy(&catalog::owner(tool).id) {
+        Some(RemovalHolder::Install)
+    } else if running.busy(&crate::signin::key(&tool.id)) {
+        Some(RemovalHolder::SignIn)
+    } else {
+        None
+    }
+}
+
+pub const HELD: &str = "Something else runs for this account, such as a sync. Stop it first.";
+
+pub fn held(holder: RemovalHolder) -> AccountRemoval {
+    AccountRemoval::Refused { reason: RemovalRefusal::Busy, holder: Some(holder), message: HELD.into() }
+}
+
 /// The fallback for a tool without `account remove`: its own sign-out, which keeps the account's data and its name.
 pub fn sign_out(tool: &Tool, profile: &str) -> Result<AccountRemoved, String> {
     let src = tool.account_remove.as_ref().ok_or_else(|| format!("{} cannot remove an account", tool.name))?;
@@ -179,9 +199,9 @@ fn answer(out: &crate::run::Output, json: Option<&Value>) -> AccountRemoval {
     }
     let message = skills::failure(out, json);
     let error = json.map(|v| &v["error"]);
-    let reason = error.and_then(|e| e["reason"].as_str().or_else(|| e["details"]["reason"].as_str()));
+    let reason = skills::reason(json);
     let unknown = format!("{message}\n{}", out.stderr).to_lowercase();
-    if unknown.contains("unknown command") || unknown.contains("unknown option") {
+    if crate::memo_cli::unknown_to_cli(&unknown) {
         return AccountRemoval::TooOld;
     }
     let refusal = match reason.unwrap_or_default() {
@@ -253,6 +273,22 @@ mod tests {
     use super::*;
     use crate::run::Output;
     use serde_json::json;
+
+    #[test]
+    fn an_account_is_held_by_its_sync_its_package_s_install_or_its_sign_in() {
+        let tg = catalog::tool("tg").unwrap();
+        let running = Running::default();
+        assert_eq!(holder(tg, "work", &running), None);
+        for (key, held_by) in [
+            (crate::signin::key("tg"), RemovalHolder::SignIn),
+            ("tg".to_string(), RemovalHolder::Install),
+            (crate::sync::key(tg, Some("work")), RemovalHolder::Sync),
+        ] {
+            assert!(running.start(&key));
+            assert_eq!(holder(tg, "work", &running), Some(held_by));
+            running.finish(&key);
+        }
+    }
 
     fn output(code: i32, v: &Value) -> Output {
         let (stdout, stderr) = if code == 0 { (v.to_string(), String::new()) } else { (String::new(), v.to_string()) };

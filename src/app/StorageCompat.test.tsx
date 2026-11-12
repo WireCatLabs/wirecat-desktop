@@ -20,14 +20,12 @@ describe("Tools and the shared storage", () => {
   it("says which installed tools can't read storage, and why", async () => {
     render(<App />)
 
-    expect(
-      await screen.findByText(/2 tools need an update to read storage: WhatsApp and Memo/, {}, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/2 tools need an update to read storage: WhatsApp and Memo/)).toBeInTheDocument()
     expect(screen.getByText(/Zoom can't say yet/)).toBeInTheDocument()
     const wa = await row(/WhatsApp/)
     expect(await within(wa).findByText("Can't read storage (schema 33). Update WhatsApp.")).toBeInTheDocument()
     expect(within(wa).getByRole("img", { name: /Can't read storage/ })).toBeInTheDocument()
-  }, 10000)
+  })
 
   it("**warns before an updated tool's next run strands others, and queues their updates**", async () => {
     const latest = await platform.latestVersions()
@@ -42,19 +40,13 @@ describe("Tools and the shared storage", () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.click(
-      await within(await row(/WhatsApp/)).findByRole("button", { name: "Update to 0.7.0" }, { timeout: 4000 }),
-    )
+    await user.click(await within(await row(/WhatsApp/)).findByRole("button", { name: "Update to 0.7.0" }))
 
-    const dialog = await screen.findByRole(
-      "dialog",
-      { name: "WhatsApp 0.7.0 will move storage to schema 34" },
-      { timeout: 8000 },
-    )
+    const dialog = await screen.findByRole("dialog", { name: "WhatsApp 0.7.0 will move storage to schema 34" })
     expect(within(dialog).getByText(/Telegram and MAX can't read schema 34/)).toBeInTheDocument()
     expect(within(dialog).getByText(/No newer Telegram is out yet/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Update MAX too" }))
 
     expect(await within(await row(/MAX/)).findByRole("button", { name: "Cancel" })).toBeInTheDocument()
-  }, 20000)
+  })
 })

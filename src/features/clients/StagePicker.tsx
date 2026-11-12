@@ -60,7 +60,7 @@ export function StagePicker(props: {
               group="clients-stage-pick"
               checked={stage === name}
               onChange={() => setChoice(name)}
-              autoFocus={stage === name}
+              first={stage === name}
             >
               {name}
               {name === remembered && <span className="text-[0.85rem] text-ink-dim">{s.lastPicked}</span>}

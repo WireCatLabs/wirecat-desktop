@@ -4,7 +4,7 @@ import { type CatalogTool, ownerId, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { agentsReading } from "@/domain/skills"
 import { type DataDeletion, type InstallOutcome, type InstallSession, type SkillRefresh, STEPS } from "@/domain/status"
-import { FixButton, FixPanel } from "@/features/fix"
+import { FixPanel } from "@/features/fix"
 import { formatList, useMessages } from "@/i18n"
 import { useAgents } from "@/shared/agents-store"
 import { useNav } from "@/shared/nav"
@@ -16,7 +16,8 @@ import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Stepper, type StepState } from "@/ui/Stepper"
-import { failureWords, failureWordsEn, useFailureMessages } from "./failure-words"
+import { failureWords, useFailureMessages } from "./failure-words"
+import { InstallFailure, installProblem } from "./InstallFailure"
 import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { AlongsideLine, PreflightNotice } from "./PreflightNotice"
@@ -137,17 +138,11 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
               )}
 
               <div key={outcome?.event ?? "running"} className="reveal ml-auto flex gap-2">
-                {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-                  <ReportThis
-                    what={`${session.operation === "install" ? "Installing" : "Uninstalling"} ${tool.name}`}
-                    tool={tool.id}
-                    error={[outcome.message, outcome.hint].filter(Boolean).join(" ")}
-                    log={session.log.slice(-200)}
-                  />
-                )}
-                {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-                  <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
-                )}
+                <InstallFailure
+                  tool={tool}
+                  session={session}
+                  fix={{ open: fixOpen, id: fixId, toggle: () => setFixOpen((o) => !o) }}
+                />
                 {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
                   <Button
                     size="sm"
@@ -187,16 +182,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
           </AutoHeight>
 
           {outcome?.event === "failed" && (
-            <FixPanel
-              id={fixId}
-              open={fixOpen}
-              problem={{
-                what: `${session.operation === "install" ? "Installing" : "Uninstalling"} ${tool.name} (${tool.package})`,
-                error: failureWordsEn(outcome, session.operation)[0],
-                hint: failureWordsEn(outcome, session.operation)[1],
-                log: session.log,
-              }}
-            />
+            <FixPanel id={fixId} open={fixOpen} problem={installProblem(tool, session, outcome)} />
           )}
           <Collapse open={showLog}>
             <Log lines={session.log} m={m} />
@@ -265,7 +251,7 @@ function Log({ lines, m }: { lines: string[]; m: Words }) {
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
       tabIndex={0}
       aria-label={m.log}
-      className="selectable mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-[0.4rem] [overflow-wrap:anywhere] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft"
+      className="selectable mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-button [overflow-wrap:anywhere] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft"
     >
       {lines.length ? lines.join("\n") : m.waitingOutput}
     </pre>

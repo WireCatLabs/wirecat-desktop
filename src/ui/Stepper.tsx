@@ -64,7 +64,7 @@ export function Stepper({ steps, rail = false }: { steps: readonly Step[]; rail?
                 type="button"
                 onClick={s.onSelect}
                 className={cx(
-                  "rounded-[0.2rem] text-inherit underline-offset-2 hover:text-ink hover:underline",
+                  "rounded-rack text-inherit underline-offset-2 hover:text-ink hover:underline",
                   rail && "md:text-left",
                 )}
               >

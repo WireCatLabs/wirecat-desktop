@@ -2,27 +2,25 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useGroups } from "@/features/groups"
 import { platform } from "@/platform/bridge"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { PeoplePage } from "./PeoplePage"
 import { usePeople } from "./store"
 
 // The mock store outlives each test, so these tests spy where a later one must not see an earlier decision.
 type User = ReturnType<typeof userEvent.setup>
-const table = () => screen.findByRole("table", { name: "Contacts" }, { timeout: 4000 })
+const table = () => screen.findByRole("table", { name: "Contacts" })
 const openPerson = async (user: User, name: string) => {
   await user.click(within(await table()).getAllByRole("button", { name })[0] as HTMLElement)
   return screen.findByRole("dialog", { name })
 }
 const openMatches = async (user: User) => {
-  await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+  await user.click(await screen.findByRole("button", { name: "Review matches" }))
   const region = await screen.findByRole("region", { name: "Possible duplicates" })
   await within(region).findAllByRole("article")
   return region
 }
 /** A card is drawn before its people load, under «No name yet», so its name comes later. */
-const openMatch = async (user: User, name: string) =>
-  within(await openMatches(user)).findByRole("article", { name }, { timeout: 4000 })
+const openMatch = async (user: User, name: string) => within(await openMatches(user)).findByRole("article", { name })
 
 /** A listed person as a memo older than kinds gives it. */
 const older = {
@@ -41,7 +39,6 @@ const older = {
 describe("People", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
   })
 
   // Before the match tests: they merge this person into another.
@@ -49,8 +46,8 @@ describe("People", () => {
     render(<PeoplePage />)
     await table()
     act(() => usePeople.getState().reveal("person:30"))
-    const dialog = await screen.findByRole("dialog", {}, { timeout: 8000 })
-    expect(await within(dialog).findByRole("link", { name: /\+34 910 000 334/ }, { timeout: 8000 })).toHaveAttribute(
+    const dialog = await screen.findByRole("dialog")
+    expect(await within(dialog).findByRole("link", { name: /\+34 910 000 334/ })).toHaveAttribute(
       "href",
       "tel:+34910000334",
     )
@@ -76,18 +73,14 @@ describe("People", () => {
     expect(lena).toHaveTextContent("993")
     expect(lena).not.toHaveTextContent("account")
     const kinds = screen.getByRole("group", { name: "Which people" })
-    await user.click(
-      await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
-    )
+    await user.click(await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }))
     expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
     expect(within(kinds).getByRole("radio", { name: "Unsorted 5,002+" })).toBeInTheDocument()
     await waitFor(async () =>
       expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
     )
     await user.click(within(kinds).getByRole("radio", { name: /^Companies/ }))
-    expect(
-      await within(await table()).findByRole("button", { name: "CZECH AIRLINES" }, { timeout: 4000 }),
-    ).toBeVisible()
+    expect(await within(await table()).findByRole("button", { name: "CZECH AIRLINES" })).toBeVisible()
   })
 
   it("on a memo older than kinds, lists everyone named, with a contact read from their accounts", async () => {
@@ -112,11 +105,9 @@ describe("People", () => {
     const lena = within(rows)
       .getAllByRole("row")
       .find((r) => r.textContent?.startsWith("Lena Ortiz")) as HTMLElement
-    expect(await within(lena).findByText("lena@example.org", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(lena).findByText("lena@example.org")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "With a name" }))
-    expect(
-      (await within(await table()).findAllByRole("button", { name: "No name yet" }, { timeout: 4000 }))[0],
-    ).toBeVisible()
+    expect((await within(await table()).findAllByRole("button", { name: "No name yet" }))[0]).toBeVisible()
   })
 
   it("reads one page at a time from memo, never everyone, and memo sorts and searches it", async () => {
@@ -137,9 +128,7 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, sort: "tasks" }))
 
     await user.type(screen.getByRole("searchbox"), "Lena")
-    await waitFor(() => expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ query: "Lena" })), {
-      timeout: 2000,
-    })
+    await waitFor(() => expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ query: "Lena" })))
     expect(page.mock.calls.filter(([a]) => a.query.startsWith("L")).length).toBeLessThan(4)
   })
 
@@ -160,7 +149,7 @@ describe("People", () => {
     render(<PeoplePage />)
     const rows = within(await table()).getAllByRole("row")
     const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
-    expect(await within(row("Бездушная Машина")).findByText("Bot", {}, { timeout: 4000 })).toHaveClass("sr-only")
+    expect(await within(row("Бездушная Машина")).findByText("Bot")).toHaveClass("sr-only")
     await waitFor(() => expect(row("Dmitry Volkov")).toHaveTextContent("@dvolkov"))
     expect(within(row("Dmitry Volkov")).queryByText("Bot")).not.toBeInTheDocument()
   })
@@ -181,9 +170,9 @@ describe("People", () => {
     render(<PeoplePage />)
     await act(() => useGroups.getState().load())
     act(() => usePeople.getState().reveal("person:46"))
-    const dmitry = await screen.findByRole("dialog", { name: "Dmitry Volkov" }, { timeout: 4000 })
+    const dmitry = await screen.findByRole("dialog", { name: "Dmitry Volkov" })
     const telegram = await within(dmitry).findByRole("region", { name: "Telegram" })
-    await waitFor(() => expect(telegram).toHaveTextContent("Seen in: personal, work"), { timeout: 4000 })
+    await waitFor(() => expect(telegram).toHaveTextContent("Seen in: personal, work"))
     const bot = within(telegram).getByText("Sirgris Personal Bot").closest("li") as HTMLElement
     expect(within(bot).getByText("bot")).toBeInTheDocument()
     const max = within(dmitry).getByRole("region", { name: "MAX" })
@@ -200,16 +189,14 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const you = await openPerson(user, "You")
-    expect(await within(you).findByRole("heading", { name: /^Tasks/ }, { timeout: 4000 })).toBeInTheDocument()
-    expect(
-      (await within(you).findAllByRole("button", { name: /^(OPS|HRB)-\d+/ }, { timeout: 4000 })).length,
-    ).toBeGreaterThan(0)
+    expect(await within(you).findByRole("heading", { name: /^Tasks/ })).toBeInTheDocument()
+    expect((await within(you).findAllByRole("button", { name: /^(OPS|HRB)-\d+/ })).length).toBeGreaterThan(0)
   })
 
   it("says how many matches wait, and opens them on their own screen and back", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    expect(await screen.findByRole("heading", { name: "6 matches wait for you" }, { timeout: 4000 })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: "6 matches wait for you" })).toBeVisible()
     const matches = await openMatches(user)
     expect(matches).toHaveTextContent("all their chats, mail, meetings and deals")
     expect(within(matches).getAllByRole("article")).toHaveLength(8)
@@ -221,13 +208,9 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = await within(matches).findByRole(
-      "article",
-      { name: "Marta Gil (Studio) · Marta Gil" },
-      { timeout: 4000 },
-    )
-    const left = await within(card).findByRole("region", { name: "Marta Gil (Studio)" }, { timeout: 4000 })
-    const tie = (await within(left).findByText("Bitrix24", {}, { timeout: 4000 })).closest("li") as HTMLElement
+    const card = await within(matches).findByRole("article", { name: "Marta Gil (Studio) · Marta Gil" })
+    const left = await within(card).findByRole("region", { name: "Marta Gil (Studio)" })
+    const tie = (await within(left).findByText("Bitrix24")).closest("li") as HTMLElement
     expect(tie).toHaveTextContent("matched")
     expect(within(card).getByText("marta@studio.example", { selector: "p > span" })).toBeInTheDocument()
     expect(within(card).getByRole("button", { name: "2 people have it" })).toHaveAccessibleDescription(
@@ -257,7 +240,6 @@ describe("People", () => {
   })
 
   it("says the shared number is hidden when no account shows it, and never makes one up", async () => {
-    answerAtOnce()
     const user = userEvent.setup()
     render(<PeoplePage />)
     const card = await openMatch(user, "Lena Ortiz · 2 people")
@@ -286,9 +268,9 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = await within(matches).findByRole("article", { name: "Kai M. · Kai Moreno" }, { timeout: 4000 })
+    const card = await within(matches).findByRole("article", { name: "Kai M. · Kai Moreno" })
     expect(
-      await within(card).findByText(/Moves MAX Kai M. to Kai Moreno. Only this account moves./, {}, { timeout: 4000 }),
+      await within(card).findByText(/Moves MAX Kai M. to Kai Moreno. Only this account moves./),
     ).toBeInTheDocument()
     expect(within(card).getByRole("button", { name: "claude-code" })).toHaveAccessibleDescription(
       "The agent claude-code suggested this.",
@@ -312,13 +294,9 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = await within(matches).findByRole(
-      "article",
-      { name: "Split off accounts of Viktor Example" },
-      { timeout: 4000 },
-    )
+    const card = await within(matches).findByRole("article", { name: "Split off accounts of Viktor Example" })
     expect(card).toHaveTextContent("These accounts would become a new person:")
-    expect(await within(card).findByText(/Mila Example/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(card).findByText(/Mila Example/)).toBeInTheDocument()
     expect(card).toHaveTextContent("Viktor's wife")
     expect(card).not.toHaveTextContent("max:7002")
     await user.click(within(card).getByRole("button", { name: "Keep together" }))
@@ -336,7 +314,7 @@ describe("People", () => {
   it("lists doubtful links above the contacts, and a split from there opens with the doubted account ticked", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     expect(panel).toHaveTextContent("people to check")
     expect(within(panel).getByRole("navigation", { name: "Pages of people to check" })).toBeInTheDocument()
     const viktor = within(panel)
@@ -366,7 +344,7 @@ describe("People", () => {
       more: false,
     })
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     const card = (await within(panel).findAllByRole("listitem")).find((row) =>
       row.textContent?.includes("Sirgris Personal Bot"),
     ) as HTMLElement
@@ -379,7 +357,7 @@ describe("People", () => {
   it("names a doubt with no letter in its name after its accounts, and opens the person from the card", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     const card = within(panel)
       .getAllByRole("listitem")
       .find((row) => row.textContent?.startsWith("@msx04x")) as HTMLElement
@@ -391,7 +369,7 @@ describe("People", () => {
   it("keeps the panel's Hide in its place and folds the help with the cards", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     const toggle = within(panel).getByRole("button", { name: "Hide" })
     const header = toggle.parentElement as HTMLElement
     expect(within(header).getByRole("heading", { name: /Check the links/ })).toBeInTheDocument()
@@ -404,7 +382,7 @@ describe("People", () => {
     const keep = vi.spyOn(platform, "peopleKeep")
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     const viktor = () =>
       within(panel)
         .queryAllByRole("listitem")
@@ -419,7 +397,7 @@ describe("People", () => {
     vi.spyOn(platform, "peopleKeep").mockRejectedValue(new Error("memo.too-old"))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     await user.click(within(panel).getAllByRole("button", { name: "These belong together" })[0] as HTMLElement)
     expect(await within(panel).findByText(/If the Tools page offers no update yet/)).toBeInTheDocument()
   })
@@ -430,7 +408,7 @@ describe("People", () => {
     render(<PeoplePage />)
     const matches = await openMatches(user)
     const title = "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov"
-    const card = await within(matches).findByRole("article", { name: title }, { timeout: 4000 })
+    const card = await within(matches).findByRole("article", { name: title })
     expect(within(card).getByRole("button", { name: "3 people have it" })).toHaveAccessibleDescription(
       "3 people have it. Here now: Konstantin Nikolaevich Loft Pro Max Semenov, Konstantin, and K. Semenov.",
     )
@@ -456,7 +434,7 @@ describe("People", () => {
     await waitFor(() => expect(within(card).queryAllByRole("checkbox")).toHaveLength(0))
     await user.click(within(card).getByRole("button", { name: "Not the same" }))
     await user.type(within(card).getByRole("textbox"), "a namesake{Enter}")
-    expect(await within(card).findByText(/Kept apart/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(card).findByText(/Kept apart/)).toBeInTheDocument()
     expect(card).toHaveTextContent("are now one person")
   })
 
@@ -580,11 +558,7 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = await within(matches).findByRole(
-      "article",
-      { name: "Harbour Studio · Olga Harbour · Pavel Harbour" },
-      { timeout: 4000 },
-    )
+    const card = await within(matches).findByRole("article", { name: "Harbour Studio · Olga Harbour · Pavel Harbour" })
     expect(within(card).getByText("shared mailbox")).toBeInTheDocument()
     expect(within(matches).getAllByText("shared mailbox")).toHaveLength(1)
     expect(within(matches).getAllByRole("button", { name: "Company mailbox" })).toHaveLength(1)
@@ -595,9 +569,7 @@ describe("People", () => {
     expect(within(card).getByText("Type the company's name.")).toBeInTheDocument()
     await user.type(within(card).getByRole("textbox", { name: "Company name" }), "Harbour Studio")
     await user.click(within(card).getByRole("button", { name: "Give it to this company" }))
-    expect(
-      await within(card).findByText(/info@harbour.example is a company's mailbox now/, {}, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await within(card).findByText(/info@harbour.example is a company's mailbox now/)).toBeInTheDocument()
     expect(resolve.mock.calls.map(([, id, to]) => [id, to])).toEqual([
       ["17107", {}],
       ["17107", { name: "Harbour Studio" }],
@@ -621,17 +593,17 @@ describe("People", () => {
     const keep = vi.spyOn(platform, "peopleKeep")
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     const card = () =>
       within(panel)
         .queryAllByRole("listitem")
         .find((row) => row.textContent?.startsWith("Ann Lee"))
     expect(await within(card() as HTMLElement).findByText(/Hide it if it is/)).toBeInTheDocument()
-    expect(await within(panel).findByText(/1 test account is hidden/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(panel).findByText(/1 test account is hidden/)).toBeInTheDocument()
 
     await user.click(within(card() as HTMLElement).getByRole("button", { name: "It is test data" }))
     expect(hide).toHaveBeenCalledWith("person:49")
-    expect(await within(panel).findByText(/2 test accounts are hidden/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(panel).findByText(/2 test accounts are hidden/)).toBeInTheDocument()
     expect(card()).toBeUndefined()
 
     await user.click(within(panel).getByRole("button", { name: "Show" }))
@@ -640,7 +612,7 @@ describe("People", () => {
       .find((row) => row.textContent?.startsWith("Ann Lee")) as HTMLElement
     await user.click(within(hidden).getByRole("button", { name: "It is a real contact" }))
     expect(keep).toHaveBeenCalledWith("person:49")
-    expect(await within(panel).findByText(/Ann Lee is a real contact/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(panel).findByText(/Ann Lee is a real contact/)).toBeInTheDocument()
     expect(within(panel).getByText(/1 test account is hidden/)).toBeInTheDocument()
   })
 
@@ -648,7 +620,7 @@ describe("People", () => {
     const unlink = vi.spyOn(platform, "peopleUnlink")
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const panel = await screen.findByRole("region", { name: /Check the links/ })
     const chen = within(panel)
       .getAllByRole("listitem")
       .find((row) => row.textContent?.startsWith("Chen Abad")) as HTMLElement
@@ -666,17 +638,13 @@ describe("People", () => {
     await user.click(within(form).getByRole("button", { name: "Add" }))
     expect(within(form).getByRole("alert")).toHaveTextContent("Type the person's name.")
     await user.type(within(form).getByRole("textbox"), "Lena Ortiz")
-    expect(
-      (await within(form).findAllByRole("button", { name: "Open Lena Ortiz" }, { timeout: 4000 }))[0],
-    ).toBeVisible()
+    expect((await within(form).findAllByRole("button", { name: "Open Lena Ortiz" }))[0]).toBeVisible()
     expect(within(form).getAllByText("same name")[0]).toBeInTheDocument()
     await user.click(within(form).getByRole("button", { name: "Add" }))
     expect(within(form).getByRole("alert")).toHaveTextContent("Lena Ortiz is already in Contacts.")
     expect(add).not.toHaveBeenCalled()
     await user.click(within(form).getByRole("button", { name: "Add anyway" }))
     expect(add).toHaveBeenCalledWith("Lena Ortiz")
-    expect(await within(form).findByRole("status", {}, { timeout: 4000 })).toHaveTextContent(
-      "Added to Contacts: Lena Ortiz.",
-    )
+    expect(await within(form).findByRole("status")).toHaveTextContent("Added to Contacts: Lena Ortiz.")
   })
 })

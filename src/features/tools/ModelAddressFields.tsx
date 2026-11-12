@@ -1,5 +1,6 @@
 import { type ReactNode, useId } from "react"
 import { useMessages } from "@/i18n"
+import { errorText } from "@/shared/errors"
 import { modelRefusalMessages, modelRefusalOf } from "@/shared/messages-model-refusals"
 import { Collapse } from "@/ui/Collapse"
 import { fieldClass } from "@/ui/field"
@@ -74,7 +75,7 @@ export function ModelAddressFields(props: Props) {
 export function useRefusalText() {
   const said = useMessages(modelRefusalMessages)
   return (e: unknown) => {
-    const refusal = modelRefusalOf(e instanceof Error ? e.message : String(e))
+    const refusal = modelRefusalOf(errorText(e))
     return refusal ? said[refusal] : null
   }
 }

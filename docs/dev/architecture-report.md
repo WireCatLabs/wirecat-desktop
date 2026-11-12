@@ -120,7 +120,8 @@ Biome enforces the arrows for `domain`, `platform`, `ui` and `features` with `no
   `mock-*.ts` files) is in the production bundle although Tauri never uses it.
 - **No lazy pages.** [sections.tsx](../../src/app/sections.tsx) imports all ten pages at start.
 - **No end to end test.** `playwright-core` is a dev dependency for the capture scripts, but no test runs the built
-  app. No shared render helper exists, so each test resets stores by hand.
+  app. [testing/render.tsx](../../src/testing/render.tsx) wraps the providers, and
+  [setup.ts](../../src/testing/setup.ts) resets every store after each test.
 - **Types written twice.** Each Rust struct has a hand-written valibot schema and a TypeScript type in
   [platform/types.ts](../../src/platform/types.ts) (305 lines). Nothing checks that they agree until runtime.
 - **Rust errors are strings.** `lib.rs` is 1088 lines with 113 commands, 108 of them return `Result<_, String>`.

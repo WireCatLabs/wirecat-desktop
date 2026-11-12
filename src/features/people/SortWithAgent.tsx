@@ -3,7 +3,7 @@ import { AgentLaunch, AgentRunNote, runAgent, useLaunchable } from "@/features/f
 import { useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
 import { Collapse } from "@/ui/Collapse"
-import { CopyTextButton } from "@/ui/CopyTextButton"
+import { CopyButton } from "@/ui/CopyButton"
 import { sortMessages } from "./messages-sort"
 
 /**
@@ -22,7 +22,7 @@ export function SortWithAgent({ children }: { children?: ReactNode }) {
   return (
     <>
       <span className="flex flex-wrap items-center gap-2">
-        <CopyTextButton text={m.prompt} label={m.copyPrompt} />
+        <CopyButton value={m.prompt} label={m.copyPrompt} text={m.copyPrompt} />
         <AgentLaunch
           label={() => m.runInTerminal}
           openingLabel={m.opening}

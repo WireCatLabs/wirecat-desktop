@@ -43,7 +43,7 @@ async function startTour(rendered = false) {
 
 async function next(user: ReturnType<typeof userEvent.setup>, title: string) {
   await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Next" }))
-  return screen.findByRole("dialog", { name: title }, { timeout: 3000 })
+  return screen.findByRole("dialog", { name: title })
 }
 
 describe("Tour", () => {
@@ -83,7 +83,7 @@ describe("Tour", () => {
       await next(user, title)
       await waitFor(() => expect(page(section)).toBeInTheDocument())
     }
-  }, 20000)
+  })
 
   it("shows example rows on Tasks and Memory only while the tour stands there", async () => {
     const first = userEvent.setup()
@@ -116,7 +116,7 @@ describe("Tour", () => {
     await user.click(navItem("Memory"))
     await screen.findByRole("heading", { level: 1, name: /^Memory/u })
     expect(screen.queryByText(MEMORY_EXAMPLE)).not.toBeInTheDocument()
-  }, 20000)
+  })
 
   it("takes the examples away and reads the owner's memory again when Escape closes the tour", async () => {
     const read = vi.spyOn(platform, "memoryRead")
@@ -132,7 +132,7 @@ describe("Tour", () => {
     expect(screen.queryByRole("note", { name: "Example" })).not.toBeInTheDocument()
     expect(page("Memory")).toBeInTheDocument()
     await waitFor(() => expect(read).toHaveBeenCalled())
-  }, 20000)
+  })
 
   it("fills Search with an example request and opens an example result, then gives the page back", async () => {
     const search = vi.spyOn(platform, "searchStore")
@@ -160,7 +160,7 @@ describe("Tour", () => {
     expect(useSearch.getState()).toMatchObject({ demo: false, tool: null, query: "", answer: null })
     expect(search).not.toHaveBeenCalled()
     expect(draft).not.toHaveBeenCalled()
-  }, 20000)
+  })
 
   it("points at the view switch and an example task's assignee, priority and due date", async () => {
     const user = await startTour()
@@ -180,7 +180,7 @@ describe("Tour", () => {
 
     await next(user, "Memory")
     expect(screen.queryByText("Draft the launch announcement for 2 March")).not.toBeInTheDocument()
-  }, 20000)
+  })
 
   it("shows an example memory's actions, then opens the messages it rests on", async () => {
     const sources = vi.spyOn(platform, "memorySources")
@@ -205,7 +205,7 @@ describe("Tour", () => {
     expect(screen.queryByText(KAI)).not.toBeInTheDocument()
     expect(useMemory.getState().sources).toEqual({})
     expect(sources).not.toHaveBeenCalled()
-  }, 20000)
+  })
 })
 
 describe("Help menu", () => {

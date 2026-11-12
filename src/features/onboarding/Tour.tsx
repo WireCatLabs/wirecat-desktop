@@ -25,7 +25,7 @@ type Stop = {
 
 // Anchors are data-tour attributes on the real elements, so the tour follows the interface instead of a copy of it.
 // It walks the sidebar top to bottom and ends on the first guide, where the work starts (owner, 2026-11-05).
-export const STOPS: readonly Stop[] = [
+const STOPS: readonly Stop[] = [
   { key: "tools", anchor: '[data-tour="nav-tools"]', side: "right", section: "tools" },
   { key: "lamps", anchor: '[data-tour="tool"] [role="img"]', section: "tools" },
   { key: "action", anchor: '[data-tour="tool-action"]', section: "tools" },

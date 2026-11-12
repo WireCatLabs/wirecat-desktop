@@ -1,7 +1,7 @@
 # Suggested facts from a source: who reads it
 
-Research for the "Add to memory" plan (`docs/dev/plans/2026-11-01-memory-add.md` on branch `docs/memory-add-plan`,
-NEED-1 there). The owner adds a source (pasted text, a file, a web page, an image, a recording); memo keeps it and
+Research for the "Add to memory" panel ([ARCHITECTURE.md](../ARCHITECTURE.md#adding-to-memory)). The owner adds a
+source (pasted text, a file, a web page, an image, a recording); memo keeps it and
 turns its text into at most 8 **suggested facts**, each with the words it rests on, staged as a findings batch the owner
 ticks. This page compares every realistic way to get those suggestions, and recommends an order.
 

@@ -1,4 +1,5 @@
 import type { Messages } from "@/i18n"
+import type { SectionId } from "./sections"
 
 const en = {
   nav: {
@@ -15,7 +16,7 @@ const en = {
     storage: "Storage",
     logs: "Logs",
     settings: "Settings",
-  } as Record<string, string>,
+  } satisfies Record<SectionId, string>,
   soon: "Soon",
   version: (v: string) => `WireCat ${v}: help and this computer`,
   badgeNew: ", something new here",

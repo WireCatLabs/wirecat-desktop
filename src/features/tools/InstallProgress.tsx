@@ -1,25 +1,14 @@
-import { useEffect, useState } from "react"
 import { findTool, ownerId, samePackage } from "@/domain/catalog"
 import { type ToolStage, toolProgress } from "@/domain/install-batch"
 import { asksOwner, type InstallSession } from "@/domain/status"
 import { clock } from "@/domain/sync"
 import { formatList, useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
+import { useNow } from "@/shared/use-elapsed"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { type ProgressText, progressMessages } from "./messages-progress"
-
-function useNow(active: boolean) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!active) return
-    setNow(Date.now())
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [active])
-  return now
-}
 
 type Phase = keyof ProgressText["now"]
 
@@ -41,7 +30,7 @@ const phaseOf = (stage: ToolStage): Phase => {
 }
 
 /** What the install is doing now, in a few words, with npm's own counts. */
-export function stageLine(stage: ToolStage, m: ProgressText): string {
+function stageLine(stage: ToolStage, m: ProgressText): string {
   switch (stage.kind) {
     case "waiting":
       return m.waiting

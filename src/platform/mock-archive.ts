@@ -94,7 +94,6 @@ export async function storeInfoMock(answeredBy: string | null): Promise<StoreInf
           identities: 6120,
         },
     speaks: plain ? 29 : 33,
-    searchReady: true,
     breakdown: plain ? null : BREAKDOWN,
     facts: plain ? null : facts(),
   }

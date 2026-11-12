@@ -105,7 +105,7 @@ fn link_with(call: &Call, url: &str) -> Result<Option<LinkPreview>, String> {
     let u = crate::memory_add::link(url)?;
     let v = match call(&words(&["sources", "preview", u])) {
         Ok(v) => v,
-        Err(e) if e.contains("unknown command") || e.contains("unknown option") => return Ok(None),
+        Err(e) if crate::memo_cli::unknown_to_cli(&e) => return Ok(None),
         Err(e) => return Err(e),
     };
     let item = body(&v);

@@ -167,7 +167,7 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
           aria-label={m.previousMonth}
           title={m.previousMonth}
           onClick={() => go(shiftMonth(focus, -1))}
-          className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink active:bg-app-3"
+          className="grid size-8 cursor-pointer place-items-center rounded-control text-ink-soft hover:bg-app-3 hover:text-ink active:bg-app-3"
         >
           <ChevronLeft className="size-4" aria-hidden />
         </button>
@@ -179,7 +179,7 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
           aria-label={m.nextMonth}
           title={m.nextMonth}
           onClick={() => go(shiftMonth(focus, 1))}
-          className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink active:bg-app-3"
+          className="grid size-8 cursor-pointer place-items-center rounded-control text-ink-soft hover:bg-app-3 hover:text-ink active:bg-app-3"
         >
           <ChevronRight className="size-4" aria-hidden />
         </button>
@@ -229,11 +229,11 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
                       className={cx(
                         "relative grid h-[2.2rem] w-full cursor-pointer place-items-center font-mono text-[0.9rem] tabular-nums transition-colors duration-(--motion-fast)",
                         end
-                          ? "rounded-[0.35rem] bg-brand font-semibold text-brand-ink hover:bg-brand-hover active:bg-brand-hover"
+                          ? "rounded-control bg-brand font-semibold text-brand-ink hover:bg-brand-hover active:bg-brand-hover"
                           : between
                             ? "bg-brand-soft text-ink hover:bg-brand/20"
                             : cx(
-                                "rounded-[0.35rem] hover:bg-app-3 active:bg-line",
+                                "rounded-control hover:bg-app-3 active:bg-line",
                                 inMonth ? "text-ink" : "text-ink-dim/70",
                               ),
                       )}
@@ -291,7 +291,7 @@ export function DatePopover({ open, anchor, onClose, label, children }: PopoverP
           onClose(true)
         }
       }}
-      className="fixed z-50 flex flex-col gap-[0.5rem] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-[0.6rem] text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
+      className="fixed z-50 flex flex-col gap-[0.5rem] overflow-y-auto overscroll-contain rounded-inset border border-line bg-app p-[0.6rem] text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
     >
       {children}
     </div>
@@ -350,7 +350,7 @@ export function DateField({ value, onChange, format, className, ...aria }: Field
           }
         }}
         className={cx(
-          "flex h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-[0.35rem] border border-line-strong bg-app pr-1.5 pl-2 text-left text-[0.875rem] hover:border-ink-dim/60",
+          "flex h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-control border border-line-strong bg-app pr-1.5 pl-2 text-left text-[0.875rem] hover:border-ink-dim/60",
           className,
         )}
       >

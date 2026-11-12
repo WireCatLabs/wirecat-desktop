@@ -6,6 +6,7 @@ import { ToolIcon } from "@/shared/ToolIcon"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
@@ -35,7 +36,7 @@ export function LogSettings({ id }: { id: string }) {
     <section id={id} aria-label={m.settings} className="flex max-w-[64rem] flex-col gap-[0.7rem]">
       <ul
         aria-label={m.sources}
-        className="divide-y divide-line overflow-hidden rounded-[0.2rem] border border-line-strong bg-app"
+        className="divide-y divide-line overflow-hidden rounded-rack border border-line-strong bg-app"
       >
         {ids.map((tool) => (
           <Row
@@ -50,10 +51,14 @@ export function LogSettings({ id }: { id: string }) {
         ))}
       </ul>
       {refused.map(([tool, error]) => (
-        <p key={tool} role="alert" className="flex flex-wrap items-center gap-x-3 text-[0.9rem]">
-          <span className="selectable text-bad">{m.refused(toolName(tool), error)}</span>
-          <ReportThis what={`Changing whether ${toolName(tool)} keeps runs`} tool={tool} error={error} />
-        </p>
+        <ErrorNotice
+          key={tool}
+          inline
+          raw={error}
+          action={<ReportThis what={`Changing whether ${toolName(tool)} keeps runs`} tool={tool} error={error} />}
+        >
+          {m.refused(toolName(tool))}
+        </ErrorNotice>
       ))}
 
       <Dialog
@@ -62,7 +67,7 @@ export function LogSettings({ id }: { id: string }) {
         onClose={() => setAsk(null)}
         actions={
           <>
-            <Button variant="secondary" onClick={() => setAsk(null)} autoFocus>
+            <Button variant="secondary" onClick={() => setAsk(null)} data-autofocus>
               {m.leaveIt}
             </Button>
             <Button
@@ -109,7 +114,7 @@ const sourceTone = (s: Source): LampTone =>
           ? "ok"
           : "idle"
 
-export function sourceWords(m: LogsWords, s: Source): string {
+function sourceWords(m: LogsWords, s: Source): string {
   if (s.state === "late") return m.late(timing.answer / 1000, s.runs.length > 0)
   if (s.state === "none") return m.keepsNoLogs
   if (s.state === "missing") return m.notInstalled

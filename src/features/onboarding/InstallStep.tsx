@@ -3,20 +3,20 @@ import { type ReactNode, useId, useState } from "react"
 import { type CatalogTool, ownerId, tools } from "@/domain/catalog"
 import { installOverview, installPhase, type RowPhase, restartCommand, toQueue } from "@/domain/onboarding-flow"
 import { asksOwner, toolStatus } from "@/domain/status"
-import { FixButton, FixPanel } from "@/features/fix"
+import { FixPanel } from "@/features/fix"
 import { NodeNotice } from "@/features/system"
 import {
   AlongsideLine,
   failureWords,
-  failureWordsEn,
+  InstallFailure,
   InstallProgress,
+  installProblem,
   PreflightNotice,
   toolsMessages,
   useFailureMessages,
 } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { ReportThis } from "@/shared/ReportThis"
 import { useSystem } from "@/shared/system-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -111,16 +111,12 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
       <span aria-live="polite" className="min-w-0 flex-1 text-body text-ink-soft">
         {text}
       </span>
-      {outcome?.event === "failed" && outcome.reason !== "cancelled" && session && (
-        <ReportThis
-          what={`Installing ${tool.name}`}
-          tool={tool.id}
-          error={[outcome.message, outcome.hint].filter(Boolean).join(" ")}
-          log={session.log.slice(-200)}
+      {session && (
+        <InstallFailure
+          tool={tool}
+          session={session}
+          fix={{ open: fixOpen, id: fixId, toggle: () => setFixOpen((o) => !o) }}
         />
-      )}
-      {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-        <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
       )}
       {outcome?.event === "failed" && (
         <Button size="sm" onClick={() => useTools.getState().install(tool.id, { check: true })}>
@@ -149,16 +145,7 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
         </Collapse>
         {outcome?.event === "failed" && session && (
           <div className="sm:pl-[3.8rem]">
-            <FixPanel
-              id={fixId}
-              open={fixOpen}
-              problem={{
-                what: `Installing ${tool.name} (${tool.package})`,
-                error: failureWordsEn(outcome, session.operation)[0],
-                hint: failureWordsEn(outcome, session.operation)[1],
-                log: session.log,
-              }}
-            />
+            <FixPanel id={fixId} open={fixOpen} problem={installProblem(tool, session, outcome)} />
           </div>
         )}
       </div>

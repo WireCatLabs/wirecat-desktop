@@ -74,7 +74,7 @@ describe("an account row", () => {
     render(<AccountList tool={tool("bitrix")} profiles={signedIn} onReload={() => undefined} />)
     await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Remove account" }))
     const dialog = screen.getByRole("dialog", { name: "Remove work?" })
-    expect(await within(dialog).findByText("Remove and delete its data", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(dialog).findByText("Remove and delete its data")).toBeInTheDocument()
   })
 
   it("shows a name of the owner's own with the profile id beside it, and keeps commands on the profile", async () => {

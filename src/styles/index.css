@@ -93,6 +93,13 @@
   --font-sans: "Onest Variable", "Onest", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
   --shadow-panel: var(--shadow);
+  /* DESIGN.md's rounded scale: rounded-rack, rounded-pill, rounded-control, rounded-button, rounded-inset, rounded-dialog. */
+  --radius-rack: 0.2rem;
+  --radius-pill: 0.3rem;
+  --radius-control: 0.35rem;
+  --radius-button: 0.4rem;
+  --radius-inset: 0.45rem;
+  --radius-dialog: 0.6rem;
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   /* Body copy: descriptions, instructions, notices. Hierarchy below it comes from colour and weight, not a smaller
      size; at the 960px minimum window the root is 13px, and 0.9rem there was too small to read (owner, 2026-11-05). */
@@ -284,6 +291,8 @@ body {
   *::after {
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every component transition */
     animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: an endless animation of 0.01ms restarts every frame and shakes */
+    animation-iteration-count: 1 !important;
     /* biome-ignore lint/complexity/noImportantStyles: same */
     transition-duration: 0.01ms !important;
   }

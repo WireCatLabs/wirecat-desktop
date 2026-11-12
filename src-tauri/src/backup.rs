@@ -299,29 +299,21 @@ fn run_backup(
     password: Option<&str>,
     cancelled: &(dyn Fn() -> bool + Sync),
 ) -> Result<(), Stop> {
-    let mut lines = (String::new(), String::new());
-    let code = run::stream_with_input(
-        backup_command(bin, args),
-        password.map(str::as_bytes),
-        Duration::from_hours(3),
-        cancelled,
-        |line| match line {
-            run::Line::Out(l) => lines.0.push_str(&(l + "\n")),
-            run::Line::Err(l) => lines.1.push_str(&(l + "\n")),
-        },
-    );
-    let code = match code {
-        Ok(code) => code,
+    let out =
+        run::run_with_input(backup_command(bin, args), password.map(str::as_bytes), Duration::from_hours(3), cancelled);
+    let out = match out {
+        Ok(out) => out,
         Err(run::RunError::Cancelled) => return Err(Stop::Cancelled),
         Err(e) => return Err(Stop::Failed(format!("The copy did not finish: {e}"))),
     };
-    if code == Some(0) {
+    if out.code == Some(0) {
         return Ok(());
     }
     // Masked before anything reads it: redacting first could split the password so the mask no longer finds it.
-    let output = run::Output { code, stdout: masked(&lines.0, password), stderr: masked(&lines.1, password) };
+    let output =
+        run::Output { code: out.code, stdout: masked(&out.stdout, password), stderr: masked(&out.stderr, password) };
     let failure = masked(&failure_of(&output), password);
-    if password.is_some() && failure.contains("unknown option") {
+    if password.is_some() && crate::memo_cli::unknown_to_cli(&failure) {
         return Err(Stop::Failed(format!(
             "Backups with a password need a newer {name}. Update {name} on the Tools page, or back up without one."
         )));
@@ -495,7 +487,7 @@ pub fn reset_preview() -> Result<Option<ResetPreview>, String> {
 fn older_than_preview(json: Option<&Value>) -> bool {
     let message = json.and_then(|v| v["error"]["message"].as_str()).unwrap_or("");
     let preview = json.is_some_and(|v| v.get("error").is_none());
-    preview || message.starts_with("name a profile") || message.contains("unknown option")
+    preview || message.starts_with("name a profile") || crate::memo_cli::unknown_to_cli(message)
 }
 
 fn preview_of(tool: &Tool, item: Option<&Value>) -> ResetPreview {
@@ -540,7 +532,7 @@ pub fn reset() -> Result<Option<u64>, String> {
     let _paused = crate::memo_server::pause();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(10)).map_err(|e| e.to_string())?;
     match out.json() {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v["item"]["schema"].as_u64()),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(v["item"]["schema"].as_u64()),
         _ => Err(reset_failure(&failure_of(&out))),
     }
 }

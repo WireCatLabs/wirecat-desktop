@@ -2,6 +2,8 @@ import { CircleCheck, Download, FileUp, ListChecks, LoaderCircle, Upload } from 
 import { useEffect, useId } from "react"
 import { useMessages } from "@/i18n"
 import type { Receipt, ReceiptLine, RecordColumn } from "@/platform/records-schemas"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
@@ -22,14 +24,17 @@ const SHOWN = 50
 export function ImportPanel() {
   const m = useMessages(importMessages)
   const s = useImport()
+  const version = useTools((t) => t.installs.memo?.[0]?.version ?? null)
   const { load, choose, saveTemplate, pick, check, run } = useImport.getState()
   const sourceId = useId()
   const sourceHelpId = useId()
   const fileId = useId()
   const importId = useId()
+  const typeId = useId()
   const noSource = useFieldError(sourceId)
   const noFile = useFieldError(fileId)
   const noImport = useFieldError(importId)
+  const noType = useFieldError(typeId)
 
   useEffect(() => {
     load()
@@ -47,13 +52,17 @@ export function ImportPanel() {
     if (!s.file) return noFile.fail(m.fileNeeded)
     check()
   }
+  const askTemplate = () => {
+    if (!s.kind) return noType.fail(m.typeNeeded)
+    saveTemplate()
+  }
   const askImport = () => {
     if (!canImport) return noImport.fail(s.checked ? m.nothingToImport : m.checkFirst)
     run()
   }
 
   return (
-    <section aria-labelledby="import-title" className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-labelledby="import-title" className="rounded-rack border border-line-strong bg-app">
       <div className="border-line border-b px-[1.3rem] py-[0.9rem]">
         <SectionTitle id="import-title">{m.title}</SectionTitle>
         <p className="mt-0.5 max-w-[80ch] text-[0.9rem] text-ink-dim">{m.intro}</p>
@@ -64,17 +73,24 @@ export function ImportPanel() {
           <Skeleton className="h-[2.4rem] w-full" label={m.readingTypes} />
         </div>
       ) : s.types === null ? (
-        <p className="px-[1.3rem] py-[0.9rem] text-[0.95rem] text-ink-soft">{m.tooOld}</p>
+        <div className="px-[1.3rem] py-[0.9rem]">
+          <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need: null }} />
+        </div>
       ) : (
         <>
           <div className="flex flex-col gap-3 border-line border-b px-[1.3rem] py-[0.9rem]">
             <div className="flex flex-wrap items-end gap-3">
               <Labelled label={m.type}>
                 <Select
+                  id={typeId}
                   aria-label={m.type}
+                  {...noType.field}
                   size="sm"
                   value={s.kind ?? ""}
-                  onChange={(kind) => choose({ kind })}
+                  onChange={(kind) => {
+                    choose({ kind })
+                    noType.clear()
+                  }}
                   options={s.types.map((t) => ({ value: t.type, label: t.type }))}
                   className="min-w-[11rem]"
                 />
@@ -107,13 +123,14 @@ export function ImportPanel() {
               )}
               <Button
                 size="sm"
-                onClick={() => saveTemplate()}
-                disabled={!s.kind || s.busy !== null}
+                onClick={askTemplate}
+                disabled={s.busy !== null}
                 icon={<Download className="size-4" aria-hidden />}
               >
                 {m.download}
               </Button>
             </div>
+            {noType.hint}
             {s.saved && (
               <p role="status" className="selectable text-[0.9rem] text-ink-soft">
                 {m.saved(s.saved)}

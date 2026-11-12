@@ -26,11 +26,11 @@ describe("wirecat:// links", () => {
     render(<App />)
     useNav.getState().go("logs")
     link({ type: "task", id: "HRB-14" })
-    expect(await screen.findByRole("dialog", {}, { timeout: 4000 })).toHaveTextContent("Task HRB-14")
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Task HRB-14")
     expect(useNav.getState().active).toBe("tasks")
     act(() => useNav.getState().back())
     expect(useNav.getState().active).toBe("logs")
-  }, 15000)
+  })
 
   it("open the task list on the filter the link names", async () => {
     render(<App />)
@@ -47,10 +47,10 @@ describe("wirecat:// links", () => {
     const confirm = vi.spyOn(platform, "memoryConfirm")
     render(<App />)
     link({ type: "proposal", id: "fact:21" })
-    await waitFor(() => expect(useNav.getState().active).toBe("memory"), { timeout: 4000 })
+    await waitFor(() => expect(useNav.getState().active).toBe("memory"))
     expect(useMemory.getState().open).toBe("fact:21")
     expect(confirm).not.toHaveBeenCalled()
-  }, 15000)
+  })
 
   it("open a tool's sync for a sync link, by the name the store uses", async () => {
     render(<App />)
@@ -80,9 +80,7 @@ describe("wirecat:// links", () => {
   it("say a task that is not on this computer is missing", async () => {
     render(<App />)
     link({ type: "task", id: "NOPE-1" })
-    expect(
-      await screen.findByRole("heading", { name: "This item is not on this computer" }, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "This item is not on this computer" })).toBeInTheDocument()
   })
 
   it("wait for the first-run setup to close", async () => {

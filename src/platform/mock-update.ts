@@ -83,7 +83,9 @@ export const updateMock: Pick<
   },
   async openPackageTerminal() {
     await delay(300)
-    if (params.get("update-terminal") === "none") throw new Error("Could not open a terminal.")
+    if (params.get("update-terminal") === "none")
+      return { started: false, reason: "terminal" as const, message: "Could not open a terminal." }
+    return { started: true, reason: null, message: null }
   },
   async restart() {
     window.location.reload()

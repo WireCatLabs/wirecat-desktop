@@ -1,30 +1,17 @@
 import { X } from "lucide-react"
 import { useState } from "react"
+import { TOOLS_INTRO_KEY } from "@/domain/storage-keys"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { safeStorage } from "@/shared/safe-storage"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { LinkButton } from "@/ui/LinkButton"
 import { toolsMessages } from "./messages"
 
-const KEY = "wirecat.tools.intro"
-
-function readHidden() {
-  try {
-    return localStorage.getItem(KEY) === "hidden"
-  } catch {
-    return false
-  }
-}
-
-function writeHidden() {
-  try {
-    localStorage.setItem(KEY, "hidden")
-  } catch {
-    // Private windows may refuse storage; the intro then simply returns next time.
-  }
-}
+const readHidden = () => safeStorage.getItem(TOOLS_INTRO_KEY) === "hidden"
+const writeHidden = () => safeStorage.setItem(TOOLS_INTRO_KEY, "hidden")
 
 /** Static text on the first frame, so the list below never moves; only the action at the right waits for the scan. */
 export function ToolsIntro() {
@@ -40,7 +27,7 @@ export function ToolsIntro() {
   return (
     <section
       aria-label={m.label}
-      className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 rounded-[0.45rem] border border-line bg-app-2/60 px-[1.3rem] py-[1rem]"
+      className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 rounded-inset border border-line bg-app-2/60 px-[1.3rem] py-[1rem]"
     >
       <div className="min-w-0 max-w-[80ch] flex-1">
         <p className="text-[0.95rem] leading-relaxed text-ink">{m.text}</p>

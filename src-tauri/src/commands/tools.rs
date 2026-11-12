@@ -2,9 +2,7 @@ use super::{attempt, blocking, known_tool, valid_profile};
 use crate::error::AppError;
 use crate::install::InstallEvent;
 use crate::install::Running;
-use crate::{
-    account, background, background_agent, catalog, compat, config_repair, install, mail_agent, terminal, tools,
-};
+use crate::{account, background, catalog, compat, config_repair, install, terminal, tools};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
@@ -127,59 +125,6 @@ pub async fn background_run(
 }
 
 #[tauri::command]
-pub async fn mail_agent_status(id: String) -> Result<mail_agent::MailAgent, AppError> {
-    crate::log::command("mail_agent_status", async move {
-        let tool = known_tool(&id)?;
-        attempt(move || mail_agent::status(tool)).await
-    })
-    .await
-}
-
-#[tauri::command]
-/// `every` is the interval for on; none keeps the catalog's. `agent` is the owner's pick for this job only.
-pub async fn mail_agent_set(
-    id: String,
-    on: bool,
-    every: Option<String>,
-    agent: Option<String>,
-) -> Result<mail_agent::MailAgent, AppError> {
-    crate::log::command("mail_agent_set", async move {
-        let tool = known_tool(&id)?;
-        attempt(move || mail_agent::set(tool, on, every.as_deref(), agent.as_deref())).await
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn background_agents() -> Result<background_agent::BackgroundAgents, AppError> {
-    crate::log::command("background_agents", async move { attempt(|| Ok::<_, String>(background_agent::list())).await })
-        .await
-}
-
-#[tauri::command]
-pub async fn background_agent_choose(id: String) -> Result<background_agent::BackgroundAgents, AppError> {
-    crate::log::command("background_agent_choose", async move { attempt(move || background_agent::choose(&id)).await })
-        .await
-}
-
-#[tauri::command]
-pub async fn background_agent_acknowledge(id: String) -> Result<background_agent::BackgroundAgents, AppError> {
-    crate::log::command("background_agent_acknowledge", async move {
-        attempt(move || background_agent::acknowledge(&id)).await
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn mail_agent_waiting(id: String) -> Result<Option<u64>, AppError> {
-    crate::log::command("mail_agent_waiting", async move {
-        let tool = known_tool(&id)?;
-        attempt(move || mail_agent::waiting(tool)).await
-    })
-    .await
-}
-
-#[tauri::command]
 pub fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
     crate::log::command_now("cancel_install", || {
         // Only an install's own key: any other string would stop whatever runs under it, a sync or a backup.
@@ -198,29 +143,6 @@ pub async fn config_repair(id: String, profile: Option<String>) -> Result<config
     .await
 }
 
-/// What holds this account in the app now: its sync, an install or update of its package, or a sign-in.
-fn holder(tool: &'static catalog::Tool, profile: &str, running: &Running) -> Option<account::RemovalHolder> {
-    if running.busy(&crate::sync::key(tool, Some(profile))) {
-        Some(account::RemovalHolder::Sync)
-    } else if running.busy(&catalog::owner(tool).id) {
-        Some(account::RemovalHolder::Install)
-    } else if running.busy(&crate::signin::key(&tool.id)) {
-        Some(account::RemovalHolder::SignIn)
-    } else {
-        None
-    }
-}
-
-const HELD: &str = "Something else runs for this account, such as a sync. Stop it first.";
-
-fn held(holder: account::RemovalHolder) -> account::AccountRemoval {
-    account::AccountRemoval::Refused {
-        reason: account::RemovalRefusal::Busy,
-        holder: Some(holder),
-        message: HELD.into(),
-    }
-}
-
 /// The fallback for a tool too old for `account remove`; refused while its sync, an install or a sign-in runs.
 #[tauri::command]
 pub async fn account_sign_out(
@@ -231,8 +153,8 @@ pub async fn account_sign_out(
     crate::log::command("account_sign_out", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        if holder(tool, &profile, &running).is_some() {
-            return Err(AppError::Busy(HELD.into()));
+        if account::holder(tool, &profile, &running).is_some() {
+            return Err(AppError::Busy(account::HELD.into()));
         }
         attempt(move || account::sign_out(tool, &profile)).await
     })
@@ -260,8 +182,8 @@ pub async fn account_remove_plan(
     crate::log::command("account_remove_plan", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        if let Some(h) = holder(tool, &profile, &running) {
-            return Ok(held(h));
+        if let Some(h) = account::holder(tool, &profile, &running) {
+            return Ok(account::held(h));
         }
         attempt(move || account::remove(tool, &profile, delete_data, true)).await
     })
@@ -279,8 +201,8 @@ pub async fn account_remove(
     crate::log::command("account_remove", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        if let Some(h) = holder(tool, &profile, &running) {
-            return Ok(held(h));
+        if let Some(h) = account::holder(tool, &profile, &running) {
+            return Ok(account::held(h));
         }
         attempt(move || account::remove(tool, &profile, delete_data, false)).await
     })
@@ -289,7 +211,7 @@ pub async fn account_remove(
 
 // Async: finding a terminal waits a moment for each one tried, and macOS waits for its Automation answer.
 #[tauri::command]
-pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), AppError> {
+pub async fn open_setup(id: String, profile: Option<String>) -> Result<terminal::Opened, AppError> {
     crate::log::command("open_setup", async move {
         let tool = known_tool(&id)?;
         attempt(move || {
@@ -297,7 +219,7 @@ pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), AppEr
             let args = catalog::with_profile(args, profile.as_deref())?;
             let bin = crate::tools::program(&tool.bin)
                 .ok_or_else(|| AppError::NotInstalled("the tool is not installed".into()))?;
-            Ok::<_, AppError>(terminal::open(&bin, &args)?)
+            Ok::<_, AppError>(terminal::opened(terminal::open(&bin, &args)))
         })
         .await
     })

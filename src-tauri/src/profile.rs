@@ -293,7 +293,7 @@ fn remove_marked(content: &str, start_marker: &str, end_marker: &str) -> String 
     }
     let before = &content[..start];
     // Drop the blank line insert_block put in front, but nothing the user wrote.
-    let before = before.strip_suffix("\n\n").map_or(before.to_string(), |b| format!("{b}\n"));
+    let before = before.strip_suffix("\n\n").map_or_else(|| before.to_string(), |b| format!("{b}\n"));
     format!("{before}{}", &content[end..])
 }
 

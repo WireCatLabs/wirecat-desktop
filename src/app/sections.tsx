@@ -36,8 +36,24 @@ const StoragePage = lazy(() => import("@/features/storage/page").then((m) => ({ 
 const TasksPage = lazy(() => import("@/features/tasks/page").then((m) => ({ default: m.TasksPage })))
 const ToolsPage = lazy(() => import("@/features/tools/page").then((m) => ({ default: m.ToolsPage })))
 
+/** The sections the sidebar lists, each with its name in `app/messages.ts`. */
+export type SectionId =
+  | "tools"
+  | "agents"
+  | "search"
+  | "tasks"
+  | "digests"
+  | "clients"
+  | "guides"
+  | "memory"
+  | "people"
+  | "analytics"
+  | "storage"
+  | "logs"
+  | "settings"
+
 export type Section = {
-  id: string
+  id: SectionId | "open" | "conversation"
   icon: ComponentType<SVGProps<SVGSVGElement>>
   /** Absent while the section is announced but not built yet. */
   page?: ComponentType | LazyExoticComponent<ComponentType>
@@ -65,3 +81,5 @@ export const sections: readonly Section[] = [
   { id: "open", icon: Link2, page: LinkPage, hidden: true },
   { id: "conversation", icon: MessagesSquare, page: ConversationPage, hidden: true },
 ]
+
+export const listed = (s: Section): s is Section & { id: SectionId } => !s.hidden

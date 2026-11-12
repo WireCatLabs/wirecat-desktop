@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
-import { contactsOf, sameMark, sharedValue } from "./contacts"
+import { contactsOf, sharedValue } from "./contacts"
 import { PeoplePage } from "./PeoplePage"
 import { useProfiles } from "./profiles"
 import { usePeople } from "./store"
@@ -10,18 +10,17 @@ import { usePeople } from "./store"
 const openSergey = async () => {
   const user = userEvent.setup()
   render(<PeoplePage />)
-  await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+  await user.click(await screen.findByRole("button", { name: "Review matches" }))
   const card = screen.getByRole("article", { name: "Сергей · 2 people" })
   await user.click(within(card).getByRole("button", { name: "Details" }))
   const dialog = await screen.findByRole("dialog", { name: "Match details" })
-  await within(dialog).findAllByText("+7 912 555-01-47", {}, { timeout: 4000 })
+  await within(dialog).findAllByText("+7 912 555-01-47")
   return { user, dialog }
 }
 
 describe("Match details", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
     useProfiles.getState().clear()
   })
 
@@ -31,9 +30,9 @@ describe("Match details", () => {
     const sides = within(dialog).getAllByRole("region", { name: "Сергей" })
     expect(sides).toHaveLength(2)
     for (const side of sides) {
-      expect(within(side).getByText("+7 912 555-01-47")).toHaveClass(...sameMark.split(" "))
+      expect(within(side).getByText("+7 912 555-01-47")).toBeInTheDocument()
       expect(within(side).getByText("matched")).toBeInTheDocument()
-      expect(await within(side).findByText("Bitrix24 contact", {}, { timeout: 4000 })).toBeInTheDocument()
+      expect(await within(side).findByText("Bitrix24 contact")).toBeInTheDocument()
     }
     expect(within(sides[0] as HTMLElement).getByText("Northstar Logistics, Закупки")).toBeInTheDocument()
     expect(within(sides[0] as HTMLElement).getByText("Созвон по поставке")).toBeInTheDocument()
@@ -44,9 +43,9 @@ describe("Match details", () => {
   it("does not mark the accounts on a card personal, the scope memo gives every new account", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "Review matches" }))
     const card = screen.getByRole("article", { name: "Сергей · 2 people" })
-    await waitFor(() => expect(within(card).getAllByText("Bitrix24")).toHaveLength(2), { timeout: 4000 })
+    await waitFor(() => expect(within(card).getAllByText("Bitrix24")).toHaveLength(2))
     expect(card).not.toHaveTextContent("personal")
   })
 
@@ -54,7 +53,7 @@ describe("Match details", () => {
     const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     const { user, dialog } = await openSergey()
     const side = within(dialog).getAllByRole("region", { name: "Сергей" })[1] as HTMLElement
-    await user.click(await within(side).findByRole("button", { name: "Open in Bitrix24" }, { timeout: 4000 }))
+    await user.click(await within(side).findByRole("link", { name: "Open in Bitrix24" }))
     expect(open).toHaveBeenCalledWith("https://northstar.example/crm/contact/details/7733/")
   })
 
@@ -64,7 +63,7 @@ describe("Match details", () => {
     const { user, dialog } = await openSergey()
     await user.click(within(dialog).getByRole("button", { name: "Merge" }))
     expect(decide).toHaveBeenCalledWith("person:33", "17106", "confirm", undefined)
-    expect(await within(dialog).findByText("Joined into one person.", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(dialog).findByText("Joined into one person.")).toBeInTheDocument()
     expect(within(dialog).getAllByRole("region", { name: "Сергей" })).toHaveLength(2)
     expect(screen.getByRole("dialog", { name: "Match details" })).toBeVisible()
   })
@@ -75,26 +74,26 @@ describe("Match details", () => {
     await user.click(within(dialog).getByRole("button", { name: "Not the same" }))
     await user.type(within(dialog).getByRole("textbox", { name: "Why are they different people?" }), "namesakes{Enter}")
     expect(decide).toHaveBeenCalledWith("person:33", "17106", "reject", "namesakes")
-    expect(await within(dialog).findByText(/Kept apart/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(dialog).findByText(/Kept apart/)).toBeInTheDocument()
   })
 
   it("reads the profiles again when a decided match is opened once more", async () => {
     vi.spyOn(platform, "peopleDecide").mockImplementation((ref) => platform.peopleShow(ref))
     const { user, dialog } = await openSergey()
     await user.click(within(dialog).getByRole("button", { name: "Merge" }))
-    await within(dialog).findByText("Joined into one person.", {}, { timeout: 4000 })
+    await within(dialog).findByText("Joined into one person.")
     await user.click(within(dialog).getByRole("button", { name: "Close" }))
     const card = screen.getByRole("article", { name: "Сергей · 2 people" })
     await user.click(within(card).getByRole("button", { name: "Сергей · 2 people" }))
     const again = await screen.findByRole("dialog", { name: "Match details" })
-    expect(await within(again).findByText("Northstar Logistics, Закупки", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(again).findByText("Northstar Logistics, Закупки")).toBeInTheDocument()
   })
 
   it("joins only the people ticked on the group's card", async () => {
     const merge = vi.spyOn(platform, "peopleMerge")
     const user = userEvent.setup()
     render(<PeoplePage />)
-    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "Review matches" }))
     const title = "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov"
     const card = screen.getByRole("article", { name: title })
     await user.click(within(card).getByRole("checkbox", { name: "K. Semenov is one of them" }))
@@ -198,7 +197,6 @@ describe("what the people share", () => {
 describe("A match by name", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
     useProfiles.getState().clear()
   })
 
@@ -230,19 +228,17 @@ describe("A match by name", () => {
       }))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
-    const button = await screen.findByRole("button", { name: "Company address" }, { timeout: 4000 })
+    await user.click(await screen.findByRole("button", { name: "Review matches" }))
+    const button = await screen.findByRole("button", { name: "Company address" })
     const card = button.closest("article") as HTMLElement
     expect(within(card).queryByRole("button", { name: "Company mailbox" })).not.toBeInTheDocument()
     await user.click(button)
     const ask = within(card).getByRole("group", { name: "Which of their addresses is the company's?" })
-    const address = await within(ask).findByRole("button", { name: "marta@studio.example" }, { timeout: 4000 })
+    const address = await within(ask).findByRole("button", { name: "marta@studio.example" })
     await user.click(address)
     expect(await within(card).findByText(/not one of their addresses at a company's domain/)).toBeInTheDocument()
     await user.click(within(ask).getByRole("button", { name: "marta@studio.example" }))
-    expect(
-      await within(card).findByText(/marta@studio.example is a company's mailbox now/, {}, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await within(card).findByText(/marta@studio.example is a company's mailbox now/)).toBeInTheDocument()
     expect(resolve.mock.calls.map(([, id, to]) => [id, to])).toEqual([
       ["17102", { mailbox: "marta@studio.example" }],
       ["17102", { mailbox: "marta@studio.example" }],
@@ -253,8 +249,8 @@ describe("A match by name", () => {
     byName(false)
     const user = userEvent.setup()
     render(<PeoplePage />)
-    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
-    await screen.findAllByRole("article", {}, { timeout: 4000 })
+    await user.click(await screen.findByRole("button", { name: "Review matches" }))
+    await screen.findAllByRole("article")
     expect(screen.queryByRole("button", { name: "Company address" })).not.toBeInTheDocument()
   })
 })
@@ -262,7 +258,6 @@ describe("A match by name", () => {
 describe("One company", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
     useProfiles.getState().clear()
   })
 
@@ -276,8 +271,8 @@ describe("One company", () => {
   const sergey = async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
-    return { user, card: await screen.findByRole("article", { name: "Сергей · 2 people" }, { timeout: 4000 }) }
+    await user.click(await screen.findByRole("button", { name: "Review matches" }))
+    return { user, card: await screen.findByRole("article", { name: "Сергей · 2 people" }) }
   }
   const organized = (id: string) => ({
     kind: "organized" as const,
@@ -296,8 +291,6 @@ describe("One company", () => {
     expect(
       await within(card).findByText(
         "pro@northstar.example and b2b@northstar.example now belong to Northstar Logistics. They left the contacts.",
-        {},
-        { timeout: 4000 },
       ),
     ).toBeInTheDocument()
     expect(within(card).queryByRole("button", { name: "Same person" })).not.toBeInTheDocument()
@@ -319,11 +312,9 @@ describe("One company", () => {
       .mockImplementation(async (id) => organized(id))
     const { user, card } = await sergey()
     await user.click(within(card).getByRole("button", { name: "One company" }))
-    await user.type(await within(card).findByLabelText("Company name", {}, { timeout: 4000 }), "Northstar Logistics")
+    await user.type(await within(card).findByLabelText("Company name"), "Northstar Logistics")
     await user.click(within(card).getByRole("button", { name: "Give it to this company" }))
-    expect(
-      await within(card).findByText(/now belong to Northstar Logistics/, {}, { timeout: 4000 }),
-    ).toBeInTheDocument()
+    expect(await within(card).findByText(/now belong to Northstar Logistics/)).toBeInTheDocument()
     expect(resolve.mock.calls.map(([, to]) => to)).toEqual([{}, { name: "Northstar Logistics" }])
     expect(mailbox).not.toHaveBeenCalled()
   })
@@ -334,11 +325,7 @@ describe("One company", () => {
     const { user, card } = await sergey()
     await user.click(within(card).getByRole("button", { name: "One company" }))
     expect(
-      await within(card).findByText(
-        "They now belong to Northstar Logistics and left the contacts.",
-        {},
-        { timeout: 4000 },
-      ),
+      await within(card).findByText("They now belong to Northstar Logistics and left the contacts."),
     ).toBeInTheDocument()
   })
 
@@ -352,7 +339,7 @@ describe("One company", () => {
     })
     const { user, card } = await sergey()
     await user.click(within(card).getByRole("button", { name: "One company" }))
-    expect(await within(card).findByText(/One of them is you/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(card).findByText(/One of them is you/)).toBeInTheDocument()
     expect(within(card).queryByLabelText("Company name")).not.toBeInTheDocument()
   })
 

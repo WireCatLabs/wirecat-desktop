@@ -61,7 +61,7 @@ export function Pager({
   // Plain buttons: Button's own padding would squeeze a 2rem square and its icon.
   const cell = (current = false) =>
     cx(
-      "inline-grid h-8 min-w-8 place-items-center rounded-[0.35rem] border px-2 text-[0.875rem] tabular-nums",
+      "inline-grid h-8 min-w-8 place-items-center rounded-control border px-2 text-[0.875rem] tabular-nums",
       "transition-colors duration-(--motion-fast) disabled:pointer-events-none disabled:opacity-45",
       current
         ? "border-line-strong bg-app font-semibold text-ink"

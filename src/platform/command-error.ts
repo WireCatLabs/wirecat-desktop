@@ -19,3 +19,8 @@ export function commandError(e: unknown): unknown {
   const { kind, message } = e as { kind?: unknown; message?: unknown }
   return typeof kind === "string" && typeof message === "string" ? new CommandError(kind, message) : e
 }
+
+/** Rust's `AppError::TooOld`: the installed CLI refused a command or option the app passes. */
+export const TOO_OLD = "too_old"
+
+export const tooOld = (e: unknown) => e instanceof CommandError && e.kind === TOO_OLD

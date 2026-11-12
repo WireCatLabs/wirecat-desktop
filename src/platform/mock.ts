@@ -718,11 +718,16 @@ export function createMock(os: Platform["os"]): Platform {
     async cancelInstall() {
       cancelled = true
     },
-    // `?terminal=none`: no terminal program found, as Rust words it.
+    // `?terminal=none`: no terminal program found, as Rust answers it.
     async openSetup(id, profile) {
       await delay(300)
       if (params.get("terminal") === "none")
-        throw new Error(`Could not open a terminal. Run this yourself: ${id} ${profile ?? ""} setup`)
+        return {
+          started: false,
+          reason: "terminal" as const,
+          message: `Could not open a terminal. Run this yourself: ${id} ${profile ?? ""} setup`,
+        }
+      return { started: true, reason: null, message: null }
     },
     ...signInMock(),
     ...driveFoldersMock(),

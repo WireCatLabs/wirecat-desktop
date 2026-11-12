@@ -1,4 +1,5 @@
 use crate::catalog::{self, Tool};
+use crate::install::Running;
 use crate::paths;
 use crate::run::{self, RunError};
 use crate::signin_steps::Parser;
@@ -10,6 +11,7 @@ use std::path::PathBuf;
 use std::process::ChildStdin;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
+use tauri::ipc::Channel;
 
 /// `wa` ends its history wait on SIGTERM and then answers with what it kept; this is its time to do so.
 pub const GRACE: Duration = Duration::from_secs(5);
@@ -21,9 +23,45 @@ pub const TOOK_TOO_LONG: &str = "took_too_long";
 
 pub type Answer = zeroize::Zeroizing<String>;
 
+const KEY: &str = "sign-in:";
+
 /// The running sign-in of one tool, in `Running`; its stop removes the key.
 pub fn key(id: &str) -> String {
-    format!("sign-in:{id}")
+    format!("{KEY}{id}")
+}
+
+/// The tool a `Running` key signs in to, if it is a sign-in's.
+pub fn signing_in(key: &str) -> Option<&str> {
+    key.strip_prefix(KEY)
+}
+
+/// Starts the tool's sign-in key unless a sign-in to it, or an install or update of its package, runs; the refusal is
+/// the sentence the window shows.
+fn claim(tool: &'static Tool, running: &Running) -> Result<String, String> {
+    let key = key(&tool.id);
+    let package = &catalog::owner(tool).id;
+    if running.start_unless(&key, |k| k == package) {
+        return Ok(key);
+    }
+    Err(if running.busy(package) {
+        format!("{} is being installed or updated. Sign in when it is done.", tool.name)
+    } else {
+        format!("A {} sign-in is still running or stopping. Try again in a few seconds.", tool.name)
+    })
+}
+
+/// One sign-in per tool, none while its package installs; steps and the result arrive on `events`.
+pub fn run_guarded(tool: &'static Tool, prepared: &Prepared, running: &Running, events: &Channel<SignInEvent>) {
+    let send = |e: SignInEvent| {
+        let _ = events.send(e);
+    };
+    match claim(tool, running) {
+        Err(message) => send(failed(message)),
+        Ok(key) => {
+            run(tool, prepared, &|| !running.is_running(&key), &send);
+            running.finish(&key);
+        }
+    }
 }
 
 /// Each running sign-in's stdin, open for its answers; dropped, and so closed, when the run ends.
@@ -369,12 +407,24 @@ fn finish(
 }
 
 fn failed(message: String) -> SignInEvent {
-    SignInEvent::Failed { message, code: None, reason: None }
+    let code = crate::memo_cli::unknown_to_cli(&message).then(|| crate::signin_steps::NEEDS_UPDATE.to_string());
+    SignInEvent::Failed { message, code, reason: None }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_sign_in_waits_for_an_install_of_its_package() {
+        let tg = catalog::tool("tg").unwrap();
+        let running = Running::default();
+        assert!(running.start("tg"));
+        assert!(claim(tg, &running).unwrap_err().contains("being installed"));
+        running.finish("tg");
+        assert_eq!(claim(tg, &running).unwrap(), key("tg"));
+        assert!(claim(tg, &running).unwrap_err().contains("still running"));
+    }
 
     #[test]
     fn an_answer_with_a_line_break_never_reaches_the_tool() {
@@ -398,6 +448,13 @@ mod tests {
             finish("wa", Err(RunError::TimedOut), None, false),
             SignInEvent::Failed { code: Some(c), .. } if c == TOOK_TOO_LONG
         ));
+    }
+
+    #[test]
+    fn a_failure_naming_an_option_the_tool_lacks_asks_for_an_update() {
+        let old = failed("error: unknown option '--answer-stdin'".into());
+        assert!(matches!(old, SignInEvent::Failed { code: Some(c), .. } if c == crate::signin_steps::NEEDS_UPDATE));
+        assert!(matches!(failed("cancelled".into()), SignInEvent::Failed { code: None, .. }));
     }
 
     fn words(tool: &str, method: &str, profile: &str) -> Result<Vec<String>, String> {

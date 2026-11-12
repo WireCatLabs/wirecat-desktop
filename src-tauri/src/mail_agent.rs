@@ -4,7 +4,7 @@
 
 use crate::background_agent::{self, AgentTrouble, Pick};
 use crate::catalog::{self, Tool};
-use crate::skills::{body, call, failure, too_old};
+use crate::skills::{body, call, failure};
 use crate::{redact, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -87,7 +87,7 @@ fn gate(src: &MailAgentSource) -> Result<Result<&'static Tool, MailAgent>, Strin
     let via = catalog::tool(&src.via)?;
     let state = tools::detect(via, false);
     let Some(first) = state.installs.first() else { return Ok(Err(MailAgent::NoMemo)) };
-    if too_old(first.version.as_deref(), &src.min_version) {
+    if crate::tools::older(first.version.as_deref(), &src.min_version) {
         return Ok(Err(MailAgent::Old { version: first.version.clone(), need: src.min_version.clone() }));
     }
     Ok(Ok(via))
@@ -359,9 +359,9 @@ mod tests {
 
     #[test]
     fn says_which_memo_is_too_old() {
-        assert!(too_old(Some("0.131.25"), "0.131.26"));
-        assert!(!too_old(Some("0.131.38"), "0.131.26"));
-        assert!(too_old(None, "0.131.26"));
+        assert!(crate::tools::older(Some("0.131.25"), "0.131.26"));
+        assert!(!crate::tools::older(Some("0.131.38"), "0.131.26"));
+        assert!(crate::tools::older(None, "0.131.26"));
     }
 
     #[test]

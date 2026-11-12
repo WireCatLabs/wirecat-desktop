@@ -102,7 +102,7 @@ function ConfigProblems(props: {
 }
 
 /** What the tool's repair changed, kept above the fresh check so the owner sees why the problem is gone. */
-export function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
+function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
   if (repaired.state === "unchanged")
     return (
       <p role="status" className="reveal flex items-center gap-2 text-[0.9rem] text-ink-soft">
@@ -115,7 +115,7 @@ export function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) 
     .map((c) => (c.line === null ? said(c.kind) : `${said(c.kind)} (${m.atLine(c.line)})`))
     .join("; ")
   return (
-    <div role="status" className="reveal flex items-start gap-2 rounded-[0.35rem] bg-ok/10 px-3 py-2 text-[0.9rem]">
+    <div role="status" className="reveal flex items-start gap-2 rounded-control bg-ok/10 px-3 py-2 text-[0.9rem]">
       <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
       <div className="flex min-w-0 flex-col gap-1">
         <span>{what ? m.repaired(what) : m.repairedNothingListed}</span>
@@ -129,7 +129,7 @@ export function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) 
   )
 }
 
-export function CheckResult(props: {
+function CheckResult(props: {
   check: Check
   tool: CatalogTool
   onRepaired: (r: Repaired) => void
@@ -145,7 +145,7 @@ export function CheckResult(props: {
   const other = findings.filter((f) => !f.config)
   return (
     <div
-      className={cx("flex flex-col gap-2 rounded-[0.45rem] border border-line bg-app p-3", closable && "pr-11")}
+      className={cx("flex flex-col gap-2 rounded-inset border border-line bg-app p-3", closable && "pr-11")}
       aria-live="polite"
     >
       {config.length > 0 && (
@@ -180,7 +180,7 @@ export function CheckResult(props: {
           <dt>{m.took}</dt>
           <dd className="font-mono text-ink">{(result.durationMs / 1000).toFixed(1)} s</dd>
         </dl>
-        <pre className="selectable max-h-56 overflow-auto rounded-[0.35rem] bg-app-2 p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink-soft">
+        <pre className="selectable max-h-56 overflow-auto rounded-control bg-app-2 p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink-soft">
           {JSON.stringify(result.report, null, 2) ?? result.stderr}
         </pre>
         <p className="mt-1.5 text-[0.85rem] text-ink-dim">{m.hidden}</p>

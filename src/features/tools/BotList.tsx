@@ -4,6 +4,7 @@ import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { BotProfile } from "@/platform/bot-schemas"
 import { useBotSignIn } from "@/shared/bot-signin-store"
+import { errorText } from "@/shared/errors"
 import { botMessages } from "@/shared/messages-bot"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
@@ -85,7 +86,7 @@ export function BotList({ tool }: { tool: CatalogTool }) {
   )
 }
 
-const BOT_LIST = "divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app"
+const BOT_LIST = "divide-y divide-line overflow-hidden rounded-inset border border-line bg-app"
 
 function BotRow(props: {
   tool: CatalogTool
@@ -169,7 +170,7 @@ function RemoveBotDialog(props: { tool: CatalogTool; name: string | null; onClos
     useBotSignIn
       .getState()
       .removeBot(tool.id, name)
-      .then(onClose, (e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .then(onClose, (e: unknown) => setError(errorText(e)))
       .finally(() => setBusy(false))
   }
 
@@ -180,7 +181,7 @@ function RemoveBotDialog(props: { tool: CatalogTool; name: string | null; onClos
       onClose={onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} data-autofocus>
             {m.cancel}
           </Button>
           <Button variant="danger" onClick={remove} aria-busy={busy || undefined}>

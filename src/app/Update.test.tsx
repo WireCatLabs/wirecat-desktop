@@ -130,8 +130,8 @@ describe("App update", () => {
     })
     const terminal = vi
       .spyOn(platform, "openPackageTerminal")
-      .mockResolvedValueOnce()
-      .mockRejectedValueOnce(new Error("Could not open a terminal."))
+      .mockResolvedValueOnce({ started: true, reason: null, message: null })
+      .mockResolvedValueOnce({ started: false, reason: "terminal", message: "Could not open a terminal." })
     const user = userEvent.setup()
     render(<App />)
 
@@ -221,7 +221,7 @@ describe("App update", () => {
     const github = within(dialog).getAllByText(/GitHub/)
     expect(github).toHaveLength(1)
     expect(github[0]).toHaveTextContent("All releases on GitHub")
-    await user.click(within(dialog).getByRole("button", { name: "What's new in 0.2.0" }))
+    await user.click(within(dialog).getByRole("link", { name: "What's new in 0.2.0" }))
     expect(open).toHaveBeenCalledWith("https://github.com/WireCatLabs/wirecat-desktop/releases/tag/v0.2.0")
   })
 

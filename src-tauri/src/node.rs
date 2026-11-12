@@ -38,6 +38,33 @@ fn make_private(dir: &Path) {
     }
 }
 
+/// A JSON record in the app's data folder, named relative to it; a missing or broken file reads as the default.
+pub fn load_record<T: serde::de::DeserializeOwned + Default>(name: &str) -> T {
+    app_data()
+        .and_then(|d| std::fs::read(d.join(name)).ok())
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_record<T: Serialize + ?Sized>(name: &str, value: &T) -> Result<(), String> {
+    write_json(&app_data().ok_or("no folder for the app's data")?.join(name), value)
+}
+
+/// Writes a `.partial` file and renames it over `file`: a crash or a full disk mid-write keeps the last good record,
+/// which a reader would otherwise take for an empty one.
+pub fn write_json<T: Serialize + ?Sized>(file: &Path, value: &T) -> Result<(), String> {
+    let shown = || paths::tilde(&file.to_string_lossy());
+    if let Some(dir) = file.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("Could not save {}: {e}", shown()))?;
+    }
+    let body = serde_json::to_vec_pretty(value).map_err(|e| e.to_string())?;
+    let mut partial = file.as_os_str().to_owned();
+    partial.push(".partial");
+    std::fs::write(&partial, body)
+        .and_then(|()| std::fs::rename(&partial, file))
+        .map_err(|e| format!("Could not save {}: {e}", shown()))
+}
+
 /// The app's own data folder, `<app local data>/dev.wirecat.desktop`.
 pub fn app_data() -> Option<PathBuf> {
     let home = paths::home();
@@ -598,6 +625,19 @@ mod tests {
         let mode = std::fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(mode, 0o700);
+    }
+
+    #[test]
+    fn a_failed_save_keeps_the_last_good_record() {
+        let dir = std::env::temp_dir().join(format!("wirecat-record-{}", std::process::id()));
+        let file = dir.join("routes.json");
+        write_json(&file, &["first"]).unwrap();
+        std::fs::create_dir_all(dir.join("routes.json.partial")).unwrap();
+        let failed = write_json(&file, &["second"]);
+        let kept: Vec<String> = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(failed.is_err());
+        assert_eq!(kept, ["first"]);
     }
 
     #[test]

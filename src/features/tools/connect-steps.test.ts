@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { McpClient, McpServerStatus, PublicCheck } from "@/platform/mcp-server-schemas"
-import { activityOf, ago, busiest, currentStep, latestLogin, reachOf, testState } from "./connect-steps"
+import { activityOf, busiest, currentStep, latestLogin, reachOf, testState } from "./connect-steps"
 
 const client = (more: Partial<McpClient> = {}): McpClient => ({
   claimedName: "ChatGPT",
@@ -92,14 +92,6 @@ describe("the connection test", () => {
 
 describe("activity", () => {
   const now = at("2026-10-27T12:00:00Z")
-
-  it("says how long ago in plain words", () => {
-    expect(ago("2026-10-27T11:59:30Z", now)).toBe("just now")
-    expect(ago("2026-10-27T11:58:00Z", now)).toBe("2 min ago")
-    expect(ago("2026-10-27T09:00:00Z", now)).toBe("3 h ago")
-    expect(ago("2026-10-26T12:00:00Z", now)).toBe("yesterday")
-    expect(ago("2026-10-24T12:00:00Z", now)).toBe("3 days ago")
-  })
 
   it("reads the last call, else the last request, else the login", () => {
     const called = client({ lastTool: "tg_read", lastToolAt: "2026-10-27T11:58:00Z", toolCallsToday: 14 })

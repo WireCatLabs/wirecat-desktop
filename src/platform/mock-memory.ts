@@ -1,11 +1,12 @@
-import type {
-  AgentCall,
-  MemoryEntry,
-  MemoryRead,
-  MemorySource,
-  Role,
-  SourceContext,
-  SourceReview,
+import {
+  type AgentCall,
+  BLANK_ENTRY,
+  type MemoryEntry,
+  type MemoryRead,
+  type MemorySource,
+  type Role,
+  type SourceContext,
+  type SourceReview,
 } from "./memory-schemas"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
@@ -29,30 +30,6 @@ const DAY = 24 * HOUR
 
 /** Times from now, so "Today" and "Yesterday" hold whichever day the build is opened. */
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
-
-const base = {
-  summary: null,
-  verb: null,
-  targetName: null,
-  chatName: null,
-  counts: null,
-  subject: null,
-  subjectName: null,
-  subjectIsOwner: false,
-  scope: "work",
-  project: null,
-  projectName: null,
-  supersedes: null,
-  reason: null,
-  account: null,
-  target: null,
-  updatedAt: null,
-  findings: null,
-  task: null,
-  model: null,
-  confidence: null,
-  sourceReview: null,
-} as const
 
 /** `?memory=changed`: memo found these records' sources changed or gone since they were cited. */
 const MARKED: Record<string, { id: string; cause: string }> = {
@@ -118,7 +95,7 @@ const NBB = { project: "project:4", projectName: "Northbridge Bench" } as const
 function seed(): MemoryEntry[] {
   return [
     {
-      ...base,
+      ...BLANK_ENTRY,
       ...NBB,
       ref: "action:7",
       type: "action",
@@ -178,7 +155,7 @@ function seed(): MemoryEntry[] {
       ],
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "action:12",
       type: "action",
       kind: "mail_findings",
@@ -222,7 +199,7 @@ function seed(): MemoryEntry[] {
       ],
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ...NBB,
       ref: "fact:21",
       type: "fact",
@@ -234,7 +211,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(1.3 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "memory:41",
       type: "memory",
       kind: "preference",
@@ -250,7 +227,7 @@ function seed(): MemoryEntry[] {
       updatedAt: ago(1.5 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "fact:17",
       type: "fact",
       kind: "decision",
@@ -265,7 +242,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(2.3 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "action:5",
       type: "action",
       kind: "reply",
@@ -285,7 +262,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(2.6 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "memory:40",
       type: "memory",
       kind: "summary",
@@ -299,7 +276,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(DAY + 3 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "action:4",
       type: "action",
       kind: "create_task",
@@ -320,7 +297,7 @@ function seed(): MemoryEntry[] {
       updatedAt: ago(DAY + 3.5 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "action:3",
       type: "action",
       kind: "evidence_findings",
@@ -371,7 +348,7 @@ function seed(): MemoryEntry[] {
       ],
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "fact:22",
       type: "fact",
       kind: "decision",
@@ -386,7 +363,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(DAY + 4.5 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "memory:39",
       type: "memory",
       kind: "digest",
@@ -399,7 +376,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(DAY + 6 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "memory:38",
       type: "memory",
       kind: "preference",
@@ -413,7 +390,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(3 * DAY),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "fact:12",
       type: "fact",
       kind: "promise",
@@ -428,7 +405,7 @@ function seed(): MemoryEntry[] {
       createdAt: ago(3 * DAY + 2 * HOUR),
     },
     {
-      ...base,
+      ...BLANK_ENTRY,
       ref: "memory:31",
       type: "memory",
       kind: "preference",
@@ -453,7 +430,7 @@ const relation = (
   standing: string,
   createdAt: string,
 ): MemoryEntry => ({
-  ...base,
+  ...BLANK_ENTRY,
   ref,
   type: "relationship",
   kind,
@@ -564,7 +541,7 @@ function many(): MemoryEntry[] {
     const person = PEOPLE[i % PEOPLE.length] ?? "Kai Moreno"
     const status = STATUSES[i % STATUSES.length] ?? "proposed"
     return {
-      ...base,
+      ...BLANK_ENTRY,
       ref: fact ? `fact:${1000 + i}` : `memory:${1000 + i}`,
       type: fact ? "fact" : "memory",
       kind: fact ? "statement" : "summary",

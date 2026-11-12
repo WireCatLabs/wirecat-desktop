@@ -1,10 +1,9 @@
-import { CircleAlert, CircleCheck, LoaderCircle, LockKeyhole, Send } from "lucide-react"
+import { CircleCheck, LoaderCircle, LockKeyhole, Send } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { issueBody, LIMITS, newIssueUrl, type ReportFields, type ReportProblem, validateReport } from "@/domain/report"
 import { formatList, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { OpenLink } from "@/shared/OpenLink"
 import { attachmentsOf, useReport } from "@/shared/report-store"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -13,13 +12,14 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure } from "@/ui/Disclosure"
+import { FieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { Monogram } from "@/ui/Logo"
 import { Select, type SelectGroup } from "@/ui/Select"
 import { reportMessages } from "./messages"
 
 const SECURITY_POLICY = "https://github.com/WireCatLabs/.github/blob/main/SECURITY.md"
-const control = `w-full rounded-[0.35rem] border border-line-strong bg-app px-2.5 py-1.5 text-[0.95rem] leading-normal text-ink placeholder:text-ink-dim disabled:opacity-60 aria-[invalid=true]:border-bad ${fieldFocus}`
+const control = `w-full rounded-control border border-line-strong bg-app px-2.5 py-1.5 text-[0.95rem] leading-normal text-ink placeholder:text-ink-dim disabled:opacity-60 aria-[invalid=true]:border-bad ${fieldFocus}`
 const empty: ReportFields = { summary: "", about: "", steps: "", happened: "", expected: "" }
 
 type FieldId = keyof ReportFields
@@ -102,14 +102,9 @@ export function ReportDialog() {
         >
           <p className="max-w-[70ch] text-[0.875rem]">
             {m.intro(
-              <button
-                type="button"
-                className="font-medium text-brand hover:text-brand-hover"
-                onClick={() => platform.openUrl(SECURITY_POLICY)}
-                {...externalHref(SECURITY_POLICY)}
-              >
+              <ExtLink href={SECURITY_POLICY} className="font-medium">
                 {m.policy}
-              </button>,
+              </ExtLink>,
             )}
           </p>
 
@@ -245,12 +240,7 @@ function Field({
         </p>
       )}
       {children({ id, "aria-invalid": Boolean(problem), "aria-describedby": describedBy || undefined })}
-      {problem && (
-        <p id={`${id}-error`} className="flex items-center gap-1.5 text-[0.9rem] text-bad">
-          <CircleAlert className="size-3.5 shrink-0" aria-hidden />
-          {m.missing[problem.field]}
-        </p>
-      )}
+      <FieldError id={`${id}-error`}>{problem && m.missing[problem.field]}</FieldError>
     </div>
   )
 }
@@ -275,12 +265,12 @@ function WhatIsSent({ fields }: { fields: ReportFields }) {
   const runs = (context?.attachments?.runs as { tool: string; runs: unknown[] }[] | undefined) ?? []
   const runCount = runs.reduce((n, r) => n + (Array.isArray(r.runs) ? r.runs.length : 0), 0)
   const pre =
-    "selectable max-h-56 overflow-auto whitespace-pre-wrap rounded-[0.3rem] border border-line bg-app p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink"
+    "selectable max-h-56 overflow-auto whitespace-pre-wrap rounded-pill border border-line bg-app p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink"
 
   return (
     <section
       aria-label={m.whatIsSent}
-      className="flex flex-col gap-3 rounded-[0.45rem] bg-app-2 px-4 py-3.5 text-[0.875rem]"
+      className="flex flex-col gap-3 rounded-inset bg-app-2 px-4 py-3.5 text-[0.875rem]"
     >
       <p className="flex gap-2.5">
         <LockKeyhole className="mt-[0.2rem] size-4 shrink-0 text-ink-dim" aria-hidden />
@@ -361,13 +351,8 @@ function Actions({ fields }: { fields: ReportFields }) {
         className="min-w-[9.5rem]"
         aria-keyshortcuts="Control+Enter Meta+Enter"
         disabled={!context || phase === "sending"}
-        icon={
-          phase === "sending" || preparing ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <Send className="size-4" aria-hidden />
-          )
-        }
+        busy={phase === "sending" || preparing}
+        icon={<Send className="size-4" aria-hidden />}
       >
         {phase === "sending" ? m.sending : preparing ? m.preparing : phase === "failed" ? m.tryAgain : m.send}
       </Button>

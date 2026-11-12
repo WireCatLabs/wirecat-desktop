@@ -1,6 +1,5 @@
 import { useEffect, useId } from "react"
 import { hostOfOrigin } from "@/domain/ai-model"
-import type { Gap } from "@/domain/needs"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { LocalOnlyStatus } from "@/platform/ai-model-schemas"
 import { useAiModel } from "@/shared/ai-model-store"
@@ -14,6 +13,7 @@ import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
 import { useLocalOnly } from "./local-only-store"
+import { useMemoGap } from "./memo-gap"
 import { localOnlyMessages, PLACES, type Place } from "./messages-local-only"
 
 const isPlace = (where: string): where is Place => (PLACES as readonly string[]).includes(where)
@@ -21,9 +21,7 @@ const isPlace = (where: string): where is Place => (PLACES as readonly string[])
 /** Settings, "Only this computer": memo's one switch for every model call, and where each feature sends data now. */
 export function LocalOnlySetting() {
   const m = useMessages(localOnlyMessages)
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   const head = useId()
   if (!memo && !gap) return null
   return (
@@ -78,11 +76,7 @@ function LocalOnlyForm({ status }: { status: LocalOnlyStatus }) {
   const refused = status.features.filter((f) => f.refused).length
   const refusal = actionError ? modelRefusalOf(actionError) : null
   const said =
-    actionError === "local-only.owner-only"
-      ? m.ownerOnly
-      : refusal
-        ? refusals[refusal]
-        : actionError && m.setFailed(actionError)
+    actionError === "local-only.owner-only" ? m.ownerOnly : refusal ? refusals[refusal] : actionError && m.setFailed
   const when = status.since ? formatDate(status.since, { dateStyle: "medium", timeStyle: "short" }, lang) : null
 
   return (
@@ -107,11 +101,13 @@ function LocalOnlyForm({ status }: { status: LocalOnlyStatus }) {
         </div>
       </div>
       <Collapse open={Boolean(said)}>
-        <ErrorNotice inline>{said}</ErrorNotice>
+        <ErrorNotice inline raw={said === m.setFailed ? actionError : null}>
+          {said}
+        </ErrorNotice>
       </Collapse>
       <div className="flex flex-col gap-1.5">
         <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.listTitle}</h4>
-        <ul className="flex flex-col divide-y divide-line rounded-[0.35rem] border border-line">
+        <ul className="flex flex-col divide-y divide-line rounded-control border border-line">
           {status.features.map((f) => {
             const place = isPlace(f.where) ? m.places[f.where] : m.placeUnknown
             const host = f.address && f.where !== "agent" ? hostOfOrigin(f.address) : null

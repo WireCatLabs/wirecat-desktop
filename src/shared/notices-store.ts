@@ -1,7 +1,6 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import { LANGS, type Lang, type Messages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import { safeStorage } from "@/shared/safe-storage"
 
 export type PerLang = Record<Lang, string>
@@ -27,7 +26,6 @@ type NoticesState = {
   raise(notice: TopNotice): void
   clear(id: string): void
   dismiss(notice: TopNotice): void
-  openLink(url: string): void
 }
 
 /** Text in every language from a messages catalog, so a notice follows a change of language. */
@@ -45,7 +43,6 @@ export const useNotices = create<NoticesState>()(
       raise: (notice) => set((s) => ({ notices: [...s.notices.filter((n) => n.id !== notice.id), notice] })),
       clear: (id) => set((s) => ({ notices: s.notices.filter((n) => n.id !== id) })),
       dismiss: (notice) => set((s) => ({ dismissed: { ...s.dismissed, [notice.id]: notice.key } })),
-      openLink: (url) => void platform.openUrl(url),
     }),
     {
       name: "wirecat.notices",

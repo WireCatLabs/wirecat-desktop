@@ -1,4 +1,5 @@
 import { type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   title: "Mail agent",
@@ -10,7 +11,7 @@ const en = {
   changing: "Changing…",
   failedEvery: "Could not change how often it runs.",
   turningOn: "Turning on…",
-  turningOff: "Turning off…",
+  turningOff: uiMessages.en.turningOff,
   noMemo: "The mail agent runs in Memo. Install Memo to use it.",
   openMemo: "Open Memo",
   old: (version: string | null, need: string) =>
@@ -30,7 +31,8 @@ const en = {
   ok: "finished",
   failed: (times: number | null) => (times && times > 1 ? `failed ${times} times in a row` : "failed"),
   skipped: (ago: string, why: string) => `Last start skipped ${ago}: ${why}`,
-  // Keyed by the reason id memo sends with a skip; an id missing here shows memo's own English sentence.
+  skippedUnknown: (ago: string) => `Last start skipped ${ago}.`,
+  // Keyed by the reason id memo sends with a skip; an id missing here shows memo's own sentence under Details.
   skipReasons: {
     "cost.day-cap": "the daily cost limit is reached; it runs again tomorrow",
     "mail.none-new": "no new mail since the last check",
@@ -57,7 +59,7 @@ const ru: typeof en = {
   changing: "Меняю…",
   failedEvery: "Не удалось изменить частоту запуска.",
   turningOn: "Включаю…",
-  turningOff: "Выключаю…",
+  turningOff: uiMessages.ru.turningOff,
   noMemo: "Почтовый агент работает в Memo. Установите Memo, чтобы им пользоваться.",
   openMemo: "Открыть Memo",
   old: (version, need) =>
@@ -86,6 +88,7 @@ const ru: typeof en = {
         })
       : "не удался",
   skipped: (ago, why) => `Запуск пропущен ${ago}: ${why}`,
+  skippedUnknown: (ago) => `Запуск пропущен ${ago}.`,
   skipReasons: {
     "cost.day-cap": "дневной лимит расходов исчерпан; завтра запуск продолжится",
     "mail.none-new": "с прошлой проверки новой почты нет",
@@ -118,7 +121,7 @@ const es: typeof en = {
   changing: "Cambiando…",
   failedEvery: "No se pudo cambiar la frecuencia.",
   turningOn: "Activando…",
-  turningOff: "Desactivando…",
+  turningOff: uiMessages.es.turningOff,
   noMemo: "El agente de correo funciona en Memo. Instala Memo para usarlo.",
   openMemo: "Abrir Memo",
   old: (version, need) =>
@@ -139,6 +142,7 @@ const es: typeof en = {
   ok: "terminó bien",
   failed: (times) => (times && times > 1 ? `falló ${times} veces seguidas` : "falló"),
   skipped: (ago, why) => `Ejecución omitida ${ago}: ${why}`,
+  skippedUnknown: (ago) => `Ejecución omitida ${ago}.`,
   skipReasons: {
     "cost.day-cap": "se alcanzó el límite diario de gasto; mañana se ejecuta de nuevo",
     "mail.none-new": "no hay correo nuevo desde la última revisión",

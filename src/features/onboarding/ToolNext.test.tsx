@@ -1,13 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { useLogs } from "@/features/logs"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { endInstalls, m, startOnboarding } from "@/testing/onboarding"
 import { screen, waitFor, within } from "@/testing/render"
 import { nextMessages } from "./messages-next"
-
-beforeEach(() => answerAtOnce())
 
 afterEach(async () => {
   await endInstalls()
@@ -49,7 +46,7 @@ describe("each tool's next steps on Done", () => {
     await user.click(await within(items).findByRole("button", { name: n.addAnother }))
     expect(useOnboarding.getState().open).toBe(false)
     expect(useNav.getState().active).toBe("tools")
-    await waitFor(() => expect(document.getElementById("profile-tg")).toHaveFocus(), { timeout: 3000 })
+    await waitFor(() => expect(document.getElementById("profile-tg")).toHaveFocus())
   })
 
   it("opens Logs filtered to the tool", async () => {

@@ -38,7 +38,8 @@ const enabled = (menu: HTMLElement | null) => [
   ...(menu?.querySelectorAll<HTMLButtonElement>("[role=menuitem]:not(:disabled)") ?? []),
 ]
 
-const MOVES: Record<string, (at: number, count: number) => number> = {
+/** Where each menu key moves the focus among `count` items (WAI-ARIA menu). */
+export const MOVES: Record<string, (at: number, count: number) => number> = {
   ArrowDown: (at, n) => (at + 1) % n,
   ArrowUp: (at, n) => (at - 1 + n) % n,
   Home: () => 0,
@@ -102,7 +103,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
           className={cx(
             part,
             "h-[2.4rem] gap-2 px-[1rem] text-[0.95rem] font-medium whitespace-nowrap",
-            hasMenu ? "rounded-l-[0.4rem] border-r-0" : "rounded-[0.4rem]",
+            hasMenu ? "rounded-l-button border-r-0" : "rounded-button",
           )}
         >
           {main.icon}
@@ -129,10 +130,10 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
           className={cx(
             part,
             compact
-              ? "h-8 w-8 rounded-[0.35rem] border-transparent bg-transparent text-ink-soft hover:bg-app-3 hover:text-ink"
+              ? "h-8 w-8 rounded-control border-transparent bg-transparent text-ink-soft hover:bg-app-3 hover:text-ink"
               : main
-                ? "h-[2.4rem] w-[2.2rem] rounded-r-[0.4rem] text-ink-soft hover:text-ink"
-                : "h-[2.4rem] gap-[0.45rem] rounded-[0.4rem] px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
+                ? "h-[2.4rem] w-[2.2rem] rounded-r-button text-ink-soft hover:text-ink"
+                : "h-[2.4rem] gap-[0.45rem] rounded-button px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
             open && "bg-app-3 text-ink",
           )}
         >
@@ -157,7 +158,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
           tabIndex={-1}
           style={place}
           onKeyDown={onMenuKey}
-          className="fixed z-50 flex w-max min-w-[11rem] flex-col overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
+          className="fixed z-50 flex w-max min-w-[11rem] flex-col overflow-y-auto overscroll-contain rounded-inset border border-line bg-app p-1 text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
         >
           {items.map((item) => (
             <button
@@ -170,7 +171,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
                 item.onSelect()
               }}
               className={cx(
-                "flex w-full items-center gap-[0.6rem] rounded-[0.3rem] px-[0.7rem] text-left text-[0.95rem] whitespace-nowrap hover:bg-app-3 focus-visible:bg-app-3 disabled:opacity-45",
+                "flex w-full items-center gap-[0.6rem] rounded-pill px-[0.7rem] text-left text-[0.95rem] whitespace-nowrap hover:bg-app-3 focus-visible:bg-app-3 disabled:opacity-45",
                 item.note ? "py-[0.4rem]" : "h-[2.2rem]",
                 item.danger ? "text-bad" : "text-ink",
               )}

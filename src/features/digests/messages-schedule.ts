@@ -1,4 +1,5 @@
 import { type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 type RouteKind = "telegramBot" | "email"
 
@@ -26,7 +27,7 @@ const en = {
   runNow: "Run now",
   running: "Writing the digest… this takes a few minutes.",
   saving: "Saving…",
-  removing: "Turning off…",
+  removing: uiMessages.en.turningOff,
   offBody: "Each morning at this time you get the digest where you choose. Turning it off keeps every past digest.",
   turnOn: "Turn on",
   create: "Schedule the digest",
@@ -130,7 +131,7 @@ const ru: typeof en = {
   runNow: "Запустить сейчас",
   running: "Пишу сводку… это займёт несколько минут.",
   saving: "Сохраняю…",
-  removing: "Выключаю…",
+  removing: uiMessages.ru.turningOff,
   offBody:
     "Каждое утро в это время вы получаете сводку туда, куда выберете. Если выключить, все прошлые сводки останутся.",
   turnOn: "Включить",
@@ -238,7 +239,7 @@ const es: typeof en = {
   runNow: "Ejecutar ahora",
   running: "Escribiendo el resumen… tarda unos minutos.",
   saving: "Guardando…",
-  removing: "Desactivando…",
+  removing: uiMessages.es.turningOff,
   offBody:
     "Cada mañana a esta hora recibes el resumen donde elijas. Al desactivarlo se conservan todos los resúmenes anteriores.",
   turnOn: "Activar",

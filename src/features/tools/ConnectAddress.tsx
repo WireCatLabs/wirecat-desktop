@@ -8,15 +8,16 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { CloudflareGuide, type useCloudflare } from "./CloudflareGuide"
+import type { Helper, useCloudflare, useTailscale } from "./api"
+import { CloudflareGuide } from "./CloudflareGuide"
 import { cloudflareSteps } from "./cloudflare-steps"
 import { Note, Para } from "./connect-parts"
-import { FunnelHelperGuide, type Helper, helperReady } from "./FunnelHelperGuide"
+import { FunnelHelperGuide, helperReady } from "./FunnelHelperGuide"
 import { formProblem } from "./McpServerDialogs"
 import { connectMessages } from "./messages-connect"
 import { helperMessages } from "./messages-helper"
 import { tunnelMessages } from "./messages-tunnel"
-import { TailscaleGuide, type useTailscale } from "./TailscaleGuide"
+import { TailscaleGuide } from "./TailscaleGuide"
 import { addressOf, stepsOf } from "./tailscale-steps"
 
 export const DEFAULT_PORT = 8765
@@ -24,7 +25,7 @@ export const DEFAULT_PORT = 8765
 const exampleUrl = (tool: string) => `https://laptop.tail1234.ts.net/${tool}`
 
 const inputClass =
-  "h-8 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
+  "h-8 rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
 
 export function AddressStep(props: {
   tool: CatalogTool
@@ -75,7 +76,7 @@ export function AddressStep(props: {
         <Collapse open={tunnel === "cloudflare"} className="flex flex-col gap-3.5">
           <CloudflareGuide cloudflare={cloudflare} />
           {cfReady && cf.hostname && (
-            <div className="flex flex-col gap-2.5 rounded-[0.45rem] bg-app-2 px-4 py-3">
+            <div className="flex flex-col gap-2.5 rounded-inset bg-app-2 px-4 py-3">
               <p className="text-[0.92rem] text-ink">
                 {m.willBe(<span className="selectable font-mono">{cfUrl}</span>)}
               </p>
@@ -91,7 +92,7 @@ export function AddressStep(props: {
         <Collapse open={tunnel === "wirecat"} className="flex flex-col gap-3.5">
           <FunnelHelperGuide helper={helper} onUseApp={onUseApp} />
           {helperReady(helper.status) && (
-            <div className="flex flex-col gap-2.5 rounded-[0.45rem] bg-app-2 px-4 py-3">
+            <div className="flex flex-col gap-2.5 rounded-inset bg-app-2 px-4 py-3">
               <p className="text-[0.92rem] text-ink">
                 {m.willBe(<span className="selectable font-mono">{helperUrl}</span>)}
               </p>
@@ -115,7 +116,7 @@ export function AddressStep(props: {
           <TailscaleGuide tailscale={tailscale} />
           {full?.missing && <p className="text-[0.88rem] text-warn-ink">{tm.missing[full.missing]}</p>}
           {ready && (
-            <div className="flex flex-col gap-2.5 rounded-[0.45rem] bg-app-2 px-4 py-3">
+            <div className="flex flex-col gap-2.5 rounded-inset bg-app-2 px-4 py-3">
               <p className="text-[0.92rem] text-ink">
                 {tailscaleUrl
                   ? m.willBe(<span className="selectable font-mono">{tailscaleUrl}</span>)
@@ -163,7 +164,7 @@ export function AddressStep(props: {
   )
 }
 
-export function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunnel): void }) {
+function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunnel): void }) {
   const m = useMessages(connectMessages)
   const privacy = useMessages(tunnelMessages).cloudflare.privacy
   const name = useId()
@@ -180,7 +181,7 @@ export function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(
           key={o.id}
           htmlFor={`${name}-${o.id}`}
           className={cx(
-            "flex cursor-pointer flex-col gap-1 rounded-[0.45rem] border px-3.5 py-3 transition-colors duration-(--motion-fast) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand motion-reduce:transition-none",
+            "flex cursor-pointer flex-col gap-1 rounded-inset border px-3.5 py-3 transition-colors duration-(--motion-fast) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand motion-reduce:transition-none",
             choiceOf(tunnel) === o.id ? "border-brand bg-brand-soft/40" : "border-line-strong hover:border-brand",
           )}
         >
@@ -209,7 +210,7 @@ export function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(
   )
 }
 
-export function PortField({ id, port, setPort }: { id: string; port: string; setPort(p: string): void }) {
+function PortField({ id, port, setPort }: { id: string; port: string; setPort(p: string): void }) {
   const m = useMessages(connectMessages)
   return (
     <label className="flex flex-col gap-1" htmlFor={id}>

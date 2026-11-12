@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { fireEvent, render, screen, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -23,9 +24,9 @@ describe("WireCat Desktop", () => {
     if (!drive) throw new Error("no Drive row")
     await user.click(await within(drive).findByRole("button", { name: "Install" }))
 
-    expect(await within(drive).findByText(/is installed and runs/, {}, { timeout: 8000 })).toBeInTheDocument()
+    expect(await within(drive).findByText(/is installed and runs/)).toBeInTheDocument()
     expect(await within(drive).findByText("0.30.0")).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("uninstalls a tool after confirmation and keeps its data", async () => {
     const user = userEvent.setup()
@@ -39,15 +40,16 @@ describe("WireCat Desktop", () => {
     const dialog = await screen.findByRole("dialog", { name: "Uninstall Zoom?" })
     await user.click(within(dialog).getByRole("button", { name: "Uninstall" }))
 
-    expect(await within(zoom).findByText(/is uninstalled/, {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(await within(zoom).findByText(/is uninstalled/)).toBeInTheDocument()
     expect(await within(zoom).findByText("Not installed")).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("says what it is checking while it loads", async () => {
+    answerAtOnce(false)
     render(<App />)
     expect(await screen.findByText("Looking for WireCat tools on this computer…")).toBeInTheDocument()
     expect(await screen.findByText("Checking npm for newer versions…")).toBeInTheDocument()
-    await screen.findByRole("button", { name: /Update to 0.7.0/ }, { timeout: 4000 })
+    await screen.findByRole("button", { name: /Update to 0.7.0/ })
     expect(screen.queryByText("Checking npm for newer versions…")).not.toBeInTheDocument()
   })
 
@@ -110,13 +112,13 @@ describe("WireCat Desktop", () => {
     await user.click(await within(health).findByRole("button", { name: "More for personal" }))
     await user.click(screen.getByRole("menuitem", { name: "Check" }))
 
-    const group = await within(tg).findByRole("region", { name: "Configuration problems" }, { timeout: 3000 })
+    const group = await within(tg).findByRole("region", { name: "Configuration problems" })
     expect(within(group).getByText(/permissions.bot.store.fetch is not a permission/)).toBeInTheDocument()
     expect(
       within(group).getByText("~/.config/tg-cli/config.json:14:18 · profile personal · key sync.limit"),
     ).toBeInTheDocument()
     expect(within(group).getAllByRole("button", { name: "Copy the fix command" })).toHaveLength(2)
-  }, 10000)
+  })
 
   it("explains the page until the owner hides it, and remembers that", async () => {
     localStorage.removeItem("wirecat.tools.intro")

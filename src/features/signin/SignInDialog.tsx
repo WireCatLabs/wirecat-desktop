@@ -1,5 +1,6 @@
-import { Bot, LoaderCircle, Terminal } from "lucide-react"
+import { Bot, Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { readMailNotes } from "@/domain/mail-signin"
 import { keyringFallback } from "@/domain/signin-notes"
@@ -268,7 +269,16 @@ const BITRIX_BACK = { webhook: "choose", paste: "webhook", app: "choose" } as co
 
 /** Bitrix24's own steps: Back to the one before, and the next, which checks the webhook or signs in with the app. */
 function BitrixActions() {
-  const { planStep, comparing, webhookProblem, appProblem, close, begin } = useSignIn()
+  const { planStep, comparing, webhookProblem, appProblem, close, begin } = useSignIn(
+    useShallow((s) => ({
+      planStep: s.planStep,
+      comparing: s.comparing,
+      webhookProblem: s.webhookProblem,
+      appProblem: s.appProblem,
+      close: s.close,
+      begin: s.begin,
+    })),
+  )
   const m = useMessages(signinMessages)
   const mm = useMessages(mailMessages)
   const bm = useMessages(bitrixMessages)
@@ -296,12 +306,7 @@ function BitrixActions() {
       <Button variant="secondary" onClick={close}>
         {m.cancel}
       </Button>
-      <Button
-        variant="primary"
-        onClick={begin}
-        disabled={comparing}
-        icon={comparing ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : undefined}
-      >
+      <Button variant="primary" onClick={begin} disabled={comparing} busy={comparing}>
         {label}
       </Button>
     </>

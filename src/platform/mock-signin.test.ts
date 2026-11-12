@@ -6,7 +6,7 @@ async function firstStep<K extends SignInEvent["event"]>(tool: string, event: K)
   const mock = signInMock()
   const seen: SignInEvent[] = []
   const run = mock.signIn(tool, "qr", "personal", (e) => seen.push(e))
-  await expect.poll(() => seen.find((e) => e.event === event), { timeout: 3000 }).toBeDefined()
+  await expect.poll(() => seen.find((e) => e.event === event)).toBeDefined()
   await mock.signInStop(tool)
   await run
   return seen.find((e): e is Extract<SignInEvent, { event: K }> => e.event === event)

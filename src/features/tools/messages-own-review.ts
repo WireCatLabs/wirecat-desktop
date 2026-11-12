@@ -1,5 +1,5 @@
 import type { StandardRoot } from "@/domain/own-access"
-import type { Messages } from "@/i18n"
+import { type Messages, pluralRu } from "@/i18n"
 import type { OwnGithubUnchecked, OwnLevel } from "@/platform/bindings"
 
 type Words = [what: string, why: string]
@@ -272,11 +272,15 @@ const ru: typeof en = {
     checkingGithub: "Проверяю его репозиторий на GitHub…",
     nothing: "Ничего не бросилось в глаза. Это не значит, что он безопасен.",
     newPackage: (days) => [
-      days === 0 ? "Впервые опубликован в npm сегодня" : `Впервые опубликован в npm ${days} дн. назад`,
+      days === 0
+        ? "Впервые опубликован в npm сегодня"
+        : `Впервые опубликован в npm ${pluralRu(days, ["# день", "# дня", "# дней"])} назад`,
       "У нового пакета нет истории, а подделка под известное имя обычно новая.",
     ],
     fewVersions: (count) => [
-      count === 1 ? "В npm только одна версия" : `В npm только ${count} версии`,
+      count === 1
+        ? "В npm только одна версия"
+        : `В npm только ${pluralRu(count, ["# версия", "# версии", "# версий"])}`,
       "Мало выпусков — мало кто им пользовался.",
     ],
     onePublisher: ["Его публикует один аккаунт npm", "Тот, кто захватит этот аккаунт, сможет выпустить новую версию."],

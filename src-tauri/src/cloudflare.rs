@@ -1,4 +1,4 @@
-use crate::{catalog, cloudflare_install, mcp_server, node, paths, run};
+use crate::{catalog, cloudflare_install, mcp_server, node, run};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use std::net::TcpListener;
@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 // A Cloudflare Tunnel on the owner's own Cloudflare account and domain, the fallback when Tailscale Funnel cannot give
-// an address (NEED-101 A; plan `docs/dev/plans/2026-10-27-cloudflare-fallback.md`). One locally managed tunnel, one
+// an address (NEED-101 A; `docs/dev/mcp-server-api.md`, "The public address"). One locally managed tunnel, one
 // hostname, a path per tool as with Funnel. cloudflared is cloudflared's own release in the app's data folder, run as
 // the user. Secrets live in the OS keyring only: the login certificate until the tunnel exists, then the tunnel's
 // credentials, handed to cloudflared in its environment (`TUNNEL_CRED_CONTENTS`), never in an argument.
@@ -140,10 +140,7 @@ fn load() -> Option<Record> {
 }
 
 fn save(r: &Record) -> Result<(), String> {
-    let file = record_file()?;
-    std::fs::create_dir_all(file.parent().ok_or("no folder")?).map_err(|e| e.to_string())?;
-    let body = serde_json::to_vec_pretty(r).map_err(|e| e.to_string())?;
-    std::fs::write(&file, body).map_err(|e| format!("Could not save {}: {e}", paths::tilde(&file.to_string_lossy())))
+    node::write_json(&record_file()?, r)
 }
 
 /// A name on the owner's domain for the address: a subdomain (the domain itself usually serves a website), in the
@@ -502,6 +499,9 @@ fn start(r: &mut Record, credentials: &str) -> Result<(), String> {
     // `--no-autoupdate`: a binary not from a package updates itself and exits with 11 for something else to restart.
     let args = ["tunnel", "--no-autoupdate", "--config", &config_arg, "--metrics", &metrics_arg, "run", &r.tunnel_id];
     let mut cmd = run::command(&program()?, &args, None);
+    // Not `--credentials-file`, which `tunnel run` also takes: cloudflared outlives the app, so the file would have to
+    // stay on disk, outside the keyring, for the tunnel's whole life. Its 0600 mode would keep out the same readers
+    // as `/proc/<pid>/environ` (this user only), and backups and file sync would copy it too.
     cmd.stdout(Stdio::null()).stderr(log).env("TUNNEL_CRED_CONTENTS", credentials);
     let mut child = cmd.spawn().map_err(|e| format!("Could not start cloudflared: {e}"))?;
     r.pid = Some(child.id());

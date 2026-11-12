@@ -1,10 +1,11 @@
 import { type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   title: "Rewrite records for better search",
   what: "A hosted model reads each note, document and email and writes short facts and questions about it in other words. Search then finds a record even when you ask in words the record does not use.",
   measured: (rewordedOff: number, rewordedOn: number, ownOff: number, ownOn: number) =>
-    `In memo's tests, a question in other words found its record among the first ten results ${rewordedOn} times in 100 instead of ${rewordedOff}. A question in the record's own words put it first a little less often: ${ownOn} times in 100 instead of ${ownOff}.`,
+    `In Memo's tests, a question in other words found its record among the first ten results ${rewordedOn} times in 100 instead of ${rewordedOff}. A question in the record's own words put it first a little less often: ${ownOn} times in 100 instead of ${ownOff}.`,
   off: "Off. Nothing leaves this computer.",
   offCost: (records: string, provider: string, usd: string) =>
     `Turning it on would send ${records} to ${provider}, for about ${usd}.`,
@@ -13,7 +14,7 @@ const en = {
   modelLabel: "Model",
   offer: (provider: string, model: string) => `${provider} ${model}`,
   offerPrice: (input: string, output: string) => `${input} in, ${output} out per million tokens`,
-  memoDefault: "memo's default",
+  memoDefault: "Memo's default",
   ownOffer: "Another model at an address",
   ownOfferNote: "A server on this computer (Ollama, LM Studio) or an OpenAI-compatible service",
   ownModelHelp: "Name the model as the server names it, for example llama3.1:8b.",
@@ -58,7 +59,7 @@ const en = {
     `Memo deletes the facts and questions the model wrote for ${records}. Search reads only the records' own words again. Turning it on later sends the records again and costs again.`,
   keepOn: "Keep it on",
   offConfirm: "Turn off and delete",
-  turningOff: "Turning off…",
+  turningOff: uiMessages.en.turningOff,
   turnedOff: (records: string) => `Off. Deleted the model's text for ${records}. Nothing more is sent.`,
   old: (version: string | null) =>
     `${version ? `Memo ${version}` : "This Memo"} cannot rewrite records yet. It comes with a Memo update.`,
@@ -140,7 +141,7 @@ const ru: typeof en = {
     `Memo удалит факты и вопросы, которые модель написала для: ${records}. Поиск снова читает только слова самих записей. Если включить позже, записи отправятся снова и это снова будет стоить денег.`,
   keepOn: "Оставить включённым",
   offConfirm: "Выключить и удалить",
-  turningOff: "Выключаю…",
+  turningOff: uiMessages.ru.turningOff,
   turnedOff: (records) => `Выключено. Текст модели удалён для: ${records}. Больше ничего не отправляется.`,
   old: (version) =>
     `${version ? `Memo ${version}` : "Эта версия Memo"} пока не умеет переписывать записи. Это придёт с обновлением Memo.`,
@@ -230,7 +231,7 @@ const es: typeof en = {
     `Memo borra los hechos y preguntas que el modelo escribió para ${records}. La búsqueda vuelve a leer solo las palabras de los registros. Si lo activas más tarde, los registros se envían otra vez y vuelve a costar.`,
   keepOn: "Dejarlo activado",
   offConfirm: "Desactivar y borrar",
-  turningOff: "Desactivando…",
+  turningOff: uiMessages.es.turningOff,
   turnedOff: (records) => `Desactivado. Se borró el texto del modelo de ${records}. No se envía nada más.`,
   old: (version) =>
     `${version ? `Memo ${version}` : "Esta versión de Memo"} aún no puede reescribir registros. Llegará con una actualización de Memo.`,

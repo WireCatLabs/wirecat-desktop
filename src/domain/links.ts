@@ -33,8 +33,8 @@ const TOOL_OF: Record<string, string> = {
 
 export const toolOfProvider = (provider: string): string => TOOL_OF[provider] ?? provider
 
-export const LINK_VERSION = "v1"
-export const APP_PREFIX = "wirecat://open"
+const LINK_VERSION = "v1"
+const APP_PREFIX = "wirecat://open"
 const MAX_PATH = 512
 const MAX_SEGMENTS = 6
 const TASK_FILTERS: readonly string[] = ["overdue", "today", "tomorrow", "undated"]

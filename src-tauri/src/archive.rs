@@ -69,7 +69,6 @@ pub struct StoreInfo {
     pub writable: Option<bool>,
     /// Row counts per table, whichever tables this store version has.
     pub rows: BTreeMap<String, u64>,
-    pub search_ready: Option<bool>,
     /// Absent from tools older than the breakdown in `store info`.
     pub breakdown: Option<Breakdown>,
     /// Absent from tools older than the file facts in `store info`.
@@ -216,7 +215,6 @@ fn shape(answered_by: &str, item: &Value) -> StoreInfo {
             .flatten()
             .filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n)))
             .collect(),
-        search_ready: item["word_index"]["ready"].as_bool(),
         breakdown: breakdown(item),
         facts: facts(item),
     }
@@ -342,10 +340,8 @@ pub(crate) fn ask(tool: &Tool, template: Template, timeout: Duration) -> Result<
     let out = run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
     let json = out.json();
     match json {
-        Some(v) if v["error"]["message"].as_str().is_some_and(|m| m.starts_with("unknown command")) => {
-            Ok(Answer::Unknown)
-        }
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(Answer::Envelope(v)),
+        Some(v) if v["error"]["message"].as_str().is_some_and(crate::memo_cli::unknown_to_cli) => Ok(Answer::Unknown),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(Answer::Envelope(v)),
         Some(v) if v["error"]["message"].is_string() => Err(redact::text(v["error"]["message"].as_str().unwrap_or(""))),
         _ => {
             let line = out.stderr.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("the tool gave no answer");
@@ -416,7 +412,6 @@ mod tests {
         let info = shape("tg", &plain());
         assert_eq!(info.rows["accounts"], 14);
         assert_eq!(info.schema, Some(29));
-        assert_eq!(info.search_ready, Some(true));
         assert!(info.breakdown.is_none());
     }
 
@@ -516,13 +511,15 @@ mod tests {
     #[test]
     #[ignore = "needs a messenger tool installed"]
     fn real_store_info() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let info = info().unwrap().unwrap();
         println!(
-            "answered by {}, schema {:?}, rows {:?}, search ready {:?}, breakdown {}",
+            "answered by {}, schema {:?}, rows {:?}, breakdown {}",
             info.answered_by,
             info.schema,
             info.rows,
-            info.search_ready,
             info.breakdown.is_some()
         );
     }

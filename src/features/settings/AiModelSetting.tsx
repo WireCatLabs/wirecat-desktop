@@ -1,13 +1,12 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { hostOfOrigin, isLocalHost, modelOnThisComputer, providerHost, staysHere } from "@/domain/ai-model"
-import { REFUSED, tooOldFor } from "@/domain/memory-add"
-import type { Gap } from "@/domain/needs"
+import { REFUSED } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import { useAiModel } from "@/shared/ai-model-store"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -23,9 +22,10 @@ import { SecretField } from "@/ui/SecretField"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { useMemoGap } from "./memo-gap"
 import { aiModelMessages, SAVE_REASONS, type SaveReason } from "./messages-ai-model"
 
-export const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
+const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
 type Provider = (typeof AI_PROVIDERS)[number]
 
 const OPENROUTER = "https://openrouter.ai/api/v1"
@@ -70,10 +70,7 @@ const draftOf = (m: AiModel): Draft => ({
 /** Settings, "AI model": one model for reading sources and pictures. A key goes to memo once and is never shown back. */
 export function AiModelSetting() {
   const m = useMessages(aiModelMessages)
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  // Known missing only from a finished detection (kept from the last run): Settings starts no scan of its own.
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   const head = useId()
   if (!memo && !gap) return null
   return (
@@ -95,6 +92,7 @@ function AiModelBody() {
   const m = useMessages(aiModelMessages)
   const model = useAiModel((s) => s.model)
   const error = useAiModel((s) => s.error)
+  const old = useAiModel((s) => s.old)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
 
   useEffect(() => {
@@ -103,7 +101,7 @@ function AiModelBody() {
   }, [])
 
   return error ? (
-    tooOldFor(error) ? (
+    old ? (
       <ToolNeeded gap={{ kind: "old", tool: "memo", version, need: null }} inline />
     ) : error === REFUSED ? (
       <ErrorNotice inline>{m.refused}</ErrorNotice>
@@ -319,14 +317,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
                   {docs && (
                     <>
                       {" "}
-                      <button
-                        type="button"
-                        className="text-brand underline hover:text-brand-hover"
-                        onClick={() => platform.openUrl(docs.url)}
-                        {...externalHref(docs.url)}
-                      >
-                        {m.listDocs(docs.company)}
-                      </button>
+                      <ExtLink href={docs.url}>{m.listDocs(docs.company)}</ExtLink>
                     </>
                   )}
                 </p>
@@ -400,7 +391,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
                 ? saveFirst.fail((lang) => aiModelMessages[lang].checkSaveFirst)
                 : void useAiModel.getState().check()
             }
-            icon={busy === "check" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+            busy={busy === "check"}
           >
             {busy === "check" ? m.checking : m.check}
           </Button>

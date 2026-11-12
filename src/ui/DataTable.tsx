@@ -161,7 +161,7 @@ export function DataTable<T>(props: Props<T>) {
       data-scrolled={scrolled || undefined}
       onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 0)}
       className={cx(
-        "group/rack overflow-x-auto overflow-y-hidden rounded-[0.2rem] border border-line-strong bg-app transition-opacity duration-(--motion-normal)",
+        "group/rack overflow-x-auto overflow-y-hidden rounded-rack border border-line-strong bg-app transition-opacity duration-(--motion-normal)",
         busy && rows.length > 0 && "opacity-60",
       )}
     >

@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { safeStorage } from "@/shared/safe-storage"
 
 /** The page the app opens on and falls back to, such as after the setup. */
 export const HOME_SECTION = "tools"
@@ -17,19 +18,11 @@ type Nav = {
 // `?state=` query must stay as loaded.
 const PAGE_KEY = "wirecat.page"
 
-// A restart or the next launch opens the page the owner was on. Storage can be missing (a private window), so every
-// read and write may fail and the app opens Tools.
-const savedPage = () => {
-  try {
-    return localStorage.getItem(PAGE_KEY)
-  } catch {
-    return null
-  }
-}
+// A restart or the next launch opens the page the owner was on; without storage (a private window) the app opens Tools.
+const savedPage = () => safeStorage.getItem(PAGE_KEY)
 
 const firstPage = () => {
   if (typeof window === "undefined") return HOME_SECTION
-  if (new URLSearchParams(window.location.search).has("add")) return "memory"
   return savedPage() ?? HOME_SECTION
 }
 
@@ -55,9 +48,7 @@ const PASSING = new Set(["open", "conversation"])
 
 useNav.subscribe((s, before) => {
   if (s.active === before.active || PASSING.has(s.active)) return
-  try {
-    localStorage.setItem(PAGE_KEY, s.active)
-  } catch {}
+  safeStorage.setItem(PAGE_KEY, s.active)
 })
 
 let surfaceName: () => string | null = () => null

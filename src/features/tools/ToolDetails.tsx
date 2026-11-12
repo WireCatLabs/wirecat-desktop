@@ -1,10 +1,10 @@
-import { AlertTriangle, ExternalLink, Trash2 } from "lucide-react"
+import { AlertTriangle, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { type CatalogTool, installCommand, isOwn, ownerId, removeCommand, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { StorageFolder } from "@/platform/schemas"
+import { ExtLink } from "@/shared/ExtLink"
 import { KeptFolders } from "@/shared/KeptFolders"
 import { useStorage } from "@/shared/storage-store"
 import { useTools } from "@/shared/tools-store"
@@ -56,7 +56,7 @@ function ConfirmUninstall({ tool, open, onClose }: { tool: CatalogTool; open: bo
       onClose={onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} autoFocus>
+          <Button variant="secondary" onClick={onClose} data-autofocus>
             {m.keep}
           </Button>
           <Button
@@ -185,8 +185,14 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
       <section aria-label={m.about(tool.name)} className="flex flex-col gap-4">
         <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{toolText(t, tool).summary}</p>
         <div className="flex gap-5">
-          <ExternalLinkButton href={tool.docs}>{m.docs}</ExternalLinkButton>
-          {tool.repo && <ExternalLinkButton href={tool.repo}>{m.github}</ExternalLinkButton>}
+          <ExtLink href={tool.docs} className="text-[0.95rem] font-medium">
+            {m.docs}
+          </ExtLink>
+          {tool.repo && (
+            <ExtLink href={tool.repo} className="text-[0.95rem] font-medium">
+              {m.github}
+            </ExtLink>
+          )}
         </div>
         <div>
           <h4 className="mb-2 text-[0.9rem] font-medium text-ink-dim">{m.installFromTerminal}</h4>
@@ -285,21 +291,5 @@ function ExtraCopies(props: { tool: CatalogTool; installs: Copy[]; onRemove: (co
         ))}
       </ul>
     </section>
-  )
-}
-
-function ExternalLinkButton({ href, children }: { href: string; children: string }) {
-  return (
-    <a
-      href={href}
-      onClick={(e) => {
-        e.preventDefault()
-        platform.openUrl(href)
-      }}
-      className="inline-flex items-center gap-1.5 text-[0.95rem] font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-    >
-      {children}
-      <ExternalLink className="size-[0.95rem]" aria-hidden />
-    </a>
   )
 }

@@ -5,7 +5,7 @@
 //! on a stale copy (`task.stale`) instead of undoing an agent's change.
 
 use crate::catalog::Tool;
-use crate::memo_cli::{Call, Failure, memo, too_old, with_memo};
+use crate::memo_cli::{Call, Failure, memo, with_memo};
 use crate::skills::body;
 use crate::tools;
 use serde::{Deserialize, Serialize};
@@ -299,7 +299,7 @@ pub(crate) fn memo_unusable(need: &str) -> Result<Option<Unusable>, String> {
 pub(crate) fn unusable(tool: &Tool, need: &str) -> Option<Unusable> {
     let state = tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Some(Unusable::Missing) };
-    if too_old(first.version.as_deref(), need) {
+    if crate::tools::older(first.version.as_deref(), need) {
         return Some(Unusable::Old { version: first.version.clone(), need: need.to_string() });
     }
     None
@@ -483,7 +483,8 @@ fn people_listed_with(call: &Call, refs: &[String]) -> Result<Vec<Person>, Failu
 pub fn people_named(refs: &[String]) -> Result<Vec<Person>, String> {
     let tool = memo()?;
     let bin = tools::program(&tool.bin).ok_or("Memo is not installed")?;
-    let shows = tool.people.as_ref().is_some_and(|p| !too_old(tools::version_of(&bin).as_deref(), &p.min_version));
+    let shows =
+        tool.people.as_ref().is_some_and(|p| !crate::tools::older(tools::version_of(&bin).as_deref(), &p.min_version));
     with_memo(READ, |call| if shows { Ok(people_named_with(call, refs)) } else { people_listed_with(call, refs) })
 }
 
@@ -1598,9 +1599,9 @@ mod tests {
     fn needs_the_catalogs_memo() {
         let tool = catalog::tool("memo").unwrap();
         let need = &tool.task_board.as_ref().unwrap().min_version;
-        assert!(too_old(Some("0.130.0"), need));
-        assert!(!too_old(Some(need), need));
-        assert!(too_old(None, need));
+        assert!(crate::tools::older(Some("0.130.0"), need));
+        assert!(!crate::tools::older(Some(need), need));
+        assert!(crate::tools::older(None, need));
     }
 
     /// Against a real memo with a throwaway store that holds projects HRB and OPS:
@@ -1708,7 +1709,7 @@ mod tests {
             put(
                 "moved",
                 serde_json::to_value(Write::Saved {
-                    task: moved.clone(),
+                    task: moved,
                     label: Some(LabelChange { from: Some("low".into()), to: Some("high".into()) }),
                     renumbered: vec![],
                     moved: vec![],

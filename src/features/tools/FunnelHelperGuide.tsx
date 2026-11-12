@@ -1,42 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { FUNNEL_HELPER } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { FunnelHelperStatus } from "@/platform/tailscale-schemas"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
+import { type Helper, useFunnelHelper } from "./api"
 import { InstallProgress } from "./InstallProgress"
 import { helperMessages } from "./messages-helper"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
-/** WireCat's own Tailscale connection, read again on focus: the owner signs in or approves in the browser. */
-export function useFunnelHelper(active: boolean) {
-  const [status, setStatus] = useState<FunnelHelperStatus | null>(null)
-  const call = useRef(0)
-  const check = useCallback(async () => {
-    const mine = ++call.current
-    try {
-      const s = await platform.funnelHelperStatus()
-      if (call.current === mine) setStatus(s)
-    } catch {
-      if (call.current === mine) setStatus(null)
-    }
-  }, [])
-  useEffect(() => {
-    if (!active) return
-    check()
-    window.addEventListener("focus", check)
-    return () => window.removeEventListener("focus", check)
-  }, [active, check])
-  return { status, check, setStatus }
-}
-
-export type Helper = ReturnType<typeof useFunnelHelper>
 
 export const helperReady = (s: FunnelHelperStatus | null) => s?.installed === true && s.state === "running"
 
@@ -59,11 +35,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
     if (outcome?.event === "done") check()
   }, [outcome, check])
 
-  useEffect(() => {
-    if (!busy) return
-    const t = setInterval(check, 2000)
-    return () => clearInterval(t)
-  }, [busy, check])
+  useFunnelHelper(busy, 2000)
 
   // Leaving the guide while it waits for the browser ends the wait; whatever was done there stays done.
   const live = useRef(false)
@@ -82,7 +54,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
     try {
       setStatus(await platform.funnelHelperStart(setPage))
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
       check()
     }
     setBusy(false)
@@ -91,6 +63,15 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
   const installed = status?.installed === true
   const running = helperReady(status)
   const waiting = busy && status && status.state !== "running" ? status.state : null
+  // The Tailscale page the helper waits on, from its status: a one-time login link, never logged.
+  const pending = status?.actionUrl ?? null
+  const asks =
+    !busy &&
+    pending &&
+    (status?.state === "needs-login" || status?.state === "needs-approval" || status?.state === "needs-funnel")
+      ? status.state
+      : null
+  const again = page ?? pending
   const host = status?.url ? new URL(status.url).host : null
 
   return (
@@ -131,10 +112,14 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
             </span>
           </span>
           {installed && !running && !busy && (
-            <div className="pl-6">
-              <Button size="sm" variant="primary" onClick={connect}>
-                {m.connect}
-              </Button>
+            <div className="flex flex-col gap-2 pl-6">
+              {asks && <p className="text-[0.92rem] text-ink">{m.waiting[asks]}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="primary" onClick={connect}>
+                  {m.connect}
+                </Button>
+                {asks && pending && <OpenLink url={pending}>{m.openAgain}</OpenLink>}
+              </div>
             </div>
           )}
           {busy && (
@@ -143,7 +128,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
                 {waiting && waiting !== "stopped" && waiting !== "error" ? m.waiting[waiting] : m.connecting}
               </p>
               <div className="flex flex-wrap gap-2">
-                {page && <OpenLink url={page}>{m.openAgain}</OpenLink>}
+                {again && <OpenLink url={again}>{m.openAgain}</OpenLink>}
                 <Button size="sm" variant="ghost" onClick={() => platform.tailscaleStop()}>
                   {m.stop}
                 </Button>

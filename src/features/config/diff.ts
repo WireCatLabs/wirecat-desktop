@@ -90,7 +90,7 @@ export function plan(
 export type Parsed = { ok: true; value: Record<string, unknown> } | { ok: false; message: Reason; line: number }
 
 /** Where JSON text stops being valid: V8's parse errors often carry no position. -1 when it is valid. */
-export function breakOffset(text: string): number {
+function breakOffset(text: string): number {
   let i = 0
   const fail = (): never => {
     throw i

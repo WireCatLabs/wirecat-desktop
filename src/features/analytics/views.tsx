@@ -12,7 +12,8 @@ import {
   weekHours,
 } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
-import { formatDate, formatNumber, formatRelative, useLang, useMessages } from "@/i18n"
+import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import { CoverageSchema } from "@/platform/analytics-schemas"
 import { cx } from "@/ui/cx"
 import { InfoTip } from "@/ui/InfoTip"
@@ -68,7 +69,7 @@ export function WhenYouTalk() {
         </InfoTip>
       </div>
       {hours.loading && Object.keys(hours.bySource).length === 0 ? (
-        <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.whenTitle} />
+        <Skeleton className="h-[13.5rem] w-full rounded-rack" label={m.whenTitle} />
       ) : empty ? (
         // A profile that did not answer is said as such: its silence is not "no messages".
         hours.problems.length ? (
@@ -211,7 +212,7 @@ export function WhatChanged() {
     )
   const loading = [peopleNow, peopleBefore, chatsNow, chatsBefore, active].some((x) => x.loading)
   const stale = [peopleNow, peopleBefore, chatsNow, chatsBefore, active].some((x) => x.stale)
-  if (loading) return <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.changesTitle} />
+  if (loading) return <Skeleton className="h-[13.5rem] w-full rounded-rack" label={m.changesTitle} />
   const people = changes(byProvider(peopleNow.bySource), byProvider(peopleBefore.bySource))
   const chats = changes(
     onlyActive(byProvider(chatsNow.bySource), active),
@@ -267,18 +268,11 @@ function ChangeList({ title, rows, name }: { title: string; rows: Change[]; name
 
 const DAY = 86_400_000
 
-function ago(at: string, lang: ReturnType<typeof useLang>) {
-  const ms = Date.now() - Date.parse(at)
-  if (ms < 3_600_000) return formatRelative(-Math.max(1, Math.round(ms / 60_000)), "minute", lang)
-  if (ms < DAY) return formatRelative(-Math.round(ms / 3_600_000), "hour", lang)
-  return formatRelative(-Math.round(ms / DAY), "day", lang)
-}
-
 /** When each tool and profile last brought data in; older than three days is amber, never is a hollow lamp. */
 export function Health() {
   const m = useMessages(analyticsMessages)
   const syncs = useAnalytics((s) => s.syncs)
-  if (syncs.state === "loading") return <Skeleton className="h-[9rem] w-full rounded-[0.2rem]" label={m.health} />
+  if (syncs.state === "loading") return <Skeleton className="h-[9rem] w-full rounded-rack" label={m.health} />
   if (syncs.state === "error") return <p className="text-[0.9rem] text-ink-soft">{syncs.error}</p>
   return (
     <table className="w-full text-[0.95rem]">
@@ -319,7 +313,7 @@ function HealthRow({ sync: s }: { sync: Sync }) {
   const parsed = part?.kind === "ready" ? v.safeParse(CoverageSchema, part.body) : null
   const old = s.at !== null && Date.now() - Date.parse(s.at) > 3 * DAY
   const tone = s.at === null ? "idle" : old ? "warn" : "ok"
-  const text = s.at !== null ? m.syncedAgo(ago(s.at, lang)) : s.known ? m.never : m.unknownSync
+  const text = s.at !== null ? m.syncedAgo(ago(s.at, Date.now(), lang)) : s.known ? m.never : m.unknownSync
   return (
     <tr className="border-line border-t">
       <td className="py-[0.45rem] pr-3">{findTool(s.id)?.name ?? s.id}</td>

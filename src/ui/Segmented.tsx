@@ -1,7 +1,7 @@
 import { type ReactNode, useId } from "react"
 import { cx } from "./cx"
 
-/** `count` is said after the label, in mono, as a tab's number of rows ("Waiting for you 10"). */
+/** `count` is said after the label, in mono: a tab's number of rows ("Waiting for you 10"), a named profile's id. */
 type Option<T extends string> = { value: T; label: string; icon?: ReactNode; count?: string | number | undefined }
 
 /**
@@ -60,11 +60,7 @@ export function Segmented<T extends string>({
     <fieldset
       data-tour={tour}
       disabled={disabled}
-      className={cx(
-        "inline-flex rounded-[0.45rem] border-0 bg-app-3 p-[3px]",
-        look.box,
-        disabled && "pointer-events-none",
-      )}
+      className={cx("inline-flex rounded-inset border-0 bg-app-3 p-[3px]", look.box, disabled && "pointer-events-none")}
     >
       <legend className="sr-only">{label}</legend>
       {options.map((o) => (
@@ -81,7 +77,7 @@ export function Segmented<T extends string>({
           <span
             aria-hidden
             className={cx(
-              "flex cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand",
+              "flex cursor-pointer items-center gap-[0.4rem] rounded-control transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand",
               look.face,
               size === "sm" && labelClass !== undefined && "px-[0.45rem]",
             )}

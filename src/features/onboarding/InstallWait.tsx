@@ -17,6 +17,7 @@ import { findTool, ownerId } from "@/domain/catalog"
 import { type BatchItem, batch, roughly, toolFraction, waits } from "@/domain/install-batch"
 import { useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
+import { useNow } from "@/shared/use-elapsed"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
@@ -53,22 +54,12 @@ function useBatchItems(chosen: readonly string[]): BatchItem[] {
   return chosen.map((id) => ({ session: sessions[ownerId(id)], installed: Boolean(installs[id]?.length) }))
 }
 
-function useTick(active: boolean) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!active) return
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [active])
-  return now
-}
-
 /** The whole batch at a glance: one figure, one bar split per tool, and a rough time left. */
 export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
   const { wait: w, install: im } = useMessages(onboardingMessages)
   const items = useBatchItems(chosen)
   const started = items.some((i) => i.session)
-  const b = batch(items, useTick(started))
+  const b = batch(items, useNow(started))
   if (!started) return null
 
   const pct = Math.round(b.fraction * 100)
@@ -172,7 +163,7 @@ export function InstallTips({ chosen }: { chosen: readonly string[] }) {
     <Collapse open={busy}>
       <section
         aria-label={w.hints}
-        className="rounded-[0.45rem] bg-app-2/60 px-[1.3rem] pt-[1.1rem] pb-[0.7rem]"
+        className="rounded-inset bg-app-2/60 px-[1.3rem] pt-[1.1rem] pb-[0.7rem]"
         onPointerEnter={() => setPaused(true)}
         onPointerLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
@@ -214,7 +205,7 @@ function TurnButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="inline-flex size-8 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+      className="inline-flex size-8 items-center justify-center rounded-control text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
     >
       {children}
     </button>

@@ -20,7 +20,7 @@ export const MEMORY_RUNS = [
   ...["memories *", "facts *", "actions *", "projects actions *"].map((c) => termText("command", c)),
 ].join(" ")
 
-export function openMemoryLogs() {
+function openMemoryLogs() {
   const logs = useLogs.getState()
   logs.setQuery(MEMORY_RUNS)
   logs.setRange("all")
@@ -48,7 +48,7 @@ export function Activity({ calls, error }: { calls: AgentCall[] | null; error: s
       ) : calls.length === 0 ? (
         <EmptyState>{m.activityNone}</EmptyState>
       ) : (
-        <ul className="rounded-[0.2rem] border border-line-strong bg-app">
+        <ul className="rounded-rack border border-line-strong bg-app">
           {calls.map((c) => {
             const known = m.calls[c.tool]
             const failed = c.status !== "ok"

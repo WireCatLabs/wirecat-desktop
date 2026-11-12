@@ -137,7 +137,7 @@ function ShellPicker() {
   const checking = status.state === "fixing" ? status.shell : null
   const options = shellOptions(choices?.shells ?? [])
   return (
-    <fieldset className="mt-1 flex flex-col gap-2 rounded-[0.45rem] bg-app-2/60 p-4">
+    <fieldset className="mt-1 flex flex-col gap-2 rounded-inset bg-app-2/60 p-4">
       <legend className="float-left mb-1 p-0 text-[0.95rem] font-medium text-ink">{m.pickTitle}</legend>
       <p className="clear-left max-w-[70ch] text-[0.9rem] text-ink-soft">{m.pickHint}</p>
       <div className="flex flex-wrap items-center gap-2">

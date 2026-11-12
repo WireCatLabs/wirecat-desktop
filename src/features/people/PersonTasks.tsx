@@ -1,9 +1,11 @@
 import { useEffect } from "react"
+import { gapFromRead } from "@/domain/needs"
 import { tasksQuery } from "@/domain/tasks"
 import { openTarget } from "@/features/links"
 import { StateText, useTasks } from "@/features/tasks"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
@@ -27,6 +29,7 @@ export function PersonTasks({ reference }: { reference: string }) {
   }
 
   const read = got?.state === "ready" ? got.read : null
+  const gap = gapFromRead(read)
   if (read?.kind === "ready" && read.total === 0) return null
   return (
     <section className="flex flex-col gap-[0.5rem]">
@@ -60,20 +63,11 @@ export function PersonTasks({ reference }: { reference: string }) {
         >
           {m.tasksRefused}
         </ErrorNotice>
-      ) : read?.kind === "old" || read?.kind === "missing" ? (
-        <ErrorNotice
-          inline
-          action={
-            <Button size="sm" onClick={toTasks}>
-              {m.tasksOpenPage}
-            </Button>
-          }
-        >
-          {m.tasksNeedMemo}
-        </ErrorNotice>
+      ) : gap ? (
+        <ToolNeeded inline gap={gap} onGo={leave} />
       ) : read?.kind === "ready" ? (
         <>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {read.tasks.slice(0, SHOWN).map((t) => (
               <li key={t.key} className="border-line not-first:border-t">
                 <button

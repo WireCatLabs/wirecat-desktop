@@ -115,10 +115,7 @@ pub fn run(agent: &str, prompt: &str) -> Result<AgentRun, String> {
     let (args, reads_file) = args(&launch, &file, cfg!(unix));
     Ok(match terminal::open_agent(&bin, &args, reads_file.then_some(file.as_path())) {
         Ok(()) => result(true, None, None),
-        Err(m) => {
-            let reason = if terminal::is_automation(&m) { RunFailure::Automation } else { RunFailure::Terminal };
-            result(false, Some(reason), Some(m))
-        }
+        Err(m) => result(false, Some(terminal::failure_of(&m)), Some(m)),
     })
 }
 

@@ -124,7 +124,7 @@ function RowLine(props: {
     </>
   )
   const signIn = p.signedIn === false && tool.setup && (
-    <Button size="sm" variant="primary" onClick={onSignIn} icon={<LogIn className="size-4" aria-hidden />}>
+    <Button size="sm" onClick={onSignIn} icon={<LogIn className="size-4" aria-hidden />}>
       {m.signInAgain}
     </Button>
   )
@@ -299,7 +299,7 @@ function Rename({ tool, profile, onClose }: { tool: string; profile: string; onC
             if (e.key === "Escape") onClose()
           }}
           aria-describedby={`${id}-hint`}
-          className="h-9 min-w-[14rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-3 text-body text-ink"
+          className="h-9 min-w-[14rem] flex-1 rounded-control border border-line-strong bg-app px-3 text-body text-ink"
         />
         <Button size="sm" variant="primary" type="submit">
           {m.renameSave}

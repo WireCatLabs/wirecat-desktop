@@ -19,6 +19,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
@@ -84,7 +85,7 @@ function BoardPlaceholder() {
     <div className="grid grid-cols-[repeat(3,minmax(13rem,1fr))] gap-[0.75rem] overflow-x-auto overflow-y-hidden">
       {[3, 2, 3].map((cards, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity of their own
-        <div key={i} className="rounded-[0.2rem] border border-line-strong bg-app">
+        <div key={i} className="rounded-rack border border-line-strong bg-app">
           <div className="flex h-[3rem] items-center border-line border-b px-[0.9rem]">
             <Skeleton chars={8} {...(i === 0 ? { label: m.loading } : {})} />
           </div>
@@ -183,7 +184,7 @@ function GroupsBoard({ groups, unresolved }: { groups: Group[]; unresolved: stri
               data-column={g.name}
               aria-label={m.column(label(g.name), g.members.length)}
               className={cx(
-                "flex min-h-[14rem] min-w-0 flex-col rounded-[0.2rem] border bg-app transition-colors duration-(--motion-fast)",
+                "flex min-h-[14rem] min-w-0 flex-col rounded-rack border bg-app transition-colors duration-(--motion-fast)",
                 target ? "border-brand/60" : "border-line-strong",
               )}
             >
@@ -263,7 +264,7 @@ function Suggestions(props: { group: string; sources: string[]; all: Member[]; o
           return (
             <li
               key={s}
-              className="flex items-center gap-[0.5rem] rounded-[0.3rem] border border-dashed border-line-strong p-[0.5rem]"
+              className="flex items-center gap-[0.5rem] rounded-pill border border-dashed border-line-strong p-[0.5rem]"
             >
               <span className="min-w-0 flex-1">
                 {member ? <Profiles member={member} /> : <span className="font-mono text-[0.9rem]">{s}</span>}
@@ -283,14 +284,14 @@ function Suggestions(props: { group: string; sources: string[]; all: Member[]; o
 function NewGroup({ taken }: { taken: string[] }) {
   const m = useMessages(groupsMessages)
   const [name, setName] = useState("")
-  const [problem, setProblem] = useState<string | null>(null)
+  const need = useFieldError("groups-new")
   const why = { empty: m.nameEmpty, reserved: m.nameReserved, chars: m.nameChars, taken: m.nameTaken }
   const create = () => {
     const p = nameProblem(name, taken)
-    if (p) return setProblem(why[p])
+    if (p) return need.fail(why[p])
     useGroups.getState().draft(name.trim())
     setName("")
-    setProblem(null)
+    need.clear()
   }
   return (
     <form
@@ -298,7 +299,7 @@ function NewGroup({ taken }: { taken: string[] }) {
         e.preventDefault()
         create()
       }}
-      className="flex min-h-[14rem] flex-col gap-[0.6rem] rounded-[0.2rem] border border-dashed border-line-strong p-[0.9rem]"
+      className="flex min-h-[14rem] flex-col gap-[0.6rem] rounded-rack border border-dashed border-line-strong p-[0.9rem]"
     >
       <label htmlFor="groups-new" className="text-[1rem] font-semibold">
         {m.newGroup}
@@ -308,21 +309,18 @@ function NewGroup({ taken }: { taken: string[] }) {
         value={name}
         maxLength={64}
         placeholder={m.newName}
-        aria-invalid={problem !== null || undefined}
-        aria-describedby={problem ? "groups-new-problem" : undefined}
+        {...need.field}
         onChange={(e) => {
           setName(e.target.value)
-          setProblem(null)
+          need.clear()
         }}
         className={cx(
-          "selectable h-[2.4rem] w-full rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
+          "selectable h-[2.4rem] w-full rounded-control border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
           fieldFocus,
-          problem ? "border-bad" : "border-line-strong",
+          invalidBorder,
         )}
       />
-      <p id="groups-new-problem" className="min-h-[1.3rem] text-[0.85rem] text-bad">
-        {problem}
-      </p>
+      {need.hint}
       <Button type="submit" size="sm" icon={<Plus className="size-4" aria-hidden />} className="self-start">
         {m.create}
       </Button>

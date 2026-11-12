@@ -10,6 +10,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import { useReport } from "@/shared/report-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
+import { reduceMotion } from "@/testing/motion"
 import { act, fireEvent, render, screen, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { NewProfile } from "../tools/Health"
@@ -27,14 +28,15 @@ const STAGE_TEXT = "p:not([role=status])"
 
 const SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
 
-/** The copy of a step fading out has gone. */
-const settled = () => act(() => new Promise((done) => setTimeout(done, MOTION.swap + 50)))
+/** The copy of a step fading out has gone: with reduced motion nothing fades, so one turn is enough. */
+const settled = () => act(() => new Promise((done) => setTimeout(done, 0)))
 
 let send: (e: SignInEvent) => void = () => undefined
 let finish: () => void = () => undefined
 const pending: (() => void)[] = []
 
 beforeEach(() => {
+  reduceMotion()
   useOnboarding.setState({ open: false })
   vi.spyOn(platform, "signIn").mockImplementation((_id, _method, _profile, onEvent) => {
     send = (e) => act(() => onEvent(e))
@@ -423,7 +425,7 @@ describe("answering what the tool asks", () => {
     expect(within(dialog).getByRole("alert")).toHaveTextContent("This version of MAX cannot sign in inside WireCat.")
     expect(within(dialog).getByRole("button", { name: "Open MAX to update" })).toBeInTheDocument()
     expect(within(dialog).queryByRole("textbox")).toBeNull()
-    const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue()
+    const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue({ started: true, reason: null, message: null })
     await userEvent.click(within(dialog).getByRole("button", { name: "Open terminal" }))
     expect(openSetup).toHaveBeenCalledWith("max", "personal")
     expect(screen.queryByRole("dialog")).toBeNull()
@@ -795,10 +797,8 @@ describe("signing in to mail", () => {
     act(() => useSignIn.setState({ method: "gmail" }))
     await settled()
     const dialog = screen.getByRole("dialog")
-    expect(
-      within(dialog).getByText(/Email 0\.21\.0 cannot sign in with WireCat's app: it needs 0\.22\.0/),
-    ).toBeVisible()
-    expect(within(dialog).getByRole("button", { name: "Update Email to use this" })).toBeVisible()
+    expect(within(dialog).getByText(/This needs Email 0\.22\.0 or newer; this computer has 0\.21\.0/)).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Update Email" })).toBeVisible()
     expect(within(dialog).getByRole("button", { name: "Choose the client file" })).toBeVisible()
     await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
@@ -808,7 +808,7 @@ describe("signing in to mail", () => {
     expect(platform.signIn).not.toHaveBeenCalled()
 
     act(() => useTools.setState({ installs: { email: [mail("0.22.0")] } }))
-    expect(within(dialog).queryByRole("button", { name: "Update Email to use this" })).toBeNull()
+    expect(within(dialog).queryByRole("button", { name: "Update Email" })).toBeNull()
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     await vi.waitFor(() =>
       expect(platform.signIn).toHaveBeenCalledWith("email", "gmail", "work", expect.any(Function), {

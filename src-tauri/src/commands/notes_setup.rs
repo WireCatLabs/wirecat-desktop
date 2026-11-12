@@ -61,7 +61,8 @@ pub async fn notes_sync(
     crate::log::command("notes_sync", async move {
         let tool = known_tool(&id)?;
         let args = notes_setup::sync_args(tool).map_err(AppError::Failed)?;
-        super::sync::run_guarded(tool, None, args, Arc::clone(&running), on_event).await
+        let running = Arc::clone(&running);
+        blocking(move || sync::run_guarded(tool, None, &args, &running, &on_event)).await
     })
     .await
 }

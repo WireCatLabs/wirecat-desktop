@@ -2,12 +2,11 @@ import { useEffect, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { mcpMessages } from "./messages-mcp"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** Rust checks both again; this only keeps an obvious typo from a round trip. One plain path is the tool's share. */
 export function formProblem(url: string, port: string): "url" | "port" | null {
@@ -36,7 +35,7 @@ export function ForgetLogins(props: { tool: CatalogTool; open: boolean; onClose(
       await platform.mcpServerRevoke(tool.id)
       onDone()
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -48,7 +47,7 @@ export function ForgetLogins(props: { tool: CatalogTool; open: boolean; onClose(
       onClose={busy ? () => {} : onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={busy} autoFocus>
+          <Button variant="secondary" onClick={onClose} disabled={busy} data-autofocus>
             {m.keep}
           </Button>
           <Button variant="danger" onClick={forget} disabled={busy}>

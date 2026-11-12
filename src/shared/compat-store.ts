@@ -3,6 +3,7 @@ import { findTool } from "@/domain/catalog"
 import { type Fit, fits, type Installed, type StoreCompat } from "@/domain/compat"
 import { platform } from "@/platform/bridge"
 import type { ToolState } from "@/platform/schemas"
+import { errorText } from "./errors"
 
 /** An install that will move the shared store to a schema other installed tools cannot read. */
 export type UpgradeWarning = { id: string; to: number; locksOut: string[]; mayLockOut: string[] }
@@ -27,7 +28,7 @@ export const useCompat = create<CompatState>((set, get) => ({
     try {
       set({ compat: await platform.storeCompat(), error: null })
     } catch (e) {
-      set({ compat: null, error: e instanceof Error ? e.message : String(e) })
+      set({ compat: null, error: errorText(e) })
     }
   },
 

@@ -31,7 +31,6 @@ const en = {
   contextLabel: { messages: "Messages around this result", meetings: "The meeting's transcript" },
   openOriginal: "Open the original",
   readingContext: "Reading what surrounds it",
-  contextOld: (tool: string) => `${tool} is too old to show this. Update it on the Tools page.`,
   contextFailed: "What surrounds this result could not be read.",
   contextEmpty: "The tool keeps nothing around this result.",
   tryAgain: "Try again",
@@ -287,7 +286,6 @@ const ru: typeof en = {
   contextLabel: { messages: "Сообщения вокруг этого результата", meetings: "Расшифровка встречи" },
   openOriginal: "Открыть оригинал",
   readingContext: "Читаем, что вокруг",
-  contextOld: (tool) => `${tool} слишком старый, чтобы показать это. Обновите его на странице «Инструменты».`,
   contextFailed: "Не удалось прочитать, что вокруг этого результата.",
   contextEmpty: "Инструмент ничего не хранит вокруг этого результата.",
   tryAgain: "Попробовать снова",
@@ -438,7 +436,7 @@ const ru: typeof en = {
   searched: (messages, chats) => {
     const n = groupDigits(messages)
     const c = groupDigits(chats)
-    return `Просмотрено ${plural("ru", messages, { one: `${n} сообщение`, few: `${n} сообщения`, many: `${n} сообщений`, other: `${n} сообщения` })} в ${plural("ru", chats, { one: `${c} чате`, other: `${c} чатах` })}`
+    return `Просмотрено ${plural("ru", messages, { one: `${n} сообщение`, few: `${n} сообщения`, many: `${n} сообщений`, other: `${n} сообщения` })} в ${plural("ru", chats, { one: `${c} чате`, few: `${c} чатах`, other: `${c} чатах` })}`
   },
   bestOnly: (n) => `Лучшие ${n}; у этого поиска нет следующих страниц. Уточните запрос, чтобы увидеть другие.`,
   harder: "Искать тщательнее",
@@ -543,7 +541,6 @@ const es: typeof en = {
   contextLabel: { messages: "Mensajes alrededor de este resultado", meetings: "La transcripción de la reunión" },
   openOriginal: "Abrir el original",
   readingContext: "Leyendo lo que lo rodea",
-  contextOld: (tool) => `${tool} es demasiado antiguo para mostrar esto. Actualízalo en la página Herramientas.`,
   contextFailed: "No se pudo leer lo que rodea este resultado.",
   contextEmpty: "La herramienta no guarda nada alrededor de este resultado.",
   tryAgain: "Reintentar",

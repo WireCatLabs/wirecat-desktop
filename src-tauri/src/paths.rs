@@ -104,7 +104,7 @@ fn read_login_shell() -> ShellEnv {
         Err(e) => return failed(e.to_string()),
     };
     let Some((_, rest)) = out.stdout.rsplit_once("__WIRECAT_PATH__") else {
-        return failed(format!("it printed no PATH (exit {})", out.code.map_or("?".into(), |c| c.to_string())));
+        return failed(format!("it printed no PATH (exit {})", out.code.map_or_else(|| "?".into(), |c| c.to_string())));
     };
     let (path, pnpm) = rest.split_once("__WIRECAT_PNPM__").unwrap_or((rest, ""));
     let non_empty = |s: &str| (!s.trim().is_empty()).then(|| OsString::from(s.trim()));
@@ -591,6 +591,9 @@ mod tests {
     #[test]
     #[ignore = "reads this computer's shell"]
     fn real_terminal() {
+        if !crate::probe::allowed() {
+            return;
+        }
         for bin in ["tg", "max", "wa", "zm", "drive", "memo"] {
             let bash =
                 bash_login_path(std::ffi::OsStr::new("/usr/local/bin:/usr/bin:/bin")).is_some_and(|p| finds(bin, &p));

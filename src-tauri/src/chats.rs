@@ -170,6 +170,9 @@ mod tests {
     #[test]
     #[ignore = "reads this computer's Hermes"]
     fn real_chats() {
+        if !crate::probe::allowed() {
+            return;
+        }
         println!("{:?}", read("hermes"));
         let path = hermes_base_path().and_then(|base| paths::bash_login_path(&base));
         for bin in ["tg", "max", "wa", "zm", "drive", "memo"] {

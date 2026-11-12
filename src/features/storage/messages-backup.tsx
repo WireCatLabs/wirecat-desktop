@@ -1,10 +1,7 @@
 import type { ReactNode } from "react"
-import { type Messages, plural } from "@/i18n"
+import { type Messages, plural, pluralRu } from "@/i18n"
 import type { PasswordProblem, Strength } from "./backup-password"
 import type { Progress } from "./backup-store"
-
-const ruForms = (n: number, [one, few, many]: [string, string, string]) =>
-  plural("ru", n, { one, few, many, other: few })
 
 const en = {
   backups: "Backups",
@@ -178,7 +175,7 @@ const ru: typeof en = {
     ({
       empty: "Введите пароль.",
       space: "Пароль не может начинаться или заканчиваться пробелом.",
-      short: ruForms(min, ["Нужен хотя бы # символ.", "Нужно хотя бы # символа.", "Нужно хотя бы # символов."]),
+      short: pluralRu(min, ["Нужен хотя бы # символ.", "Нужно хотя бы # символа.", "Нужно хотя бы # символов."]),
       repeat: "Введите пароль ещё раз.",
       differ: "Пароли не совпадают.",
     })[problem],
@@ -212,8 +209,8 @@ const ru: typeof en = {
   filesDeleted: "Удаляемые файлы",
   tablesWithRows: (tables, rows, command) => (
     <>
-      {ruForms(tables, ["# таблица", "# таблицы", "# таблиц"])}, в них{" "}
-      {ruForms(rows, ["# строка", "# строки", "# строк"])}. Данные получены командой {command}:
+      {pluralRu(tables, ["# таблица", "# таблицы", "# таблиц"])}, в них{" "}
+      {pluralRu(rows, ["# строка", "# строки", "# строк"])}. Данные получены командой {command}:
     </>
   ),
   tablesEmptied: "Очищаемые таблицы",

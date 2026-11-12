@@ -198,9 +198,9 @@ fn install_line(manager: Manager, path: &str, file: &str) -> String {
 /// The line for the package this run saved last. The interface only asks to open it; it never sends a path.
 static SAVED_LINE: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
-pub fn open_terminal() -> Result<(), String> {
+pub fn open_terminal() -> Result<crate::terminal::Opened, String> {
     let line = SAVED_LINE.lock().unwrap().clone().ok_or("No update package was downloaded in this session.")?;
-    crate::terminal::open_line(&line)
+    Ok(crate::terminal::opened(crate::terminal::open_line(&line)))
 }
 
 fn bad_signature(e: &Error) -> bool {

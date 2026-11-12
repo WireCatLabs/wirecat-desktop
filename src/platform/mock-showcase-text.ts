@@ -1,3 +1,4 @@
+import { LANGUAGE_KEY } from "@/domain/storage-keys"
 // The made-up content of `?showcase` in each interface language, so a Russian or Spanish screenshot shows no English
 // chats. `text` replaces a whole string from the stock mocks (tasks, memory); `names` then replaces names inside the
 // rest. "You" in `lines` and `chats` is the owner.
@@ -241,7 +242,7 @@ export const SHOWCASE_TEXT: Record<ShowcaseLang, Text> = { en, ru, es }
 export function showcaseLang(): ShowcaseLang {
   let choice: unknown = "system"
   try {
-    choice = JSON.parse(localStorage.getItem("wirecat.language") ?? "null")?.state?.choice ?? "system"
+    choice = JSON.parse(localStorage.getItem(LANGUAGE_KEY) ?? "null")?.state?.choice ?? "system"
   } catch {
     // No storage: the system language decides.
   }

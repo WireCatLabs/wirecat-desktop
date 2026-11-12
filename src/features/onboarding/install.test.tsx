@@ -1,7 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useTools } from "@/shared/tools-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import {
   agent,
   currentStep,
@@ -22,8 +21,6 @@ import { MOTION } from "@/ui/motion"
 import { failureWordsEn } from "../tools/failure-words"
 import { preflightMessages } from "../tools/messages-preflight"
 import { InstallTips } from "./InstallWait"
-
-beforeEach(() => answerAtOnce())
 
 afterEach(async () => {
   vi.useRealTimers()

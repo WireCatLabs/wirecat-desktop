@@ -183,7 +183,7 @@ fn error(value: &Value) -> Option<SignInEvent> {
     let error = value.get("error")?;
     let message = error["message"].as_str().unwrap_or("the sign-in failed");
     // A tool from before cli-core's sign-in steps does not know the flag the app passes.
-    if message.contains("unknown option") {
+    if crate::memo_cli::unknown_to_cli(message) {
         return Some(SignInEvent::Failed {
             message: "This version cannot sign in here yet. Update it on the Tools page, or use Open terminal.".into(),
             code: Some(NEEDS_UPDATE.into()),

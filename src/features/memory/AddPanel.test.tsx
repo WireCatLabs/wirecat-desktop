@@ -1,16 +1,13 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
-import { useReaders } from "@/shared/readers-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { render, screen, waitFor, within } from "@/testing/render"
-import { useAddSource } from "./add-store"
 import { MemoryPage } from "./MemoryPage"
-import { useMemory } from "./store"
 
 const ADDED: AddedSource = {
   ref: "document:42",
@@ -74,13 +71,6 @@ const openPanel = async (user: ReturnType<typeof userEvent.setup>) => {
 }
 
 describe("Add to memory", () => {
-  beforeEach(() => {
-    answerAtOnce()
-    useAddSource.setState(useAddSource.getInitialState(), true)
-    useReaders.setState(useReaders.getInitialState(), true)
-    useMemory.setState(useMemory.getInitialState(), true)
-  })
-
   afterEach(() => vi.restoreAllMocks())
 
   it("says a wrong address while it is typed, before any click", async () => {
@@ -125,7 +115,7 @@ describe("Add to memory", () => {
       within(panel).getByText(/Ollama \(llama3.2\) reads its text. It does not leave this computer./),
     ).toBeVisible()
 
-    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }, { timeout: 3000 }))
+    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }))
     await user.click(within(panel).getByRole("button", { name: "Suggest facts" }))
     expect(suggest).toHaveBeenCalledWith("document:42", "ollama", ["person:7"], false)
 
@@ -146,7 +136,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "We agreed delivery on the 28th with Lena.")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }, { timeout: 3000 }))
+    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }))
 
     await user.click(await within(panel).findByRole("button", { name: "Untick all" }))
     expect(within(panel).getByRole("button", { name: "Keep none" })).toBeInTheDocument()
@@ -223,7 +213,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.click(within(panel).getByRole("radio", { name: /Link/ }))
     await user.type(within(panel).getByRole("textbox", { name: "Web address" }), "https://example.org/plan")
-    const card = await within(panel).findByRole("region", { name: "What will be saved" }, { timeout: 3000 })
+    const card = await within(panel).findByRole("region", { name: "What will be saved" })
     expect(look).toHaveBeenCalledTimes(1)
     expect(look).toHaveBeenCalledWith("https://example.org/plan")
     expect(within(card).getByText("Q3 plan")).toBeInTheDocument()
@@ -289,7 +279,7 @@ describe("Add to memory", () => {
   })
 
   it("asks for a memo update, not for a model, when memo has no models ai", async () => {
-    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
+    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'ai'"))
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
     vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
     vi.spyOn(platform, "memoryFilePreview").mockResolvedValue({
@@ -304,6 +294,8 @@ describe("Add to memory", () => {
     await user.click(within(panel).getByRole("radio", { name: /File/ }))
     await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
     expect(await within(panel).findByText(/Pictures cannot be read with an AI model yet/)).toBeInTheDocument()
+    expect(within(panel).getByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(within(panel).queryByText(/No AI model is set/)).not.toBeInTheDocument()
   })
 
@@ -368,13 +360,15 @@ describe("Add to memory", () => {
   })
 
   it("tells the owner to update memo when it cannot list readers yet, and still saves", async () => {
-    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new Error("error: unknown command 'readers'"))
+    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'readers'"))
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
     const user = userEvent.setup()
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    expect(await within(panel).findByText(/Sources cannot be read for facts yet/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(within(panel).getByText("Sources can be read for facts after the update.")).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeEnabled()
   })
 
@@ -400,7 +394,7 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }, { timeout: 3000 }))
+    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }))
     await user.click(within(panel).getByRole("button", { name: "Suggest facts" }))
 
     expect(await within(panel).findByText(/already decided on the Memory page/)).toBeInTheDocument()
@@ -411,6 +405,29 @@ describe("Add to memory", () => {
     expect(confirm).not.toHaveBeenCalled()
     expect(await within(panel).findByText("Northbridge Bench")).toBeInTheDocument()
     expect(within(panel).queryByText("Lena Ortiz")).not.toBeInTheDocument()
+  })
+
+  it("says when the text it shows was shortened for the preview", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    vi.spyOn(platform, "memorySourceShow").mockResolvedValue({
+      ref: "document:42",
+      title: "Call with Lena",
+      kind: "text",
+      url: null,
+      fileName: null,
+      kept: "text",
+      chars: 120_000,
+      text: "notes",
+      textTruncated: true,
+      subjects: [],
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    await user.click(await within(panel).findByRole("button", { name: "Show its text" }))
+    expect(await within(panel).findByText("Shortened for the preview.")).toBeInTheDocument()
   })
 
   it("words a refusal of pasted text without memo's own message", async () => {

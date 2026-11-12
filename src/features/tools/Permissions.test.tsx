@@ -159,6 +159,24 @@ describe("Permissions", () => {
     expect(screen.getByText(/you chose this when you first set up WireCat/)).toBeInTheDocument()
   })
 
+  it("says why no terminal opened for the first-run answer, with the command to run", async () => {
+    vi.spyOn(platform, "permissionsShow").mockResolvedValue({
+      levels: [],
+      ceiling: "readonly",
+      commands: null,
+      commandsError: null,
+    })
+    vi.spyOn(platform, "openSetup").mockResolvedValue({
+      started: false,
+      reason: "terminal",
+      message: "Could not open a terminal. Run this yourself: tg setup",
+    })
+    localStorage.setItem("wirecat.config.last", JSON.stringify({ targets: { tg: "personal" } }))
+    show()
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Open setup" }))
+    expect(await screen.findByRole("status")).toHaveTextContent("WireCat could not open a terminal window.")
+  })
+
   it("says so when the tool is too old to report per command", async () => {
     vi.spyOn(platform, "permissionsShow").mockResolvedValue({
       levels: [],

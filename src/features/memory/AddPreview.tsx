@@ -6,14 +6,14 @@ import { ImageBefore } from "./AddImageLine"
 import type { Preview } from "./add-store"
 import { addMessages } from "./messages-add"
 
-const card = "reveal flex gap-[0.8rem] rounded-[0.45rem] border border-line bg-app-2/60 px-[0.9rem] py-[0.75rem]"
+const card = "reveal flex gap-[0.8rem] rounded-inset border border-line bg-app-2/60 px-[0.9rem] py-[0.75rem]"
 
 /** What the link or file holds, shown before Save so the owner knows what will be kept. */
 export function SourcePreview({ preview, of }: { preview: Preview | null; of: string }) {
   const m = useMessages(addMessages)
   if (!preview || preview.of !== of || preview.state === "none") return null
   if (preview.state === "loading")
-    return <Skeleton className="h-[5.5rem] w-full rounded-[0.45rem]" label={m.previewLoading} />
+    return <Skeleton className="h-[5.5rem] w-full rounded-inset" label={m.previewLoading} />
   if (preview.state === "link") {
     const l = preview.link
     return (
@@ -39,7 +39,7 @@ export function SourcePreview({ preview, of }: { preview: Preview | null; of: st
         <img
           src={f.image}
           alt={m.thumbnail(f.name)}
-          className="h-[6rem] w-auto max-w-[10rem] shrink-0 rounded-[0.3rem] border border-line object-contain"
+          className="h-[6rem] w-auto max-w-[10rem] shrink-0 rounded-pill border border-line object-contain"
         />
       ) : (
         <Icon className="mt-[0.15rem] size-[1.6rem] shrink-0 text-ink-soft" aria-hidden />

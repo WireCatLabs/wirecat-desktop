@@ -4,7 +4,6 @@ import { platform } from "@/platform/bridge"
 import type { MemoryEntry, SourceReview } from "@/platform/memory-schemas"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { MemoryPage } from "./MemoryPage"
-import { useMemory } from "./store"
 
 const entry = (over: Partial<MemoryEntry>): MemoryEntry => ({
   ref: "memory:3",
@@ -72,11 +71,7 @@ const read = (entries: MemoryEntry[]) =>
 
 const opened = async (user: ReturnType<typeof userEvent.setup>) => {
   render(<MemoryPage />)
-  const head = await screen.findByRole(
-    "button",
-    { name: /The clinics confirmed the February pilot/ },
-    { timeout: 4000 },
-  )
+  const head = await screen.findByRole("button", { name: /The clinics confirmed the February pilot/ })
   expect(within(head).getByText("Source changed")).toBeInTheDocument()
   await user.click(head)
   return head.closest("[data-row]") as HTMLElement
@@ -84,7 +79,6 @@ const opened = async (user: ReturnType<typeof userEvent.setup>) => {
 
 describe("A memory whose source changed", () => {
   beforeEach(() => {
-    useMemory.setState(useMemory.getInitialState(), true)
     vi.spyOn(platform, "memoryReviewShow").mockResolvedValue(REVIEW)
     vi.spyOn(platform, "memorySources").mockResolvedValue([])
   })

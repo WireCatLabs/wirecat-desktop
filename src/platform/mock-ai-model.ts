@@ -1,4 +1,5 @@
 import { modelOnThisComputer } from "@/domain/ai-model"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import type { AiModel } from "./ai-model-schemas"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
@@ -93,7 +94,7 @@ export function aiModelMock(): Pick<
   return {
     async aiModelShow() {
       await delay(300)
-      if (scenario === "old") throw new Error("error: unknown command 'ai'")
+      if (scenario === "old") throw new CommandError(TOO_OLD, "error: unknown command 'ai'")
       return state
     },
     async aiModelSet(choice) {

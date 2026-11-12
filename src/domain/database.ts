@@ -38,7 +38,7 @@ export const totalBytes = (tables: readonly TableLike[]) => tables.reduce((sum, 
 const DAY = 86_400_000
 
 /** The owner's backup job keeps a marker; mail clean-up refuses to run when it is older than eight days. */
-export const BACKUP_STALE_DAYS = 8
+const BACKUP_STALE_DAYS = 8
 
 export type Tone = "ok" | "warn" | "bad" | "idle"
 

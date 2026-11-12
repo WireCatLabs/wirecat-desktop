@@ -7,6 +7,7 @@ import type { SyncEnrichment } from "@/domain/sync"
 import { formatDate, formatNumber, type Lang, useLang, useMessages } from "@/i18n"
 import type { EnrichmentMeasured, EnrichmentOffer, EnrichmentStatus, EnrichmentTarget } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -22,7 +23,6 @@ import { syncKey, useSync } from "./sync-store"
 
 type Done = { on: true } | { on: false; deleted: number } | null
 
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 /** memo's four benchmark shares as whole percents, or nothing when one is missing. */
 function percents(m: EnrichmentMeasured | null | undefined): [number, number, number, number] | null {
   const all = m ? [m.rewordedOff, m.rewordedOn, m.ownWordsFirstOff, m.ownWordsFirstOn] : []
@@ -126,7 +126,7 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
         <p className="max-w-[70ch] text-[0.875rem] leading-relaxed text-ink-dim">{m.measured(...measured)}</p>
       )}
       <Collapse open={state.isError}>
-        <ErrorNotice inline raw={state.isError ? messageOf(state.error) : null}>
+        <ErrorNotice inline raw={state.isError ? errorText(state.error) : null}>
           {state.isError && m.readFailed}
         </ErrorNotice>
       </Collapse>
@@ -186,8 +186,8 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
         <ErrorNotice inline>
           {change.isError &&
             (change.variables
-              ? (refusalText(change.error) ?? m.failedOn(messageOf(change.error)))
-              : m.failedOff(messageOf(change.error)))}
+              ? (refusalText(change.error) ?? m.failedOn(errorText(change.error)))
+              : m.failedOff(errorText(change.error)))}
         </ErrorNotice>
       </Collapse>
       <Dialog
@@ -288,7 +288,7 @@ function Consent(props: {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-[0.35rem] border border-line bg-app px-4 py-3.5"
+      className="flex flex-col gap-3 rounded-control border border-line bg-app px-4 py-3.5"
     >
       <h5 id={titleId} className="font-semibold text-ink">
         {m.consentTitle}
@@ -307,7 +307,7 @@ function Consent(props: {
                   onChange={() => onChoose({ provider: o.provider, model: o.model, baseUrl: null })}
                   className="peer sr-only"
                 />
-                <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+                <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                   <span className="text-[0.9rem] font-medium text-ink">
                     {m.offer(providerName(o.provider), o.model)}
                     {o.default && <span className="font-normal text-ink-dim"> · {m.memoDefault}</span>}
@@ -328,7 +328,7 @@ function Consent(props: {
                   onChange={() => chooseOwn(own)}
                   className="peer sr-only"
                 />
-                <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+                <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                   <span className="text-[0.9rem] font-medium text-ink">{m.ownOffer}</span>
                   <span className="text-[0.8rem] text-ink-soft">{m.ownOfferNote}</span>
                 </span>
@@ -355,7 +355,7 @@ function Consent(props: {
       {complete(chosen) && !preview && !error && <Skeleton className="h-[7.5rem] w-full" label={m.counting} />}
       {error !== null && (
         <ErrorNotice
-          raw={refused ? null : messageOf(error)}
+          raw={refused ? null : errorText(error)}
           inline
           action={
             refused ? undefined : (

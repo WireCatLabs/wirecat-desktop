@@ -123,7 +123,7 @@ function Title({ task: t }: { task: Task }) {
         aria-haspopup="dialog"
         aria-label={`${t.key} ${taskTitle(t, m)}`}
         onClick={() => void useTasks.getState().openTask(t.key)}
-        className="block w-full min-w-0 cursor-pointer rounded-[0.2rem] text-left focus-visible:outline-2 focus-visible:outline-brand"
+        className="block w-full min-w-0 cursor-pointer rounded-rack text-left focus-visible:outline-2 focus-visible:outline-brand"
       >
         <span
           className={cx(

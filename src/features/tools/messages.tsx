@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { type CatalogTool, tools } from "@/domain/catalog"
 import type { DoctorNote } from "@/domain/doctor"
 import { formatNumber, type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 import { ES_SUMMARY, ES_TAGLINE, RU_SUMMARY, RU_TAGLINE } from "./messages-tool-text"
 import { syncNote } from "./tool-text"
 
@@ -10,8 +11,6 @@ type Step = Record<string, string>
 
 const byId = (pick: (t: CatalogTool) => string | null | undefined) =>
   Object.fromEntries(tools.flatMap((t) => (pick(t) ? [[t.id, pick(t) as string]] : [])))
-
-// ---------- English ----------
 
 const en = {
   page: {
@@ -45,7 +44,7 @@ const en = {
   row: {
     status: {
       checking: "Checking",
-      missing: "Not installed",
+      missing: uiMessages.en.notInstalled,
       installing: "Installing",
       uninstalling: "Uninstalling",
       broken: "Installed, but it does not start",
@@ -61,7 +60,7 @@ const en = {
     browserApp: "A browser app",
     nodeFirst: "Node.js is needed first",
     doesNotStart: "Does not start",
-    notInstalled: "Not installed",
+    notInstalled: uiMessages.en.notInstalled,
     cancel: "Cancel",
     updateTo: (version: string) => `Update to ${version}`,
     install: "Install",
@@ -331,8 +330,6 @@ const en = {
 
 export type ToolsText = typeof en
 
-// ---------- Russian ----------
-
 const RU_NOTE: Record<string, string> = {
   wa: "В WhatsApp нет синхронизации, которую можно запустить. Новые сообщения приходят, пока работает его фоновая служба: смотрите «Фоновая служба» ниже.",
 }
@@ -375,7 +372,7 @@ const ru: typeof en = {
   row: {
     status: {
       checking: "Проверяем",
-      missing: "Не установлен",
+      missing: uiMessages.ru.notInstalled,
       installing: "Устанавливается",
       uninstalling: "Удаляется",
       broken: "Установлен, но не запускается",
@@ -397,7 +394,7 @@ const ru: typeof en = {
     browserApp: "Приложение в браузере",
     nodeFirst: "Сначала нужен Node.js",
     doesNotStart: "Не запускается",
-    notInstalled: "Не установлен",
+    notInstalled: uiMessages.ru.notInstalled,
     cancel: "Отменить",
     updateTo: (version) => `Обновить до ${version}`,
     install: "Установить",
@@ -677,8 +674,6 @@ const ru: typeof en = {
   },
 }
 
-// ---------- Spanish ----------
-
 const ES_NOTE: Record<string, string> = {
   wa: "WhatsApp no tiene una sincronización que iniciar. Los mensajes nuevos llegan mientras funciona su servicio en segundo plano: mira «Servicio en segundo plano» más abajo.",
 }
@@ -721,7 +716,7 @@ const es: typeof en = {
   row: {
     status: {
       checking: "Comprobando",
-      missing: "No instalada",
+      missing: uiMessages.es.notInstalled,
       installing: "Instalando",
       uninstalling: "Desinstalando",
       broken: "Instalada, pero no se inicia",
@@ -737,7 +732,7 @@ const es: typeof en = {
     browserApp: "Una app del navegador",
     nodeFirst: "Primero hace falta Node.js",
     doesNotStart: "No se inicia",
-    notInstalled: "No instalada",
+    notInstalled: uiMessages.es.notInstalled,
     cancel: "Cancelar",
     updateTo: (version) => `Actualizar a ${version}`,
     install: "Instalar",

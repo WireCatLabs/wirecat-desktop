@@ -644,7 +644,7 @@ mod tests {
         let shown =
             safe_runs(&json!([{ "tool": "tg", "runs": [identifying_run()] }, { "tool": "rm -rf", "runs": [] }]));
         let mut ctx = context();
-        ctx.attachments = Some(json!({ "runs": shown.clone() }));
+        ctx.attachments = Some(json!({ "runs": shown }));
         let body = body(draft("Send fails", "it fails"), &mut ctx).unwrap();
         assert_eq!(body["report"]["attachments"]["runs"], shown);
         assert_eq!(shown.as_array().unwrap().len(), 1);

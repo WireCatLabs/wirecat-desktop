@@ -10,7 +10,7 @@ import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { useBadges } from "./badges"
 import { appMessages } from "./messages"
-import { type Section, sections } from "./sections"
+import { listed, type Section, type SectionId, sections } from "./sections"
 import { type ThemeChoice, useTheme } from "./theme"
 
 export function Sidebar(props: { active: string; onSelect: (id: string) => void; help: HelpActions }) {
@@ -38,13 +38,15 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
       <div className="scroll-quiet ring-inside flex min-h-0 flex-1 flex-col overflow-y-auto" data-tauri-drag-region>
         <nav aria-label={m.sectionsNav} className="flex flex-col gap-[0.3rem]">
           {sections
-            .filter((s) => !s.group && !s.hidden)
+            .filter(listed)
+            .filter((s) => !s.group)
             .map((s) => (
               <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
             ))}
         </nav>
         <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
           {sections
+            .filter(listed)
             .filter((s) => s.group === "system")
             .map((s) => (
               <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
@@ -55,7 +57,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
         <button
           type="button"
           onClick={() => void resumeSetup("reopen")}
-          className="mx-[1rem] mb-[1rem] flex shrink-0 items-center gap-[0.7rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.8rem] py-[0.6rem] text-left text-[0.95rem] text-ink hover:border-brand/50"
+          className="mx-[1rem] mb-[1rem] flex shrink-0 items-center gap-[0.7rem] rounded-button border border-line-strong bg-app px-[0.8rem] py-[0.6rem] text-left text-[0.95rem] text-ink hover:border-brand/50"
         >
           <ListChecks className="size-[1.1rem] shrink-0 text-brand" strokeWidth={1.8} aria-hidden />
           {m.finishSetup}
@@ -73,7 +75,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             title={m.version(__APP_VERSION__)}
             onClick={(e) => useHelpMenu.getState().toggle("version", e.currentTarget)}
             className={cx(
-              "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink",
+              "-mx-[0.4rem] rounded-control px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink",
               versionOpen && "bg-app-3 text-ink",
             )}
           >
@@ -93,7 +95,7 @@ function NavItem({
   onSelect,
   badge,
 }: {
-  section: Section
+  section: Section & { id: SectionId }
   active: string
   onSelect: (id: string) => void
   badge: boolean

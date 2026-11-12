@@ -1,8 +1,8 @@
 # A release
 
 A release is a tag `v<version>` on `main`. GitHub Actions builds, signs and publishes it with nobody in the loop.
-The full plan and its reasons are in [the first release plan](../plans/2026-10-29-first-release.md). Signing setup is
-in [signing.md](../signing.md).
+What `latest.json` holds and how a copy reads it: [updater-api.md](../updater-api.md). How CI signs:
+[the first release plan](../plans/2026-10-29-first-release.md#signing). Signing setup is in [signing.md](../signing.md).
 
 ## Steps
 

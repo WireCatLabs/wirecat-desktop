@@ -17,8 +17,8 @@ fn allowed() -> Result<(), AppError> {
 }
 
 #[tauri::command]
-pub fn own_tools_status() -> own_tools::Status {
-    own_tools::status()
+pub async fn own_tools_status() -> Result<own_tools::Status, AppError> {
+    crate::log::command("own_tools_status", async move { blocking(own_tools::status).await }).await
 }
 
 /// Takes effect at once; the interface reads its tools again after it.

@@ -10,8 +10,9 @@ import {
   usesProfiles,
 } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { ExtLink } from "@/shared/ExtLink"
+import { terminalMessages } from "@/shared/messages-terminal"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -19,7 +20,8 @@ import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { focusInPlace, MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
+import { useFieldError } from "@/ui/FieldError"
+import { MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { AccountRow, AccountRowPlaceholder } from "./AccountRow"
 import { useProfiles } from "./api"
@@ -129,7 +131,7 @@ function ProfileList(props: {
   )
 }
 
-const ACCOUNT_LIST = "divide-y divide-line rounded-[0.45rem] border border-line bg-app"
+const ACCOUNT_LIST = "divide-y divide-line rounded-inset border border-line bg-app"
 
 /** The account list while the tool is asked: `count` rows in the list's own box. */
 export function AccountListPlaceholder(props: { tool: CatalogTool; count: number; label: string; sync?: boolean }) {
@@ -193,6 +195,7 @@ export function TerminalStatus({
   checking: boolean
 }) {
   const m = useMessages(toolsMessages).health
+  const terminal = useMessages(terminalMessages)
   const opened = useTerminal((s) => s.byTool[tool.id])
   if (!opened) return null
   if (profiles?.some((p) => p.name === opened.profile && p.signedIn === true))
@@ -208,13 +211,16 @@ export function TerminalStatus({
     <RefreshButton variant="secondary" busy={checking} onClick={onCheck} label={m.checkSignIn} busyLabel={m.checking} />
   )
   if (opened.state === "failed") {
-    const noTerminal = opened.error.startsWith("Could not open a terminal")
+    const why =
+      opened.reason === "automation"
+        ? terminal.automation
+        : opened.reason
+          ? m.noTerminal
+          : `${m.terminalFailed} ${opened.error}`
     return (
       <div role="status" className="reveal flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p className="min-w-0 flex-1 text-[0.9rem] text-ink-soft">
-            {noTerminal ? m.noTerminal : `${m.terminalFailed} ${opened.error}`}
-          </p>
+          <p className="min-w-0 flex-1 text-[0.9rem] text-ink-soft">{why}</p>
           <ReportThis what="Opening a terminal to sign in" tool={tool.id} command={command} error={opened.error} />
         </div>
         {command && <CopyField value={command} label={m.copySetup} />}
@@ -223,7 +229,7 @@ export function TerminalStatus({
     )
   }
   return (
-    <div className="reveal flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[0.35rem] bg-brand-soft/60 px-3 py-2">
+    <div className="reveal flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control bg-brand-soft/60 px-3 py-2">
       <p role="status" className="min-w-0 flex-1 text-[0.9rem] leading-snug text-ink">
         {opened.state === "preview" ? m.terminalPreview(code) : m.finishInTerminal(code)}
       </p>
@@ -243,16 +249,9 @@ export function ManualSetup(props: { tool: CatalogTool; onCheck: () => void; che
       <p className="text-[0.9rem] leading-snug text-ink-soft">
         {m.manual}{" "}
         {signIn.guide && (
-          <a
-            href={signIn.guide}
-            onClick={(e) => {
-              e.preventDefault()
-              if (signIn.guide) platform.openUrl(signIn.guide)
-            }}
-            className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-          >
+          <ExtLink href={signIn.guide} className="font-medium">
             {m.howToSetUp}
-          </a>
+          </ExtLink>
         )}
       </p>
       <div className="flex flex-wrap items-center gap-2">
@@ -275,14 +274,12 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
   const m = useMessages(toolsMessages).health
   const { tool, label = m.profileName } = props
   const [name, setName] = useState("")
-  const [tried, setTried] = useState(false)
   const valid = isValidProfile(name)
-  const problem = name === "" ? (tried ? m.nameEmpty : null) : valid ? null : m.nameInvalid
-  const refuse = () => {
-    setTried(true)
-    focusInPlace(document.getElementById(id))
-  }
   const id = `profile-${tool.id}`
+  const need = useFieldError(id, {
+    live: { problem: name === "" ? m.nameEmpty : valid ? null : m.nameInvalid, early: name !== "" },
+  })
+  const refuse = () => need.fail()
   const open = () => useTerminal.getState().open(tool.id, name)
 
   const here = signsInHere(tool)
@@ -313,9 +310,9 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
           placeholder={m.accountName}
           spellCheck={false}
           autoComplete="off"
-          aria-invalid={problem !== null}
-          aria-describedby={`${id}-hint`}
-          className="h-8 min-w-[9rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.875rem] text-ink aria-[invalid=true]:border-bad"
+          {...need.field}
+          aria-describedby={need.field["aria-describedby"] ?? `${id}-hint`}
+          className="h-8 min-w-[9rem] flex-1 rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.875rem] text-ink aria-[invalid=true]:border-bad"
         />
         {here && (
           <Button size="sm" variant="primary" type="submit" icon={<QrCode className="size-4" aria-hidden />}>
@@ -332,11 +329,8 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
           {here ? m.openTerminal : m.openTerminalToSignIn}
         </Button>
       </div>
-      {problem ? (
-        <p id={`${id}-hint`} role="alert" className="text-[0.9rem] text-bad">
-          {problem}
-        </p>
-      ) : (
+      {need.hint}
+      {need.error === null && (
         <p id={`${id}-hint`} className="text-[0.9rem] leading-snug text-ink-soft">
           {(here ? m.nameHintHere : m.nameHintTerminal)(
             <code className="font-mono whitespace-nowrap text-ink">{setupCommand(tool, valid ? name : "<name>")}</code>,

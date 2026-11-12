@@ -6,6 +6,7 @@ import { formatDate, useLang, useMessages } from "@/i18n"
 import type { HarderStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { HarderChoice } from "@/platform/types"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -22,8 +23,6 @@ const PROVIDERS = ["anthropic", "openai"] as const
 // Long enough that typing a model name asks memo once, not at every letter.
 const TYPING_MS = 600
 
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /** What the form holds: a null model is memo's choice for the provider; the address counts only for OpenAI. */
 export type Draft = { provider: string; model: string | null; baseUrl: string }
 
@@ -33,7 +32,7 @@ export function choiceOf(d: Draft): HarderChoice {
   return { provider: d.provider, model, baseUrl }
 }
 
-export const draftOf = (s: HarderStatus): Draft => ({ provider: s.provider, model: s.model, baseUrl: s.baseUrl ?? "" })
+const draftOf = (s: HarderStatus): Draft => ({ provider: s.provider, model: s.model, baseUrl: s.baseUrl ?? "" })
 
 /** Browser build only: `?harder=consent` opens the consent step without a click, for review captures. */
 const consentByScenario = () =>
@@ -67,7 +66,7 @@ export function SearchHarder({ tool }: { tool: CatalogTool }) {
       </h4>
       <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{m.what}</p>
       <Collapse open={state.isError}>
-        <ErrorNotice inline raw={state.isError ? messageOf(state.error) : null}>
+        <ErrorNotice inline raw={state.isError ? errorText(state.error) : null}>
           {state.isError && m.readFailed}
         </ErrorNotice>
       </Collapse>
@@ -138,8 +137,8 @@ export function SearchHarder({ tool }: { tool: CatalogTool }) {
         <ErrorNotice inline>
           {change.isError &&
             (change.variables
-              ? (refusalText(change.error) ?? m.failedOn(messageOf(change.error)))
-              : m.failedOff(messageOf(change.error)))}
+              ? (refusalText(change.error) ?? m.failedOn(errorText(change.error)))
+              : m.failedOff(errorText(change.error)))}
         </ErrorNotice>
       </Collapse>
     </section>
@@ -191,7 +190,7 @@ function Consent(props: {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-[0.35rem] border border-line bg-app px-4 py-3.5"
+      className="flex flex-col gap-3 rounded-control border border-line bg-app px-4 py-3.5"
     >
       <h5 id={titleId} className="font-semibold text-ink">
         {m.consentTitle}
@@ -210,7 +209,7 @@ function Consent(props: {
                 onChange={() => setDraft({ provider: p, model: null, baseUrl: "" })}
                 className="peer sr-only"
               />
-              <span className="flex h-full items-center rounded-[0.35rem] border border-line-strong px-3 py-2 text-[0.9rem] font-medium text-ink transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+              <span className="flex h-full items-center rounded-control border border-line-strong px-3 py-2 text-[0.9rem] font-medium text-ink transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                 {providerName(p)}
               </span>
             </label>
@@ -237,7 +236,7 @@ function Consent(props: {
       {!shown && !preview.isError && <Skeleton className="h-[6.5rem] w-full" label={m.checking} />}
       <Collapse open={preview.isError}>
         <ErrorNotice
-          raw={preview.isError && !refused ? messageOf(preview.error) : null}
+          raw={preview.isError && !refused ? errorText(preview.error) : null}
           inline
           action={
             <Button

@@ -12,7 +12,7 @@ const ORDER: Record<Level, number> = { deny: 0, readonly: 1, ask: 2, allow: 3 }
  * What a group key gets when no section of the file names it. cli-core's `levelFor` allows a path nothing names, and
  * its built-in defaults (`DEFAULT_PERMISSIONS`) name only keys under a group, such as `messages.delete`.
  */
-export const BUILT_IN: Level = "allow"
+const BUILT_IN: Level = "allow"
 
 /** The level a group falls back to here: the `defaults` section's in a profile, else the built-in one. */
 export const defaultLevel = (key: string, defaults: readonly OwnLevel[] | null): Level =>

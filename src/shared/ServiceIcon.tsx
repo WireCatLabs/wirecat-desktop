@@ -27,7 +27,7 @@ export function ServiceIcon({ id, label, className, focusable = false }: Props) 
   return (
     <span
       ref={anchor}
-      className="inline-flex shrink-0 rounded-[0.2rem] focus-visible:outline-2 focus-visible:outline-brand"
+      className="inline-flex shrink-0 rounded-rack focus-visible:outline-2 focus-visible:outline-brand"
       {...tip.hover}
       {...(focusable ? { tabIndex: 0, ...tip.focus } : {})}
     >

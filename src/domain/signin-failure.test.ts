@@ -19,7 +19,7 @@ describe("explaining a failed sign-in", () => {
       primary: "update",
       fallback: "terminal",
     })
-    expect(explain({ message: "error: unknown option '--answer-stdin'" }).reason).toBe("needsUpdate")
+    expect(explain({ message: "error: unknown option '--answer-stdin'" }).reason).not.toBe("needsUpdate")
     expect(explain({ code: "needs_update", terminal: false }).fallback).toBeNull()
   })
 

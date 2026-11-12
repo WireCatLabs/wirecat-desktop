@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { NotesFolder, NotesSetup } from "@/platform/bindings"
@@ -200,4 +200,14 @@ it("downloads a model that is not here yet before switching to it", async () => 
   expect(await screen.findByText(/memo re-indexes your notes and mail at the next syncs/i)).toBeInTheDocument()
   expect(download).toHaveBeenCalledWith("memo", "e5-small", expect.any(Function))
   expect(use).toHaveBeenCalledWith("memo", "e5-small")
+})
+
+it("keeps the setup of the tool shown now when the one shown before answers later", async () => {
+  const answers: Record<string, (s: NotesSetup) => void> = {}
+  vi.spyOn(platform, "notesSetupStatus").mockImplementation((id) => new Promise((resolve) => (answers[id] = resolve)))
+  const { rerender } = render(<MemoSetup tool={memo} />)
+  rerender(<MemoSetup tool={{ ...memo, id: "memo-b" }} />)
+  await act(async () => answers["memo-b"]?.(ready([notes])))
+  await act(async () => answers.memo?.(ready([])))
+  expect(screen.getByText("~/Notes")).toBeInTheDocument()
 })

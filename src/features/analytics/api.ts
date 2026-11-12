@@ -10,11 +10,10 @@ import {
   type Which,
 } from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 import type { Spec } from "./store"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** At most `n` tool processes at once: every one is a Node.js start, and the page asks a dozen. */
 export function limiter(n: number) {
@@ -117,7 +116,7 @@ export function useExtraQueries(
                 ...(full ? { full } : {}),
               }
               const answer = await run(() => platform.messageStats(id, profile, ask, asked.zone)).catch(
-                (e): MessageCounts => ({ kind: "failed", message: message(e), code: null }),
+                (e): MessageCounts => ({ kind: "failed", message: errorText(e), code: null }),
               )
               if (answer.kind === "ready") return { profile, rows: answer.rows, privateOnly: answer.privateOnly }
               return {
@@ -151,7 +150,7 @@ export function useAggregateQuery(which: Which, id: string, asked: Asked | null,
         ask.map(async (profile) => ({
           profile,
           answer: await run(() => platform.analyticsAggregate(id, which, profile, period, zone)).catch(
-            (e): Aggregate => ({ kind: "failed", message: message(e) }),
+            (e): Aggregate => ({ kind: "failed", message: errorText(e) }),
           ),
         })),
       )

@@ -104,6 +104,19 @@ describe("WireCat's own Tailscale connection in the connect guide", () => {
     expect(open).toHaveBeenCalledExactlyOnceWith("tg", 8765)
   })
 
+  it("offers the Tailscale page it still waits on, from its status", async () => {
+    const user = userEvent.setup()
+    const login = "https://login.tailscale.com/a/1f2e3d4c"
+    vi.spyOn(platform, "tailscaleStatus").mockResolvedValue(NO_TAILSCALE)
+    vi.spyOn(platform, "funnelHelperStatus").mockResolvedValue(helper({ state: "needs-login", actionUrl: login }))
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    await guideAtAddress(user)
+
+    expect(await screen.findByText(/Sign in to Tailscale in the page that opened/)).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Open the page again" }))
+    expect(open).toHaveBeenCalledExactlyOnceWith(login)
+  })
+
   it("goes back to installing the Tailscale app when the owner prefers it", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "tailscaleStatus").mockResolvedValue(NO_TAILSCALE)

@@ -1,5 +1,3 @@
-import { Copy } from "lucide-react"
-import { useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type ExplainedFailure, explainFailure } from "@/domain/signin-failure"
 import { openTool } from "@/features/tools"
@@ -8,9 +6,9 @@ import { OpenLink } from "@/shared/OpenLink"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
+import { CopyButton } from "@/ui/CopyButton"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { uiMessages } from "@/ui/messages"
 import { signinMessages } from "./messages"
 import { wizardMessages } from "./messages-wizard"
 import type { SignInView } from "./Stages"
@@ -34,7 +32,7 @@ export function explainView(s: SignInView): ExplainedFailure | null {
 }
 
 /** The other way in the catalog has for this tool, if any. */
-export function otherMethod(s: Pick<SignInView, "tool" | "method">) {
+function otherMethod(s: Pick<SignInView, "tool" | "method">) {
   const entry = s.tool ? findTool(s.tool) : undefined
   if (!entry || entry.signIn?.pick) return undefined
   return signInMethods(entry).find((m) => m.id !== s.method)
@@ -120,20 +118,7 @@ export function FailureCard({ s, explained }: { s: SignInView; explained: Explai
 
 function CopyCommand({ value }: { value: string }) {
   const wm = useMessages(wizardMessages)
-  const um = useMessages(uiMessages)
-  const [copied, setCopied] = useState(false)
   return (
-    <Button
-      size="sm"
-      variant="ghost"
-      icon={<Copy className="size-4" aria-hidden />}
-      title={value}
-      onClick={async () => {
-        await navigator.clipboard.writeText(value)
-        setCopied(true)
-      }}
-    >
-      {copied ? um.copied : wm.actions.copy}
-    </Button>
+    <CopyButton value={value} label={wm.actions.copy} text={wm.actions.copy} title={value} size="sm" variant="ghost" />
   )
 }

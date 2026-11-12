@@ -1,5 +1,6 @@
 import { Clock, Info, LoaderCircle, ShieldCheck } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import {
   APP_HANDLER,
   type AppProblem,
@@ -12,22 +13,24 @@ import { useLang, useMessages } from "@/i18n"
 import { openTool } from "@/shared/go-tool"
 import { OpenLink } from "@/shared/OpenLink"
 import { BITRIX, BITRIX_APP, hasPasted, methodTooOld, running, setPassword, useSignIn } from "@/shared/signin-store"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError } from "@/ui/FieldError"
 import { SecretField } from "@/ui/SecretField"
 import { Numbered } from "./MailSteps"
 import { type BitrixText, bitrixMessages } from "./messages-bitrix"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 /**
  * Bitrix24's sign-in before b24 runs: the portal and the way in, then how to make the webhook there and the field to
  * paste it in, or how to make the local application and its id and key.
  */
 export function BitrixSteps() {
-  const { planStep } = useSignIn()
+  const { planStep } = useSignIn(useShallow((s) => ({ planStep: s.planStep })))
   if (planStep === "app") return <LocalApp />
   if (planStep === "webhook") return <MakeWebhook />
   if (planStep === "paste") return <PasteWebhook />
@@ -40,7 +43,9 @@ function Heading({ children }: { children: string }) {
 
 function Portal() {
   const m = useMessages(bitrixMessages).portal
-  const { portal, planMissing, tool, method } = useSignIn()
+  const { portal, planMissing, tool, method } = useSignIn(
+    useShallow((s) => ({ portal: s.portal, planMissing: s.planMissing, tool: s.tool, method: s.method })),
+  )
   const old = planMissing === "update" ? methodTooOld(tool, method) : null
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
@@ -85,7 +90,11 @@ function Portal() {
         </p>
       </section>
       <Ways />
-      {old && <ErrorNotice tone="warn">{m.tooOld(old.version, old.need)}</ErrorNotice>}
+      {old && (
+        <ToolNeeded inline gap={old} onGo={() => useSignIn.getState().close()}>
+          <p>{m.tooOld}</p>
+        </ToolNeeded>
+      )}
     </div>
   )
 }
@@ -93,7 +102,7 @@ function Portal() {
 /** The two ways in, the webhook first: both need the portal, so the choice sits beside it. */
 function Ways() {
   const m = useMessages(bitrixMessages).portal
-  const { method } = useSignIn()
+  const { method } = useSignIn(useShallow((s) => ({ method: s.method })))
   const name = useId()
   return (
     <fieldset className="flex max-w-[34rem] flex-col gap-2 border-0 p-0">
@@ -113,7 +122,7 @@ function Ways() {
               }}
               className="peer sr-only"
             />
-            <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+            <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
               <span className="text-[0.95rem] font-medium text-ink">{m.ways[way].name}</span>
               <span className="text-[0.8rem] leading-snug text-ink-soft">{m.ways[way].detail}</span>
             </span>
@@ -126,7 +135,7 @@ function Ways() {
 
 function MakeWebhook() {
   const m = useMessages(bitrixMessages).webhook
-  const { portal } = useSignIn()
+  const { portal } = useSignIn(useShallow((s) => ({ portal: s.portal })))
   const steps = [
     { text: m.steps.open(portal), open: true },
     { text: m.steps.other },
@@ -178,7 +187,7 @@ function MakeWebhook() {
 /** Each right by Bitrix24's own name and its code, which the rights list's search finds. */
 function Scopes({ m }: { m: BitrixText["webhook"] }) {
   return (
-    <ul className="flex flex-col divide-y divide-line rounded-[0.35rem] border border-line bg-app-2">
+    <ul className="flex flex-col divide-y divide-line rounded-control border border-line bg-app-2">
       {WEBHOOK_SCOPES.map((code) => (
         <li key={code} className="flex items-center gap-3 py-1 pr-1 pl-3">
           <span className="min-w-0 flex-1 text-[0.95rem] text-ink">{m.scopes[code]}</span>
@@ -193,7 +202,9 @@ function Scopes({ m }: { m: BitrixText["webhook"] }) {
 function LocalApp() {
   const all = useMessages(bitrixMessages)
   const m = all.app
-  const { portal, planMissing, appId, appProblem } = useSignIn()
+  const { portal, planMissing, appId, appProblem } = useSignIn(
+    useShallow((s) => ({ portal: s.portal, planMissing: s.planMissing, appId: s.appId, appProblem: s.appProblem })),
+  )
   const lang = useLang()
   const id = useId()
   const idField = useRef<HTMLInputElement>(null)
@@ -262,11 +273,7 @@ function LocalApp() {
           aria-describedby={planMissing === "appId" ? `${id}-id-hint` : undefined}
           className={FIELD}
         />
-        {planMissing === "appId" && (
-          <p id={`${id}-id-hint`} role="alert" className="text-[0.9rem] leading-snug text-bad">
-            {m.missingId}
-          </p>
-        )}
+        <FieldError id={`${id}-id-hint`}>{planMissing === "appId" && m.missingId}</FieldError>
         <label htmlFor={`${id}-key`} className="mt-1 text-[1.05rem] font-medium text-ink">
           {m.keyLabel}
         </label>
@@ -311,7 +318,7 @@ function LocalApp() {
 /** The handler path, to copy into the application's form: Bitrix24 sends the browser there, and it returns to b24. */
 function Handler({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-[0.35rem] border border-line bg-app-2 py-1 pr-1 pl-3">
+    <div className="flex items-center gap-2 rounded-control border border-line bg-app-2 py-1 pr-1 pl-3">
       <code className="selectable min-w-0 flex-1 break-all font-mono text-[0.875rem] text-ink">{APP_HANDLER}</code>
       <CopyButton value={APP_HANDLER} label={label} />
     </div>
@@ -329,8 +336,15 @@ function AppRefusal({ problem }: { problem: AppProblem }) {
 
 function PasteWebhook() {
   const m = useMessages(bitrixMessages)
-  const s = useSignIn()
-  const { portal, planMissing, webhookProblem, comparing, phase } = s
+  const { portal, planMissing, webhookProblem, comparing, phase } = useSignIn(
+    useShallow((s) => ({
+      portal: s.portal,
+      planMissing: s.planMissing,
+      webhookProblem: s.webhookProblem,
+      comparing: s.comparing,
+      phase: s.phase,
+    })),
+  )
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState("")

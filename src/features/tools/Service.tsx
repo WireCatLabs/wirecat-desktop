@@ -3,6 +3,7 @@ import { useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { Background, BackgroundAction, BackgroundFault } from "@/platform/sync-schemas"
+import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -42,7 +43,7 @@ export function Service({ tool }: { tool: CatalogTool }) {
       {profiles === undefined && <Skeleton className="h-[2.25rem] w-full max-w-[28rem]" label={m.loading} />}
       {profiles?.length === 0 && <p className="text-[0.9rem] text-ink-soft">{m.noProfile}</p>}
       {profiles && profiles.length > 0 && (
-        <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
+        <ul className="divide-y divide-line overflow-hidden rounded-inset border border-line bg-app">
           {profiles.map((p) => (
             <ServiceRow key={p.name} tool={tool} profile={p.name} signedIn={p.signedIn} onSignedIn={reload} />
           ))}
@@ -65,8 +66,7 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
     setDone(null)
     run.mutate(action, {
       onSuccess: (o) => setDone({ action, fault: o.fault } as Done),
-      onError: (e) =>
-        setDone({ action, fault: { kind: "other", message: e instanceof Error ? e.message : String(e) } }),
+      onError: (e) => setDone({ action, fault: { kind: "other", message: errorText(e) } }),
     })
   }
   const signIn = () => reconnect(tool, profile, onSignedIn)

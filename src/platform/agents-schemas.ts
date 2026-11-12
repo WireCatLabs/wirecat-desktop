@@ -49,7 +49,7 @@ export const TerminalReachSchema = v.record(v.string(), v.boolean())
 
 /** What `fix_terminal_path` changed: folders put on the user's PATH, and where, or the line to add by hand. */
 /** One shell whose startup files hold WireCat's PATH blocks, and whether a new terminal running it finds the tools. */
-export const ShellReachSchema = v.object({
+const ShellReachSchema = v.object({
   name: v.string(),
   program: v.nullable(v.string()),
   files: v.array(v.string()),
@@ -76,21 +76,22 @@ export const ShellChoicesSchema = v.object({
 })
 export type ShellChoices = v.InferOutput<typeof ShellChoicesSchema>
 
-/** What `run_agent` did: the agent opened in a terminal with the prompt (saved to `file` too), or why it could not. */
-export const AgentRunSchema = v.object({
+/** What a terminal the app tried to open did; `message` is Rust's sentence, for a report, and the window words `reason`. */
+export const TerminalRunSchema = v.object({
   started: v.boolean(),
-  agent: v.string(),
-  file: v.string(),
   reason: v.nullable(v.picklist(["missing", "terminal", "automation"])),
   message: v.nullable(v.string()),
 })
+export type TerminalRun = v.InferOutput<typeof TerminalRunSchema>
+
+/** What `run_agent` did: the agent opened in a terminal with the prompt (saved to `file` too), or why it could not. */
+export const AgentRunSchema = v.object({ ...TerminalRunSchema.entries, agent: v.string(), file: v.string() })
 export type AgentRun = v.InferOutput<typeof AgentRunSchema>
 
 /** WireCat server names an agent has registered, and where that was read. */
 export const RegistrationsSchema = v.object({
   source: v.string(),
   names: v.array(v.string()),
-  canAdd: v.boolean(),
   canRemove: v.boolean(),
   /** Where the owner can look when the app does not read this agent's servers. */
   unread: v.optional(v.nullable(v.string()), null),

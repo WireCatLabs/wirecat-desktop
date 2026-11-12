@@ -7,7 +7,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
 
-// Tailscale Funnel in front of the tools' MCP servers (step 4 of `docs/dev/plans/2026-10-26-mcp-full-commands.md`).
+// Tailscale Funnel in front of the tools' MCP servers (`docs/dev/mcp-server-api.md`, "The public address").
 // The tools share one public address, a path each (`/tg`), so Funnel's three public ports are not a limit (TASK-26).
 // Desktop reads Tailscale's state, starts its login, and turns Funnel on and off only for the paths it set up
 // itself, recorded in `tailscale-funnels.json`. It never runs `sudo`, `tailscale up`, `funnel reset` or turns a
@@ -270,21 +270,14 @@ fn url_of(host: &str, https: u16) -> String {
     if https == 443 { format!("https://{host}") } else { format!("https://{host}:{https}") }
 }
 
-fn records_file() -> Option<PathBuf> {
-    node::app_data().map(|d| d.join("tailscale-funnels.json"))
-}
+const RECORDS: &str = "tailscale-funnels.json";
 
 fn load() -> Vec<Owned> {
-    records_file().and_then(|f| std::fs::read(f).ok()).and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+    node::load_record(RECORDS)
 }
 
 fn save(records: &[Owned]) -> Result<(), String> {
-    let file = records_file().ok_or("no folder for the app's data")?;
-    if let Some(dir) = file.parent() {
-        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    }
-    let body = serde_json::to_vec_pretty(records).map_err(|e| e.to_string())?;
-    std::fs::write(&file, body).map_err(|e| format!("Could not save {}: {e}", paths::tilde(&file.to_string_lossy())))
+    node::save_record(RECORDS, records)
 }
 
 /// Ports the tools already share: another tool's paths can join them, since each takes only its own.
@@ -649,7 +642,7 @@ mod tests {
         assert!(!is_live(&serve, &Owned { port: 9000, ..owned("tg", 443, true) }));
         assert!(!is_live(&serve, &owned("max", 443, true)), "max has no paths there");
         assert!(is_live(&serve, &owned("tg", 8443, false)), "a whole-port Funnel from before the shared address");
-        let mut partial = serve.clone();
+        let mut partial = serve;
         partial["Web"]["h.ts.net:443"]["Handlers"]
             .as_object_mut()
             .unwrap()
@@ -674,6 +667,9 @@ mod tests {
     #[test]
     #[ignore = "turns Tailscale Funnel on and off on this computer; run alone, with nothing else of yours on Funnel"]
     fn two_tools_share_one_address_and_close_alone() {
+        if !crate::probe::allowed() {
+            return;
+        }
         // The records file must not be the owner's: `XDG_DATA_HOME=$(mktemp -d) cargo test … -- --ignored --exact`.
         let data = std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).expect("XDG_DATA_HOME set to a scratch folder");
         assert!(data.starts_with(std::env::temp_dir()) || data.starts_with("/var/tmp"), "{data:?}");

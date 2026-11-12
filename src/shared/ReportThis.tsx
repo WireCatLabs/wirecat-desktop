@@ -1,7 +1,7 @@
 import { Bug } from "lucide-react"
 import { type Failure, failureReport } from "@/domain/report"
 import { useMessages } from "@/i18n"
-import { recentErrors } from "@/shared/errors"
+import { errorText, recentErrors } from "@/shared/errors"
 import { sharedMessages } from "@/shared/messages"
 import { currentPageName } from "@/shared/nav"
 import { useReport } from "@/shared/report-store"
@@ -15,13 +15,11 @@ type Props = Omit<Failure, "message" | "page"> & {
   onOpen?: () => void
 }
 
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /** Opens the report form filled in from a failure. Nothing is sent until the owner presses Send there. */
-export function reportFailure({ error, log, page, ...failure }: Omit<Props, "onOpen">) {
+function reportFailure({ error, log, page, ...failure }: Omit<Props, "onOpen">) {
   const f = failureReport({
     ...failure,
-    message: messageOf(error),
+    message: errorText(error),
     page: page === undefined ? currentPageName() : page,
   })
   useReport.getState().start({

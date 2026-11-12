@@ -2,9 +2,9 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { useNav } from "@/shared/nav"
-import { useReaders } from "@/shared/readers-store"
 import { useTools } from "@/shared/tools-store"
 import { render, screen, waitFor } from "@/testing/render"
 import { ReadersSetting } from "./ReadersSetting"
@@ -31,7 +31,6 @@ const pick = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
 
 describe("Reading for facts", () => {
   beforeEach(() => {
-    useReaders.setState(useReaders.getInitialState(), true)
     useTools.setState({
       installs: { memo: [{ path: "/bin/memo", version: NEW, manager: "npm", problem: null }] },
     })
@@ -136,9 +135,9 @@ describe("Reading for facts", () => {
   })
 
   it("says an older memo cannot do it yet", async () => {
-    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new Error("error: unknown command 'readers'"))
+    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'readers'"))
     render(<ReadersSetting />)
-    expect(await screen.findByText(/This page needs a newer Memo than/)).toBeInTheDocument()
+    expect(await screen.findByText(/This needs a newer Memo than/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
   })
 })

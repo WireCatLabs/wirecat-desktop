@@ -7,7 +7,10 @@ import { clock } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchContext, SearchHit } from "@/platform/search-schemas"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -29,14 +32,14 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<State | null>(null)
   const what = search?.what ?? "messages"
-  const toolName = findTool(tool)?.name ?? tool
+  const version = useTools((s) => s.installs[tool]?.[0]?.version ?? null)
 
   const load = () => {
     if (!ref) return
     setState({ kind: "loading" })
     platform
       .searchContext(tool, profile, ref)
-      .then(setState, (e) => setState({ kind: "failed", message: e instanceof Error ? e.message : String(e) }))
+      .then(setState, (e) => setState({ kind: "failed", message: errorText(e) }))
   }
   const toggle = () => {
     if (!open && (state === null || state.kind === "failed")) load()
@@ -65,9 +68,7 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
           {state?.kind === "found" ? (
             <Lines lines={contextLines(what, state.body, hit)} meeting={what === "meetings"} now={now} />
           ) : state?.kind === "old" ? (
-            <ErrorNotice inline raw={state.message}>
-              {m.contextOld(toolName)}
-            </ErrorNotice>
+            <ToolNeeded inline gap={{ kind: "old", tool, version, need: null }} />
           ) : state?.kind === "failed" ? (
             <ErrorNotice
               inline
@@ -82,7 +83,7 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
             </ErrorNotice>
           ) : (
             // The list's own cap: 11 messages or a transcript fill it; only a short thread or a chat's start is shorter.
-            <Skeleton className="h-[20rem] w-full rounded-[0.45rem]" label={m.readingContext} />
+            <Skeleton className="h-[20rem] w-full rounded-inset" label={m.readingContext} />
           )}
         </AutoHeight>
       </Collapse>
@@ -105,7 +106,7 @@ function Lines({ lines, meeting, now }: { lines: ContextLine[]; meeting: boolean
     <ol
       ref={box}
       aria-label={meeting ? m.contextLabel.meetings : m.contextLabel.messages}
-      className="selectable relative max-h-[20rem] overflow-y-auto rounded-[0.45rem] border border-line bg-app py-1"
+      className="selectable relative max-h-[20rem] overflow-y-auto rounded-inset border border-line bg-app py-1"
     >
       {lines.map((l) => (
         <li

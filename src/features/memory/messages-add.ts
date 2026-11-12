@@ -48,6 +48,7 @@ const en = {
   showText: "Show its text",
   hideText: "Hide its text",
   readingText: "Reading its text…",
+  shortened: "Shortened for the preview.",
   named: "Named in it",
   namedHint: "People and organizations WireCat knows whose names appear in it. Tick the ones the facts are about.",
   namedNone: "WireCat found no names it knows in it.",
@@ -102,8 +103,7 @@ const en = {
     "ai.empty-answer":
       "This model seems not to read pictures: it answered nothing, so the picture is kept by its name only. Choose a model that reads them in Settings.",
   } as Record<string, string>,
-  imageNeedsUpdate:
-    "Pictures cannot be read with an AI model yet, so this picture will be kept by its name only. Update Memo on the Tools page.",
+  imageNeedsUpdate: "Pictures cannot be read with an AI model yet, so this picture will be kept by its name only.",
   imageUnknown:
     "WireCat could not look at the AI model, so it cannot say whether this picture will be read. Check it in Settings.",
   goAiModel: "Open AI model settings",
@@ -130,7 +130,7 @@ const en = {
   another: "Add another",
   done: "Done",
   failed: "Could not do it.",
-  tooOldReaders: "Sources cannot be read for facts yet. Update Memo on the Tools page to get facts.",
+  tooOldReaders: "Sources can be read for facts after the update.",
   reasons: {
     "memo.refused": "It was refused with no reason WireCat can show. Try again, or add it from a file.",
     "source.unsupported":
@@ -208,6 +208,7 @@ const ru: typeof en = {
   showText: "Показать текст",
   hideText: "Скрыть текст",
   readingText: "Читаем текст…",
+  shortened: "Текст сокращён для просмотра.",
   named: "Упомянуты в нём",
   namedHint: "Люди и организации, которых WireCat знает и чьи имена встречаются в тексте. Отметьте, о ком факты.",
   namedNone: "Знакомых WireCat имён в нём нет.",
@@ -263,8 +264,7 @@ const ru: typeof en = {
     "ai.empty-answer":
       "Эта модель, похоже, не читает картинки, поэтому картинка сохранена только по названию. Выберите в Настройках модель, которая их читает.",
   },
-  imageNeedsUpdate:
-    "Картинки пока нельзя читать моделью ИИ, поэтому картинка сохранится только по названию. Обновите Memo на странице «Инструменты».",
+  imageNeedsUpdate: "Картинки пока нельзя читать моделью ИИ, поэтому картинка сохранится только по названию.",
   imageUnknown:
     "WireCat не смог посмотреть модель ИИ, поэтому не может сказать, прочитают ли эту картинку. Проверьте её в Настройках.",
   goAiModel: "Открыть настройки модели ИИ",
@@ -293,7 +293,7 @@ const ru: typeof en = {
   another: "Добавить ещё",
   done: "Готово",
   failed: "Не получилось.",
-  tooOldReaders: "Факты в источниках пока нельзя искать. Обновите Memo на странице «Инструменты».",
+  tooOldReaders: "Искать факты в источниках можно будет после обновления.",
   reasons: {
     "memo.refused":
       "Добавить не вышло, и причины, которую WireCat может показать, нет. Попробуйте снова или добавьте файлом.",
@@ -372,6 +372,7 @@ const es: typeof en = {
   showText: "Mostrar su texto",
   hideText: "Ocultar su texto",
   readingText: "Leyendo su texto…",
+  shortened: "Acortado para la vista previa.",
   named: "Nombrados en él",
   namedHint: "Personas y organizaciones que WireCat conoce y cuyo nombre aparece. Marca de quién tratan los hechos.",
   namedNone: "WireCat no encontró en él nombres que conozca.",
@@ -430,7 +431,7 @@ const es: typeof en = {
       "Este modelo parece no leer imágenes: no respondió nada, así que la imagen se guarda solo por su nombre. Elige en Ajustes un modelo que las lea.",
   },
   imageNeedsUpdate:
-    "Aún no se pueden leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualiza Memo en la página Herramientas.",
+    "Aún no se pueden leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre.",
   imageUnknown:
     "WireCat no pudo mirar el modelo de IA, así que no puede decir si esta imagen se leerá. Revísalo en Ajustes.",
   goAiModel: "Abrir los ajustes del modelo de IA",
@@ -457,7 +458,7 @@ const es: typeof en = {
   another: "Añadir otra",
   done: "Listo",
   failed: "No se pudo hacer.",
-  tooOldReaders: "Aún no se pueden sacar hechos de las fuentes. Actualiza Memo en la página Herramientas.",
+  tooOldReaders: "Tras actualizar se podrán sacar hechos de las fuentes.",
   reasons: {
     "memo.refused": "Se rechazó sin una razón que WireCat pueda mostrar. Prueba de nuevo o añádelo desde un archivo.",
     "source.unsupported": "WireCat no lee este tipo de archivo o página. Guárdalo como PDF, Word o texto y añade ese.",

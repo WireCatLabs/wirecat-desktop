@@ -42,7 +42,7 @@ describe("the community list notice at the top", () => {
     const notice = (await screen.findByText(/runs out in/)).closest("li") as HTMLElement
     expect(notice).toHaveTextContent("The list of community tools runs out in 3 days.")
     expect(notice).toHaveTextContent("community tools cannot be installed or updated after")
-    await user.click(within(notice).getByRole("button", { name: /How it works/ }))
+    await user.click(within(notice).getByRole("link", { name: /How it works/ }))
     expect(openUrl).toHaveBeenCalledWith("https://wirecat.dev/en/docs/desktop#community-tools")
   })
 

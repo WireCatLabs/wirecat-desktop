@@ -205,7 +205,7 @@ export function Select<T extends string>({
         onMouseMove={() => !o.disabled && i !== active && setActive(i)}
         onMouseUp={() => pick(i)}
         className={cx(
-          "flex items-center gap-2 rounded-[0.3rem] px-1.5 py-1 text-ink",
+          "flex items-center gap-2 rounded-pill px-1.5 py-1 text-ink",
           s.option,
           o.disabled ? "cursor-default text-ink-dim" : "cursor-pointer",
           i === active && !o.disabled && "bg-app-3",
@@ -241,7 +241,7 @@ export function Select<T extends string>({
         }}
         onBlur={(e) => leave(e.relatedTarget)}
         className={cx(
-          "flex min-w-0 items-center rounded-[0.35rem] border border-line-strong bg-app text-left leading-normal",
+          "flex min-w-0 items-center rounded-control border border-line-strong bg-app text-left leading-normal",
           "hover:border-ink-dim/60 aria-[invalid=true]:border-bad disabled:pointer-events-none disabled:opacity-45",
           s.button,
           className,
@@ -270,7 +270,7 @@ export function Select<T extends string>({
             style={place}
             onMouseDown={(e) => e.preventDefault()}
             className={cx(
-              "fixed z-50 max-w-[min(24rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 font-sans text-ink shadow-panel",
+              "fixed z-50 max-w-[min(24rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-inset border border-line bg-app p-1 font-sans text-ink shadow-panel",
               "motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]",
             )}
           >
@@ -292,7 +292,7 @@ export function Select<T extends string>({
                 onKeyDown={onKeyDown}
                 onBlur={(e) => leave(e.relatedTarget)}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="selectable inner-field sticky top-0 z-10 mb-[0.3rem] h-8 w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+                className="selectable inner-field sticky top-0 z-10 mb-[0.3rem] h-8 w-full rounded-control border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
               />
             )}
             {searchable && flat.length === 0 && (

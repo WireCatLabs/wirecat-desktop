@@ -167,19 +167,8 @@ pub fn connect(
 fn check(bin: &Path, name: &str, args: &[String], token: &str) -> BotResult {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(bin, &refs, Some(&paths::search_path()));
-    let (mut stdout, mut stderr) = (String::new(), String::new());
-    let code = run::stream_with_input(
-        cmd,
-        Some(token.as_bytes()),
-        CHECK_TIMEOUT,
-        || false,
-        |line| match line {
-            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
-            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
-        },
-    );
-    match code {
-        Ok(code) => answer(name, &Output { code, stdout, stderr }, token),
+    match run::run_with_input(cmd, Some(token.as_bytes()), CHECK_TIMEOUT, || false) {
+        Ok(out) => answer(name, &out, token),
         Err(run::RunError::TimedOut) => failed(
             format!("{name} did not answer within {} seconds.", CHECK_TIMEOUT.as_secs()),
             Some("timeout".into()),
@@ -203,7 +192,7 @@ fn answer(name: &str, out: &Output, token: &str) -> BotResult {
 fn failure(name: &str, out: &Output, token: &str) -> BotResult {
     let masked = |s: &str| redact::text(&mask(s, token));
     let all = format!("{}\n{}", out.stdout, out.stderr);
-    if all.contains("unknown command") || all.contains("unknown option") {
+    if crate::memo_cli::unknown_to_cli(&all) {
         return failed(
             format!("This {name} cannot connect a bot from the app yet. Update it on the Tools page."),
             Some(NEEDS_UPDATE.into()),

@@ -17,7 +17,7 @@ export function EmptyState({ title, children, action, busy = false }: Props) {
     <div
       aria-busy={busy || undefined}
       className={cx(
-        "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-body text-ink-soft transition-opacity duration-(--motion-normal)",
+        "rounded-rack border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-body text-ink-soft transition-opacity duration-(--motion-normal)",
         busy && "opacity-60",
       )}
     >

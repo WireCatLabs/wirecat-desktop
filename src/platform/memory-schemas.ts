@@ -6,7 +6,7 @@ import * as v from "valibot"
 const text = v.nullable(v.string())
 
 /** One fact or task of an agent's findings batch; `outcome` is set once the batch is reviewed. */
-export const FindingSchema = v.object({
+const FindingSchema = v.object({
   id: v.string(),
   kind: v.string(),
   text: v.string(),
@@ -167,3 +167,28 @@ export const RelationDecidedSchema = v.object({ ref: v.string(), status: text, e
 export type MemoryChange = { kind?: string; subject?: string }
 export type RelationEdited = v.InferOutput<typeof RelationEditedSchema>
 export type RelationDecided = v.InferOutput<typeof RelationDecidedSchema>
+
+/** A memory entry's optional fields, all empty: the demo and the mock spread it and set only what they show. */
+export const BLANK_ENTRY = {
+  summary: null,
+  verb: null,
+  targetName: null,
+  chatName: null,
+  counts: null,
+  subject: null,
+  subjectName: null,
+  subjectIsOwner: false,
+  scope: "work",
+  project: null,
+  projectName: null,
+  supersedes: null,
+  reason: null,
+  account: null,
+  target: null,
+  updatedAt: null,
+  findings: null,
+  task: null,
+  model: null,
+  confidence: null,
+  sourceReview: null,
+} as const

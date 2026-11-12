@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { BackgroundAgent, BackgroundAgents } from "@/platform/background-agent-schemas"
@@ -206,7 +205,7 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
             if (marked === agents.chosen) return need.fail(m.same)
             warning.ask(marked, () => void useBackgroundAgents.getState().choose(marked))
           }}
-          icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          busy={busy}
         >
           {m.use}
         </Button>

@@ -12,7 +12,7 @@ export function OwnRemoved() {
   return (
     <Collapse open={removed !== null}>
       {removed && (
-        <div className="flex items-start gap-3 rounded-[0.35rem] border border-line-strong bg-app-2 px-3.5 py-2.5 text-[0.95rem]">
+        <div className="flex items-start gap-3 rounded-control border border-line-strong bg-app-2 px-3.5 py-2.5 text-[0.95rem]">
           <p role="status" className="selectable min-w-0 flex-1">
             {removed.installed ? m.removedInstalled(removed.name, removed.pkg) : m.removedGone(removed.name)}
           </p>

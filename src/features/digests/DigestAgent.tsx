@@ -85,7 +85,7 @@ const REFUSALS = {
 
 /** memo's refusals of a save in plain words, or null for the rest. */
 export const refusalOf = (message: string, m: BookText["form"]) =>
-  message in REFUSALS ? m[REFUSALS[message as keyof typeof REFUSALS]] : null
+  Object.hasOwn(REFUSALS, message) ? m[REFUSALS[message as keyof typeof REFUSALS]] : null
 
 /** The owner's choice: a new digest is written by Claude Code where it may run. */
 const PREFERRED = "claude"
@@ -101,7 +101,7 @@ export const needsConsent = (spec: DigestSpec, agents: BackgroundAgents | null) 
   !spec.allowDangerous && (agents?.agents.some((a) => a.id === spec.agent && withConsent(a)) ?? false)
 
 /** The agent a new digest starts with: Claude Code, else the agent for background jobs, else the only one that runs. */
-export function firstAgent(agents: BackgroundAgents | null): string | null {
+function firstAgent(agents: BackgroundAgents | null): string | null {
   const offered = agents?.agents.filter(runs) ?? []
   const pick = (id: string | null) => offered.find((a) => a.id === id)?.id
   return pick(PREFERRED) ?? pick(agents?.effective ?? null) ?? (offered.length === 1 ? offered[0]?.id : null) ?? null
@@ -112,7 +112,7 @@ export const draftAgent = (spec: DigestSpec, agents: BackgroundAgents | null) =>
   spec.agent ?? agents?.effective ?? PREFERRED
 
 const input =
-  "h-8 w-[14rem] rounded-[0.3rem] border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand"
+  "h-8 w-[14rem] rounded-pill border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand"
 
 /**
  * The agent that writes the digest and its model, for a memo that takes them. The agents are the ones found for

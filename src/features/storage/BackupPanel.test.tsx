@@ -40,7 +40,7 @@ describe("Backups and clearing storage", () => {
     const before = within(list).getAllByRole("listitem").length
 
     await user.click(screen.getByRole("button", { name: "Back up now" }))
-    expect(await screen.findByText(/Backed up to/, {}, { timeout: 8000 })).toHaveTextContent(/wirecat-store-.*\.zip/)
+    expect(await screen.findByText(/Backed up to/)).toHaveTextContent(/wirecat-store-.*\.zip/)
     await waitFor(() =>
       expect(
         within(screen.getByRole("list", { name: "Backups on this computer" })).getAllByRole("listitem"),
@@ -101,9 +101,7 @@ describe("Backups and clearing storage", () => {
     expect(backup).toHaveBeenCalledWith(expect.any(Function), "correct horse battery")
     expect(screen.getByLabelText("Password")).toHaveValue("")
     expect(screen.getByLabelText("Repeat password")).toHaveValue("")
-    expect(await screen.findByText(/Backed up with a password to/, {}, { timeout: 8000 })).toHaveTextContent(
-      /wirecat-store-.*\.db\.sealed/,
-    )
+    expect(await screen.findByText(/Backed up with a password to/)).toHaveTextContent(/wirecat-store-.*\.db\.sealed/)
     const list = screen.getByRole("list", { name: "Backups on this computer" })
     await waitFor(() => expect(within(list).getAllByRole("img", { name: "Encrypted with a password" })).toHaveLength(2))
     const note = screen.getByRole("note", { name: "How to restore" })
@@ -150,7 +148,7 @@ describe("Backups and clearing storage", () => {
     await user.type(await within(dialog).findByRole("textbox", { name: /to confirm/ }), "clear")
     await user.click(within(dialog).getByRole("button", { name: "Back up and clear" }))
 
-    expect(await screen.findByText(/Storage was cleared/, {}, { timeout: 8000 })).toBeInTheDocument()
+    expect(await screen.findByText(/Storage was cleared/)).toBeInTheDocument()
     expect(screen.getByText(/Backed up to/)).toBeInTheDocument()
     expect(reset).toHaveBeenCalledTimes(1)
   })

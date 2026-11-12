@@ -8,7 +8,6 @@ import { useTools } from "@/shared/tools-store"
 import { render, screen } from "@/testing/render"
 import { pictureReadingMessages } from "./messages-picture-reading"
 import { PictureReadingSetting } from "./PictureReadingSetting"
-import { usePictureReading } from "./picture-reading-store"
 
 const never: Setting = { mode: "never", agent: null, model: null, extractor: null, since: null }
 const codex: Setting = {
@@ -21,13 +20,12 @@ const codex: Setting = {
 
 describe("Reading pictures", () => {
   beforeEach(() => {
-    usePictureReading.setState(usePictureReading.getInitialState(), true)
     useTools.setState({
       installs: { memo: [{ path: "/bin/memo", version: "0.131.86", manager: "npm", problem: null }] },
     })
   })
 
-  it("turns on only once the owner picks an agent, with the warning shown and memo's answer kept", async () => {
+  it("turns on only once the owner picks an agent, saying so at the agents when pressed before, with the warning shown and memo's answer kept", async () => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
     const set = vi.spyOn(platform, "pictureReadingSet").mockResolvedValue(codex)
     const user = userEvent.setup()
@@ -40,7 +38,10 @@ describe("Reading pictures", () => {
     expect(screen.getByText(/goes to Claude Code or Codex and from there to its provider/)).toBeVisible()
     expect(screen.getByText(/“Only this computer” setting does not stop it/)).toBeInTheDocument()
     const turnOn = screen.getByRole("button", { name: "Turn on" })
-    expect(turnOn).toBeDisabled()
+    expect(turnOn).toBeEnabled()
+    await user.click(turnOn)
+    expect(screen.getByRole("alert")).toHaveTextContent("Choose the agent that reads")
+    expect(screen.getByRole("radio", { name: "Claude Code" })).toHaveFocus()
     expect(screen.getByRole("radio", { name: "Claude Code" })).not.toBeChecked()
     expect(set).not.toHaveBeenCalled()
 
@@ -79,6 +80,22 @@ describe("Reading pictures", () => {
 
     expect(await screen.findByText(text)).toBeInTheDocument()
     expect(screen.queryByText(reason)).toBeNull()
+  })
+
+  it("says an unknown refusal in its own words and folds memo's text under Details", async () => {
+    vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
+    vi.spyOn(platform, "pictureReadingSet").mockRejectedValue(new Error("store.busy: another process holds it"))
+    const user = userEvent.setup()
+    render(<PictureReadingSetting />)
+
+    await user.click(await screen.findByRole("radio", { name: "On request" }))
+    await user.click(screen.getByRole("radio", { name: "Claude Code" }))
+    await user.click(screen.getByRole("button", { name: "Turn on" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/^Could not change it\./)
+    expect(screen.queryByText(/store\.busy/)).toBeNull()
+    await user.click(screen.getByRole("button", { name: "Details" }))
+    expect(screen.getByText("store.busy: another process holds it")).toBeInTheDocument()
   })
 
   it("asks for a memo update while no memo with it is released", async () => {

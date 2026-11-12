@@ -36,8 +36,6 @@ const CHAT_NAMES: Record<string, string> = {
 /** Rust passes a chat app's plain id; this is how people write it. */
 export const chatName = (id: string) => CHAT_NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1)
 
-// Activity
-
 /** One agent session's runs across every tool. `you` ran without an agent; `unknown` is a tool too old to say. */
 export type Session = {
   key: string
@@ -93,8 +91,6 @@ export function sessionQuery(s: Session): string {
   return `${who} ${NO_COMMAND_HIDDEN}`
 }
 
-// Task claims
-
 export type Holder =
   | { type: "agent"; agent: string | null; kind: string; session: string | null }
   | { type: "owner" }
@@ -111,8 +107,6 @@ export function parseHolder(holder: string): Holder {
   return { type: "agent", agent: agentForKind(kind), kind, session: colon > 0 ? holder.slice(colon + 1) : null }
 }
 
-// MCP
-
 /** cli-core's `mcp add` registers a profile as `<bin>-<profile>`; a person following its help may add `<bin>` alone. */
 export const serverName = (bin: string, profile: string | null) => (profile ? `${bin}-${profile}` : bin)
 
@@ -126,8 +120,6 @@ export function connections(names: readonly string[], bin: string, profiles: rea
     .map((n) => ({ profile: n.slice(bin.length + 1), connected: true }))
   return [...rows, ...extra, ...(names.includes(bin) ? [{ profile: null, connected: true }] : [])]
 }
-
-// Check
 
 export type Tone = "ok" | "warn" | "bad" | "idle"
 

@@ -1,5 +1,7 @@
 import { create } from "zustand"
+import type { TerminalRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { useSandbox } from "@/shared/sandbox-store"
 
 /**
@@ -9,7 +11,7 @@ import { useSandbox } from "@/shared/sandbox-store"
 export type TerminalSignIn = { profile: string } & (
   | { state: "opened" }
   | { state: "preview" }
-  | { state: "failed"; error: string }
+  | { state: "failed"; reason: TerminalRun["reason"]; error: string }
 )
 
 type TerminalState = {
@@ -24,10 +26,12 @@ export const useTerminal = create<TerminalState>((set) => ({
     if (!(await useSandbox.getState().confirmSignIn())) return
     let next: TerminalSignIn
     try {
-      await platform.openSetup(tool, profile)
-      next = { profile, state: platform.kind === "mock" ? "preview" : "opened" }
+      const run = await platform.openSetup(tool, profile)
+      next = run.started
+        ? { profile, state: platform.kind === "mock" ? "preview" : "opened" }
+        : { profile, state: "failed", reason: run.reason, error: run.message ?? "" }
     } catch (e) {
-      next = { profile, state: "failed", error: e instanceof Error ? e.message : String(e) }
+      next = { profile, state: "failed", reason: null, error: errorText(e) }
     }
     set((s) => ({ byTool: { ...s.byTool, [tool]: next } }))
   },

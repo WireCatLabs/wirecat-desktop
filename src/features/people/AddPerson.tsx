@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import { ReportThis } from "@/shared/ReportThis"
@@ -81,12 +80,7 @@ export function AddPerson() {
             }}
             className={cx(fieldClass, "selectable flex-1 basis-[16rem]", invalidBorder)}
           />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={s.adding}
-            icon={s.adding ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-          >
+          <Button type="submit" size="sm" disabled={s.adding} busy={s.adding}>
             {anyway ? m.addAnyway : m.add}
           </Button>
         </span>
@@ -97,7 +91,7 @@ export function AddPerson() {
       <Collapse open={shown.length > 0}>
         <div className="flex flex-col gap-[0.35rem] pt-1">
           <p className="text-[0.9rem] text-ink-soft">{m.addSimilar}</p>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {shown.map((x) => {
               const who = name(x.ref, x.displayName ?? x.name)
               const contact = x.phone ?? x.email ?? (x.username ? `@${x.username}` : null)

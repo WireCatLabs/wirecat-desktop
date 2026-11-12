@@ -1,13 +1,15 @@
-import { CheckCheck, Columns3, Handshake, ListChecks, LoaderCircle, Lock, Rows3, UserRoundPlus } from "lucide-react"
+import { CheckCheck, Columns3, Handshake, ListChecks, Lock, Rows3, UserRoundPlus } from "lucide-react"
 import { useEffect } from "react"
 import { crmsOf, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf, findTool } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { gapFromRead } from "@/domain/needs"
-import { crmNeed, ToolNeeded, useNeed } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import { crmNeed, useNeed } from "@/shared/needs"
 import { Page, PageHeader } from "@/shared/Page"
+import { PageError } from "@/shared/PageError"
 import { ToolIcon } from "@/shared/ToolIcon"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
@@ -52,13 +54,7 @@ export function ClientsPage() {
         compact
         actions={
           <>
-            <RefreshButton
-              busy={board.isFetching}
-              onClick={() => void readAgain()}
-              label={m.readAgain}
-              busyLabel={m.reading}
-              className={cx(!based && "invisible")}
-            />
+            {based && <ImportButton />}
             {based && (
               <Button
                 variant="ghost"
@@ -93,7 +89,13 @@ export function ClientsPage() {
                 return { value: k, label: m.kinds[k], icon: <Icon className="size-4" aria-hidden /> }
               })}
             />
-            {based && <ImportButton />}
+            <RefreshButton
+              busy={board.isFetching}
+              onClick={() => void readAgain()}
+              label={m.readAgain}
+              busyLabel={m.reading}
+              className={cx((!based || board.error) && "invisible")}
+            />
           </>
         }
       />
@@ -160,13 +162,8 @@ function Notices({ read, kind, settled }: { read: Based; kind: Kind; settled: bo
               <Button
                 size="sm"
                 variant="primary"
-                icon={
-                  confirming ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <CheckCheck className="size-4" aria-hidden />
-                  )
-                }
+                busy={confirming}
+                icon={<CheckCheck className="size-4" aria-hidden />}
                 onClick={() => confirming || confirm.mutate(pending.map((p) => p.pipeline))}
               >
                 {s.acceptEvery(suggestions)}
@@ -240,20 +237,13 @@ function Body() {
   const m = useMessages(clientMessages)
   const kind = useClients((s) => s.kind)
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
-  const { data, error, isPending } = useBoard(kind, pipeline)
+  const { data, error, isPending, isFetching } = useBoard(kind, pipeline)
 
   if (error) {
     return (
-      <ErrorNotice
-        raw={error.message}
-        action={
-          <Button size="sm" onClick={() => void readAgain()}>
-            {m.tryAgain}
-          </Button>
-        }
-      >
+      <PageError raw={error.message} what="Reading clients" busy={isFetching} onRetry={() => void readAgain()}>
         {m.readFailed}
-      </ErrorNotice>
+      </PageError>
     )
   }
   if (isPending || !data) return <Loading />
@@ -347,7 +337,7 @@ function Loading() {
       </div>
       <div className="grid min-h-[22rem] flex-1 grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-hidden xl:gap-[1rem]">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex min-h-[22rem] flex-col rounded-[0.2rem] border border-line-strong bg-app">
+          <div key={i} className="flex min-h-[22rem] flex-col rounded-rack border border-line-strong bg-app">
             <div className="flex min-h-[3rem] items-center border-line border-b px-[0.9rem]">
               <Skeleton className="h-[1rem] w-[60%]" />
             </div>

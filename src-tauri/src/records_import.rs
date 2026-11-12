@@ -44,12 +44,12 @@ fn call(args: &[String], timeout: Duration) -> Result<(Output, Option<Value>), S
 fn worded(out: &Output, json: Option<&Value>) -> String {
     let message = failure(out, json);
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
-    if text.contains("unknown command") || text.contains("unknown option") { TOO_OLD.into() } else { message }
+    if crate::memo_cli::unknown_to_cli(&text) { TOO_OLD.into() } else { message }
 }
 
 fn answered(out: &Output, json: Option<Value>) -> Result<Value, String> {
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(body(&v).clone()),
+        Some(v) if crate::skills::ok(out, &v) => Ok(body(&v).clone()),
         j => Err(worded(out, j.as_ref())),
     }
 }
@@ -100,6 +100,21 @@ pub fn template(kind: &str, format: &str, locale: &str, account: Option<&str>) -
     let (out, json) = call(&template_args(kind, format, locale, account)?, READ)?;
     let v = answered(&out, json)?;
     v["text"].as_str().map(str::to_string).ok_or_else(|| "memo wrote no template".into())
+}
+
+/// The file name the save window offers for a template, and the template's text.
+pub fn template_file(
+    kind: &str,
+    format: &str,
+    locale: &str,
+    account: Option<&str>,
+) -> Result<(String, String), String> {
+    let text = template(kind, format, locale, account)?;
+    Ok((format!("{kind}-template.{format}"), text))
+}
+
+pub fn save_template(path: &Path, text: &str) -> Result<(), String> {
+    std::fs::write(path, text).map_err(|e| format!("The template could not be written: {e}"))
 }
 
 pub fn run_args(file: &Path, kind: Option<&str>, account: &str, dry_run: bool) -> Result<Vec<String>, String> {

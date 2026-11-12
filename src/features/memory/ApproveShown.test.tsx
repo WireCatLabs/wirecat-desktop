@@ -12,7 +12,7 @@ const status = (ref: string) => useMemory.getState().entries.find((e) => e.ref =
 const approved = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map((call) => String(call[0])).sort()
 const page = async () => {
   render(<MemoryPage />)
-  await screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
+  await screen.findByRole("region", { name: "Memories, facts and actions" })
 }
 
 describe("Approve N on the Memory page", () => {
@@ -23,11 +23,11 @@ describe("Approve N on the Memory page", () => {
     expect(screen.getByRole("button", { name: "Approve all on this page: 4" })).toBeInTheDocument()
     act(() => useMemory.getState().setQuery("Harbour"))
     await user.click(await screen.findByRole("button", { name: "Approve all on this page: 1" }))
-    await screen.findByText("Done: 1 record on this page approved.", {}, { timeout: 3000 })
+    await screen.findByText("Done: 1 record on this page approved.")
     expect(approved(confirm)).toEqual(["fact:17"])
     for (const ref of ["fact:21", "memory:41", "memory:40", "action:5", "action:7"])
       expect(status(ref)).toBe("proposed")
-  }, 40_000)
+  })
 
   it("leaves a folded group's rows, a task and an agent's findings batch to review", async () => {
     const confirm = vi.spyOn(platform, "memoryConfirm")
@@ -36,11 +36,11 @@ describe("Approve N on the Memory page", () => {
     expect(screen.getByRole("button", { name: "Approve all on this page: 3" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /^Kai Moreno/, expanded: true }))
     await user.click(screen.getByRole("button", { name: "Approve all on this page: 2" }))
-    await screen.findByText("Done: 2 records on this page approved.", {}, { timeout: 6000 })
+    await screen.findByText("Done: 2 records on this page approved.")
     expect(approved(confirm)).toEqual(["fact:21", "memory:40"])
     await waitFor(() => expect(status("fact:21")).not.toBe("proposed"))
     expect(status("memory:41")).toBe("proposed")
     expect(status("action:7")).toBe("proposed")
     expect(status("action:5")).toBe("proposed")
-  }, 40_000)
+  })
 })

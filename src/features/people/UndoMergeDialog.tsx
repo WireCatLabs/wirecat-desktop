@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
@@ -30,7 +29,7 @@ export function UndoMergeDialog() {
           <Button
             variant="danger"
             disabled={!merge || !!busy}
-            icon={busy === "unmerge" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+            busy={busy === "unmerge"}
             onClick={() => undoing && void unmerge(undoing.ref, undoing.merge)}
           >
             {m.undo}

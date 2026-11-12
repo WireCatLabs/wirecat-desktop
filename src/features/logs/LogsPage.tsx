@@ -1,5 +1,6 @@
 import { ArrowUp, Settings2, SlidersHorizontal } from "lucide-react"
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { tools } from "@/domain/catalog"
 import {
   CONVERSATION,
@@ -24,8 +25,10 @@ import {
   withZeros,
 } from "@/domain/runs"
 import { QueryBar } from "@/features/query"
-import { type Lang, useLang, useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import { Page, PageHeader } from "@/shared/Page"
+import { useNow } from "@/shared/use-elapsed"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -67,7 +70,20 @@ const NONE = new Set<string>()
 export function LogsPage() {
   const m = useMessages(logsMessages)
   const lang = useLang()
-  const { loadedAt, liveRound, reading, asked, live, query, range, groupBy, expanded, details } = useLogs()
+  const { loadedAt, liveRound, reading, asked, live, query, range, groupBy, expanded, details } = useLogs(
+    useShallow((s) => ({
+      loadedAt: s.loadedAt,
+      liveRound: s.liveRound,
+      reading: s.reading,
+      asked: s.asked,
+      live: s.live,
+      query: s.query,
+      range: s.range,
+      groupBy: s.groupBy,
+      expanded: s.expanded,
+      details: s.details,
+    })),
+  )
   const sources = useShownLogs((s) => s.sources)
   const keeping = useShownLogs((s) => s.keeping)
   const { load, setQuery, setRange, setGroupBy, toggle, setLive } = useLogs.getState()
@@ -177,7 +193,8 @@ export function LogsPage() {
   const trouble = settingsTone(sources, keeping)
 
   return (
-    <Page>
+    // Measured on the page, not the window: the filter column shows only where the runs table still fits beside it.
+    <Page className="@container">
       {/* One box for the header and the panel under it, so the page's gap does not appear at once as it opens. */}
       <div>
         <PageHeader
@@ -252,7 +269,7 @@ export function LogsPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="mt-[0.4rem] lg:hidden"
+              className="mt-[0.4rem] @min-[71rem]:hidden"
               aria-expanded={facetsOpen}
               onClick={() => setFacetsOpen(!facetsOpen)}
               icon={<SlidersHorizontal className="size-4" aria-hidden />}
@@ -269,8 +286,8 @@ export function LogsPage() {
               newest={newest}
             />
           ) : (
-            <div className="grid gap-[1.5rem] lg:grid-cols-[13.5rem_minmax(0,1fr)]">
-              <div className={cx(facetsOpen ? "block" : "hidden", "lg:block")}>
+            <div className="grid gap-[1.5rem] @min-[71rem]:grid-cols-[13.5rem_minmax(0,1fr)]">
+              <div className={cx(facetsOpen ? "block" : "hidden", "@min-[71rem]:block")}>
                 <Facets
                   counts={counts}
                   terms={parsed.terms}
@@ -301,7 +318,7 @@ export function LogsPage() {
                     </Button>
                   )}
                 </div>
-                <div ref={tableRef} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+                <div ref={tableRef} className="overflow-hidden rounded-rack border border-line-strong bg-app">
                   {matched.length === 0 ? (
                     <p className="flex flex-wrap items-center gap-3 px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft">
                       {all.length === 0 ? m.nothingRecorded : m.noMatch}
@@ -385,8 +402,8 @@ function Loading(props: { reading: string[]; total: number; facetsOpen: boolean;
   const m = useMessages(logsMessages)
   const done = total - reading.length
   return (
-    <div className="grid gap-[1.5rem] lg:grid-cols-[13.5rem_minmax(0,1fr)]">
-      <div className={cx(facetsOpen ? "flex" : "hidden", "flex-col gap-[1.1rem] lg:flex")}>
+    <div className="grid gap-[1.5rem] @min-[71rem]:grid-cols-[13.5rem_minmax(0,1fr)]">
+      <div className={cx(facetsOpen ? "flex" : "hidden", "flex-col gap-[1.1rem] @min-[71rem]:flex")}>
         <Skeleton className="h-[2.6rem] w-full" />
         {FACETS.map((f) => (
           <Skeleton key={f} className="h-[9rem] w-full" />
@@ -397,7 +414,7 @@ function Loading(props: { reading: string[]; total: number; facetsOpen: boolean;
           <ProgressBar label={m.toolsRead} value={done} max={total} size="line" minShare={8} className="w-[8rem]" />
           <span className="tabular-nums">{m.toolsDone(done, total, reading.map(toolName))}</span>
         </p>
-        <div className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+        <div className="overflow-hidden rounded-rack border border-line-strong bg-app">
           <RunsTable
             runs={[]}
             placeholders={PLACEHOLDER_ROWS}
@@ -466,26 +483,12 @@ const scrolledPast = (el: HTMLElement | null) => {
   return Boolean(el && main && el.getBoundingClientRect().top < main.getBoundingClientRect().top)
 }
 
-// The short style, because this line ticks every second beside the buttons and must not grow and push them.
-function ago(ms: number, lang: Lang) {
-  const format = new Intl.RelativeTimeFormat(lang, { style: "short" })
-  const s = Math.max(0, Math.round(ms / 1000))
-  if (s < 60) return format.format(-s, "second")
-  const min = Math.round(s / 60)
-  return min < 60 ? format.format(-min, "minute") : format.format(-Math.round(min / 60), "hour")
-}
-
 // Its own one-second clock, so only this line renders again as the time passes.
 function Freshness({ at, reading, asked }: { at: number | null; reading: number; asked: number }) {
   const m = useMessages(logsMessages)
   const lang = useLang()
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setTick((n) => n + 1), 1000)
-    return () => clearInterval(t)
-  }, [])
-  const text =
-    at === null ? "" : reading ? m.readingTools(asked - reading, asked) : m.updated(ago(Date.now() - at, lang))
+  const now = useNow(true)
+  const text = at === null ? "" : reading ? m.readingTools(asked - reading, asked) : m.updated(ago(at, now, lang))
   return <span className="min-w-[10.5rem] text-right text-[0.9rem] text-ink-dim tabular-nums">{text}</span>
 }
 

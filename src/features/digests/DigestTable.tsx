@@ -1,12 +1,13 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react"
 import { formatUsd } from "@/domain/mail-agent"
 import { freeWords, setField, valuesOf } from "@/domain/query-terms"
-import { ago } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import type { DigestItem } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
+import { EmptyState } from "@/ui/EmptyState"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Lamp } from "@/ui/Lamp"
@@ -29,7 +30,7 @@ const lastOf = (d: DigestItem) => (d.last ? (d.last.ok ? "ok" : "failed") : "nev
 const reads = (d: DigestItem, source: string) => d.sources.length === 0 || d.sources.includes(source)
 
 /** Whether a digest passes the filter chips and every typed word, which is looked for in its title and name. */
-export function digestMatches(d: DigestItem, query: string, title: string) {
+function digestMatches(d: DigestItem, query: string, title: string) {
   const wants = (field: string, value: string) => {
     const values = valuesOf(query, field)
     return values.length === 0 || values.includes(value)
@@ -216,12 +217,15 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
         )}
       </FilterBar>
       {rows.length === 0 ? (
-        <p className="flex flex-wrap items-center gap-3 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft">
+        <EmptyState
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setQuery("")}>
+              {m.list.clear}
+            </Button>
+          }
+        >
           {m.list.noMatch}
-          <Button size="sm" variant="ghost" onClick={() => setQuery("")}>
-            {m.list.clear}
-          </Button>
-        </p>
+        </EmptyState>
       ) : (
         <DataTable
           label={m.table}

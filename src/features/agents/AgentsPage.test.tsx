@@ -11,7 +11,7 @@ describe("the Agents page opened again", () => {
   it("within a minute asks no tool again; later it asks with the last answers on screen", async () => {
     const status = vi.spyOn(platform, "skillStatus")
     const first = render(<AgentsPage />)
-    await waitFor(() => expect(useConnect.getState().loadedAt).not.toBeNull(), { timeout: 4000 })
+    await waitFor(() => expect(useConnect.getState().loadedAt).not.toBeNull())
     const asked = status.mock.calls.length
     expect(asked).toBeGreaterThan(0)
     first.unmount()

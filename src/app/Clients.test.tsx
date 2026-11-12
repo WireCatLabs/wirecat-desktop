@@ -12,6 +12,6 @@ describe("Clients", () => {
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Clients/ }))
     expect(await screen.findByRole("heading", { name: /^Clients/u, level: 1 })).toBeInTheDocument()
-    expect(await screen.findByRole("table", { name: "Deals" }, { timeout: 4000 })).toBeInTheDocument()
-  }, 15000)
+    expect(await screen.findByRole("table", { name: "Deals" })).toBeInTheDocument()
+  })
 })

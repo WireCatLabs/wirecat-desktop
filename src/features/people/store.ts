@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
+import { without } from "@/domain/record"
 import { tasksQuery } from "@/domain/tasks"
 import { platform } from "@/platform/bridge"
 import type {
@@ -17,9 +18,8 @@ import type {
   TestPeople,
 } from "@/platform/people-schemas"
 import type { TaskRead } from "@/platform/task-schemas"
+import { errorText } from "@/shared/errors"
 import { fresh } from "@/shared/fresh"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export type TasksOf = { state: "loading" } | { state: "ready"; read: TaskRead } | { state: "failed"; error: string }
 
@@ -190,11 +190,6 @@ type PeopleState = {
   askUndo(undo: { ref: string; merge: string } | null): void
 }
 
-const without = <T>(record: Record<string, T>, key: string) => {
-  const { [key]: _, ...rest } = record
-  return rest
-}
-
 /** memo's command server keeps two processes; more calls at once would each start memo anew. */
 const AT_ONCE = 2
 /** Each doubt lists its accounts, so a page stays short. */
@@ -233,7 +228,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     try {
       return await f()
     } catch (e) {
-      set((s) => ({ failed: { ...s.failed, [key]: message(e) } }))
+      set((s) => ({ failed: { ...s.failed, [key]: errorText(e) } }))
       return null
     } finally {
       set((s) => ({ busy: without(s.busy, key) }))
@@ -402,7 +397,7 @@ export const usePeople = create<PeopleState>((set, get) => {
         if (open) void get().loadDetail(open)
       } catch (e) {
         if (call !== seq) return
-        set({ error: message(e), reading: false })
+        set({ error: errorText(e), reading: false })
       }
     },
     visit() {
@@ -463,7 +458,7 @@ export const usePeople = create<PeopleState>((set, get) => {
         if (asked !== pageSeq) return
         // Missing, too old or older than kinds: the page's own read says so, not this refusal.
         if (get().read !== null && !get().kinded) return set({ reading: false })
-        set({ error: message(e), reading: false })
+        set({ error: errorText(e), reading: false })
       }
     },
     setMatchPage: (matchPage) => set({ matchPage }),
@@ -480,7 +475,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           details: { ...s.details, [person.ref]: { state: "ready", person } },
         }))
       } catch (e) {
-        set({ found: { state: "failed", error: message(e) } })
+        set({ found: { state: "failed", error: errorText(e) } })
       }
     },
     reveal(ref) {
@@ -504,7 +499,7 @@ export const usePeople = create<PeopleState>((set, get) => {
         const person = await platform.peopleShow(ref)
         set((s) => ({ details: { ...s.details, [ref]: { state: "ready", person } } }))
       } catch (e) {
-        set((s) => ({ details: { ...s.details, [ref]: { state: "failed", error: message(e) } } }))
+        set((s) => ({ details: { ...s.details, [ref]: { state: "failed", error: errorText(e) } } }))
       }
     },
     async decide(ref, id, answer, reason) {
@@ -697,7 +692,7 @@ export const usePeople = create<PeopleState>((set, get) => {
         const read = await platform.taskList(tasksQuery([ref]))
         set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "ready", read } } }))
       } catch (e) {
-        set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "failed", error: message(e) } } }))
+        set((s) => ({ tasks: { ...s.tasks, [ref]: { state: "failed", error: errorText(e) } } }))
       }
     },
     async readDoubts(page) {
@@ -714,7 +709,7 @@ export const usePeople = create<PeopleState>((set, get) => {
         set({ doubts: { state: "ready", page: at, last: got } })
       } catch (e) {
         if (asked !== doubtSeq) return
-        set({ doubts: { state: "failed", page: at, error: message(e), last } })
+        set({ doubts: { state: "failed", page: at, error: errorText(e), last } })
       }
     },
     async keep(ref) {
@@ -741,7 +736,7 @@ export const usePeople = create<PeopleState>((set, get) => {
       try {
         set({ testPeople: { state: "ready", read: await platform.peopleTestPeople() } })
       } catch (e) {
-        set({ testPeople: { state: "failed", error: message(e) } })
+        set({ testPeople: { state: "failed", error: errorText(e) } })
       }
     },
     async unlink(ref, identities) {

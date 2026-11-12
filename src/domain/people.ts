@@ -1,3 +1,5 @@
+import { knownReason } from "./reasons"
+
 /** The Contacts page's rules: how a person's accounts are grouped and what a split may take. */
 
 type Seen = { account: string; scope: string | null }
@@ -14,7 +16,7 @@ export function bySource<T extends IdentityLike>(identities: readonly T[]): { pr
  * A bot account: the source says so, or it is a Telegram username ending in "bot", which Telegram requires of every
  * bot (core.telegram.org/bots/features#botfather) and of no person.
  */
-export const isBotAccount = (i: { provider: string; bot: boolean; username: string | null }) =>
+const isBotAccount = (i: { provider: string; bot: boolean; username: string | null }) =>
   i.bot || (i.provider === "telegram" && /bot$/i.test(i.username?.trim() ?? ""))
 
 /** A person is a bot only when every account of theirs is one: a person may also run a bot. */
@@ -212,5 +214,4 @@ export const PEOPLE_REASONS = [
   "memo.too-old",
 ] as const
 export type PeopleReason = (typeof PEOPLE_REASONS)[number]
-export const reasonOf = (error: string): PeopleReason | null =>
-  (PEOPLE_REASONS as readonly string[]).includes(error) ? (error as PeopleReason) : null
+export const reasonOf = (error: string) => knownReason(PEOPLE_REASONS, error)

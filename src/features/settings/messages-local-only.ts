@@ -59,7 +59,7 @@ const en = {
   } satisfies Record<Feature, string> as Record<string, string>,
   ownerOnly:
     "Only you can turn this off, and WireCat was started from an AI agent's terminal. Open WireCat from the app menu and turn it off there.",
-  setFailed: (message: string) => `Could not change it: ${message}`,
+  setFailed: "Could not change it.",
   readFailed: "Could not read where each feature sends data.",
   looking: "Looking at where each feature sends data…",
 }
@@ -89,7 +89,7 @@ const ru: typeof en = {
       other: "# функции теперь ничего не отправляют, пока не перейдут на модель на этом компьютере.",
     }),
   agentNote:
-    "То, что идет через агента (дайджест, чтение картинок, агенты через MCP), работает вне WireCat. Данные остаются здесь, только если ваш агент работает с моделью на этом компьютере.",
+    "То, что идет через агента (сводка, чтение картинок, агенты через MCP), работает вне WireCat. Данные остаются здесь, только если ваш агент работает с моделью на этом компьютере.",
   features: {
     ai_model: "Модель ИИ",
     enrichment: "Переписывать записи для лучшего поиска",
@@ -100,12 +100,12 @@ const ru: typeof en = {
     attachment_ocr: "Текст на картинках во вложениях",
     picture_reading: "Чтение картинок",
     voice_messages: "Голосовые сообщения",
-    digest: "Дайджест",
+    digest: "Сводка",
     agents: "Агенты через MCP",
   },
   ownerOnly:
     "Выключить это можете только вы, а WireCat запущен из терминала ИИ-агента. Откройте WireCat из меню приложений и выключите там.",
-  setFailed: (message) => `Не удалось переключить: ${message}`,
+  setFailed: "Не удалось переключить.",
   readFailed: "Не удалось прочитать, куда функции отправляют данные.",
   looking: "Смотрим, куда функции отправляют данные…",
 }
@@ -149,7 +149,7 @@ const es: typeof en = {
   },
   ownerOnly:
     "Solo tú puedes desactivarlo, y WireCat se abrió desde la terminal de un agente de IA. Abre WireCat desde el menú de aplicaciones y desactívalo allí.",
-  setFailed: (message) => `No se pudo cambiar: ${message}`,
+  setFailed: "No se pudo cambiar.",
   readFailed: "No se pudo leer adónde envía datos cada función.",
   looking: "Mirando adónde envía datos cada función…",
 }

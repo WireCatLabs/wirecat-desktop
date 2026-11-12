@@ -97,7 +97,7 @@ fn one_address(parsed: &tauri::Url) -> bool {
 
 /// Digits alone, a leading `+` allowed: nothing a phone program could read as a code to dial or a parameter.
 fn one_number(parsed: &tauri::Url) -> bool {
-    let number = parsed.path().strip_prefix('+').unwrap_or(parsed.path());
+    let number = parsed.path().strip_prefix('+').unwrap_or_else(|| parsed.path());
     parsed.query().is_none()
         && parsed.fragment().is_none()
         && (3..=20).contains(&number.len())

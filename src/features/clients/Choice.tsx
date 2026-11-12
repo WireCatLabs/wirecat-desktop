@@ -6,7 +6,7 @@ export function Choice(props: {
   group: string
   checked: boolean
   onChange: () => void
-  autoFocus?: boolean
+  first?: boolean
   children: ReactNode
 }) {
   return (
@@ -16,12 +16,12 @@ export function Choice(props: {
         name={props.group}
         checked={props.checked}
         onChange={props.onChange}
-        data-autofocus={props.autoFocus || undefined}
+        data-autofocus={props.first || undefined}
         className="peer sr-only"
       />
       <span
         className={cx(
-          "flex cursor-pointer items-center justify-between gap-3 rounded-[0.35rem] border px-3 py-2 text-[0.95rem] transition-colors duration-(--motion-fast)",
+          "flex cursor-pointer items-center justify-between gap-3 rounded-control border px-3 py-2 text-[0.95rem] transition-colors duration-(--motion-fast)",
           "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
           props.checked
             ? "border-brand bg-brand-soft font-medium text-ink"

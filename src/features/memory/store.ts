@@ -13,6 +13,7 @@ import {
   waitingOf,
   withCleanNames,
 } from "@/domain/memory"
+import { without } from "@/domain/record"
 import { useTasks } from "@/features/tasks"
 import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -26,6 +27,7 @@ import type {
   SourceContext,
   SourceReview,
 } from "@/platform/memory-schemas"
+import { errorText } from "@/shared/errors"
 import { fresh } from "@/shared/fresh"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
@@ -146,11 +148,11 @@ type MemoryState = {
 const REFUSALS = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"] as const
 
 /** A findings batch changed since the page read it: Rust's id for memo's `*-findings.stale`. */
-export const STALE = "findings.stale"
+const STALE = "findings.stale"
 
 /** memo's reasons for refusing `facts revoke` or a review decision arrive as they are and are worded here. */
 const message = (e: unknown) => {
-  const text = e instanceof Error ? e.message : String(e)
+  const text = errorText(e)
   const reason = REFUSALS.find((r) => r === text)
   return (
     (reason && messagesOf(memoryMessages).revokeRefused[reason]) ||
@@ -173,12 +175,8 @@ const NO_ROLES: Role[] = []
 /** The owner's role lists, empty before a memo that has them. */
 export const ownerRoles = (s: { read: MemoryRead | null }) =>
   (s.read?.kind === "ready" ? s.read.roles : undefined) ?? NO_ROLES
-const without = <T>(record: Record<string, T>, key: string) => {
-  const { [key]: _, ...rest } = record
-  return rest
-}
 
-export const LEAVE_MS = 320
+const LEAVE_MS = 320
 
 /** A memory row is several lines tall, so a page holds fewer of them than a table holds rows. */
 export const MEMORY_PAGE_SIZES = [20, 50, 100] as const

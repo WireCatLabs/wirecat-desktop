@@ -8,7 +8,7 @@ export function CopyField({ value, label, wrap = false }: { value: string; label
   return (
     <div
       className={cx(
-        "flex gap-2 rounded-[0.4rem] border border-line bg-app-2 py-1 pr-1 pl-3",
+        "flex gap-2 rounded-button border border-line bg-app-2 py-1 pr-1 pl-3",
         lines ? "items-start" : "items-center",
       )}
     >

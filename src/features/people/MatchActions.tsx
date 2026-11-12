@@ -1,11 +1,12 @@
-import { Building2, Check, LoaderCircle } from "lucide-react"
+import { Building2, Check } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { type PeopleReason, reasonOf } from "@/domain/people"
+import { reasonOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
 import type { MatchAnswer } from "@/platform/people-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { CompanyAddress, CompanyButton, CompanyFollowUp } from "./Company"
 import type { MatchGroup } from "./groups"
@@ -87,7 +88,6 @@ export function MatchActions({
   const done = open.length === 0
   const among = open.filter((x) => x.persons.every((p) => chosen.includes(p)))
   const said = (ref: string) => asked.current.get(ref) ?? name(ref)
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   const confirm = () => {
     for (const p of people) asked.current.set(p, name(p))
@@ -108,9 +108,9 @@ export function MatchActions({
         <p role="status" className="reveal flex flex-wrap items-center gap-2 text-[0.95rem] text-ink-soft">
           <Check className="size-4 shrink-0 text-ok" aria-hidden />
           {m.joinedSome(formatList(joined.joined.map(said), lang))}
-          {joined.stopped && <span className="text-bad">{m.stoppedAt(stoppedWords(joined.stopped, m.reasons))}</span>}
         </p>
       )}
+      {joined?.stopped && <Stopped error={joined.stopped} />}
       <AutoHeight swap={done ? "done" : String(asking)}>
         {done ? (
           (joined && !last) || (company && !company.refused) ? null : (
@@ -151,7 +151,7 @@ export function MatchActions({
                 setAsking(false)
               }}
               className={cx(
-                "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+                "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 text-[1rem]",
                 invalidBorder,
               )}
             />
@@ -160,7 +160,7 @@ export function MatchActions({
               {m.rejectHint}
             </p>
             <span className="flex gap-2">
-              <Button type="submit" size="sm" disabled={!!busy} icon={busy ? spin : undefined}>
+              <Button type="submit" size="sm" disabled={!!busy} busy={!!busy}>
                 {m.rejectNow}
               </Button>
               <Button size="sm" onClick={() => setAsking(false)}>
@@ -175,7 +175,7 @@ export function MatchActions({
               size="sm"
               variant="primary"
               disabled={!!busy}
-              icon={busy === "confirm" ? spin : undefined}
+              busy={busy === "confirm"}
               onClick={() => (tooFew ? few.fail() : confirm())}
             >
               {confirmLabel}
@@ -187,7 +187,8 @@ export function MatchActions({
               <Button
                 size="sm"
                 disabled={!!busy}
-                icon={busy === "reject" ? spin : <Building2 className="size-4" aria-hidden />}
+                busy={busy === "reject"}
+                icon={<Building2 className="size-4" aria-hidden />}
                 onClick={() =>
                   tooFew
                     ? few.fail()
@@ -227,7 +228,13 @@ export function MatchActions({
   )
 }
 
-const stoppedWords = (error: string, reasons: Record<PeopleReason, string>) => {
+/** Why a join stopped part way: memo's known reasons in words, anything else under Details. */
+function Stopped({ error }: { error: string }) {
+  const m = useMessages(peopleMessages)
   const reason = reasonOf(error)
-  return reason ? reasons[reason] : error
+  return (
+    <ErrorNotice inline raw={reason ? null : error}>
+      {reason ? m.stoppedAt(m.reasons[reason]) : m.stopped}
+    </ErrorNotice>
+  )
 }

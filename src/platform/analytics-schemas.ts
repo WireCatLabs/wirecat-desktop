@@ -49,7 +49,7 @@ export const MessageCountsSchema = v.variant("kind", [
 
 /**
  * What no tool can count yet, filled only by the browser build so the page's design can be judged. The real app answers
- * null and the page shows each part as arriving with an update (plan `docs/dev/plans/2026-11-02-analytics.md`).
+ * null and the page shows each part as arriving with an update.
  */
 export type AnalyticsPreview = {
   /** Tasks made and closed per week, oldest first; `week` is the Monday it starts on. */
@@ -89,7 +89,6 @@ export const ResponsesSchema = v.looseObject({
   replies: n,
   median_ms: ms,
   p90_ms: ms,
-  mean_ms: v.optional(ms, null),
   buckets: v.optional(v.nullable(Buckets), null),
   rows: v.optional(v.array(v.looseObject({ key: v.string(), replies: n, median_ms: ms, p90_ms: ms })), []),
 })
@@ -118,7 +117,6 @@ export const MailSchema = v.looseObject({
 export const MeetingHistorySchema = v.looseObject({
   meetings: n,
   minutes: n,
-  mean_minutes: v.nullable(n),
   rows: v.array(
     v.looseObject({ key: v.string(), name: v.optional(v.nullable(v.string()), null), meetings: n, minutes: n }),
   ),

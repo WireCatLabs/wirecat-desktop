@@ -2,6 +2,7 @@ import { create } from "zustand"
 import type { PathFix, ShellChoices } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
+import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 import { useConnect } from "./connect"
 
@@ -28,8 +29,6 @@ type Store = {
   byHand(): void
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /** Asked again whatever happened: a check that failed only because the app looked too early now answers. */
 async function recheck() {
   await useTools
@@ -54,7 +53,7 @@ export const usePathFix = create<Store>((set, get) => {
         set({ shells })
       }
     } catch (e) {
-      set({ status: { state: "failed", error: message(e) } })
+      set({ status: { state: "failed", error: errorText(e) } })
     }
     await recheck()
   }

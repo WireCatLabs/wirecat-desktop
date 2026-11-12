@@ -1,10 +1,11 @@
 import { Columns3, Plus, Rows3 } from "lucide-react"
 import { useEffect } from "react"
 import { gapFromRead } from "@/domain/needs"
-import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
+import { PageError } from "@/shared/PageError"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
@@ -52,12 +53,14 @@ export function TasksPage() {
             aria-hidden={!usable || undefined}
             inert={demo || undefined}
           >
-            <RefreshButton
-              busy={reading}
-              onClick={() => void useTasks.getState().load()}
-              label={m.readAgain}
-              busyLabel={m.reading}
-            />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => useTasks.getState().startCreate(true)}
+              icon={<Plus className="size-4" aria-hidden />}
+            >
+              {m.newTask}
+            </Button>
             <Segmented<View>
               size="md"
               tour="tasks-view"
@@ -69,14 +72,12 @@ export function TasksPage() {
                 { value: "board", label: m.board, icon: <Columns3 className="size-4" aria-hidden /> },
               ]}
             />
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => useTasks.getState().startCreate(true)}
-              icon={<Plus className="size-4" aria-hidden />}
-            >
-              {m.newTask}
-            </Button>
+            <RefreshButton
+              busy={reading}
+              onClick={() => void useTasks.getState().load()}
+              label={m.readAgain}
+              busyLabel={m.reading}
+            />
           </div>
         }
       />
@@ -95,21 +96,15 @@ function Body() {
   const unusable = useTasks((s) => s.unusable)
   const loaded = useTasks((s) => s.loaded)
   const error = useTasks((s) => s.error)
+  const reading = useTasks((s) => s.reading)
 
   const gap = gapFromRead(unusable)
   if (gap) return <ToolNeeded gap={gap} />
   if (error) {
     return (
-      <ErrorNotice
-        raw={error}
-        action={
-          <Button size="sm" onClick={() => void useTasks.getState().load()}>
-            {m.tryAgain}
-          </Button>
-        }
-      >
+      <PageError raw={error} what="Reading tasks" busy={reading} onRetry={() => void useTasks.getState().load()}>
         {m.readFailed}
-      </ErrorNotice>
+      </PageError>
     )
   }
   return (
@@ -166,7 +161,7 @@ function Rack() {
 function Loading() {
   const m = useMessages(taskMessages)
   return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app">
+    <div className="rounded-rack border border-line-strong bg-app">
       <div className="h-[2.6rem] border-line border-b" />
       {[0, 1, 2, 3, 4].map((i) => (
         <div key={i} className="flex h-[3.6rem] items-center gap-[0.9rem] border-line px-[1.3rem] not-first:border-t">

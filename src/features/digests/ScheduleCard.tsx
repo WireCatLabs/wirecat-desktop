@@ -3,7 +3,6 @@ import { Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { dailyCap, formatUsd, type runOutcome } from "@/domain/mail-agent"
-import { ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { DigestItem, DigestSpec, Route, RouteChoices } from "@/platform/bindings"
@@ -11,6 +10,7 @@ import { platform } from "@/platform/bridge"
 import { costed, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { useNav } from "@/shared/nav"
 import { ToolIcon } from "@/shared/ToolIcon"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
@@ -34,7 +34,7 @@ import { MORNING, specOf, useDigestBook } from "./schedule-store"
 type RouteKind = Route["kind"]
 const PREFIX: Record<RouteKind, string> = { telegramBot: "telegram-bot", email: "email" }
 const input =
-  "h-8 rounded-[0.3rem] border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand aria-[invalid=true]:border-bad"
+  "h-8 rounded-pill border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand aria-[invalid=true]:border-bad"
 const MAX_TIMES = 6
 
 export const routeLabel = (r: { kind: RouteKind; profile: string; to: string }, m: ScheduleText) =>

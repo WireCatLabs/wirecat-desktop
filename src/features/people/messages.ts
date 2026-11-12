@@ -105,6 +105,7 @@ const en = {
   rejectWhyNeeded: "Say in a few words why they are different people.",
   joinedSome: (names: string) => `${names} are now one person.`,
   stoppedAt: (why: string) => `The rest were not joined: ${why}`,
+  stopped: "The rest were not joined.",
   peopleMore: "There are more people than this page read. Search by account to find the rest.",
   matchesMore: "More matches wait than this page shows. Decide these, then read again.",
   nowPartOf: (name: string) => `This person is now part of ${name}.`,
@@ -276,7 +277,7 @@ const en = {
   doubtsTitle: "Check the links",
   doubtsCount: (n: number) => (n === 1 ? "1 person to check" : `${n} people to check`),
   doubtsHelp:
-    "We found people whose accounts may not all be theirs. Check each one. If it is right, press «These belong together» and they will not come up here again. If an account is someone else's, move it away.",
+    "We found people whose accounts may not all be theirs. Check each one. If it is right, press “These belong together” and they will not come up here again. If an account is someone else's, move it away.",
   doubtReasons: {
     "test-data": "These accounts look like test data, not a real person.",
     "shared-address": "This address is shared by several people, such as a team inbox.",
@@ -313,7 +314,6 @@ const en = {
   copyAccount: (value: string) => `Copy ${value}`,
   tasksTitle: "Tasks",
   tasksRefused: "The search for this person's tasks was refused.",
-  tasksNeedMemo: "A tool that lists tasks is missing or too old. The Tasks page offers the fix.",
   tasksOpenPage: "Open Tasks",
   tasksFailed: "Could not read this person's tasks.",
   tasksAll: (n: number) => `All ${n} on the Tasks page`,
@@ -439,6 +439,7 @@ const ru: typeof en = {
   rejectWhyNeeded: "Напишите в двух словах, почему это разные люди.",
   joinedSome: (names: string) => `${names} теперь один человек.`,
   stoppedAt: (why: string) => `Остальных не объединили: ${why}`,
+  stopped: "Остальных не объединили.",
   peopleMore: "Людей больше, чем прочитала эта страница. Остальных найдёт поиск по аккаунту.",
   matchesMore: "Совпадений больше, чем показано. Решите эти, потом прочитайте заново.",
   nowPartOf: (name: string) => `Этот человек теперь часть ${name}.`,
@@ -662,8 +663,6 @@ const ru: typeof en = {
   copyAccount: (value: string) => `Скопировать ${value}`,
   tasksTitle: "Задачи",
   tasksRefused: "Поиск задач этого человека отклонён.",
-  tasksNeedMemo:
-    "Инструмент, который показывает задачи, не установлен или слишком старый. На странице «Задачи» есть исправление.",
   tasksOpenPage: "Открыть «Задачи»",
   tasksFailed: "Не удалось прочитать задачи этого человека.",
   tasksAll: (n: number) => `Все ${n} на странице «Задачи»`,
@@ -772,6 +771,7 @@ const es: typeof en = {
   rejectWhyNeeded: "Di en pocas palabras por qué son personas distintas.",
   joinedSome: (names: string) => `${names} ahora son una persona.`,
   stoppedAt: (why: string) => `El resto no se unió: ${why}`,
+  stopped: "El resto no se unió.",
   peopleMore: "Hay más personas de las que leyó esta página. Busca por cuenta para encontrar al resto.",
   matchesMore: "Esperan más coincidencias de las que se muestran. Decide estas y lee de nuevo.",
   nowPartOf: (name: string) => `Esta persona ahora forma parte de ${name}.`,
@@ -987,8 +987,6 @@ const es: typeof en = {
   copyAccount: (value: string) => `Copiar ${value}`,
   tasksTitle: "Tareas",
   tasksRefused: "La búsqueda de las tareas de esta persona fue rechazada.",
-  tasksNeedMemo:
-    "Falta la herramienta que lista las tareas o es demasiado antigua. La página Tareas ofrece la solución.",
   tasksOpenPage: "Abrir Tareas",
   tasksFailed: "No se pudieron leer las tareas de esta persona.",
   tasksAll: (n: number) => `Las ${n} en la página Tareas`,

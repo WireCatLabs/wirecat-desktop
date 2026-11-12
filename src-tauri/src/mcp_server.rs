@@ -99,11 +99,7 @@ fn source(tool: &Tool) -> Result<&McpServerSource, String> {
 /// the server of every profile asks for a profile.
 fn unsupported(json: Option<&Value>) -> bool {
     json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| {
-        m.contains("unknown command 'server'")
-            || m.starts_with("too many arguments")
-            || m.contains("unknown option")
-            || m.starts_with("name a profile")
-            || m.starts_with("no profiles here yet")
+        crate::memo_cli::unknown_to_cli(m) || m.starts_with("name a profile") || m.starts_with("no profiles here yet")
     })
 }
 

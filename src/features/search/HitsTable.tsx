@@ -119,7 +119,7 @@ export function HitsTable(props: Props) {
               e.stopPropagation()
               onToggle(key)
             }}
-            className="grid size-[1.5rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+            className="grid size-[1.5rem] place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
           >
             <ExpandChevron open={open} />
           </button>
@@ -281,7 +281,7 @@ function IconAction({ label, onClick, children }: { label: string; onClick: () =
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="grid size-[1.35rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app hover:text-ink"
+      className="grid size-[1.35rem] place-items-center rounded-pill text-ink-dim hover:bg-app hover:text-ink"
     >
       {children}
     </button>
@@ -298,7 +298,7 @@ function RawData({ hit, fieldOf, onFilter, onGroup }: Omit<FieldsProps, "row">) 
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-[0.3rem] py-[0.2rem] text-[0.9rem] text-ink-soft hover:text-ink"
+        className="flex w-full items-center justify-between rounded-pill py-[0.2rem] text-[0.9rem] text-ink-soft hover:text-ink"
       >
         {open ? m.hideRaw : m.showRaw}
         <ExpandChevron open={open} />

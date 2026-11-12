@@ -51,7 +51,7 @@ export function FixPanel({ id, open, problem }: { id: string; open: boolean; pro
 
   return (
     <Collapse open={open}>
-      <section id={id} aria-label={m.panel} className="mt-2 flex flex-col gap-3 rounded-[0.45rem] bg-app-2/60 p-4">
+      <section id={id} aria-label={m.panel} className="mt-2 flex flex-col gap-3 rounded-inset bg-app-2/60 p-4">
         <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">{m.lead}</p>
         <div className="flex flex-wrap items-center gap-2">
           {agents === null && <span className="text-[0.9rem] text-ink-dim">{m.looking}</span>}

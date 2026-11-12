@@ -4,6 +4,7 @@ import { advice, failureSuperseded, type SyncFailure, type SyncSummary } from "@
 import type { SyncSchedule } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { LastSync, SyncEvent } from "@/platform/sync-schemas"
+import { errorText } from "@/shared/errors"
 import { markStale } from "@/shared/fresh"
 import { listProfiles } from "@/shared/query"
 import { useSignIn } from "@/shared/signin-store"
@@ -64,7 +65,6 @@ const queued = async <T>(read: () => Promise<T>): Promise<T> => {
 }
 
 const rows = new Set<string>()
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** A run of the same package and profile, or of memo's one lock, already going. */
 export function blockedBy(runs: Record<string, SyncRun>, tool: string, profile: string | null): boolean {
@@ -165,7 +165,7 @@ export const useSync = create<State>()((set, get) => {
             running() &&
             apply(tool, profile, {
               event: "failed",
-              message: message(e),
+              message: errorText(e),
               code: null,
               reason: null,
               run: null,
@@ -178,7 +178,7 @@ export const useSync = create<State>()((set, get) => {
       const run = get().runs[key]
       if (run?.phase !== "running" || run.stopping) return
       patch(key, { stopping: true })
-      platform.syncStop(tool, profile).catch((e) => patch(key, { stopping: false, stage: message(e) }))
+      platform.syncStop(tool, profile).catch((e) => patch(key, { stopping: false, stage: errorText(e) }))
     },
     dismiss(tool, profile) {
       const key = syncKey(tool, profile)

@@ -2,7 +2,7 @@ import { Search } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { AppPreferences, settingsMessages } from "@/features/settings"
-import { useMessages } from "@/i18n"
+import { formatList, useLang, useMessages } from "@/i18n"
 import { nameOf, useAccountNames } from "@/shared/account-names-store"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
@@ -15,12 +15,13 @@ import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
+import { InfoTip } from "@/ui/InfoTip"
 import { Monogram } from "@/ui/Logo"
 import { SectionTitle } from "@/ui/SectionTitle"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { Tab as TabButton, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { CategoriesEditor, CategoriesPlaceholder } from "./CategoriesEditor"
-import { Choice, Choices } from "./Choices"
 import { JsonActions, JsonTab } from "./JsonTab"
 import { configMessages } from "./messages"
 import { reasonText, reportText } from "./reason"
@@ -40,6 +41,7 @@ import {
 
 const configurable = tools.filter((t) => t.settings !== null)
 const DEFAULTS = "\u0000defaults"
+const SHARED = "\u0000shared"
 // First visit, before any list was seen: the messengers report 16 settings, the shared view 5 categories and 4 more.
 const TOOL_SHAPE: Shape = { rows: 16, categories: 0, file: true }
 const SHARED_SHAPE: Shape = { rows: 4, categories: 5, file: false }
@@ -52,7 +54,6 @@ export function ConfigPage() {
   const st = useConfig()
   const installs = useTools((s) => s.installs)
   const [pending, setPending] = useState<Switch | null>(null)
-  const [why, setWhy] = useState<string | null>(null)
   const dirty = isDirty(st)
   const latest = useTools((s) => s.latest)
   const shared = st.view === "shared"
@@ -78,7 +79,6 @@ export function ConfigPage() {
         ? st.chooseShared(candidates)
         : st.chooseTarget(s.target)
   const request = (s: Switch) => {
-    setWhy(null)
     if (dirty) setPending(s)
     else go(s)
   }
@@ -96,35 +96,12 @@ export function ConfigPage() {
             {sm.toolsIntro(<code className="font-mono">config set</code>)}
           </p>
         </div>
-        <Choices label={sm.tool}>
-          <Choice
-            group="tool"
-            checked={shared}
-            unavailable={candidates.length === 0 ? m.sharedNeedsTool : undefined}
-            onUnavailable={setWhy}
-            onSelect={() => request({ kind: "shared" })}
-          >
-            <Monogram className="size-4" />
-            {m.shared}
-          </Choice>
-          <span aria-hidden className="mx-1 h-5 w-px bg-line-strong" />
-          {configurable.map((t) => {
-            const missing = installs[t.id]?.length === 0
-            return (
-              <Choice
-                key={t.id}
-                group="tool"
-                checked={!shared && st.tool === t.id}
-                unavailable={missing ? m.notInstalled : undefined}
-                onUnavailable={setWhy}
-                onSelect={() => request({ kind: "tool", id: t.id })}
-              >
-                <ToolIcon id={t.id} className="size-4" />
-                {t.name}
-              </Choice>
-            )
-          })}
-        </Choices>
+        <ToolPicker
+          label={sm.tool}
+          candidates={candidates.length > 0}
+          onShared={() => request({ kind: "shared" })}
+          onTool={(id) => request({ kind: "tool", id })}
+        />
         <Collapse open={noneInstalled}>
           <p className="flex flex-wrap items-center gap-3 text-[0.95rem] text-ink-soft">
             {m.noneInstalled}
@@ -132,9 +109,6 @@ export function ConfigPage() {
               {m.openTools}
             </Button>
           </p>
-        </Collapse>
-        <Collapse open={why !== null && !noneInstalled}>
-          <ErrorNotice inline>{why}</ErrorNotice>
         </Collapse>
 
         {tool && src?.perProfile && (
@@ -166,7 +140,7 @@ export function ConfigPage() {
         onClose={() => setPending(null)}
         actions={
           <>
-            <Button variant="secondary" onClick={() => setPending(null)} autoFocus>
+            <Button variant="secondary" onClick={() => setPending(null)} data-autofocus>
               {m.discard.keep}
             </Button>
             <Button
@@ -200,15 +174,9 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
 
   if (profiles === undefined) {
     return (
-      <Choices label={m.profile}>
-        {defaults && (
-          <Choice group="profile" checked={false} disabled onSelect={() => undefined}>
-            {m.defaults}
-          </Choice>
-        )}
-        <Skeleton className="h-8 w-[5.5rem] rounded-[0.35rem]" label={m.readingProfiles} />
-        <Skeleton className="h-8 w-[4.5rem] rounded-[0.35rem]" />
-      </Choices>
+      <Picker label={m.profile}>
+        <Skeleton className="h-8 w-[14rem] rounded-inset" label={m.readingProfiles} />
+      </Picker>
     )
   }
   if (profiles !== null && profiles.length === 0 && !defaults) {
@@ -221,32 +189,80 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
   }
   return (
     <div className="flex flex-col gap-2">
-      <Choices label={m.profile}>
-        {defaults && (
-          <Choice group="profile" checked={current === DEFAULTS} onSelect={() => onSelect({ profile: null })}>
-            {m.defaults}
-          </Choice>
-        )}
-        {(profiles ?? []).map((p) => (
-          <Choice
-            key={p.name}
-            group="profile"
-            checked={current === p.name}
-            onSelect={() => onSelect({ profile: p.name })}
-          >
-            {toolId && nameOf(names, toolId, p.name) ? (
-              <>
-                {nameOf(names, toolId, p.name)} <span className="font-mono text-ink-dim">{p.name}</span>
-              </>
-            ) : (
-              <span className="font-mono">{p.name}</span>
-            )}
-          </Choice>
-        ))}
-      </Choices>
+      <Picker label={m.profile}>
+        <Segmented
+          size="md"
+          label={m.profile}
+          value={current ?? ""}
+          onChange={(v) => onSelect({ profile: v === DEFAULTS ? null : v })}
+          options={[
+            ...(defaults ? [{ value: DEFAULTS, label: m.defaults }] : []),
+            ...(profiles ?? []).map((p) => {
+              const name = toolId ? nameOf(names, toolId, p.name) : null
+              return name ? { value: p.name, label: name, count: p.name } : { value: p.name, label: p.name }
+            }),
+          ]}
+        />
+      </Picker>
       {profiles?.length === 0 && <p className="text-[0.9rem] text-ink-dim">{error ?? m.noProfilesHint(toolName)}</p>}
       {current === null && <p className="text-[0.9rem] text-ink-dim">{m.chooseProfile}</p>}
     </div>
+  )
+}
+
+function Picker({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Seen only: the switch's own legend names it for a screen reader. */}
+      <span aria-hidden className="mr-2 min-w-[4.2rem] text-[0.9rem] font-medium text-ink-dim">
+        {label}
+      </span>
+      {children}
+    </div>
+  )
+}
+
+/** The tools that are not installed are left out of the switch; the "i" beside it names them and why. */
+function ToolPicker(props: { label: string; candidates: boolean; onShared: () => void; onTool: (id: string) => void }) {
+  const { label, candidates, onShared, onTool } = props
+  const m = useMessages(configMessages)
+  const lang = useLang()
+  const st = useConfig()
+  const installs = useTools((s) => s.installs)
+  const missing = configurable.filter((t) => installs[t.id]?.length === 0)
+  const options = [
+    ...(candidates ? [{ value: SHARED, label: m.shared, icon: <Monogram className="size-4" /> }] : []),
+    ...configurable
+      .filter((t) => !missing.includes(t))
+      .map((t) => ({ value: t.id, label: t.name, icon: <ToolIcon id={t.id} className="size-4" /> })),
+  ]
+  return (
+    <Picker label={label}>
+      {options.length > 0 && (
+        <Segmented
+          size="md"
+          label={label}
+          value={st.view === "shared" ? SHARED : (st.tool ?? "")}
+          onChange={(v) => (v === SHARED ? onShared() : onTool(v))}
+          options={options}
+        />
+      )}
+      {(missing.length > 0 || !candidates) && (
+        <InfoTip label={m.notShown}>
+          {missing.length > 0 && (
+            <p>
+              {m.notInstalledList(
+                formatList(
+                  missing.map((t) => t.name),
+                  lang,
+                ),
+              )}
+            </p>
+          )}
+          {!candidates && <p>{m.sharedNeedsTool}</p>}
+        </InfoTip>
+      )}
+    </Picker>
   )
 }
 
@@ -341,7 +357,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
   ]
 
   return (
-    <section aria-label={label} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-label={label} className="overflow-hidden rounded-rack border border-line-strong bg-app">
       <Tabs selectedKey={st.tab} onSelectionChange={(k) => st.setTab(k as Tab)}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-[1.3rem]">
           <TabList aria-label={m.tabs} className="flex gap-5">
@@ -385,7 +401,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
                 value={st.query}
                 onChange={(e) => st.setQuery(e.target.value)}
                 placeholder={m.search}
-                className={`h-8 w-[15rem] rounded-[0.35rem] border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+                className={`h-8 w-[15rem] rounded-control border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
               />
             </label>
           ) : (

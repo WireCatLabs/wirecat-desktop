@@ -38,7 +38,7 @@ export function AgentsPage() {
           <AgentList entries={view.entries} />
           <TabPanel
             id={selected?.id ?? ""}
-            className="min-h-[24rem] rounded-[0.2rem] border border-line-strong bg-app px-[1.5rem] pt-4 pb-5"
+            className="min-h-[24rem] rounded-rack border border-line-strong bg-app px-[1.5rem] pt-4 pb-5"
           >
             {/* The agent's own check adds rows when it ends; that growth slides like a switch instead of snapping. */}
             <AutoHeight swap={`${shown}:${checking}`}>

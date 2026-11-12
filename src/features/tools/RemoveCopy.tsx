@@ -1,15 +1,16 @@
-import { AlertTriangle, CheckCircle2, LoaderCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
 import { type CatalogTool, removeCommand } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CopyRemoval, ToolState } from "@/platform/schemas"
+import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
-import { ExpandChevron } from "@/ui/ExpandChevron"
+import { Disclosure } from "@/ui/Disclosure"
 import { copiesMessages } from "./messages-copies"
 
 export type Copy = ToolState["installs"][number]
@@ -30,14 +31,12 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
   const [phase, setPhase] = useState<Phase>({ step: "confirm" })
   const [shown, setShown] = useState<Copy | null>(copy)
   const [opened, setOpened] = useState<Copy | null>(null)
-  const [showLog, setShowLog] = useState(false)
   // Each opening starts at the question; the last copy stays shown while the dialog fades out.
   if (copy !== opened) {
     setOpened(copy)
     if (copy) {
       setShown(copy)
       setPhase({ step: "confirm" })
-      setShowLog(false)
     }
   }
   const target = copy ?? shown
@@ -54,7 +53,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
     try {
       result = await platform.removeCopy(tool.id, target.path)
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const message = errorText(e)
       result = { removed: false, refused: null, log: [], message, hint: null }
     }
     setPhase({ step: "result", result })
@@ -71,7 +70,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
       actions={
         phase.step === "confirm" ? (
           <>
-            <Button variant="secondary" onClick={onClose} autoFocus>
+            <Button variant="secondary" onClick={onClose} data-autofocus>
               {m.keep}
             </Button>
             <Button variant="danger" onClick={run}>
@@ -79,8 +78,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
             </Button>
           </>
         ) : phase.step === "running" ? (
-          <Button variant="danger" aria-disabled onClick={() => undefined}>
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          <Button variant="danger" busy>
             {m.removing}
           </Button>
         ) : result?.removed ? (
@@ -128,34 +126,23 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
           <>
             <p>{m.removes(path, target.version ?? "?", target.manager)}</p>
             <p className="text-ink-soft">{m.runs}</p>
-            <code className="selectable block break-all rounded-[0.4rem] border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] text-ink">
+            <code className="selectable block break-all rounded-button border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] text-ink">
               {command}
             </code>
           </>
         )}
         {result && result.log.length > 0 && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowLog((v) => !v)}
-              aria-expanded={showLog}
-              className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover"
+          <Disclosure summary={m.showLog}>
+            <pre
+              role="log"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
+              tabIndex={0}
+              aria-label={m.log}
+              className="selectable max-h-48 overflow-auto whitespace-pre-wrap rounded-button border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft [overflow-wrap:anywhere]"
             >
-              {showLog ? m.hideLog : m.showLog}
-              <ExpandChevron open={showLog} className="text-current" />
-            </button>
-            <Collapse open={showLog}>
-              <pre
-                role="log"
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
-                tabIndex={0}
-                aria-label={m.log}
-                className="selectable mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-[0.4rem] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft [overflow-wrap:anywhere]"
-              >
-                {result.log.join("\n")}
-              </pre>
-            </Collapse>
-          </div>
+              {result.log.join("\n")}
+            </pre>
+          </Disclosure>
         )}
       </div>
     </Dialog>

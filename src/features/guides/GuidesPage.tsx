@@ -15,12 +15,13 @@ import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
-import { CopyTextButton } from "@/ui/CopyTextButton"
+import { CopyButton } from "@/ui/CopyButton"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { fieldFocus } from "@/ui/field"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import {
   docsOf,
@@ -39,7 +40,7 @@ import { useGuideStart } from "./start-store"
 
 const params = new URLSearchParams(window.location.search)
 const scenario = params.get("guides")
-let firstVisit = scenario === "first"
+let firstVisit = false
 
 /** The tour started from the setup ends here, so the page greets the owner once when it opens. */
 export function greetOnArrival() {
@@ -47,7 +48,7 @@ export function greetOnArrival() {
 }
 
 /** The guides "Start here" offers in turn: the ready ones in START_ORDER, then the other ready ones. */
-export function startOrder(fits: Map<string, Fit>): string[] {
+function startOrder(fits: Map<string, Fit>): string[] {
   const ready = (id: string) => fits.get(id)?.ready
   return [...new Set([...START_ORDER.filter(ready), ...GUIDES.map((g) => g.id).filter(ready)])]
 }
@@ -64,7 +65,7 @@ const orList = (items: string[], lang: Lang) => new Intl.ListFormat(lang, { type
 /** `messengers`: the installed ones the guide works with, in catalog order; the owner picks among them. */
 type Fit = { ready: boolean; missing: string[]; messengers: string[]; extras: string[] }
 
-export function fitOf(g: Guide, has: (id: string) => boolean): Fit {
+function fitOf(g: Guide, has: (id: string) => boolean): Fit {
   const missing = (g.needs.all ?? []).filter((id) => !has(id))
   const any = g.needs.any ?? []
   const messengers = tools.map((t) => t.id).filter((id) => any.includes(id) && has(id))
@@ -140,11 +141,7 @@ export function GuidesPage() {
           status={scenario === "offline" ? m.offline : m.fresh}
           busy={false}
           intro={m.intro}
-          actions={
-            <ExtLink href={`https://wirecat.dev/${lang}/docs/prompting`} className="font-medium">
-              {m.allOnSite}
-            </ExtLink>
-          }
+          guide={{ label: m.allOnSite, href: `https://wirecat.dev/${lang}/docs/prompting` }}
         />
         <label className="relative block max-w-[36rem]">
           <span className="sr-only">{m.search}</span>
@@ -164,7 +161,7 @@ export function GuidesPage() {
             }}
             placeholder={m.searchHint}
             spellCheck={false}
-            className={`selectable h-[2.8rem] w-full rounded-[0.35rem] border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+            className={`selectable h-[2.8rem] w-full rounded-control border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
           />
         </label>
         <nav aria-label={m.jumpTo} className="flex flex-wrap gap-x-[0.3rem] gap-y-[0.3rem]">
@@ -177,7 +174,7 @@ export function GuidesPage() {
                 key={goal}
                 type="button"
                 onClick={() => jump(goal)}
-                className="flex h-[2rem] items-center gap-[0.4rem] rounded-[0.35rem] px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+                className="flex h-[2rem] items-center gap-[0.4rem] rounded-control px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
               >
                 {m.goals[goal].name}
                 <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">{count}</span>
@@ -267,9 +264,9 @@ function GoalBlock(props: {
         className="grid scroll-mt-[1rem] gap-x-[2rem] gap-y-[0.6rem] border-line border-t py-[1.3rem] @min-[46rem]:grid-cols-[12rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[15rem_minmax(0,1fr)]"
       >
         <div className="flex flex-col gap-[0.3rem] @min-[46rem]:pt-[0.55rem]">
-          <h2 ref={heading} id={headingId} tabIndex={-1} className="text-[1.2rem] font-semibold outline-none">
+          <SectionTitle ref={heading} id={headingId} tabIndex={-1} className="outline-none">
             {m.goals[goal].name}
-          </h2>
+          </SectionTitle>
           <p className="text-[0.9rem] leading-snug text-ink-dim">{m.goals[goal].line}</p>
         </div>
         <ul className="flex min-w-0 flex-col">
@@ -302,7 +299,7 @@ function Entry({ guide: g, ctx, open, onToggle }: { guide: Guide; ctx: Ctx; open
           onToggle()
         }}
         className={cx(
-          "group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[0.8rem] rounded-[0.4rem] px-[0.75rem] py-[0.55rem] text-left",
+          "group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[0.8rem] rounded-button px-[0.75rem] py-[0.55rem] text-left",
           "transition-colors duration-(--motion-fast) ease-out-quart",
           open ? "bg-app" : "hover:bg-app-3/70",
         )}
@@ -395,14 +392,14 @@ function GuideBody(props: {
       ref={box}
       aria-label={textOf(g.title, lang)}
       onKeyDown={onKeyDown}
-      className="@container flex flex-col gap-[1.1rem] rounded-[0.45rem] border border-line-strong bg-app p-[1.3rem]"
+      className="@container flex flex-col gap-[1.1rem] rounded-inset border border-line-strong bg-app p-[1.3rem]"
     >
       <div className="grid gap-x-[2.2rem] gap-y-[1.2rem] @min-[46rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <section className="@container/prompt flex min-w-0 flex-col gap-[0.7rem]">
           <div className="flex items-start justify-between gap-3">
             {lead ? (
               <div className="min-w-0">
-                <h3 className="text-[1.35rem] font-semibold leading-snug">{textOf(g.title, lang)}</h3>
+                <SectionTitle as="h3">{textOf(g.title, lang)}</SectionTitle>
                 <p className="mt-1 text-[0.98rem] text-ink-soft">{textOf(g.outcome, lang)}</p>
               </div>
             ) : (
@@ -426,7 +423,7 @@ function GuideBody(props: {
           )}
           <AutoHeight swap={messenger}>
             <Crossfade swap={variant}>
-              <div className="rounded-[0.8rem] rounded-br-[0.2rem] bg-brand-soft/70 px-[1rem] py-[0.75rem] focus-within:outline-2 focus-within:outline-brand focus-within:outline-offset-2">
+              <div className="rounded-[0.8rem] rounded-br-rack bg-brand-soft/70 px-[1rem] py-[0.75rem] focus-within:outline-2 focus-within:outline-brand focus-within:outline-offset-2">
                 <textarea
                   id={promptId}
                   value={prompt}
@@ -439,10 +436,11 @@ function GuideBody(props: {
           </AutoHeight>
           <p className="text-[0.9rem] text-ink-dim">{launchers.length > 0 ? m.askHintOpen : m.askHint}</p>
           <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
-            <CopyTextButton
-              text={prompt}
+            <CopyButton
+              value={prompt}
               label={m.copy}
-              primary={!quiet && known && fit.ready}
+              text={m.copy}
+              variant={!quiet && known && fit.ready ? "primary" : "secondary"}
               className="min-w-[9rem]"
             />
             <AgentLaunch
@@ -489,7 +487,7 @@ function GuideBody(props: {
           </section>
           <section className="flex flex-col gap-[0.6rem]">
             <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.answers}</h4>
-            <p className="rounded-[0.8rem] rounded-bl-[0.2rem] border border-line bg-app-2 px-[1rem] py-[0.7rem] text-[0.95rem] leading-relaxed text-ink">
+            <p className="rounded-[0.8rem] rounded-bl-rack border border-line bg-app-2 px-[1rem] py-[0.7rem] text-[0.95rem] leading-relaxed text-ink">
               {textOf(g.result, lang)}
             </p>
             <p className="text-[0.9rem] text-ink-dim">{m.account}</p>

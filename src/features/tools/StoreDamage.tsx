@@ -4,6 +4,7 @@ import { type CatalogTool, findTool } from "@/domain/catalog"
 import type { DamageReport } from "@/domain/store-damage"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -19,8 +20,6 @@ import { damageMessages } from "./messages-damage"
 const DAY_AND_TIME: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" }
 
 type Step = { index: number; state: "running" | "done" } | { index: number; state: "failed"; error: string }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /**
  * The tool's own `store recover` report, in its words, under a check that found the store damaged. A tool older than
@@ -42,7 +41,7 @@ export function StoreDamage({ tool }: { tool: CatalogTool }) {
       if (found) setWasDamaged(true)
       useStoreDamage.getState().mark(tool.id, found !== null)
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
   }, [tool.id])
 
@@ -57,7 +56,7 @@ export function StoreDamage({ tool }: { tool: CatalogTool }) {
       await load()
       setStep({ index, state: "done" })
     } catch (e) {
-      setStep({ index, state: "failed", error: message(e) })
+      setStep({ index, state: "failed", error: errorText(e) })
     }
   }
 

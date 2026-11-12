@@ -117,7 +117,7 @@ fn classify(out: &run::Output, json: Option<&Value>) -> BackgroundFault {
     let said = message.to_lowercase();
     let code = json.and_then(|v| v["error"]["code"].as_str()).unwrap_or("");
     let has = |needles: &[&str]| needles.iter().any(|n| said.contains(n));
-    let kind = if has(&["unknown command", "unknown option", "too many arguments"]) {
+    let kind = if crate::memo_cli::unknown_to_cli(&said) {
         BackgroundFaultKind::TooOld
     } else if has(&["permission denied", "eacces", "eperm", "read-only file system", "access is denied"]) {
         BackgroundFaultKind::Permission

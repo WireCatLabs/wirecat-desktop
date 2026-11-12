@@ -3,6 +3,7 @@ import { currentLang } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { ImportOutcome, RecordType } from "@/platform/records-schemas"
 import { RECORDS_TOO_OLD } from "@/platform/records-schemas"
+import { errorText } from "@/shared/errors"
 
 export type Format = "csv" | "json"
 type Step = "template" | "pick" | "check" | "import"
@@ -30,7 +31,6 @@ type ImportState = {
   run(): Promise<void>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 /** A JSON envelope names its types itself; only a sheet needs one chosen. */
 const sheetType = (s: ImportState) => (s.file?.toLowerCase().endsWith(".csv") ? s.kind : null)
 
@@ -41,7 +41,7 @@ export const useImport = create<ImportState>((set, get) => {
     try {
       set(await work())
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
     } finally {
       set({ busy: null })
     }
@@ -65,8 +65,8 @@ export const useImport = create<ImportState>((set, get) => {
         const types = await platform.recordTypes()
         set((s) => ({ types, kind: s.kind ?? types[0]?.type ?? null }))
       } catch (e) {
-        if (message(e) === RECORDS_TOO_OLD) set({ types: null })
-        else set({ types: [], error: message(e) })
+        if (errorText(e) === RECORDS_TOO_OLD) set({ types: null })
+        else set({ types: [], error: errorText(e) })
       }
     },
 

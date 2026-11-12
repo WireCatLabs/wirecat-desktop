@@ -58,7 +58,7 @@ export function Panel({
   children: ReactNode
 }) {
   return (
-    <section aria-labelledby={id} className="min-w-0 rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-labelledby={id} className="min-w-0 rounded-rack border border-line-strong bg-app">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-line border-b px-[1.3rem] py-[0.9rem]">
         <SectionTitle as="h3" id={id} className="m-0 flex items-center gap-2">
           {title}
@@ -101,7 +101,7 @@ function StatsSkeleton({ n, label }: { n: number; label?: string }) {
 }
 
 /** The chart's final box, so the page does not grow when it arrives: legend, plot, axis and the numbers link. */
-const ChartSkeleton = () => <Skeleton className="h-[16.2rem] w-full rounded-[0.2rem]" />
+const ChartSkeleton = () => <Skeleton className="h-[16.2rem] w-full rounded-rack" />
 
 const Sub = ({ children }: { children: ReactNode }) => (
   <h3 className="text-[0.95rem] font-medium text-ink-dim">{children}</h3>
@@ -124,7 +124,7 @@ export function Overview() {
       {volume.state === "loading" ? (
         <>
           <StatsSkeleton n={6} label={m.overview} />
-          <Skeleton className="h-[7rem] w-full rounded-[0.2rem]" />
+          <Skeleton className="h-[7rem] w-full rounded-rack" />
         </>
       ) : volume.state === "error" ? (
         <ErrorNotice raw={volume.error} inline>
@@ -153,7 +153,7 @@ export function StorageBreakdown() {
   return (
     <Panel id="an-breakdown" title={m.bySource}>
       {volume.state === "loading" ? (
-        <Skeleton className="h-[19rem] w-full rounded-[0.2rem]" label={m.bySource} />
+        <Skeleton className="h-[19rem] w-full rounded-rack" label={m.bySource} />
       ) : volume.state !== "ready" || volume.data === null || !volume.data.breakdown ? (
         <Note>{m.noBreakdown}</Note>
       ) : (
@@ -393,7 +393,7 @@ export function People() {
       {none ? (
         <Note>{m.noMessengers}</Note>
       ) : counts.loading ? (
-        <Skeleton className="h-[21.25rem] w-full rounded-[0.2rem]" label={m.people} />
+        <Skeleton className="h-[21.25rem] w-full rounded-rack" label={m.people} />
       ) : rows.length === 0 ? (
         counts.problems.length ? (
           <SourceProblems problems={counts.problems} />
@@ -473,7 +473,7 @@ export function Projects() {
           {m.tasksError}
         </ErrorNotice>
       ) : tasks.state === "loading" ? (
-        <Skeleton className="h-[15rem] w-full rounded-[0.2rem]" label={m.projects} />
+        <Skeleton className="h-[15rem] w-full rounded-rack" label={m.projects} />
       ) : rows.length === 0 ? (
         <Note>{m.noProjects}</Note>
       ) : (
@@ -676,7 +676,7 @@ export function Memory() {
     <Panel id="an-memory" title={m.memory}>
       {memory.state === "loading" ? (
         <>
-          <Skeleton className="h-[5.5rem] w-full rounded-[0.2rem]" label={m.memory} />
+          <Skeleton className="h-[5.5rem] w-full rounded-rack" label={m.memory} />
           <ChartSkeleton />
         </>
       ) : memory.state === "error" ? (
@@ -752,7 +752,7 @@ export function Helps() {
   const h = runs.state === "ready" ? helped(runs.data, period, today) : null
   const waiting =
     runs.state === "loading" ? (
-      <Skeleton className="h-[12rem] w-full rounded-[0.2rem]" label={m.helps} />
+      <Skeleton className="h-[12rem] w-full rounded-rack" label={m.helps} />
     ) : runs.state === "error" ? (
       <ErrorNotice raw={runs.error} inline>
         {m.runsError}

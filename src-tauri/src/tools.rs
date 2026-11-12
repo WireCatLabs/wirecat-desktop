@@ -147,6 +147,11 @@ pub fn older(version: Option<&str>, min: &str) -> bool {
     version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < min)
 }
 
+/// The version of the copy `WireCat` runs, from the same cache as the Tools page.
+pub fn installed_version(tool: &Tool) -> Option<String> {
+    detect(tool, false).installs.first().and_then(|i| i.version.clone())
+}
+
 /// The version a program answers, from the same cache as the Tools page.
 pub fn version_of(path: &Path) -> Option<String> {
     VERSIONS.inspect(path, false).version

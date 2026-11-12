@@ -108,16 +108,12 @@ fn source(tool: &Tool) -> Result<&SearchHarderSource, String> {
     tool.search_harder.as_ref().ok_or_else(|| format!("{} cannot search harder", tool.name))
 }
 
-fn installed_version(tool: &Tool) -> Option<String> {
-    tools::detect(tool, false).installs.first().and_then(|i| i.version.clone())
-}
-
 fn gate(src: &SearchHarderSource, version: Option<&str>) -> bool {
     src.min_version.as_deref().is_some_and(|need| !tools::older(version, need))
 }
 
 fn too_old(tool: &Tool, src: &SearchHarderSource) -> Result<(), String> {
-    if gate(src, installed_version(tool).as_deref()) {
+    if gate(src, tools::installed_version(tool).as_deref()) {
         Ok(())
     } else {
         Err("This memo cannot search harder yet. It comes with a memo update.".into())
@@ -226,7 +222,7 @@ fn status_of(v: &Value) -> Option<HarderStatus> {
 
 /// memo refuses `--yes` when it sees an AI agent's variables, which a `WireCat` started from such a terminal inherits.
 fn refusal(out: &crate::run::Output, json: Option<&Value>) -> String {
-    if json.and_then(|v| v["error"]["reason"].as_str()) == Some(OWNER_ONLY) {
+    if crate::skills::reason(json) == Some(OWNER_ONLY) {
         return "memo lets only you allow this, and WireCat was started from an AI agent's terminal. Open WireCat \
                 from the app menu and turn it on there."
             .into();
@@ -244,7 +240,7 @@ fn ask(tool: &Tool, args: &[String], timeout: Duration) -> Result<HarderStatus, 
 
 pub fn status(tool: &Tool) -> Result<SearchHarder, String> {
     let src = source(tool)?;
-    let version = installed_version(tool);
+    let version = tools::installed_version(tool);
     if !gate(src, version.as_deref()) {
         return Ok(SearchHarder::Old { version, need: src.min_version.clone() });
     }
@@ -293,7 +289,9 @@ fn with_outcome(answer: search::Answer, body: Option<&Value>) -> HarderAnswer {
         HarderOutcome {
             applied,
             reason: text("reason_id").filter(|_| !applied),
-            why: order.filter(|_| !applied).map(|w| w.strip_prefix(NOT_REORDERED).map_or(w.clone(), str::to_string)),
+            why: order
+                .filter(|_| !applied)
+                .map(|w| w.strip_prefix(NOT_REORDERED).map_or_else(|| w.clone(), str::to_string)),
             provider: text("provider").unwrap_or_default(),
             model: text("model").unwrap_or_default(),
             cost_usd: r["cost_usd"].as_f64(),

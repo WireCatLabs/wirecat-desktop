@@ -26,6 +26,17 @@ describe("ToolNeeded", () => {
     expect(useTools.getState().expanded).toBe("memo")
   })
 
+  it("says 'this' inside a panel and closes what would stay over the Tools page", async () => {
+    const user = userEvent.setup()
+    useTools.setState({ install: vi.fn(async () => {}) })
+    const close = vi.fn()
+    render(<ToolNeeded inline gap={{ kind: "old", tool: "memo", version: "0.131.2", need: null }} onGo={close} />)
+    expect(screen.getByText("This needs a newer Memo than 0.131.2.")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Update Memo" }))
+    expect(close).toHaveBeenCalled()
+    expect(useNav.getState().active).toBe("tools")
+  })
+
   it("sends a signed-out tool's owner to its accounts", async () => {
     const user = userEvent.setup()
     render(<ToolNeeded gap={{ kind: "signedOut", tool: "bitrix" }}>Your own deals still work.</ToolNeeded>)

@@ -11,7 +11,7 @@ import type { Platform } from "./types"
 // released yet. The text read is made up.
 const NEVER: PictureReadingSetting = { mode: "never", agent: null, model: null, extractor: null, since: null }
 const SINCE = () => new Date(new Date().setHours(9, 12, 0, 0)).toISOString()
-export const READ_TEXT = "PARKING FOR TENANTS ONLY\nMon - Fri 8:00 - 19:00\nVisitors: level -2, spaces 40 to 52"
+const READ_TEXT = "PARKING FOR TENANTS ONLY\nMon - Fri 8:00 - 19:00\nVisitors: level -2, spaces 40 to 52"
 
 const on = (agent: "claude" | "codex", model: string | null, since: string): PictureReadingSetting => ({
   mode: "request",

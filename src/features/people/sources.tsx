@@ -29,15 +29,3 @@ export function SourceIcon({
   const size = cx("size-4 shrink-0", className)
   return labelled ? <ServiceIcon id={tool} label={name} className={size} /> : <ToolIcon id={tool} className={size} />
 }
-
-/** Each source of a person once, as icons with the source's name for hover and screen readers. */
-export function SourceIcons({ identities }: { identities: readonly Identity[] }) {
-  const providers = [...new Set(identities.map((i) => i.provider))]
-  return (
-    <span className="flex items-center gap-[0.55rem] text-ink-soft">
-      {providers.map((p) => (
-        <SourceIcon key={p} provider={p} labelled />
-      ))}
-    </span>
-  )
-}

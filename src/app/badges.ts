@@ -18,8 +18,7 @@ export const useSeen = create<Seen>()(
 )
 
 /**
- * Which sidebar sections carry a dot. Few on purpose, so a dot still means something; the rules and the ones left out
- * are in docs/dev/plans/2026-11-01-notifications.md.
+ * Which sidebar sections carry a dot. Few on purpose, so a dot still means something.
  */
 export function useBadges(active: string): Partial<Record<string, true>> {
   const agentsSeen = useSeen((s) => s.seen.includes("agents"))

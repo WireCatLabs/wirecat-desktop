@@ -10,7 +10,8 @@ use std::time::Duration;
 /// Installer, Windows' setup or the Linux software app asks for the password itself, never the app (rule 6). The files
 /// are the ones tailscale.com/download links to (`Tailscale-latest-macos.pkg`, `tailscale-setup-latest.exe`) and,
 /// on Linux, the newest package in Tailscale's own apt and yum repositories, each checked against the checksum
-/// Tailscale publishes beside it.
+/// Tailscale publishes beside it. The checksum comes from the same server over the same TLS, so it shows the file
+/// arrived whole, not that Tailscale signed it: authenticity rests on HTTPS to pkgs.tailscale.com, not on a signature.
 const PKGS: &str = "https://pkgs.tailscale.com/stable";
 
 /// Debian and Ubuntu packages share one pool; bookworm's list names the newest.
@@ -174,7 +175,7 @@ fn source(kind: &str) -> Result<Source, String> {
             let mut xml = String::new();
             flate2::read::GzDecoder::new(&gz[..]).read_to_string(&mut xml).map_err(net)?;
             let (file, sha256) = from_primary(&xml, arch).ok_or_else(|| net("no package in the list"))?;
-            Ok(Source { url: format!("{base}/{file}"), file: file.clone(), sha256 })
+            Ok(Source { url: format!("{base}/{file}"), file, sha256 })
         }
         _ => Err("WireCat cannot download Tailscale for this system; use the command below.".into()),
     }

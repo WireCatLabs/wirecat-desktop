@@ -1,8 +1,8 @@
 import { CircleCheck, Clock, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
-import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
 import {
@@ -14,9 +14,10 @@ import {
   setPassword,
   useSignIn,
 } from "@/shared/signin-store"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
-import { Button } from "@/ui/Button"
 import { Disclosure } from "@/ui/Disclosure"
+import { useFieldError } from "@/ui/FieldError"
 import { BitrixSteps } from "./BitrixSteps"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
 import { mailMessages } from "./messages-mail"
@@ -26,7 +27,7 @@ import { needFor, wizardMessages } from "./messages-wizard"
 import { routeOf } from "./wizard"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 /** Before anything runs: the steps the sign-in will take, how long, and what happens to what the owner shares. */
 export function Plan() {
@@ -88,7 +89,7 @@ export function Plan() {
                   </span>
                   <span className="text-body leading-snug text-ink">
                     {step.once && (
-                      <span className="mr-2 inline-block rounded-[0.2rem] bg-app-3 px-1.5 py-px align-[0.08em] text-[0.8rem] font-medium text-ink-soft">
+                      <span className="mr-2 inline-block rounded-rack bg-app-3 px-1.5 py-px align-[0.08em] text-[0.8rem] font-medium text-ink-soft">
                         {tm.firstTime}
                       </span>
                     )}
@@ -143,7 +144,7 @@ function GuideLink({ url, label }: { url: string; label: string }) {
 
 /** The first choice for mail: which provider, and so which steps. Nothing is preselected beyond the catalog's first. */
 function Providers() {
-  const { tool, method } = useSignIn()
+  const { tool, method } = useSignIn(useShallow((s) => ({ tool: s.tool, method: s.method })))
   const m = useMessages(planMessages)
   const name = useId()
   const entry = tool ? findTool(tool) : undefined
@@ -164,7 +165,7 @@ function Providers() {
                 onChange={() => useSignIn.setState({ method: option.id, planMissing: null })}
                 className="peer sr-only"
               />
-              <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+              <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                 <span className="text-[0.95rem] font-medium text-ink">{text?.name ?? option.label}</span>
                 {text && <span className="text-[0.8rem] leading-snug text-ink-soft">{text.detail}</span>}
               </span>
@@ -178,12 +179,27 @@ function Providers() {
 
 /** The address and app password; the password lives outside the store and is never shown back. */
 function Typed({ missing }: { missing: "address" | "password" | null }) {
-  const { tool, method, address, ownFile } = useSignIn()
+  const { tool, method, address, ownFile } = useSignIn(
+    useShallow((s) => ({ tool: s.tool, method: s.method, address: s.address, ownFile: s.ownFile })),
+  )
   const m = useMessages(planMessages)
   const id = useId()
   const [password, setTyped] = useState("")
   const chosen = tool ? methodOf(tool, method) : undefined
   const askPassword = Boolean(chosen?.password) && !ownFile
+  const addressNeed = useFieldError(`${id}-address`, {
+    live: { problem: missing === "address" ? m.needAddress : null },
+  })
+  const passwordNeed = useFieldError(`${id}-password`, {
+    live: { problem: missing === "password" ? m.needPassword : null },
+  })
+  const failAddress = addressNeed.fail
+  const failPassword = passwordNeed.fail
+  // The store says what is missing when Start is pressed; the field shows it, is marked and takes focus.
+  useEffect(() => {
+    if (missing === "address") failAddress()
+    if (missing === "password") failPassword()
+  }, [missing, failAddress, failPassword])
   // The field and what the run sends stay the same: a provider switched back starts both empty. Only for a field of
   // its own: the app password step keeps what it was given.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the field appears
@@ -204,10 +220,10 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
             spellCheck={false}
             value={address}
             onChange={(e) => useSignIn.setState({ address: e.target.value, planMissing: null })}
-            aria-invalid={missing === "address"}
-            aria-describedby={missing === "address" ? `${id}-missing` : undefined}
+            {...addressNeed.field}
             className={FIELD}
           />
+          {addressNeed.hint}
         </>
       )}
       {askPassword && (
@@ -226,15 +242,12 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
               setPassword(e.target.value)
               useSignIn.setState({ planMissing: null })
             }}
-            aria-invalid={missing === "password"}
-            aria-describedby={missing === "password" ? `${id}-missing` : undefined}
+            {...passwordNeed.field}
             className={FIELD}
           />
+          {passwordNeed.hint}
         </>
       )}
-      <p id={`${id}-missing`} role={missing ? "alert" : undefined} className="min-h-[1.3rem] text-[0.9rem] text-bad">
-        {missing === "address" ? m.needAddress : missing === "password" ? m.needPassword : null}
-      </p>
     </section>
   )
 }
@@ -246,7 +259,7 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
  */
 function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefined; m: PlanText }) {
   const m = useMessages(mailMessages)
-  const { way, tool, method } = useSignIn()
+  const { way, tool, method } = useSignIn(useShallow((s) => ({ way: s.way, tool: s.tool, method: s.method })))
   const installs = useTools((s) => s.installs)
   const old = oauthTooOld(tool, method, installs)
   const name = useId()
@@ -255,18 +268,10 @@ function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefine
       <legend className="mb-2 text-[1rem] font-semibold text-ink">{m.ways.legend}</legend>
       <WayOption option="browser" name={name}>
         {old && (
-          <div className="flex flex-col items-start gap-2 pb-2">
-            <p className="text-[0.85rem] leading-snug text-ink">{m.ways.tooOld(old.version, old.need)}</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                useSignIn.getState().close()
-                if (tool) openTool(tool)
-              }}
-            >
-              {m.ways.update}
-            </Button>
+          <div className="pb-2">
+            <ToolNeeded inline gap={old} onGo={() => useSignIn.getState().close()}>
+              <p>{m.ways.tooOld}</p>
+            </ToolNeeded>
           </div>
         )}
         {way === "browser" && own && <OwnApp own={own} kind="file" m={pm} open={Boolean(old)} />}
@@ -280,10 +285,10 @@ function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefine
 }
 
 function WayOption({ option, name, children }: { option: MailWay; name: string; children?: ReactNode }) {
-  const { way } = useSignIn()
+  const { way } = useSignIn(useShallow((s) => ({ way: s.way })))
   const text = useMessages(mailMessages).ways[option]
   return (
-    <div className="rounded-[0.35rem] border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
+    <div className="rounded-control border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
       <label className="relative block cursor-pointer">
         <input
           type="radio"
@@ -297,11 +302,11 @@ function WayOption({ option, name, children }: { option: MailWay; name: string; 
           }}
           className="peer sr-only"
         />
-        <span className="flex h-full flex-col gap-1 rounded-[0.35rem] px-3 py-2.5 peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+        <span className="flex h-full flex-col gap-1 rounded-control px-3 py-2.5 peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
             {text.badge && (
-              <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
+              <span className="rounded-rack bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
                 {text.badge}
               </span>
             )}
@@ -322,7 +327,7 @@ function WayOption({ option, name, children }: { option: MailWay; name: string; 
 
 /** The owner's Google client: a file picked here, or its ID and secret typed. */
 function ClientChoice({ m }: { m: PlanText }) {
-  const { ownFile, planError } = useSignIn()
+  const { ownFile, planError } = useSignIn(useShallow((s) => ({ ownFile: s.ownFile, planError: s.planError })))
   const picker = useRef<HTMLInputElement>(null)
   const [unreadable, setUnreadable] = useState(false)
   const pick = async (file: File | undefined) => {
@@ -372,7 +377,9 @@ function OwnApp({
   m: PlanText
   open?: boolean
 }) {
-  const { ownFile, ownId, planError } = useSignIn()
+  const { ownFile, ownId, planError } = useSignIn(
+    useShallow((s) => ({ ownFile: s.ownFile, ownId: s.ownId, planError: s.planError })),
+  )
   const id = useId()
   return (
     <Disclosure summary={m.ownApp} openWhen={open || ownFile !== null || ownId !== "" || planError !== null}>

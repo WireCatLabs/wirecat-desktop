@@ -118,7 +118,7 @@ export function AgentsMatrix({ expected = [] }: { expected?: readonly string[] }
         />
       </Collapse>
       <PathFixResult agent={names(found ?? []) || m.pathFix.yourAgents} manual={null} />
-      <div className="overflow-x-auto rounded-[0.2rem] border border-line-strong bg-app">
+      <div className="overflow-x-auto rounded-rack border border-line-strong bg-app">
         <table aria-label={m.matrixLabel} className="w-full border-collapse text-left">
           <thead>
             <tr className="border-line border-b">

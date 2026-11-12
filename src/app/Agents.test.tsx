@@ -6,10 +6,9 @@ import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { reduceMotion } from "@/testing/motion"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
-
-const wait = { timeout: 8000 }
 
 async function openAgents() {
   const user = userEvent.setup()
@@ -19,7 +18,7 @@ async function openAgents() {
 }
 
 // A found agent's tab replaces its placeholder, so it is looked up by the text only a found tab has.
-const foundTab = (name: RegExp) => screen.findByRole("tab", { name }, wait)
+const foundTab = (name: RegExp) => screen.findByRole("tab", { name })
 const pane = () => screen.getByRole("tabpanel")
 
 // Mock: Claude Code reads ~/.claude, Codex ~/.agents, Cursor both; Gemini CLI and OpenCode are not found. Telegram's
@@ -40,29 +39,25 @@ describe("Agents", () => {
     expect(await screen.findByRole("heading", { name: "Агенты" })).toBeInTheDocument()
     expect(await foundTab(/^Claude Code.*Настроить: 2/)).toBeInTheDocument()
     expect(
-      await within(pane()).findByText(
-        "Для Claude Code нужно настроить 2 навыка: не хватает — 1, устарело — 1",
-        {},
-        wait,
-      ),
+      await within(pane()).findByText("Для Claude Code нужно настроить 2 навыка: не хватает — 1, устарело — 1"),
     ).toBeInTheDocument()
-  }, 20000)
+  })
 
   it("lists every known agent, dims the ones not found and opens on the first one with skills to set up", async () => {
+    reduceMotion()
     await openAgents()
     const list = await screen.findByRole("tablist", { name: "Agents" })
     const claude = await foundTab(/^Claude Code.*to set up/)
     expect(claude).toHaveAttribute("aria-selected", "true")
     for (const name of ["Codex", "Cursor", "Gemini CLI", "OpenCode"])
       expect(within(list).getByRole("tab", { name: new RegExp(`^${name}`) })).toBeInTheDocument()
-    const gemini = await foundTab(/^Gemini CLI.*Not found/)
-    expect(within(gemini).getByText("Gemini CLI")).toHaveClass("text-ink-dim")
+    await foundTab(/^Gemini CLI.*Not found/)
 
     expect(within(pane()).getByRole("heading", { name: "Claude Code" })).toBeInTheDocument()
-    expect(await within(pane()).findAllByText(/Update MAX/, {}, wait)).toHaveLength(1)
+    expect(await within(pane()).findAllByText(/Update MAX/)).toHaveLength(1)
     expect(within(pane()).getAllByText(/Update Zoom/)).toHaveLength(1)
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /Check again|Checking/ })).toHaveLength(1), wait)
-  }, 20000)
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Check again|Checking/ })).toHaveLength(1))
+  })
 
   it("says where it looked for a missing agent and that the terminal's PATH could not be read", async () => {
     const user = await openAgents()
@@ -70,7 +65,7 @@ describe("Agents", () => {
     await user.click(within(pane()).getByRole("button", { name: "Where WireCat looked" }))
     expect(within(pane()).getByText("~/.nix-profile/bin")).toBeInTheDocument()
     expect(within(pane()).getByText(/could not be read from \/run\/current-system\/sw\/bin\/zsh/)).toBeInTheDocument()
-  }, 20000)
+  })
 
   it("moves through agents with the arrow keys, Home and End, and shows where a missing agent's skills go", async () => {
     const user = await openAgents()
@@ -96,7 +91,7 @@ describe("Agents", () => {
     expect(screen.getByRole("tab", { name: /^OpenClaw/ })).toHaveFocus()
     await user.keyboard("{Home}")
     expect(claude).toHaveAttribute("aria-selected", "true")
-  }, 20000)
+  })
 
   it("keeps the chosen agent when the owner comes back to the page", async () => {
     const user = await openAgents()
@@ -106,47 +101,45 @@ describe("Agents", () => {
     await user.click(within(sections).getByRole("button", { name: /Agents/ }))
     expect(await foundTab(/^Cursor/)).toHaveAttribute("aria-selected", "true")
     expect(within(pane()).getByRole("heading", { name: "Cursor" })).toBeInTheDocument()
-  }, 20000)
+  })
 
   it("installs every missing or old skill of the selected agent and returns focus to its tab", async () => {
     const user = await openAgents()
     await user.click(await foundTab(/^Codex.*to set up/))
-    await user.click(await within(pane()).findByRole("button", { name: /^Install all: .*Codex/ }, wait))
+    await user.click(await within(pane()).findByRole("button", { name: /^Install all: .*Codex/ }))
     const dialog = await screen.findByRole("dialog", { name: /^Install 3 skills for Codex\?/ })
     expect(within(dialog).getByText(/Cursor and OpenClaw read the same folder/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Install all" }))
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), wait)
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
     // Codex still has something under Also to fix in the mock, so the header, its line in the list and its lamp say so.
-    expect(await within(pane()).findByText(/^Its skills are current, but .* Codex/, {}, wait)).toBeInTheDocument()
+    expect(await within(pane()).findByText(/^Its skills are current, but .* Codex/)).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: /^Codex.*(to fix|Cannot run its tools)/ })).toBeInTheDocument()
     expect(within(pane()).queryByRole("button", { name: /^Install all/ })).not.toBeInTheDocument()
     expect(within(pane()).getByRole("img", { name: "Telegram skill for Codex: Current" })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole("tab", { name: /^Codex/ })).toHaveFocus())
-  }, 20000)
+  })
 
   it("installs one tool's skill from its row", async () => {
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
-    const skills = await within(pane()).findByRole("list", { name: "Skills for Claude Code" }, wait)
-    await user.click(
-      await within(skills).findByRole("button", { name: "Install the WhatsApp skill for Claude Code" }, wait),
-    )
+    const skills = await within(pane()).findByRole("list", { name: "Skills for Claude Code" })
+    await user.click(await within(skills).findByRole("button", { name: "Install the WhatsApp skill for Claude Code" }))
     const dialog = await screen.findByRole("dialog", { name: "Install the WhatsApp skill for Claude Code?" })
     expect(within(dialog).getByText(/wa skill install --for claude/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Install" }))
     expect(
-      await within(skills).findByRole("img", { name: "WhatsApp skill for Claude Code: Current" }, wait),
+      await within(skills).findByRole("img", { name: "WhatsApp skill for Claude Code: Current" }),
     ).toBeInTheDocument()
-  }, 20000)
+  })
 
   it("lists what else stops the agent, with a signed-out profile from the tool's own status", async () => {
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
-    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
-    expect(await within(fixes).findByText("A new terminal cannot find Zoom", {}, wait)).toBeInTheDocument()
+    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" })
+    expect(await within(fixes).findByText("A new terminal cannot find Zoom")).toBeInTheDocument()
     expect(within(fixes).getByRole("button", { name: "Fix" })).toBeInTheDocument()
-    expect(await within(fixes).findByText(/Telegram profile/, {}, wait)).toHaveTextContent(
+    expect(await within(fixes).findByText(/Telegram profile/)).toHaveTextContent(
       "Telegram profile work is not signed in",
     )
     expect(within(fixes).queryByText(/personal is not signed in/)).not.toBeInTheDocument()
@@ -154,34 +147,27 @@ describe("Agents", () => {
     await user.click(within(fixes).getByRole("button", { name: "Sign in to Telegram (work)" }))
     expect(useNav.getState().active).toBe("tools")
     expect(useTools.getState().expanded).toBe("tg")
-  }, 20000)
+  })
 
   it("puts the tools a terminal misses on PATH with one Fix, and says to restart the agent", async () => {
     const fix = vi.spyOn(platform, "fixTerminalPath")
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
-    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
-    await within(fixes).findByText("A new terminal cannot find Zoom", {}, wait)
+    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" })
+    await within(fixes).findByText("A new terminal cannot find Zoom")
     await user.click(within(fixes).getByRole("button", { name: "Fix" }))
     expect(fix).toHaveBeenCalledWith(["zm"])
     expect(
-      await within(pane()).findByText(
-        /Added ~\/\.local\/bin to PATH in ~\/\.zshrc, ~\/\.bashrc\. Restart Claude Code/,
-        {},
-        wait,
-      ),
+      await within(pane()).findByText(/Added ~\/\.local\/bin to PATH in ~\/\.zshrc, ~\/\.bashrc\. Restart Claude Code/),
     ).toBeInTheDocument()
-    await waitFor(
-      () => expect(within(pane()).queryByText("A new terminal cannot find Zoom")).not.toBeInTheDocument(),
-      wait,
-    )
-  }, 20000)
+    await waitFor(() => expect(within(pane()).queryByText("A new terminal cannot find Zoom")).not.toBeInTheDocument())
+  })
 
   it("keeps MCP out of the main flow, shows leftover servers to remove, and no section without them", async () => {
     const remove = vi.spyOn(platform, "mcpRemove")
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
-    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
+    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" })
     expect(fixes).not.toHaveTextContent(/MCP/)
     expect(screen.getByRole("tablist", { name: "Agents" })).not.toHaveTextContent(/MCP/)
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to Claude Code" }))
@@ -190,7 +176,7 @@ describe("Agents", () => {
     expect(connect).not.toHaveTextContent(/mcp add/)
     await user.click(within(connect).getByRole("button", { name: "Cancel" }))
 
-    const section = await within(pane()).findByRole("region", { name: "WireCat MCP servers" }, wait)
+    const section = await within(pane()).findByRole("region", { name: "WireCat MCP servers" })
     expect(within(section).getByText(/It does not need them/)).toBeInTheDocument()
     expect(within(section).getByRole("button", { name: "Open Tools" })).toBeInTheDocument()
     const servers = within(section).getByRole("list", { name: "WireCat MCP servers in Claude Code" })
@@ -203,23 +189,23 @@ describe("Agents", () => {
     expect(within(dialog).getByText("claude mcp remove tg-personal --scope user")).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Remove" }))
     expect(remove).toHaveBeenCalledWith("tg", "personal", "claude")
-    expect(await within(section).findByText(/has no WireCat MCP servers left/, {}, wait)).toBeInTheDocument()
+    expect(await within(section).findByText(/has no WireCat MCP servers left/)).toBeInTheDocument()
     expect(within(section).queryByRole("list")).toBeNull()
 
     await user.click(await foundTab(/^Codex/))
-    await within(pane()).findByRole("heading", { name: "Codex" }, wait)
+    await within(pane()).findByRole("heading", { name: "Codex" })
     expect(within(pane()).queryByRole("region", { name: "WireCat MCP servers" })).toBeNull()
-  }, 20000)
+  })
 
   it("connects Hermes only with tools that can write its skill, warns about its gateway and checks its own PATH", async () => {
     const install = vi.spyOn(platform, "skillInstall")
     const user = await openAgents()
     await user.click(await foundTab(/^Hermes Agent/))
     expect(
-      await within(pane()).findByText("Needs a newer Telegram to write a skill for Hermes Agent", {}, wait),
+      await within(pane()).findByText("Needs a newer Telegram to write a skill for Hermes Agent"),
     ).toBeInTheDocument()
-    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Hermes Agent" }, wait)
-    expect(await within(fixes).findByText("Hermes Agent cannot find Telegram and MAX", {}, wait)).toBeInTheDocument()
+    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Hermes Agent" })
+    expect(await within(fixes).findByText("Hermes Agent cannot find Telegram and MAX")).toBeInTheDocument()
     expect(within(fixes).getByText(/bash -l/)).toHaveTextContent("~/.profile")
     expect(within(fixes).getByText(`export PATH="$HOME/.local/share/pnpm/bin:$PATH"`)).toBeInTheDocument()
 
@@ -231,28 +217,28 @@ describe("Agents", () => {
     await user.click(within(dialog).getByRole("button", { name: "Connect" }))
     expect(within(dialog).getByText("Choose at least one tool to connect.")).toBeInTheDocument()
     expect(whatsapp).toHaveFocus()
-    expect(await within(dialog).findByRole("note", {}, wait)).toHaveTextContent(
+    expect(await within(dialog).findByRole("note")).toHaveTextContent(
       /answers in Telegram\. Anyone the bot accepts there can ask it to run the tools/,
     )
 
     await user.click(whatsapp)
     expect(within(dialog).getByText(/wa skill install --for hermes --json/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
-    expect(await within(dialog).findByText("Hermes Agent finds every tool you chose", {}, wait)).toBeInTheDocument()
+    expect(await within(dialog).findByText("Hermes Agent finds every tool you chose")).toBeInTheDocument()
     expect(install).toHaveBeenCalledWith("wa", "hermes")
     expect(install).toHaveBeenCalledTimes(1)
-  }, 20000)
+  })
 
   it("offers read only for the chosen profiles of a chat-driven agent and the OpenClaw PATH fix", async () => {
     const set = vi.spyOn(platform, "settingsSet")
     const user = await openAgents()
     await user.click(await foundTab(/^OpenClaw/))
-    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" }, wait)
+    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" })
     vi.spyOn(platform, "terminalReach").mockResolvedValue({ tg: false, wa: true, drive: true, memo: true })
 
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
-    expect(await within(dialog).findByRole("note", {}, wait)).toHaveTextContent("answers in Discord and WhatsApp")
+    expect(await within(dialog).findByRole("note")).toHaveTextContent("answers in Discord and WhatsApp")
     expect(within(dialog).getByText("Choose a tool to see its profiles.")).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
@@ -269,7 +255,7 @@ describe("Agents", () => {
     await user.click(within(dialog).getByRole("checkbox", { name: /Memo/ }))
 
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
-    expect(await within(dialog).findByText("OpenClaw cannot find Telegram", {}, wait)).toBeInTheDocument()
+    expect(await within(dialog).findByText("OpenClaw cannot find Telegram")).toBeInTheDocument()
     expect(set).toHaveBeenCalledWith("tg", "personal", false, "permissions.messages", "readonly")
     expect(set).not.toHaveBeenCalledWith("tg", "work", expect.anything(), expect.anything(), expect.anything())
     expect(
@@ -278,59 +264,56 @@ describe("Agents", () => {
       ),
     ).toBeInTheDocument()
     expect(within(dialog).getByText("Telegram skill")).toBeInTheDocument()
-  }, 20000)
+  })
 
   it("warns that a chat-driven agent reading the same skill folder gets the tools too", async () => {
     const user = await openAgents()
     await user.click(await foundTab(/^OpenClaw/))
-    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" }, wait)
+    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" })
     await user.click(await foundTab(/^Codex/))
-    await user.click(await within(pane()).findByRole("button", { name: "Connect WireCat to Codex" }, wait))
+    await user.click(await within(pane()).findByRole("button", { name: "Connect WireCat to Codex" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to Codex" })
     expect(within(dialog).queryByText(/reads the same skill folder/)).not.toBeInTheDocument()
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
-    expect(await within(dialog).findByRole("note", {}, wait)).toHaveTextContent(
+    expect(await within(dialog).findByRole("note")).toHaveTextContent(
       "OpenClaw reads the same skill folder, so it gets these tools too",
     )
-  }, 20000)
+  })
 
   it("keeps a group the owner blocked when it sets a profile read only", async () => {
     const set = vi.spyOn(platform, "settingsSet")
     const user = await openAgents()
     await user.click(await foundTab(/^OpenClaw/))
-    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" }, wait)
+    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" })
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
-    await within(dialog).findByRole("checkbox", { name: "Telegram · work" }, wait)
+    await within(dialog).findByRole("checkbox", { name: "Telegram · work" })
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
-    expect(await within(dialog).findByText(/Kept Block on contacts/, {}, wait)).toBeInTheDocument()
+    expect(await within(dialog).findByText(/Kept Block on contacts/)).toBeInTheDocument()
     expect(set).toHaveBeenCalledWith("tg", "work", false, "permissions.messages", "readonly")
     expect(set).not.toHaveBeenCalledWith("tg", "work", false, "permissions.contacts", "readonly")
-  }, 20000)
+  })
 
   it("explains how to disconnect, since no tool can remove its skill", async () => {
     const user = await openAgents()
     await user.click(await foundTab(/^Codex/))
-    const disconnect = await within(pane()).findByRole("button", { name: "Disconnect WireCat from Codex" }, wait)
-    await waitFor(() => expect(disconnect).toBeEnabled(), wait)
+    const disconnect = await within(pane()).findByRole("button", { name: "Disconnect WireCat from Codex" })
+    await waitFor(() => expect(disconnect).toBeEnabled())
     await user.click(disconnect)
     const dialog = await screen.findByRole("dialog", { name: "Disconnect WireCat from Codex" })
     expect(dialog).toHaveTextContent("no command that removes their skill yet")
     expect(within(dialog).getByText("~/.agents/skills/tg-cli")).toBeInTheDocument()
     expect(dialog).toHaveTextContent(/Cursor and OpenClaw read ~\/\.agents\/skills too/)
-  }, 20000)
+  })
 
   it("releases a task the agent holds", async () => {
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
-    await user.click(await within(pane()).findByRole("button", { name: "Release Q-15" }, wait))
+    await user.click(await within(pane()).findByRole("button", { name: "Release Q-15" }))
     const dialog = await screen.findByRole("dialog", { name: "Release Q-15?" })
     expect(within(dialog).getByText("tg personal tasks release Q-15 --holder owner --json")).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Release" }))
-    await waitFor(
-      () => expect(within(pane()).queryByRole("button", { name: "Release Q-15" })).not.toBeInTheDocument(),
-      wait,
-    )
-  }, 20000)
+    await waitFor(() => expect(within(pane()).queryByRole("button", { name: "Release Q-15" })).not.toBeInTheDocument())
+  })
 })

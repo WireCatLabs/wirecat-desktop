@@ -20,19 +20,18 @@ pub async fn records_template_save(
     account: Option<String>,
 ) -> Result<Option<String>, AppError> {
     crate::log::command("records_template_save", async move {
-        let text = attempt({
-            let (kind, format) = (kind.clone(), format.clone());
-            move || records_import::template(&kind, &format, &locale, account.as_deref())
+        let (name, text) = attempt({
+            let format = format.clone();
+            move || records_import::template_file(&kind, &format, &locale, account.as_deref())
         })
         .await?;
-        let name = format!("{kind}-template.{format}");
         let chosen = blocking(move || {
             app.dialog().file().set_file_name(&name).add_filter(format.to_uppercase(), &[&format]).blocking_save_file()
         })
         .await?;
         let Some(path) = chosen.and_then(|p| p.into_path().ok()) else { return Ok(None) };
         let shown = memory_add::picked_path(path.clone())?;
-        attempt(move || std::fs::write(&path, text).map_err(|e| e.to_string())).await?;
+        attempt(move || records_import::save_template(&path, &text)).await?;
         Ok(Some(shown))
     })
     .await

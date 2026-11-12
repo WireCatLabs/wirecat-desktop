@@ -206,7 +206,7 @@ export function byDay<T extends { createdAt: string }>(entries: readonly T[]): {
 export type Range = "any" | "today" | "7d" | "30d" | (string & {})
 export const RANGES = ["any", "today", "7d", "30d"] as const
 
-export function inRange(range: Range, iso: string, now = new Date()): boolean {
+function inRange(range: Range, iso: string, now = new Date()): boolean {
   if (range === "any") return true
   if (range === "today") return dayKey(iso) === dayKey(now.toISOString())
   if (range === "7d" || range === "30d") {
@@ -216,10 +216,8 @@ export function inRange(range: Range, iso: string, now = new Date()): boolean {
   return dayKey(iso) === range
 }
 
-// ---- The search words ----
-
 /** The words Memory's search reads. `kind`, `project`, `subject` and `scope` are memo's own; `by` and `when` are the page's. */
-export const MEMORY_FIELDS = "subject|project|kind|scope|by|when"
+const MEMORY_FIELDS = "subject|project|kind|scope|by|when"
 export type MemoryField = "subject" | "project" | "kind" | "scope" | "by" | "when"
 
 export type MemoryFilter = Record<Exclude<MemoryField, "when">, string[]> & { when: Range; words: string[] }
@@ -322,7 +320,7 @@ export const refKind = (ref: string) => ref.split(":")[0] ?? ""
 const PROVIDERS: Record<string, string> = { telegram: "Telegram", whatsapp: "WhatsApp", max: "MAX", email: "Email" }
 
 /** The end of a long id, enough to tell two apart: `…960641`. */
-export const shortId = (id: string) => (id.length > 10 ? `…${id.slice(-6)}` : id)
+const shortId = (id: string) => (id.length > 10 ? `…${id.slice(-6)}` : id)
 
 /**
  * A cited ref in words, for when memo gave no title for it: what it is (an email, a chat message), where it lives (the

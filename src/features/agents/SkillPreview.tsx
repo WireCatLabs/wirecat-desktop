@@ -5,6 +5,7 @@ import { SKILL_TARGETS, TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
+import { errorText } from "@/shared/errors"
 import { ReportThis } from "@/shared/ReportThis"
 import { useTools } from "@/shared/tools-store"
 import { Dialog } from "@/ui/Dialog"
@@ -32,11 +33,15 @@ export function SkillPreview() {
 
   useEffect(() => {
     if (!id) return
+    let current = true
     setText({ state: "loading" })
     platform.skillShow(id).then(
-      (t) => setText({ state: "ready", content: t.content }),
-      (e) => setText({ state: "error", error: e instanceof Error ? e.message : String(e) }),
+      (t) => current && setText({ state: "ready", content: t.content }),
+      (e) => current && setText({ state: "error", error: errorText(e) }),
     )
+    return () => {
+      current = false
+    }
   }, [id])
 
   const copies = SKILL_TARGETS.map((target) => ({
@@ -60,7 +65,7 @@ export function SkillPreview() {
         ))}
       </dl>
       {differs && <p className="mt-3 text-[0.9rem] text-ink-soft">{m.differs}</p>}
-      <div className="mt-4 mb-2 rounded-[0.45rem] border border-line bg-app-2">
+      <div className="mt-4 mb-2 rounded-inset border border-line bg-app-2">
         {text.state === "loading" && (
           <div className="flex flex-col gap-2 p-4">
             <Skeleton className="h-4 w-1/2" label={m.readingSkill} />

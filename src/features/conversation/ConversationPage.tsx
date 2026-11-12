@@ -4,11 +4,12 @@ import { findTool } from "@/domain/catalog"
 import type { ConversationTarget } from "@/domain/conversation"
 import { referenceOf, toolOfProvider } from "@/domain/links"
 import type { Gap } from "@/domain/needs"
-import { openToolAt, ToolNeeded } from "@/features/tools"
+import { openToolAt } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ChatHeader } from "@/platform/bindings"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
@@ -95,7 +96,7 @@ function Reference({ target }: { target: ConversationTarget }) {
   return (
     <div className="mt-3 flex min-w-0 items-center gap-2">
       <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
-      <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
+      <code className="min-w-0 truncate rounded-rack bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
         {reference}
       </code>
       <CopyButton value={reference} label={m.copyReference} />

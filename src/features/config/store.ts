@@ -1,10 +1,13 @@
+import * as v from "valibot"
 import { create } from "zustand"
 import { findTool, type SettingsSource } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { SettingRow, Settings } from "@/platform/settings-schemas"
+import { errorText } from "@/shared/errors"
 import { useNav } from "@/shared/nav"
 import { listProfiles } from "@/shared/query"
+import { safeStorage } from "@/shared/safe-storage"
 import { change, format, type Op, type Problem, parse, plan, toDocument } from "./diff"
 import { type Reason, told } from "./reason"
 import { rowsFor, sharedDocument, sharedPlan, type View } from "./scope"
@@ -56,27 +59,31 @@ type ConfigState = {
 
 // Only what the owner picked last time; a profile is never chosen for them, the shared defaults are.
 const LAST = "wirecat.config.last"
+const ShapeSchema = v.object({ rows: v.number(), categories: v.number(), file: v.boolean() })
+// An older app version may have written another shape, so what comes back from storage is checked.
+const LastSchema = v.object({
+  view: v.optional(v.picklist(["tool", "shared"] satisfies View[])),
+  tool: v.optional(v.string()),
+  targets: v.optional(v.record(v.string(), v.nullable(v.string()))),
+  shapes: v.optional(v.record(v.string(), ShapeSchema)),
+})
 /** How the last list of a view looked, so its placeholder can take the same room next time. */
-export type Shape = { rows: number; categories: number; file: boolean }
-type Last = { view?: View; tool?: string; targets?: Record<string, string | null>; shapes?: Record<string, Shape> }
+export type Shape = v.InferOutput<typeof ShapeSchema>
+type Last = v.InferOutput<typeof LastSchema>
 export function readLast(): Last {
   try {
-    return JSON.parse(localStorage.getItem(LAST) ?? "{}") as Last
+    const parsed = v.safeParse(LastSchema, JSON.parse(safeStorage.getItem(LAST) ?? "{}"))
+    return parsed.success ? parsed.output : {}
   } catch {
     return {}
   }
 }
 export function remember(f: (last: Last) => Last) {
-  try {
-    localStorage.setItem(LAST, JSON.stringify(f(readLast())))
-  } catch {
-    // Without storage the page simply opens on the defaults next time.
-  }
+  safeStorage.setItem(LAST, JSON.stringify(f(readLast())))
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 class NoTool extends Error {}
-const reasonOf = (e: unknown): Reason => (e instanceof NoTool ? { code: "noTool" } : told(message(e)))
+const reasonOf = (e: unknown): Reason => (e instanceof NoTool ? { code: "noTool" } : told(errorText(e)))
 
 // Rust writes "… from a profile (work), not …"; the sentence is translated here, so only the name is taken from it.
 const noticeOf = (s: Settings): Shown["notice"] =>
@@ -136,7 +143,7 @@ export const useConfig = create<ConfigState>((set, get) => {
         view === "shared" ? { rows, configFile: null, notice: null } : { ...shown, rows, notice: noticeOf(shown) }
       if (mine === generation) set({ settings, loading: false })
     } catch (e) {
-      if (mine === generation) set({ settings: null, error: told(message(e)), loading: false })
+      if (mine === generation) set({ settings: null, error: told(errorText(e)), loading: false })
     }
   }
 
@@ -202,7 +209,7 @@ export const useConfig = create<ConfigState>((set, get) => {
           set({ tool: id, settings: { rows, configFile: null, notice: null }, loading: false })
           return
         } catch (e) {
-          failure ??= told(message(e))
+          failure ??= told(errorText(e))
         }
       }
       if (mine === generation) set({ loading: false, error: failure ?? { code: "noShared" } })
@@ -233,7 +240,7 @@ export const useConfig = create<ConfigState>((set, get) => {
         const target = last !== undefined && stillThere ? { profile: last } : src.defaults ? { profile: null } : null
         if (target && !get().target) await get().chooseTarget(target)
       } catch (e) {
-        if (get().tool === id) set({ profiles: [], profilesError: message(e) })
+        if (get().tool === id) set({ profiles: [], profilesError: errorText(e) })
       }
     },
 
@@ -292,7 +299,7 @@ export const useConfig = create<ConfigState>((set, get) => {
           update(i, { state: "done" })
         } catch (e) {
           failed = { key: step.op.key, message: reasonOf(e) }
-          update(i, { state: "failed", message: message(e) })
+          update(i, { state: "failed", message: errorText(e) })
         }
       }
       await load()

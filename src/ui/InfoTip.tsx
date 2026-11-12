@@ -43,7 +43,7 @@ export function InfoTip({ label, children, className, trigger, align = "center" 
         {...tip.focus}
         className={
           trigger
-            ? "inline-flex cursor-help rounded-[0.3rem]"
+            ? "inline-flex cursor-help rounded-pill"
             : "grid size-[1.4rem] place-items-center rounded-full text-ink-dim hover:text-ink focus-visible:text-ink"
         }
       >

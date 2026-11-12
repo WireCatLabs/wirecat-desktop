@@ -5,6 +5,7 @@ import { toolStatus } from "@/domain/status"
 import { type AdviceKind, advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
 import { useLogs } from "@/features/logs"
 import { useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import type { LastSync } from "@/platform/sync-schemas"
 import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { useNav } from "@/shared/nav"
@@ -19,7 +20,6 @@ import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Skeleton, StableText } from "@/ui/Skeleton"
-import { ago } from "./connect-steps"
 import { type SyncText, syncMessages } from "./messages-sync"
 import { SignInLost } from "./SignInLost"
 import { blockedBy, type SyncRun, syncKey, useSync } from "./sync-store"
@@ -32,7 +32,7 @@ const NO_FAILURE: SyncFailure = { message: "", code: null, reason: null, run: nu
  * "Last synced 12 min ago". With no time the tool still may have synced: a run log keeps a success only when asked
  * (`--record`, which the app passes), and drive sets its time only once nothing is left to fetch.
  */
-export function lastLine(last: LastSync, what: SyncWhat, m: Words): string {
+function lastLine(last: LastSync, what: SyncWhat, m: Words): string {
   if (!last.known) return m.lastUnknown
   const left = last.left && last.left > 0 ? m.left(what, last.left) : null
   if (last.at) return [m.lastSynced(ago(last.at)), left].filter(Boolean).join(" · ")
@@ -113,7 +113,6 @@ export function SyncButton({ c, name }: { c: Control; name?: string }) {
   return (
     <Button
       size="sm"
-      variant={run ? "secondary" : "primary"}
       onClick={() => (blocked ? c.refuse() : start(tool.id, profile))}
       title={blocked ? m.anotherRunning : undefined}
       aria-label={name ? m.syncNamed(name) : undefined}
@@ -300,7 +299,7 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
   return (
     <div
       className={cx(
-        "reveal flex items-start gap-2 rounded-[0.35rem] px-3 py-2 text-[0.875rem] text-ink-soft",
+        "reveal flex items-start gap-2 rounded-control px-3 py-2 text-[0.875rem] text-ink-soft",
         run.phase === "failed" ? "bg-warn/10" : "bg-app",
       )}
     >
@@ -401,7 +400,7 @@ export function RowSyncButton({
   return (
     <button
       type="button"
-      className="inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
+      className="inline-flex size-9 items-center justify-center rounded-control text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
       aria-label={running ? m.stopSyncing(name) : m.syncNamed(name)}
       title={running ? m.stopTitle : m.syncNow}
       disabled={running && info.run?.stopping}

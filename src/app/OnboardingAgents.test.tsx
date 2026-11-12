@@ -45,14 +45,12 @@ describe("Connect agents step", () => {
     ])
     render(<App />)
     const table = screen.getByRole("table", { name: "Skills for agents" })
-    await waitFor(
-      () =>
-        expect(
-          within(table)
-            .getAllByRole("columnheader")
-            .map((h) => h.textContent),
-        ).toEqual(["Tool", "Cursor"]),
-      { timeout: 4000 },
+    await waitFor(() =>
+      expect(
+        within(table)
+          .getAllByRole("columnheader")
+          .map((h) => h.textContent),
+      ).toEqual(["Tool", "Cursor"]),
     )
   })
 
@@ -71,12 +69,8 @@ describe("Connect agents step", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-variant", "secondary")
 
     // Cells stay "checking" until the skill check ends: acting before then asserts on a half-drawn table.
-    await waitFor(() => expect(useAgents.getState().answered).toBe(true), { timeout: 4000 })
-    const all = await screen.findByRole(
-      "button",
-      { name: "Install the Telegram skill for Claude Code and Codex" },
-      { timeout: 4000 },
-    )
+    await waitFor(() => expect(useAgents.getState().answered).toBe(true))
+    const all = await screen.findByRole("button", { name: "Install the Telegram skill for Claude Code and Codex" })
     expect(screen.getByRole("button", { name: "Install the Telegram skill for Codex" })).toHaveAttribute(
       "data-variant",
       "primary",
@@ -87,11 +81,11 @@ describe("Connect agents step", () => {
     expect(dialog).toHaveTextContent("tg skill install --for agents")
     await user.click(within(dialog).getByRole("button", { name: "Install all" }))
 
-    expect(await screen.findByText("EACCES: permission denied", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText("EACCES: permission denied")).toBeInTheDocument()
     await act(() => useAgents.getState().load(["tg"]))
     expect(screen.getByText("EACCES: permission denied")).toBeInTheDocument()
     expect(screen.getByRole("img", { name: "Telegram skill for Claude Code: Current" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Install the Telegram skill for Claude Code and Codex" })).toBeEnabled()
     expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-variant", "primary")
-  }, 15000)
+  })
 })

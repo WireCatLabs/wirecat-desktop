@@ -1,8 +1,10 @@
 import { create } from "zustand"
 import { findTool } from "@/domain/catalog"
+import { without } from "@/domain/record"
 import type { Claim, Registrations } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { errorText } from "@/shared/errors"
 import { listProfiles } from "@/shared/query"
 
 export type Loaded<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: string }
@@ -38,7 +40,6 @@ type ConnectState = {
   release(tool: string, profile: string, task: string): Promise<boolean>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 /** Agents whose commands do not run in an ordinary terminal, so Rust reads their own PATH. */
 const OWN_PATH = new Set(["hermes"])
 
@@ -54,7 +55,7 @@ export const useConnect = create<ConnectState>((set, get) => {
     set((s) => (s.claims[key]?.state === "ready" ? {} : { claims: { ...s.claims, [key]: { state: "loading" } } }))
     const next: ProfileClaims = await platform.taskClaims(tool, profile).then(
       (c) => ({ state: "ready", data: { items: c.items, more: c.more, signedOut: c.signedOut } }),
-      (e) => ({ state: "error", error: message(e) }),
+      (e) => ({ state: "error", error: errorText(e) }),
     )
     // The last answer stays on screen now, so an older ask finishing late must not replace a newer one.
     if (ask === asked[key]) set((s) => ({ claims: { ...s.claims, [key]: next } }))
@@ -63,7 +64,7 @@ export const useConnect = create<ConnectState>((set, get) => {
   const readAccess = async (tool: string, profile: string) => {
     const next = await platform.permissionsShow(tool, profile).then(
       (p) => (p.commands ? { blocked: p.commands.filter((c) => !c.available).length, total: p.commands.length } : null),
-      (e) => message(e),
+      (e) => errorText(e),
     )
     if (next !== null) set((s) => ({ access: { ...s.access, [pairKey(tool, profile)]: next } }))
   }
@@ -76,7 +77,7 @@ export const useConnect = create<ConnectState>((set, get) => {
       await run()
       return true
     } catch (e) {
-      set((s) => ({ failures: { ...s.failures, [key]: message(e) } }))
+      set((s) => ({ failures: { ...s.failures, [key]: errorText(e) } }))
       return false
     } finally {
       await after().catch(() => undefined)
@@ -130,7 +131,7 @@ export const useConnect = create<ConnectState>((set, get) => {
       set((s) => ({ servers: { ...s.servers, [agent]: { state: "loading" } } }))
       const next: Loaded<Registrations> = await platform.mcpRegistrations(agent).then(
         (data) => ({ state: "ready", data }),
-        (e) => ({ state: "error", error: message(e) }),
+        (e) => ({ state: "error", error: errorText(e) }),
       )
       set((s) => ({ servers: { ...s.servers, [agent]: next } }))
     },
@@ -182,8 +183,3 @@ export const useConnect = create<ConnectState>((set, get) => {
       ),
   }
 })
-
-function without<T>(map: Record<string, T>, key: string): Record<string, T> {
-  const { [key]: _, ...rest } = map
-  return rest
-}

@@ -1,17 +1,21 @@
 import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool } from "@/domain/catalog"
 import { openTool, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ZoomScope } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { keptAnswer, type Need, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
+import { Collapse } from "@/ui/Collapse"
 import { CopyButton } from "@/ui/CopyButton"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { useFieldError } from "@/ui/FieldError"
 import { AnswerForm } from "./AnswerForm"
 import { signinMessages } from "./messages"
 import { setupMessages } from "./messages-setup"
@@ -19,9 +23,7 @@ import { wizardMessages } from "./messages-wizard"
 import { ZOOM_APP } from "./wizard"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 type AppValues = {
   marketplace: string
@@ -159,7 +161,7 @@ function Scopes({ scopes }: { scopes: ZoomScope[] }) {
   const all = sm.zoom.copyRequired(required.length)
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-1 rounded-[0.4rem] border border-line bg-app-2 py-1 pr-1 pl-3">
+      <div className="flex flex-col gap-1 rounded-button border border-line bg-app-2 py-1 pr-1 pl-3">
         {required.map(({ scope, purpose }) => (
           <div key={scope} className="flex items-center gap-2" title={purpose || undefined}>
             <code className="selectable min-w-0 flex-1 truncate font-mono text-[0.875rem] text-ink">{scope}</code>
@@ -192,7 +194,7 @@ function Scopes({ scopes }: { scopes: ZoomScope[] }) {
 
 /** zm asked for the ID in the window: the answer goes to its stdin, and zm saves it only once the sign-in works. */
 function ClientIdAnswer({ need }: { need: Need }) {
-  const { sent, answer } = useSignIn()
+  const { sent, answer } = useSignIn(useShallow((s) => ({ sent: s.sent, answer: s.answer })))
   return (
     <div className="border-line border-t pt-4">
       <AnswerForm need={need} sent={sent} onAnswer={answer} initial={keptAnswer(need.field)} />
@@ -217,26 +219,25 @@ function GuideLink({ url }: { url: string | null }) {
 function ClientIdForm() {
   const id = useId()
   const m = useMessages(signinMessages)
-  const { tool, profile, start, onFinish, method } = useSignIn()
+  const { tool, profile, start, onFinish, method } = useSignIn(
+    useShallow((s) => ({ tool: s.tool, profile: s.profile, start: s.start, onFinish: s.onFinish, method: s.method })),
+  )
   const [value, setValue] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const need = useFieldError(id)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!tool || !profile) return
-    if (!value.trim()) {
-      setError(m.clientIdEmpty)
-      document.getElementById(id)?.focus()
-      return
-    }
+    if (!value.trim()) return need.fail(m.clientIdEmpty)
     setSaving(true)
     setError(null)
     try {
       await platform.settingsSet(tool, null, false, "zoom.client_id", value.trim())
       start(tool, profile, onFinish ?? undefined, method ?? undefined)
     } catch (err) {
-      setError(message(err))
+      setError(errorText(err))
       setSaving(false)
     }
   }
@@ -255,14 +256,17 @@ function ClientIdForm() {
         onChange={(e) => {
           setValue(e.target.value)
           setError(null)
+          need.clear()
         }}
-        aria-invalid={error !== null}
-        aria-describedby={`${id}-error`}
+        {...need.field}
         className={FIELD}
       />
-      <p id={`${id}-error`} role={error ? "alert" : undefined} className="min-h-[1.3rem] text-body text-bad">
-        {error}
-      </p>
+      {need.hint}
+      <Collapse open={error !== null}>
+        <p role="alert" className="selectable text-body text-bad">
+          {error}
+        </p>
+      </Collapse>
       <Button type="submit" variant="primary" disabled={saving} className="self-start" data-autofocus>
         {saving ? m.saving : m.saveAndSignIn}
       </Button>
@@ -274,21 +278,18 @@ function ClientIdForm() {
 function NoApp() {
   const id = useId()
   const wm = useMessages(wizardMessages)
-  const { tool, profile } = useSignIn()
+  const { tool, profile } = useSignIn(useShallow((s) => ({ tool: s.tool, profile: s.profile })))
   const [folder, setFolder] = useState("")
   const [zone, setZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
+  const need = useFieldError(`${id}-folder`)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!tool) return
-    if (!folder.trim()) {
-      setError(wm.noApp.needFolder)
-      document.getElementById(`${id}-folder`)?.focus()
-      return
-    }
+    if (!folder.trim()) return need.fail(wm.noApp.needFolder)
     setSaving(true)
     setError(null)
     try {
@@ -297,7 +298,7 @@ function NoApp() {
       await platform.settingsSet(tool, null, false, "source", "files")
       setSaved(folder.trim())
     } catch (err) {
-      setError(message(err))
+      setError(errorText(err))
     } finally {
       setSaving(false)
     }
@@ -326,11 +327,13 @@ function NoApp() {
             onChange={(e) => {
               setFolder(e.target.value)
               setError(null)
+              need.clear()
             }}
-            aria-invalid={error !== null}
-            aria-describedby={`${id}-hint`}
+            {...need.field}
+            aria-describedby={need.field["aria-describedby"] ?? `${id}-hint`}
             className={FIELD}
           />
+          {need.hint}
           <p id={`${id}-hint`} className="text-[0.85rem] text-ink-soft">
             {wm.noApp.folderHint}
           </p>
@@ -345,9 +348,11 @@ function NoApp() {
             onChange={(e) => setZone(e.target.value)}
             className={FIELD}
           />
-          <p role={error ? "alert" : undefined} className="min-h-[1.3rem] text-[0.9rem] text-bad">
-            {error}
-          </p>
+          <Collapse open={error !== null}>
+            <p role="alert" className="selectable text-[0.9rem] text-bad">
+              {error}
+            </p>
+          </Collapse>
           <Button type="submit" size="sm" variant="secondary" disabled={saving} className="self-start">
             {saving ? wm.noApp.saving : wm.noApp.save}
           </Button>

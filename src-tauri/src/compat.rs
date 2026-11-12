@@ -145,7 +145,7 @@ fn ask_all() -> Answers {
         tools
             .iter()
             .copied()
-            .zip(handles.into_iter().map(|h| h.join().unwrap_or(Err("the check stopped".into()))))
+            .zip(handles.into_iter().map(|h| h.join().unwrap_or_else(|_| Err("the check stopped".into()))))
             .collect()
     })
 }

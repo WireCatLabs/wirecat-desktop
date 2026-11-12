@@ -4,6 +4,7 @@ import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { ChosenFolder } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -14,8 +15,6 @@ import { driveMessages } from "./messages-drive"
 import { SyncButton, useSyncControl } from "./Sync"
 
 type Chosen = { state: "loading" } | { state: "ready"; folders: ChosenFolder[] } | { state: "failed"; message: string }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /**
  * One Drive account's folders, any time after its sign-in: what drive's `folders list` holds, each with Remove
@@ -39,7 +38,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         r.result === "listed" ? { state: "ready", folders: r.folders } : { state: "failed", message: r.message },
       )
     } catch (e) {
-      setChosen({ state: "failed", message: message(e) })
+      setChosen({ state: "failed", message: errorText(e) })
     }
   }, [tool.id, profile])
 
@@ -58,7 +57,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         await load()
       } else setRefused(m.removeFailed(name, r.message))
     } catch (e) {
-      setRefused(m.removeFailed(name, message(e)))
+      setRefused(m.removeFailed(name, errorText(e)))
     }
     setBusy(null)
   }
@@ -66,7 +65,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
   return (
     <section
       aria-labelledby={heading}
-      className="reveal flex flex-col gap-3 rounded-[0.45rem] border border-line bg-app-2/60 p-3"
+      className="reveal flex flex-col gap-3 rounded-inset border border-line bg-app-2/60 p-3"
     >
       <div className="flex items-start gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -103,7 +102,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         ) : chosen.folders.length === 0 ? (
           <p className="text-[0.9rem] font-medium text-ink">{m.none}</p>
         ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-[0.4rem] border border-line bg-app">
+          <ul className="divide-y divide-line overflow-hidden rounded-button border border-line bg-app">
             {chosen.folders.map((f) => (
               <li key={f.id} className="flex items-center gap-3 px-3 py-1.5">
                 <FolderClosed className="size-4 shrink-0 text-ink-dim" aria-hidden />
@@ -134,7 +133,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
       </p>
 
       <Collapse open={changed && sync.run?.phase !== "running"}>
-        <div className="flex flex-wrap items-center gap-3 rounded-[0.35rem] bg-brand-soft/60 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-3 rounded-control bg-brand-soft/60 px-3 py-2">
           <p role="status" className="min-w-0 flex-1 text-[0.9rem] text-ink">
             {m.changed}
           </p>

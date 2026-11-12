@@ -15,7 +15,7 @@ describe("Storage", () => {
     await user.click(screen.getByRole("button", { name: /Storage/ }))
 
     const archive = await screen.findByRole("region", { name: "In storage" })
-    expect(await within(archive).findByText("15,594", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(archive).findByText("15,594")).toBeInTheDocument()
     expect(within(archive).getByText("tg store info")).toBeInTheDocument()
     expect(within(archive).getByRole("table", { name: "By source" })).toHaveTextContent("via tg")
     expect(within(archive).getByRole("table", { name: "By source" })).toHaveTextContent("WhatsApp")
@@ -23,12 +23,12 @@ describe("Storage", () => {
     await user.click(within(archive).getByRole("radio", { name: "Chat type" }))
     expect(within(archive).getByRole("table", { name: "By chat type" })).toHaveTextContent("Telegram · Groups")
 
-    for (const more of await screen.findAllByRole("button", { name: /What is in here/ }, { timeout: 4000 })) {
+    for (const more of await screen.findAllByRole("button", { name: /What is in here/ })) {
       await user.click(more)
     }
     const tg = await screen.findByRole("list", { name: "What Telegram keeps" })
     expect(within(tg).getByText(/Credentials: size only/)).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("shows the store file in its folder, never opening it", async () => {
     const open = vi.spyOn(platform, "openFolder")
@@ -36,22 +36,20 @@ describe("Storage", () => {
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Storage/ }))
 
-    const show = await screen.findByRole(
-      "button",
-      { name: "Show ~/.local/share/WireCat/wirecat.db in the file manager" },
-      { timeout: 4000 },
-    )
+    const show = await screen.findByRole("button", {
+      name: "Show ~/.local/share/WireCat/wirecat.db in the file manager",
+    })
     await user.click(show)
     expect(open).toHaveBeenCalledWith("shared", expect.any(String), "wirecat.db")
     open.mockRestore()
-  }, 15000)
+  })
 
   it("shows the tables of one kind of data, with the kind in its column", async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Storage/ }))
 
-    await screen.findByRole("table", { name: "Tables" }, { timeout: 4000 })
+    await screen.findByRole("table", { name: "Tables" })
     const groups = screen.getByRole("group", { name: "Show tables" })
     await user.click(within(groups).getByRole("radio", { name: /^Mail/ }))
     const tables = screen.getByRole("table", { name: "Tables" })
@@ -60,14 +58,14 @@ describe("Storage", () => {
       .map((r) => r.textContent)
     expect(names).toEqual(["email_recipients", "email_threads", "emails"])
     expect(within(tables).getAllByRole("cell", { name: "Mail" })).toHaveLength(3)
-  }, 15000)
+  })
 
   it("lists the database's tables, measures their sizes and checks its health", async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Storage/ }))
 
-    const tables = await screen.findByRole("table", { name: "Tables" }, { timeout: 4000 })
+    const tables = await screen.findByRole("table", { name: "Tables" })
     expect(within(tables).getByRole("rowheader", { name: "messages" })).toBeInTheDocument()
     expect(screen.getByText(/Search index tables \(30\)/)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Search index tables \(30\)/ }))
@@ -78,11 +76,11 @@ describe("Storage", () => {
     expect(within(screen.getByRole("table", { name: "Tables" })).getAllByRole("row")).toHaveLength(4)
 
     await user.click(screen.getByRole("button", { name: "Measure sizes" }))
-    expect(await screen.findByText(/Measured in/, {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByText(/Measured in/)).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Check health" }))
-    expect(await screen.findByText("No problems found", {}, { timeout: 6000 })).toBeInTheDocument()
-  }, 20000)
+    expect(await screen.findByText("No problems found")).toBeInTheDocument()
+  })
 
   it("speaks Russian, counts included", async () => {
     useLanguage.setState({ choice: "ru" })
@@ -91,8 +89,8 @@ describe("Storage", () => {
     await user.click(screen.getByRole("button", { name: /Хранилище/ }))
 
     const archive = await screen.findByRole("region", { name: "В хранилище" })
-    const bySource = await within(archive).findByRole("table", { name: "По источникам" }, { timeout: 4000 })
+    const bySource = await within(archive).findByRole("table", { name: "По источникам" })
     expect(bySource).toHaveTextContent("через tg · 2 аккаунта")
     expect(screen.getByRole("button", { name: "Сделать копию" })).toBeInTheDocument()
-  }, 15000)
+  })
 })

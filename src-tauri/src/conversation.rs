@@ -354,20 +354,16 @@ pub fn read_with(call: &Call, place: &ChatPlace, ask: &ChatPage) -> Result<Conve
     })
 }
 
-fn too_old(message: &str) -> bool {
-    message.starts_with("unknown command") || message.starts_with("unknown option")
-}
-
 fn call_program(bin: &std::path::Path, args: &[String]) -> Result<Value, Failure> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(bin, &refs, Some(&paths::search_path()), READ).map_err(|e| Failure::Other(e.to_string()))?;
     let json = out.json();
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(v),
         Some(v) if v["error"]["code"].as_str() == Some("not_found") => Err(Failure::NotFound),
         j => {
             let message = failure(&out, j.as_ref());
-            Err(if too_old(&message) { Failure::Old(message) } else { Failure::Other(message) })
+            Err(if crate::memo_cli::unknown_to_cli(&message) { Failure::Old(message) } else { Failure::Other(message) })
         }
     }
 }
@@ -670,6 +666,9 @@ mod tests {
     #[test]
     #[ignore = "needs memo and a synced store; the places come from the environment"]
     fn real_conversation() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let places = std::env::var("WIRECAT_REAL_PLACES").unwrap_or_default();
         for spec in places.split_whitespace() {
             let parts: Vec<&str> = spec.splitn(4, '/').collect();

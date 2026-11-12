@@ -2,9 +2,10 @@ import { useEffect } from "react"
 import { create } from "zustand"
 import { type CatalogTool, syncSchedules, tools } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { type MachineChoices, useMachineSetup } from "@/shared/machine-setup-store"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { listProfiles, queryClient } from "@/shared/query"
+import { listProfiles, queryClient, toolKeys } from "@/shared/query"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 
@@ -31,7 +32,6 @@ type State = {
 }
 
 const keyOf = (tool: string, profile: string, job: Job) => `${job}:${tool}:${profile}`
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useMachineRuns = create<State>()((set) => ({
   items: {},
@@ -41,7 +41,7 @@ export const useMachineRuns = create<State>()((set) => ({
       const on = await platform.autostartStatus()
       set((s) => ({ autostart: { ...s.autostart, on } }))
     } catch (e) {
-      set((s) => ({ autostart: { ...s.autostart, error: messageOf(e) } }))
+      set((s) => ({ autostart: { ...s.autostart, error: errorText(e) } }))
     }
   },
   async setAutostart(on) {
@@ -50,7 +50,7 @@ export const useMachineRuns = create<State>()((set) => ({
       const now = await platform.autostartSet(on)
       set({ autostart: { on: now, busy: false, error: null } })
     } catch (e) {
-      set((s) => ({ autostart: { ...s.autostart, busy: false, error: messageOf(e) } }))
+      set((s) => ({ autostart: { ...s.autostart, busy: false, error: errorText(e) } }))
     }
   },
 }))
@@ -81,7 +81,7 @@ async function testRun(tool: string, profile: string) {
         : failed(t.reason ?? `exit ${t.exitCode}`, t.reason, t.output || null),
     )
   } catch (e) {
-    put(tool, profile, "nightly", failed(messageOf(e)))
+    put(tool, profile, "nightly", failed(errorText(e)))
   }
 }
 
@@ -109,7 +109,7 @@ async function nightly(tool: string, profile: string, time: string | null) {
     tests = tests.then(() => testRun(tool, profile))
     await tests
   } catch (e) {
-    put(tool, profile, "nightly", failed(messageOf(e)))
+    put(tool, profile, "nightly", failed(errorText(e)))
   }
 }
 
@@ -122,12 +122,12 @@ async function live(tool: string, profile: string, on: boolean) {
     const idle = now.state === "stopped" && now.startsAtLogin !== true
     if (on ? !kept : !idle) {
       const outcome = await platform.backgroundRun(tool, profile, on ? "keep" : "uninstall")
-      void queryClient().invalidateQueries({ queryKey: ["tool", tool, "background", profile] })
+      void queryClient().invalidateQueries({ queryKey: toolKeys.background(tool, profile) })
       if (outcome.fault) return put(tool, profile, "live", failed(outcome.fault.message))
     }
     put(tool, profile, "live", { phase: "done" })
   } catch (e) {
-    put(tool, profile, "live", failed(messageOf(e)))
+    put(tool, profile, "live", failed(errorText(e)))
   }
 }
 

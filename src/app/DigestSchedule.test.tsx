@@ -1,35 +1,18 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useDigestBook, useDigests } from "@/features/digests"
 import { editorMessages } from "@/features/digests/messages-editors"
 import { useTasks } from "@/features/tasks"
 import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { agentsFixture } from "@/platform/mock-background-agent"
-import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })
-  useDigestBook.setState({
-    book: null,
-    error: null,
-    busy: {},
-    failed: null,
-    remembered: null,
-    open: null,
-    backfill: null,
-    query: "",
-    page: 1,
-    pageSize: 50,
-  })
-  useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
-  useBackgroundAgents.setState({ agents: null, error: null, busy: false, chooseError: null })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
 })
 
@@ -91,7 +74,7 @@ async function openPage(book?: DigestBook) {
 
 async function openMorning(book?: DigestBook) {
   const user = await openPage(book)
-  await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
+  await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
   await screen.findByRole("region", { name: "Settings" })
   return user
 }
@@ -99,19 +82,19 @@ async function openMorning(book?: DigestBook) {
 describe("the other schedules", () => {
   it("links mail triage to where it is set up and says a hand-made one is changed in a terminal", async () => {
     const user = await openPage()
-    const others = await screen.findByRole("region", { name: "Other schedules" }, { timeout: 4000 })
+    const others = await screen.findByRole("region", { name: "Other schedules" })
     expect(within(others).getByText("In a terminal: memo schedule")).toBeInTheDocument()
     expect(others).toHaveTextContent(/mail-triage.*Every 30 minutes/)
     await user.click(within(others).getByRole("button", { name: "Change in Tools → Email → Mail agent" }))
     expect(useNav.getState().active).toBe("tools")
     expect(useTools.getState().expanded).toBe("email")
-  }, 15000)
+  })
 })
 
 describe("the table of digests", () => {
   it("shows how often each runs, where it takes from and sends to, its last run, and the other schedules", async () => {
     await openPage()
-    const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
+    const table = await screen.findByRole("table", { name: "Digests" })
     const rows = within(table).getAllByRole("row").slice(1)
     expect(rows[0]).toHaveTextContent(/Morning digest.*Every day at 08:30.*All sources.*Telegram bot, Mail.*\$0\.27/)
     expect(rows[1]).toHaveTextContent(/Evening wrap-up.*Weekdays at 13:00 and 19:00.*Telegram, Mail/)
@@ -120,12 +103,12 @@ describe("the table of digests", () => {
     const presets = screen.getByRole("region", { name: "New digest" })
     for (const name of ["Daily digest", "Weekly digest", "Create your own"]) expect(presets).toHaveTextContent(name)
     expect(presets.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  }, 15000)
+  })
 
   it("says the morning digest is off its schedule with its past days kept, and the daily template brings it back", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning, weekly]))
     const user = await openPage(ready([weekly], { morningRests: true }))
-    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const presets = await screen.findByRole("region", { name: "New digest" })
     expect(within(presets).getByRole("button", { name: "Off schedule" })).toHaveAccessibleDescription(
       /morning digest is off its schedule; its past days are kept/,
     )
@@ -133,19 +116,19 @@ describe("the table of digests", () => {
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     await user.click(within(dialog).getByRole("button", { name: "Create" }))
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "morning-digest" }), true))
-  }, 15000)
+  })
 
   it("puts a digest on the schedule from its row without opening it", async () => {
     const on = vi
       .spyOn(platform, "digestSetScheduled")
       .mockResolvedValue(ready([morning, { ...weekly, scheduled: true }]))
     const user = await openPage(ready([morning, weekly]))
-    const toggle = await screen.findByRole("switch", { name: "Weekly digest on schedule" }, { timeout: 4000 })
+    const toggle = await screen.findByRole("switch", { name: "Weekly digest on schedule" })
     await user.click(toggle)
     expect(on).toHaveBeenCalledWith("weekly-digest", true)
     await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"))
     expect(screen.queryByRole("region", { name: "Settings" })).not.toBeInTheDocument()
-  }, 15000)
+  })
 
   it("opens a digest's settings from its row, and goes back to the table", async () => {
     const user = await openMorning(ready([morning, weekly]))
@@ -154,13 +137,13 @@ describe("the table of digests", () => {
     expect(screen.getByRole("region", { name: "What to collect" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "All digests" }))
     expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 describe("finding a digest in the table", () => {
   it("narrows the rows by typed words and by the last run, and keeps the search while a digest is open", async () => {
     const user = await openPage(ready([morning, weekly]))
-    const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
+    const table = await screen.findByRole("table", { name: "Digests" })
     await user.type(screen.getByRole("searchbox", { name: "Find a digest" }), "week")
     expect(within(table).getAllByRole("row").slice(1)).toHaveLength(1)
     expect(table).toHaveTextContent("Weekly digest")
@@ -172,15 +155,15 @@ describe("finding a digest in the table", () => {
     await user.click(screen.getByRole("button", { name: "Open Weekly digest" }))
     await user.click(await screen.findByRole("button", { name: "All digests" }))
     expect(await screen.findByRole("searchbox", { name: "Find a digest" })).toHaveValue("last:never")
-  }, 15000)
+  })
 
   it("says nothing matches and clears the search", async () => {
     const user = await openPage(ready([morning, weekly]))
-    await user.type(await screen.findByRole("searchbox", { name: "Find a digest" }, { timeout: 4000 }), "zzz")
+    await user.type(await screen.findByRole("searchbox", { name: "Find a digest" }), "zzz")
     expect(screen.getByText("No digest matches.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Clear search" }))
     expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("pages a long list of digests", async () => {
     const many = Array.from({ length: 60 }, (_, i) => ({
@@ -189,31 +172,31 @@ describe("finding a digest in the table", () => {
       title: `Digest ${String(i + 1).padStart(2, "0")}`,
     }))
     const user = await openPage(ready(many))
-    const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
+    const table = await screen.findByRole("table", { name: "Digests" })
     expect(within(table).getAllByRole("row").slice(1)).toHaveLength(50)
     const pager = screen.getByRole("navigation", { name: "Digests" })
     expect(pager).toHaveTextContent("1–50 of 60")
     await user.click(within(pager).getByRole("button", { name: "Next page" }))
     expect(within(table).getAllByRole("row").slice(1)).toHaveLength(10)
     expect(table).toHaveTextContent("Digest 60")
-  }, 15000)
+  })
 })
 
 describe("creating a digest", () => {
   it("has a primary Create digest button above the table that starts an own digest", async () => {
     const user = await openPage(ready([morning]))
-    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const presets = await screen.findByRole("region", { name: "New digest" })
     const create = within(presets).getByRole("button", { name: "Create digest" })
     expect(create).toHaveAttribute("data-variant", "primary")
     await user.click(create)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     expect(within(dialog).getByRole("button", { name: "Create" })).toBeVisible()
-  }, 15000)
+  })
 
   it("offers a daily and a weekly template and an own one when there is none", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([]))
-    const starter = await screen.findByRole("region", { name: "No digests yet" }, { timeout: 4000 })
+    const starter = await screen.findByRole("region", { name: "No digests yet" })
     for (const name of ["Daily digest", "Weekly digest", "Create your own"]) expect(starter).toHaveTextContent(name)
     await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
@@ -225,13 +208,13 @@ describe("creating a digest", () => {
         true,
       ),
     )
-    expect(await screen.findByRole("region", { name: "Settings" }, { timeout: 4000 })).toBeInTheDocument()
-  }, 15000)
+    expect(await screen.findByRole("region", { name: "Settings" })).toBeInTheDocument()
+  })
 
   it("numbers the title of a second digest from the same template, and keeps the owner's own title", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning, weekly]))
     const user = await openPage(ready([morning, weekly]))
-    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const presets = await screen.findByRole("region", { name: "New digest" })
     await user.click(within(presets).getAllByRole("button", { name: "Set up" })[1] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     const title = within(dialog).getByRole("textbox", { name: "Title" })
@@ -242,12 +225,12 @@ describe("creating a digest", () => {
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "weekly-digest-2", title: "Team week" }), true),
     )
-  }, 15000)
+  })
 
   it("saves a digest that runs twice a day", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([morning]))
-    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const presets = await screen.findByRole("region", { name: "New digest" })
     await user.click(within(presets).getAllByRole("button", { name: "Set up" })[2] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     const create = within(dialog).getByRole("button", { name: "Create" })
@@ -273,12 +256,12 @@ describe("creating a digest", () => {
         true,
       ),
     )
-  }, 15000)
+  })
 
   it("asks for a weekday before a weekly digest can be saved", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([]))
-    const starter = await screen.findByRole("region", { name: "No digests yet" }, { timeout: 4000 })
+    const starter = await screen.findByRole("region", { name: "No digests yet" })
     await user.click(within(starter).getAllByRole("button", { name: "Set up" })[1] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     expect(within(dialog).getByRole("radio", { name: "On days" })).toBeChecked()
@@ -298,7 +281,7 @@ describe("creating a digest", () => {
         true,
       ),
     )
-  }, 15000)
+  })
 })
 
 describe("editing a digest", () => {
@@ -339,7 +322,7 @@ describe("editing a digest", () => {
         false,
       ),
     )
-  }, 20000)
+  })
 
   it("suggests the mailboxes for an email route, the account's own address first, and keeps a typed one", async () => {
     const user = await openMorning(ready([morning]))
@@ -355,18 +338,18 @@ describe("editing a digest", () => {
     await user.type(to, "boss@example.com")
     await user.click(within(settings).getByRole("button", { name: "Add" }))
     expect(within(settings).getByText(/personal → boss@example\.com/)).toBeInTheDocument()
-  }, 20000)
+  })
 })
 
 describe("templates", () => {
   it("explains what a template is, what it can use and shows an example", async () => {
     const user = await openMorning(ready([morning]))
-    await user.click(await screen.findByRole("button", { name: "How templates work" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "How templates work" }))
     const help = await screen.findByRole("dialog", { name: "Digest templates" })
     expect(within(help).getByText(/written in Liquid/)).toBeInTheDocument()
     expect(within(help).getByText("section.items")).toBeInTheDocument()
     expect(within(help).getByText(/for section in sections/)).toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 describe("getting a digest now", () => {
@@ -382,7 +365,7 @@ describe("getting a digest now", () => {
     expect(run).not.toHaveBeenCalled()
     await user.click(within(dialog).getByRole("button", { name: "Get it for about $0.27" }))
     expect(run).toHaveBeenCalledWith("morning-digest", { kind: "all" })
-  }, 15000)
+  })
 
   it("keeps it here, or sends it to one route, from the menu", async () => {
     const run = vi.spyOn(platform, "digestRun").mockResolvedValue(ready([morning]))
@@ -399,7 +382,7 @@ describe("getting a digest now", () => {
     dialog = await screen.findByRole("dialog", { name: "Get the digest now?" })
     await user.click(within(dialog).getByRole("button", { name: /^Get it/ }))
     expect(run).toHaveBeenLastCalledWith("morning-digest", { kind: "only", routes: ["email:work/owner@example.com"] })
-  }, 15000)
+  })
 
   it("takes it off the schedule and puts it back from its page", async () => {
     const set = vi
@@ -409,9 +392,9 @@ describe("getting a digest now", () => {
     const user = await openMorning(ready([morning]))
     await user.click(screen.getByRole("button", { name: "Take off schedule" }))
     expect(set).toHaveBeenLastCalledWith("morning-digest", false)
-    await user.click(await screen.findByRole("button", { name: "Put on schedule" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "Put on schedule" }))
     expect(set).toHaveBeenLastCalledWith("morning-digest", true)
-  }, 15000)
+  })
 })
 
 describe("the agent that writes it", () => {
@@ -433,7 +416,7 @@ describe("the agent that writes it", () => {
     // The failed run was Claude Code's: once Gemini CLI writes it, that refusal is history, and Gemini CLI reports no cost.
     expect(await screen.findByText(/Written by Gemini CLI\. Gemini CLI does not report/)).toBeInTheDocument()
     expect(screen.queryByText(/has no credit left/)).not.toBeInTheDocument()
-  }, 15000)
+  })
 
   it("never offers Codex for a digest, even confirmed: memo cannot write digests in it yet", async () => {
     vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "codex"], "codex", true, true))
@@ -446,13 +429,13 @@ describe("the agent that writes it", () => {
 
     expect(await screen.findByText("Claude Code reached its usage limit, so the run failed.")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 describe("what the page cannot do", () => {
   it("says no agent is ready or chosen, links to Settings and keeps Create off", async () => {
     const user = await openPage(ready([], { harness: false }))
-    const go = await screen.findByRole("button", { name: "Choose it in Settings" }, { timeout: 4000 })
+    const go = await screen.findByRole("button", { name: "Choose it in Settings" })
     expect(screen.getByText(/No agent for background jobs is ready or chosen/)).toBeInTheDocument()
     const starter = screen.getByRole("region", { name: "No digests yet" })
     await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
@@ -461,7 +444,7 @@ describe("what the page cannot do", () => {
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
     await user.click(go)
     expect(useNav.getState().active).toBe("settings")
-  }, 15000)
+  })
 
   it("prints why a digest's own actions are off beside them when no agent is ready", async () => {
     await openMorning(ready([{ ...morning, scheduled: false }], { harness: false }))
@@ -477,7 +460,7 @@ describe("what the page cannot do", () => {
           settings.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING,
       )
     expect(between).toHaveLength(1)
-  }, 15000)
+  })
 
   it("shows an older memo's morning digest as one row and keeps to what that memo can do", async () => {
     const old = ready([{ ...morning, title: null }], { named: false })
@@ -486,7 +469,7 @@ describe("what the page cannot do", () => {
       .spyOn(platform, "digestSetScheduled")
       .mockResolvedValue(ready([{ ...morning, title: null, scheduled: false }], { named: false }))
     const user = await openPage(old)
-    const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
+    const table = await screen.findByRole("table", { name: "Digests" })
     expect(within(table).getAllByRole("row")).toHaveLength(2)
     expect(screen.queryByRole("region", { name: "New digest" })).not.toBeInTheDocument()
     expect(screen.getByText(/needs Memo 0\.131\.75 or newer/)).toBeInTheDocument()
@@ -507,12 +490,10 @@ describe("what the page cannot do", () => {
     expect(screen.getByRole("radio", { name: "On days" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Add a time" })).toBeDisabled()
     expect(screen.queryByRole("button", { name: "Other ways to get it now" })).not.toBeInTheDocument()
-  }, 20000)
+  })
 })
 
 describe("the agent that writes a digest", () => {
-  beforeEach(() => answerAtOnce())
-
   // Every tools read reports Drive and Bitrix24 installed as memo is; a write into the store would be undone by the next read.
   const withDriveAndCrm = async () => {
     const detect = platform.detectTools.bind(platform)
@@ -529,7 +510,7 @@ describe("the agent that writes a digest", () => {
     vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "gemini", "codex"], "gemini"))
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([morning]))
-    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const presets = await screen.findByRole("region", { name: "New digest" })
     await user.click(within(presets).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     const agent = within(dialog).getByRole("combobox", { name: "Agent" })
@@ -544,7 +525,7 @@ describe("the agent that writes a digest", () => {
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(expect.objectContaining({ agent: "claude", model: "opus" }), true),
     )
-  }, 15000)
+  })
 
   it("keeps an agent set in a terminal, with no cost limits, until a listed one is chosen", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
@@ -564,7 +545,7 @@ describe("the agent that writes a digest", () => {
     await user.click(await screen.findByRole("option", { name: "Claude Code" }))
     expect(within(settings).getByRole("textbox", { name: "Model" })).toHaveValue("")
     expect(within(settings).getByRole("spinbutton", { name: "A run, at most" })).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("clears a saved model with an empty field, and leaves memo's default alone when none was saved", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
@@ -583,17 +564,17 @@ describe("the agent that writes a digest", () => {
     await user.click(within(again).getByRole("button", { name: /^tue/i }))
     await user.click(within(again).getByRole("button", { name: "Save" }))
     await waitFor(() => expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ model: null }), false))
-  }, 20000)
+  })
 
   it("says no agent can write digests when none for background jobs is ready", async () => {
     vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture([]))
     const user = await openPage(ready([], { harness: false }))
-    const starter = await screen.findByRole("region", { name: "No digests yet" }, { timeout: 4000 })
+    const starter = await screen.findByRole("region", { name: "No digests yet" })
     await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     expect(await within(dialog).findByText(/No agent on this computer can write digests/)).toBeInTheDocument()
     expect(within(dialog).queryByRole("combobox", { name: "Agent" })).not.toBeInTheDocument()
-  }, 15000)
+  })
 
   it("words memo's agent refusals", async () => {
     vi.spyOn(platform, "digestSave").mockRejectedValueOnce(new Error("digest.agent-unchosen"))
@@ -602,7 +583,7 @@ describe("the agent that writes a digest", () => {
     await user.type(within(settings).getByRole("textbox", { name: "Model" }), "opus")
     await user.click(within(settings).getByRole("button", { name: "Save" }))
     expect(await within(settings).findByText(/Memo asks which agent writes this digest/)).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("asks an older memo for no agent and offers Drive, Calendar and a CRM only on a memo that reads them", async () => {
     const user = await openMorning(ready([morning], { agent: false, moreSources: false }))
@@ -612,7 +593,7 @@ describe("the agent that writes a digest", () => {
     await user.click(within(settings).getByRole("button", { name: "Sources: All connected sources" }))
     expect(screen.queryByRole("option", { name: "Google Drive" })).not.toBeInTheDocument()
     await user.keyboard("{Escape}")
-  }, 15000)
+  })
 
   it("offers Drive and a CRM as sources once memo reads them, where their tools are installed", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
@@ -626,7 +607,7 @@ describe("the agent that writes a digest", () => {
     await user.keyboard("{Escape}")
     await user.click(within(settings).getByRole("button", { name: "Save" }))
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ sources: ["drive"] }), false))
-  }, 15000)
+  })
 })
 
 describe("the agents memo lets a schedule start", () => {
@@ -650,7 +631,7 @@ describe("the agents memo lets a schedule start", () => {
   })
   const newDigest = async (book: DigestBook) => {
     const user = await openPage(book)
-    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    const presets = await screen.findByRole("region", { name: "New digest" })
     await user.click(within(presets).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     return { user, dialog, agent: within(dialog).getByRole("combobox", { name: "Agent" }) }
@@ -666,14 +647,14 @@ describe("the agents memo lets a schedule start", () => {
     expect(screen.getByRole("option", { name: /^Codex/ })).not.toHaveAttribute("aria-disabled", "true")
     await user.click(screen.getByRole("option", { name: "Gemini CLI" }))
     expect(dialog).toHaveTextContent("This agent does not say what a run costs")
-  }, 15000)
+  })
 
   it("offers no agent that needs consent before memo takes the consent", async () => {
     const { user, agent } = await newDigest(ready([morning], { agentConsent: false }))
     await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
     await user.click(agent)
     expect(await screen.findByRole("option", { name: /^Codex/ })).toHaveAttribute("aria-disabled", "true")
-  }, 15000)
+  })
 
   it("saves Codex only with the owner's ticked consent, and passes it on", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
@@ -692,13 +673,13 @@ describe("the agents memo lets a schedule start", () => {
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(expect.objectContaining({ agent: "codex", allowDangerous: true }), true),
     )
-  }, 15000)
+  })
 
   it("marks a digest that waits for the owner on its row and says on its page what memo asks", async () => {
     const needs = "codex runs on a schedule only with your consent: `memo digest edit morning-digest --agent codex`"
     const waiting = { ...morning, agent: "codex", needs }
     const user = await openPage(ready([waiting, weekly]))
-    const row = (await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 })).closest(
+    const row = (await screen.findByRole("button", { name: "Open Morning digest" })).closest(
       "[role=row]",
     ) as HTMLElement
     expect(within(row).getByText("Waits for you")).toBeInTheDocument()
@@ -709,7 +690,7 @@ describe("the agents memo lets a schedule start", () => {
     expect(await screen.findByText(/To give the consent here, choose the agent under Agent/)).toBeInTheDocument()
     const settings = screen.getByRole("region", { name: "Settings" })
     expect(within(settings).getByRole("checkbox", { name: /I agree: Codex/ })).not.toBeChecked()
-  }, 15000)
+  })
 
   it("words memo's refusal of an agent no schedule may start", async () => {
     vi.spyOn(platform, "digestSave").mockRejectedValueOnce(new Error("agent.unrestricted"))
@@ -718,44 +699,44 @@ describe("the agents memo lets a schedule start", () => {
     await user.type(within(settings).getByRole("textbox", { name: "Model" }), "opus")
     await user.click(within(settings).getByRole("button", { name: "Save" }))
     expect(await within(settings).findByText(/Memo does not run this agent on a schedule/)).toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 describe("the digest history", () => {
   it("marks a day built later and builds past days only after showing the price", async () => {
     const backfill = vi.spyOn(platform, "digestBackfill")
     const user = await openMorning()
-    const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
+    const days = await screen.findByRole("navigation", { name: "Days" })
     expect(days).toHaveTextContent("built later")
 
     const fill = screen.getByRole("button", { name: "Build past days" })
-    await waitFor(() => expect(fill).toBeEnabled(), { timeout: 8000 })
+    await waitFor(() => expect(fill).toBeEnabled())
     await user.click(fill)
     const dialog = await screen.findByRole("dialog", { name: "Build the digests of past days" })
-    expect(await within(dialog).findByText(/to build/, {}, { timeout: 4000 })).toHaveTextContent(
+    expect(await within(dialog).findByText(/to build/)).toHaveTextContent(
       /4 days to build \(3 already have one\), about \$1\.08/,
     )
     expect(backfill.mock.calls.every(([, , yes]) => yes === false)).toBe(true)
 
     await user.click(within(dialog).getByRole("radio", { name: "14 days" }))
-    expect(await within(dialog).findByText(/11 days to build/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await within(dialog).findByText(/11 days to build/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: /^Build for about/ }))
     expect(backfill).toHaveBeenLastCalledWith(expect.any(String), expect.any(String), true, "morning-digest")
-    expect(await within(dialog).findByText(/Built 11 days/, {}, { timeout: 8000 })).toBeInTheDocument()
-  }, 20000)
+    expect(await within(dialog).findByText(/Built 11 days/)).toBeInTheDocument()
+  })
 
   it("shows Build past days off when this memo has no digest backfill", async () => {
     vi.spyOn(platform, "digestBackfill").mockResolvedValue({ state: "unsupported" })
     await openMorning()
     expect(await screen.findByText("Needs a Memo update")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Build past days" })).toBeDisabled()
-  }, 15000)
+  })
 })
 
 describe("a digest item", () => {
   it("opens its details in place: quote, where from, and every reference as a link", async () => {
     const user = await openMorning()
-    const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    const today = await screen.findByRole("region", { name: "Today" })
     await user.click(within(today).getByRole("button", { name: "Details: warehouse lease" }))
     const details = within(today).getByRole("button", { name: "Details: warehouse lease" })
     expect(details).toHaveAttribute("aria-expanded", "true")
@@ -765,28 +746,28 @@ describe("a digest item", () => {
     expect(list).toHaveTextContent(/mail · /)
     for (const name of ["Open: the message", "Open: Anna Kotova", "Open: project khimki-warehouse"])
       expect(within(list).getByRole("button", { name })).toBeInTheDocument()
-  }, 15000)
+  })
 
   it("links who and the project; a person opens the calm not-yet page", async () => {
     const user = await openMorning()
-    const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    const today = await screen.findByRole("region", { name: "Today" })
     await user.click(within(today).getAllByRole("button", { name: "Open: Anna Kotova" })[0] as HTMLElement)
     expect(await screen.findByRole("heading", { name: "This can't open in WireCat yet" })).toBeInTheDocument()
     expect(screen.getByText(/no page for this person yet/)).toBeInTheDocument()
     expect(useNav.getState().active).toBe("open")
-  }, 15000)
+  })
 
   it("opens a known project's tasks, and an unknown one on the calm not-yet page", async () => {
     const user = await openMorning()
-    const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    const today = await screen.findByRole("region", { name: "Today" })
     await user.click(within(today).getByRole("button", { name: "Open: project HRB" }))
-    await waitFor(() => expect(useNav.getState().active).toBe("tasks"), { timeout: 4000 })
+    await waitFor(() => expect(useNav.getState().active).toBe("tasks"))
     expect(useTasks.getState().query).toBe("project:HRB")
 
     act(() => useNav.getState().go("digests"))
-    const again = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    const again = await screen.findByRole("region", { name: "Today" })
     await user.click(within(again).getByRole("button", { name: "Open: project khimki-warehouse" }))
     expect(await screen.findByRole("heading", { name: "This can't open in WireCat yet" })).toBeInTheDocument()
     expect(screen.getByText(/no page for this project yet/)).toBeInTheDocument()
-  }, 20000)
+  })
 })

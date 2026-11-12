@@ -1,4 +1,4 @@
-import { FileText, LoaderCircle, ScanText } from "lucide-react"
+import { FileText, ScanText } from "lucide-react"
 import { useState } from "react"
 import { toolOfProvider } from "@/domain/links"
 import { useMessages } from "@/i18n"
@@ -86,13 +86,8 @@ export function FileActions({ messageRef, file }: { messageRef: string; file: Fi
             size="sm"
             variant="ghost"
             disabled={busy}
-            icon={
-              busy ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <ScanText className="size-4" aria-hidden />
-              )
-            }
+            busy={busy}
+            icon={<ScanText className="size-4" aria-hidden />}
             onClick={() => void read()}
           >
             {m.read}
@@ -127,7 +122,7 @@ export function FileActions({ messageRef, file }: { messageRef: string; file: Fi
               {m.readBy(readerOf(shown.read.extractor) ?? "")}
             </figcaption>
           )}
-          <p className="selectable max-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line bg-app-2/60 px-[0.8rem] py-[0.5rem] text-[0.9rem] break-words whitespace-pre-wrap text-ink">
+          <p className="selectable max-h-[16rem] overflow-y-auto rounded-control border border-line bg-app-2/60 px-[0.8rem] py-[0.5rem] text-[0.9rem] break-words whitespace-pre-wrap text-ink">
             {shown.read.text || <span className="text-ink-dim">{m.empty}</span>}
           </p>
         </figure>

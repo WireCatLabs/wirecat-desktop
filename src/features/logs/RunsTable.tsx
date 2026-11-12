@@ -81,7 +81,7 @@ function AgentCell({ run, onFilter }: { run: Run; onFilter: Props["onFilter"] })
           onFilter(field, value, false)
         }}
         title={agent.session ? m.onlySession(agent.session) : m.onlyStartedBy(shown)}
-        className="flex max-w-full min-w-0 flex-wrap items-baseline gap-x-[0.4rem] rounded-[0.3rem] text-left hover:text-brand"
+        className="flex max-w-full min-w-0 flex-wrap items-baseline gap-x-[0.4rem] rounded-pill text-left hover:text-brand"
       >
         <span className="min-w-0 wrap-break-word">{shown}</span>
         {agent.session && (
@@ -114,7 +114,7 @@ const FULL: Intl.DateTimeFormatOptions = { dateStyle: "full", timeStyle: "long" 
 const CHAT_KINDS = new Set(["hermes-agent", "openclaw"])
 
 /** Who held the conversation: the agent, else the app that called, else how the runs were started. */
-export function conversationTitle(m: LogsWords, c: Conversation): string {
+function conversationTitle(m: LogsWords, c: Conversation): string {
   if (c.agent === "mcp-client" || (!c.agent && c.client)) return c.client?.name ?? m.mcpApp
   if (c.agent) return agentName(c.agent, m.mcpApp)
   return c.via ? viaName(m, c.via) : m.notInConversation
@@ -243,7 +243,7 @@ export function RunsTable({
                 e.stopPropagation()
                 onToggle(key, run)
               }}
-              className="grid size-[1.5rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+              className="grid size-[1.5rem] place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
             >
               <ExpandChevron open={open} />
             </button>
@@ -260,8 +260,8 @@ export function RunsTable({
     )
   }
 
-  // 56rem fits the page at the 960 px minimum window (13 px root, sidebar and gutters), so the chevron at the right
-  // edge stays on screen; only a narrower window scrolls sideways.
+  // 56rem fits the page at the 960 px minimum window (13 px root, sidebar and gutters) with the filter column folded,
+  // so the chevron at the right edge stays on screen. LogsPage shows that column only where both fit.
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[56rem] table-fixed border-collapse text-[0.95rem] [&_td]:pr-[0.7rem] [&_th]:pr-[0.7rem] [&_td:first-child]:pl-[0.8rem] [&_th:first-child]:pl-[0.8rem]">
@@ -282,7 +282,7 @@ export function RunsTable({
               <button
                 type="button"
                 onClick={onSort}
-                className="inline-flex items-center gap-1 rounded-[0.3rem] hover:text-ink"
+                className="inline-flex items-center gap-1 rounded-pill hover:text-ink"
                 title={newest ? m.newestFirst : m.oldestFirst}
               >
                 {m.time}

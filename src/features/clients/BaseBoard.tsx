@@ -95,7 +95,7 @@ export function BaseBoard({
             type="button"
             title={s.confirmCard(label.stage(suggested.name))}
             aria-label={s.confirmCard(label.stage(suggested.name))}
-            className="inline-flex min-w-0 rounded-[0.3rem] focus-visible:outline-2 focus-visible:outline-brand"
+            className="inline-flex min-w-0 rounded-pill focus-visible:outline-2 focus-visible:outline-brand"
             onClick={(e) => {
               e.stopPropagation()
               useClients.getState().openMap(c.account ? accountKey(c.account) : "")

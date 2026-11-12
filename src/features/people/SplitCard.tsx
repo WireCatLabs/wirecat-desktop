@@ -1,4 +1,4 @@
-import { Check, LoaderCircle } from "lucide-react"
+import { Check } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { Identity, PersonDetail, Split } from "@/platform/people-schemas"
@@ -15,7 +15,7 @@ import { accountName, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
 /** A ref memo gave, in words: the account's source and name from the person's own read, never the id itself. */
-export function useAccountWords() {
+function useAccountWords() {
   const m = useMessages(peopleMessages)
   const lang = useLang()
   return (ref: string, person: PersonDetail | null): string => {
@@ -63,12 +63,11 @@ export function SplitCard({ split }: { split: Split }) {
   const leaving: (Identity | string)[] = split.identities.map((ref) => held.current[ref] ?? ref)
   const from = split.merge ? person?.merges.find((x) => x.id === split.merge)?.from : null
   const evidence = split.evidence.filter((e) => !split.identities.includes(e) && e !== split.merge)
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   return (
     <article
       aria-labelledby={head}
-      className="flex min-w-0 flex-col gap-[0.75rem] rounded-[0.45rem] border border-line bg-app px-[1.1rem] py-[0.95rem]"
+      className="flex min-w-0 flex-col gap-[0.75rem] rounded-inset border border-line bg-app px-[1.1rem] py-[0.95rem]"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 id={head} className="min-w-0 font-medium">
@@ -77,14 +76,14 @@ export function SplitCard({ split }: { split: Split }) {
             type="button"
             aria-haspopup="dialog"
             onClick={() => reveal(split.person)}
-            className="rounded-[0.2rem] text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
+            className="rounded-rack text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
           >
             {name(split.person)}
           </button>
         </h3>
         <Proposer by={split.proposer} />
       </div>
-      <section className="flex flex-col gap-[0.4rem] rounded-[0.35rem] border border-line px-[0.85rem] py-[0.7rem]">
+      <section className="flex flex-col gap-[0.4rem] rounded-control border border-line px-[0.85rem] py-[0.7rem]">
         <p className="text-[0.9rem] text-ink-soft">
           {split.op !== "unmerge" ? m.becomeNew : from && name(from) !== m.noName ? m.goBackTo(name(from)) : m.goBack}
         </p>
@@ -150,13 +149,13 @@ export function SplitCard({ split }: { split: Split }) {
                 setAsking(false)
               }}
               className={cx(
-                "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+                "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 text-[1rem]",
                 invalidBorder,
               )}
             />
             {reason.hint}
             <span className="flex gap-2">
-              <Button type="submit" size="sm" disabled={!!busy} icon={busy ? spin : undefined}>
+              <Button type="submit" size="sm" disabled={!!busy} busy={!!busy}>
                 {m.keepNow}
               </Button>
               <Button size="sm" onClick={() => setAsking(false)}>
@@ -170,7 +169,7 @@ export function SplitCard({ split }: { split: Split }) {
               size="sm"
               variant="primary"
               disabled={!!busy}
-              icon={busy === "confirm" ? spin : undefined}
+              busy={busy === "confirm"}
               onClick={() => void decideSplit(split.id, "confirm")}
             >
               {split.op === "unmerge" ? m.undo : m.splitNow}

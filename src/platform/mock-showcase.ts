@@ -1,5 +1,6 @@
 import { findTool, ownerId, tools } from "@/domain/catalog"
 import type { StoreCompat } from "@/domain/compat"
+import { TOOLS_INTRO_KEY } from "@/domain/storage-keys"
 import type { Agent } from "./agents-schemas"
 import { delay } from "./mock-delay"
 import { SHOWCASE_TEXT, showcaseLang } from "./mock-showcase-text"
@@ -16,7 +17,7 @@ export const showcase = new URLSearchParams(typeof window === "undefined" ? "" :
 // ToolsIntro reads this key while it first renders, before any scenario runs.
 if (showcase) {
   try {
-    localStorage.setItem("wirecat.tools.intro", "hidden")
+    localStorage.setItem(TOOLS_INTRO_KEY, "hidden")
   } catch {
     // No storage: the intro shows, nothing else changes.
   }
@@ -212,8 +213,8 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     },
     async mcpRegistrations(agent) {
       await delay(300)
-      const canAdd = agent === "claude" || agent === "codex"
-      return { source: "~/.claude.json", names: SERVERS[agent] ?? [], canAdd, canRemove: canAdd, unread: null }
+      const canRemove = agent === "claude" || agent === "codex"
+      return { source: "~/.claude.json", names: SERVERS[agent] ?? [], canRemove, unread: null }
     },
     async taskClaims(id) {
       await delay(400)

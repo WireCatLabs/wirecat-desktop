@@ -1,4 +1,5 @@
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 type Package = "deb" | "rpm"
 
@@ -36,7 +37,7 @@ const en = {
   revealed: (file: string) =>
     `${file} is in your Downloads folder. Double-click it to open the installer, enter your password, then open WireCat again.`,
   terminal: "Or install from a terminal:",
-  copyCommand: "Copy the command",
+  copyCommand: uiMessages.en.copyCommand,
   openTerminal: "Open in terminal",
   terminalOpened: "Terminal opened. Enter your password there, and restart WireCat when the install ends.",
   terminalMissing: "No terminal found. Copy the command and run it yourself.",
@@ -94,7 +95,7 @@ const ru: typeof en = {
   revealed: (file) =>
     `${file} лежит в папке «Загрузки». Откройте его двойным щелчком, введите пароль, а после установки снова откройте WireCat.`,
   terminal: "Или установите из терминала:",
-  copyCommand: "Скопировать команду",
+  copyCommand: uiMessages.ru.copyCommand,
   openTerminal: "Открыть в терминале",
   terminalOpened: "Терминал открыт. Введите там пароль и перезапустите WireCat после установки.",
   terminalMissing: "Терминал не найден. Скопируйте команду и выполните её сами.",
@@ -152,7 +153,7 @@ const es: typeof en = {
   revealed: (file) =>
     `${file} está en tu carpeta Descargas. Ábrelo con doble clic, escribe tu contraseña y luego vuelve a abrir WireCat.`,
   terminal: "O instálalo desde una terminal:",
-  copyCommand: "Copiar el comando",
+  copyCommand: uiMessages.es.copyCommand,
   openTerminal: "Abrir en la terminal",
   terminalOpened: "Terminal abierta. Escribe ahí tu contraseña y reinicia WireCat cuando termine la instalación.",
   terminalMissing: "No se encontró una terminal. Copia el comando y ejecútalo tú.",

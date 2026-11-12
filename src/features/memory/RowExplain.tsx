@@ -1,4 +1,4 @@
-import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useId, useState } from "react"
 import { can, stateOf, toneOf } from "@/domain/memory"
 import { relationParts, roleIdOf, roleLabel, roleListFor } from "@/domain/relationships"
@@ -42,7 +42,7 @@ export function Outcome({ entry }: { entry: MemoryEntry }) {
   const state = stateOf(entry.status)
   const what = entry.type === "relationship" ? relationSentence(entry, m, x, roles) : textOf(entry, m, roles, x)
   return (
-    <section className="flex flex-col gap-[0.5rem] rounded-[0.45rem] border border-line bg-app px-[0.95rem] py-[0.8rem]">
+    <section className="flex flex-col gap-[0.5rem] rounded-inset border border-line bg-app px-[0.95rem] py-[0.8rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.whatWouldBeSaved}</h3>
       <p className="selectable text-[1rem] leading-snug font-medium">{what}</p>
       {state === "review" ? (
@@ -78,7 +78,7 @@ export function RelationSource({ entry }: { entry: MemoryEntry }) {
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.whereFrom}</h3>
       {from ? (
-        <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
+        <ul className="flex flex-col rounded-inset border border-line bg-app">
           <SourceItem
             source={{
               ref: from,
@@ -178,7 +178,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
               maxLength={80}
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand"
+              className="inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand"
             />
           )}
         </div>
@@ -196,7 +196,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
           type="submit"
           variant={proposal ? "primary" : "secondary"}
           disabled={!!busy}
-          icon={busy === "correct" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          busy={busy === "correct"}
         >
           {proposal ? x.saveAndApprove : x.save}
         </Button>
@@ -210,13 +210,8 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
             className="ml-auto text-bad hover:text-bad"
             disabled={!!busy}
             onClick={() => void removeRelation(entry.ref)}
-            icon={
-              busy === "remove" ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Trash2 className="size-4" aria-hidden />
-              )
-            }
+            busy={busy === "remove"}
+            icon={<Trash2 className="size-4" aria-hidden />}
           >
             {busy === "remove" ? x.removing : x.remove}
           </Button>
@@ -289,16 +284,11 @@ function AddRole({ list, taken, onAdded }: { list: string; taken: readonly strin
               }}
               {...need.field}
               className={cx(
-                "inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
+                "inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
                 invalidBorder,
               )}
             />
-            <Button
-              size="sm"
-              disabled={busy}
-              icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-              onClick={() => void add()}
-            >
+            <Button size="sm" disabled={busy} busy={busy} onClick={() => void add()}>
               {x.addRole}
             </Button>
             <Button size="sm" variant="secondary" onClick={close}>

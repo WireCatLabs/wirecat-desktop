@@ -1,5 +1,6 @@
 import * as v from "valibot"
 import type { ToolState } from "@/platform/schemas"
+import { safeStorage } from "./safe-storage"
 
 /**
  * The Tools page's last answer, kept for the next app start so the page opens with it while the tools are asked
@@ -28,19 +29,15 @@ const SavedSchema = v.object({
 })
 export type Saved = v.InferOutput<typeof SavedSchema>
 
-export function readSaved(storage: Pick<Storage, "getItem"> | undefined = globalThis.localStorage): Saved | null {
+export function readSaved(storage: Pick<Storage, "getItem"> = safeStorage): Saved | null {
   try {
-    const parsed = v.safeParse(SavedSchema, JSON.parse(storage?.getItem(KEY) ?? "null"))
+    const parsed = v.safeParse(SavedSchema, JSON.parse(storage.getItem(KEY) ?? "null"))
     return parsed.success ? parsed.output : null
   } catch {
     return null
   }
 }
 
-export function save(saved: Saved, storage: Pick<Storage, "setItem"> | undefined = globalThis.localStorage) {
-  try {
-    storage?.setItem(KEY, JSON.stringify(saved))
-  } catch {
-    // Without storage the next start simply asks the tools before showing them.
-  }
+export function save(saved: Saved, storage: Pick<Storage, "setItem"> = safeStorage) {
+  storage.setItem(KEY, JSON.stringify(saved))
 }

@@ -1,4 +1,5 @@
 import { type ReactNode, useId, useState } from "react"
+import { safeStorage } from "@/shared/safe-storage"
 import { Collapse } from "@/ui/Collapse"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 
@@ -6,20 +7,14 @@ const KEY = "wirecat.analytics.sections"
 
 function readOpen(): Record<string, boolean> {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) ?? "{}")
+    const v = JSON.parse(safeStorage.getItem(KEY) ?? "{}")
     return v && typeof v === "object" && !Array.isArray(v) ? v : {}
   } catch {
     return {}
   }
 }
 
-function writeOpen(id: string, open: boolean) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify({ ...readOpen(), [id]: open }))
-  } catch {
-    // No storage: the section still folds for this session.
-  }
-}
+const writeOpen = (id: string, open: boolean) => safeStorage.setItem(KEY, JSON.stringify({ ...readOpen(), [id]: open }))
 
 /**
  * A section of the page that folds under its heading, remembered between visits. Folded, its panels unmount, so the

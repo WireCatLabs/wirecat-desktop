@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
-import { errorMessage, isFunnelHost, publishWait, reachLamp } from "@/domain/connect-guide"
+import { isFunnelHost, publishWait, reachLamp } from "@/domain/connect-guide"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
+import { errorText } from "@/shared/errors"
+import { useNow } from "@/shared/use-elapsed"
+import { usePoll } from "@/shared/use-poll"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -32,7 +35,7 @@ export function ReachStep(props: {
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
   const firstMissing = useRef<number | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const now = useNow(reach.state === "publishing")
   const host = new URL(server.connectorUrl).host
   // Tailscale publishes a Funnel name itself, slowly; on a tunnel of the owner's the record already exists.
   const funnel = isFunnelHost(host)
@@ -45,7 +48,7 @@ export function ReachStep(props: {
       if (next.state === "publishing") firstMissing.current ??= Date.now()
       setReach(next)
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
     setChecking(false)
   }, [tool.id, setReach])
@@ -55,15 +58,7 @@ export function ReachStep(props: {
   }, [check])
 
   // While Tailscale publishes the name, look again on its own and show how long it has been.
-  useEffect(() => {
-    if (reach.state !== "publishing") return
-    const again = setInterval(check, RECHECK_MS)
-    const clock = setInterval(() => setNow(Date.now()), 1000)
-    return () => {
-      clearInterval(again)
-      clearInterval(clock)
-    }
-  }, [reach.state, check])
+  usePoll(check, RECHECK_MS, reach.state === "publishing")
 
   const waited = firstMissing.current === null ? 0 : now - firstMissing.current
   const { share, minutes } = publishWait(waited)
@@ -175,7 +170,7 @@ export function FunnelOff(props: {
       }
       await reload()
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -205,7 +200,7 @@ export function TunnelOff(props: { tool: CatalogTool; port: number; name: string
       await platform.cloudflareTunnelOpen(tool.id, port)
       await reload()
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }

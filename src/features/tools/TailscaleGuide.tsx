@@ -1,9 +1,11 @@
 import { Check } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { TailscaleDownload, TailscaleLinux, TailscaleStatus } from "@/platform/tailscale-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { errorText } from "@/shared/errors"
+import { terminalMessages } from "@/shared/messages-terminal"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -12,13 +14,13 @@ import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
+import { useTailscale } from "./api"
 import { connectMessages } from "./messages-connect"
 import { tunnelMessages } from "./messages-tunnel"
 import { type StepId, stepsOf } from "./tailscale-steps"
+import { DownloadRow, Note, Para } from "./tunnel-parts"
 
 type Words = (typeof tunnelMessages)["en"]["tailscale"]
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const PAGES = {
   download: {
@@ -60,64 +62,19 @@ export function guideUrl(step: StepId, s: TailscaleStatus): string {
   return `${GUIDE}#${section}`
 }
 
-/** Tailscale's state for the guide, read again on Check and whenever the window comes back into focus. */
-export function useTailscale(active: boolean) {
-  const [status, setStatus] = useState<TailscaleStatus | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [checking, setChecking] = useState(false)
-  const call = useRef(0)
-
-  const check = useCallback(async () => {
-    const mine = ++call.current
-    setChecking(true)
-    try {
-      const s = await platform.tailscaleStatus()
-      if (call.current === mine) {
-        setStatus(s)
-        setError(null)
-      }
-    } catch (e) {
-      if (call.current === mine) setError(message(e))
-    }
-    if (call.current === mine) setChecking(false)
-  }, [])
-
-  useEffect(() => {
-    if (!active) return
-    check()
-    // The owner installs, logs in or approves in another window; coming back is when the answer changes.
-    const onFocus = () => check()
-    const onVisible = () => document.visibilityState === "visible" && check()
-    window.addEventListener("focus", onFocus)
-    document.addEventListener("visibilitychange", onVisible)
-    return () => {
-      window.removeEventListener("focus", onFocus)
-      document.removeEventListener("visibilitychange", onVisible)
-    }
-  }, [active, check])
-
-  return { status, error, checking, check }
-}
-
-function Para({ children }: { children: ReactNode }) {
-  return <p className="max-w-[62ch]">{children}</p>
-}
-
-function Note({ children }: { children: ReactNode }) {
-  return <p className="max-w-[62ch] text-[0.9rem] text-ink-dim">{children}</p>
-}
-
 /** This Linux's commands from Tailscale, to copy or run in a terminal; the terminal gets them from Rust, not from here. */
 function Commands({ linux, label, m }: { linux: TailscaleLinux; label: string; m: Words }) {
   const [busy, setBusy] = useState(false)
+  const terminal = useMessages(terminalMessages)
   const [error, setError] = useState<string | null>(null)
   const open = async () => {
     setBusy(true)
     setError(null)
     try {
-      await platform.tailscaleTerminal("install")
+      const run = await platform.tailscaleTerminal("install")
+      if (!run.started) setError(run.reason === "automation" ? terminal.automation : terminal.terminal)
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -214,7 +171,7 @@ function InstallStep({ s, m }: { s: TailscaleStatus; m: Words }) {
     try {
       setDone(await platform.tailscaleDownload(s.package))
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -238,15 +195,15 @@ function InstallStep({ s, m }: { s: TailscaleStatus; m: Words }) {
         <Para>{s.os === "macos" ? m.downloadMacos : s.os === "windows" ? m.downloadWindows : m.downloadLinux}</Para>
       )}
       {s.package && !done && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="primary" onClick={download} disabled={busy}>
-            {busy ? m.downloading : desktop ? m.downloadInstaller : m.downloadPackage(s.package)}
-          </Button>
-          <span className="text-[0.9rem] text-ink-dim">{m.checksum}</span>
-        </div>
+        <DownloadRow
+          label={busy ? m.downloading : desktop ? m.downloadInstaller : m.downloadPackage(s.package)}
+          busy={busy}
+          checksum={m.checksum}
+          onDownload={download}
+        />
       )}
       {done && (
-        <div className="rounded-[0.4rem] border border-line bg-app-2 px-3 py-2 text-[0.9rem]">
+        <div className="rounded-button border border-line bg-app-2 px-3 py-2 text-[0.9rem]">
           <p>{m.saved(<span className="selectable font-mono text-ink">{done.path}</span>)}</p>
           <p>{done.opened ? (s.os === "macos" ? m.openedMacos : m.openedWindows) : m.shown}</p>
         </div>
@@ -266,11 +223,7 @@ function LoginStep({ s, m, check }: { s: TailscaleStatus; m: Words; check(): Pro
   const [waiting, setWaiting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!waiting) return
-    const t = setInterval(check, 2500)
-    return () => clearInterval(t)
-  }, [waiting, check])
+  useTailscale(waiting, 2500)
 
   const live = useRef(false)
   live.current = waiting
@@ -288,7 +241,7 @@ function LoginStep({ s, m, check }: { s: TailscaleStatus; m: Words; check(): Pro
     try {
       await platform.tailscaleLogin(setPage)
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
     }
     setWaiting(false)
     check()
@@ -447,7 +400,7 @@ export function TailscaleGuide({ tailscale }: { tailscale: ReturnType<typeof use
   }
 
   return (
-    <ol className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line" aria-label={m.list}>
+    <ol className="flex flex-col divide-y divide-line rounded-inset border border-line" aria-label={m.list}>
       {steps.map((step, i) => {
         const open = step.id === current
         return (

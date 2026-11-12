@@ -1,10 +1,13 @@
 pub mod agents;
+pub mod ai_model;
 pub mod app;
 pub mod clients;
 pub mod cloudflare;
 pub mod community;
+pub mod digests;
 pub mod enrichment;
 pub mod groups;
+pub mod mail_agent;
 pub mod mcp_server;
 pub mod memory;
 pub mod node;

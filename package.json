@@ -23,7 +23,7 @@
     "standards:check": "node config/wirecat/check.mjs",
     "secrets:scan": "gitleaks git --log-opts=HEAD --no-banner --redact --exit-code 1 .",
     "bundle:check": "node scripts/check-bundle.mjs",
-    "check": "pnpm standards:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm bundle:check && pnpm rust:fmt && pnpm rust:lint && pnpm rust:test",
+    "check": "pnpm standards:check && pnpm docs:lint && pnpm docs:spell && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm bundle:check && pnpm rust:fmt && pnpm rust:lint && pnpm rust:test",
     "prepare": "lefthook install || true"
   },
   "dependencies": {

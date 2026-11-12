@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import type { CheckWords } from "@/domain/agents"
 import { formatList, type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const enList = (items: readonly string[]) => formatList(items, "en")
 const ruList = (items: readonly string[]) => formatList(items, "ru")
@@ -164,7 +165,7 @@ const en = {
     current: "Current",
     stale: "Old",
     unversioned: "No version",
-    missing: "Not installed",
+    missing: uiMessages.en.notInstalled,
     unknown: "Update the tool to see",
     unsupported: "Needs a newer version",
     failed: "Could not check",
@@ -212,7 +213,7 @@ const en = {
   commandsRun: (n: number) => plural("en", n, { one: "# command", other: "# commands" }),
   failedCount: (n: number) => `${n} failed`,
   olderSessions: (n: number) => `and ${n} older on the Logs page`,
-  copyCommand: "Copy the command",
+  copyCommand: uiMessages.en.copyCommand,
 
   mcpTitle: "WireCat MCP servers",
   mcpIntro: (agent: string) =>
@@ -493,7 +494,7 @@ const ru: typeof en = {
     current: "Актуален",
     stale: "Устарел",
     unversioned: "Без версии",
-    missing: "Не установлен",
+    missing: uiMessages.ru.notInstalled,
     unknown: "Обновите инструмент",
     unsupported: "Нужна новая версия",
     failed: "Не удалось проверить",
@@ -541,7 +542,7 @@ const ru: typeof en = {
   commandsRun: (n) => ruCount(n, "команда", "команды", "команд"),
   failedCount: (n) => `с ошибкой: ${n}`,
   olderSessions: (n) => `и ещё ${n} — в журнале`,
-  copyCommand: "Скопировать команду",
+  copyCommand: uiMessages.ru.copyCommand,
 
   mcpTitle: "MCP-серверы WireCat",
   mcpIntro: (agent) =>
@@ -813,7 +814,7 @@ const es: typeof en = {
     current: "Al día",
     stale: "Antigua",
     unversioned: "Sin versión",
-    missing: "No instalada",
+    missing: uiMessages.es.notInstalled,
     unknown: "Actualiza la herramienta para verla",
     unsupported: "Necesita una versión más nueva",
     failed: "No se pudo comprobar",
@@ -861,7 +862,7 @@ const es: typeof en = {
   commandsRun: (n) => plural("es", n, { one: "# comando", other: "# comandos" }),
   failedCount: (n) => `${n} con error`,
   olderSessions: (n) => `y ${n} más antiguas en la página Registros`,
-  copyCommand: "Copiar el comando",
+  copyCommand: uiMessages.es.copyCommand,
 
   mcpTitle: "Servidores MCP de WireCat",
   mcpIntro: (agent) =>

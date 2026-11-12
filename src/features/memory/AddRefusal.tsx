@@ -1,8 +1,8 @@
 import { findTool } from "@/domain/catalog"
-import { reasonOf, tooOldFor } from "@/domain/memory-add"
-import { ToolNeeded } from "@/features/tools"
+import { reasonOf } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { ReportThis } from "@/shared/ReportThis"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -19,10 +19,11 @@ const AI_MODEL_REASONS: string[] = ["reader.no-key", "reader.ai-not-set"]
 export function Refusal() {
   const m = useMessages(addMessages)
   const error = useAddSource((s) => s.error)
+  const tooOld = useAddSource((s) => s.old)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
   const need = findTool("memo")?.memory?.minVersion
   const reason = error ? reasonOf(error) : null
-  const old = error !== null && !reason && tooOldFor(error) && need
+  const old = error !== null && !reason && tooOld && need
   return (
     <Collapse open={error !== null}>
       {old ? (

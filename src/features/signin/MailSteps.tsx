@@ -1,10 +1,10 @@
 import { Clock, Eye, EyeOff, FileJson, KeyRound } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { linkParts } from "@/domain/format"
 import type { AppPasswordProvider, MailNotes } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { OpenLink } from "@/shared/OpenLink"
 import { setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -12,11 +12,12 @@ import { CopyButton } from "@/ui/CopyButton"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { mailMessages } from "./messages-mail"
 import { telegramMessages } from "./messages-telegram"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 export function Numbered({ i }: { i: number }) {
   return (
@@ -43,7 +44,9 @@ function OpenPage({ url, label }: { url: string; label: string }) {
  */
 export function AppPasswordStep({ provider }: { provider: AppPasswordProvider }) {
   const m = useMessages(mailMessages)
-  const { planMissing, passwordProblem, method } = useSignIn()
+  const { planMissing, passwordProblem, method } = useSignIn(
+    useShallow((s) => ({ planMissing: s.planMissing, passwordProblem: s.passwordProblem, method: s.method })),
+  )
   const guide = m.guides[provider]
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
@@ -75,7 +78,7 @@ export function AppPasswordStep({ provider }: { provider: AppPasswordProvider })
       )}
       <section className="flex flex-col gap-2.5">
         <h3 className="text-[1.15rem] font-semibold text-ink">{guide.title}</h3>
-        <p className="flex items-start gap-2.5 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-body leading-snug font-medium text-ink">
+        <p className="flex items-start gap-2.5 rounded-pill border border-line bg-app-2 px-3 py-2.5 text-body leading-snug font-medium text-ink">
           <KeyRound className="mt-[0.1rem] size-[1.1rem] shrink-0 text-brand" aria-hidden />
           <span>{guide.notYours}</span>
         </p>
@@ -160,7 +163,7 @@ export function AppPasswordStep({ provider }: { provider: AppPasswordProvider })
 }
 
 /** A Google Desktop app client the way Google's console gives it; the tool reads only `installed`. */
-export const clientJson = (clientId: string, secret: string) =>
+const clientJson = (clientId: string, secret: string) =>
   JSON.stringify({ installed: { client_id: clientId.trim(), client_secret: secret.trim() } })
 
 const GOOGLE_CLIENT = /\.apps\.googleusercontent\.com$/
@@ -181,13 +184,14 @@ export function GoogleClient({
   onPick: () => void
 }) {
   const m = useMessages(mailMessages)
-  const { ownFile, planMissing } = useSignIn()
+  const { ownFile, planMissing } = useSignIn(useShallow((s) => ({ ownFile: s.ownFile, planMissing: s.planMissing })))
   const id = useId()
   const [typing, setTyping] = useState(false)
   const [clientId, setClientId] = useState("")
   const [secret, setSecret] = useState("")
   const [shown, setShown] = useState(false)
   const wrongId = clientId.trim() !== "" && !GOOGLE_CLIENT.test(clientId.trim())
+  const idNeed = useFieldError(`${id}-id`, { live: { problem: wrongId ? m.client.idWrong : null, early: true } })
   const update = (nextId: string, nextSecret: string) => {
     const good = GOOGLE_CLIENT.test(nextId.trim()) && nextSecret.trim() !== ""
     setClientFile(good ? nextId.trim() : null, good ? clientJson(nextId, nextSecret) : undefined)
@@ -239,13 +243,16 @@ export function GoogleClient({
             setClientId(e.target.value)
             update(e.target.value, secret)
           }}
-          aria-invalid={wrongId}
-          aria-describedby={`${id}-id-hint`}
+          {...idNeed.field}
+          aria-describedby={idNeed.field["aria-describedby"] ?? `${id}-id-hint`}
           className={FIELD}
         />
-        <p id={`${id}-id-hint`} className={cx("text-[0.9rem]", wrongId ? "text-bad" : "text-ink-soft")}>
-          {wrongId ? m.client.idWrong : m.client.idHint}
-        </p>
+        {idNeed.hint}
+        {idNeed.error === null && (
+          <p id={`${id}-id-hint`} className="text-[0.9rem] text-ink-soft">
+            {m.client.idHint}
+          </p>
+        )}
         <label htmlFor={`${id}-secret`} className="text-[0.9rem] font-medium text-ink">
           {m.client.secret}
         </label>
@@ -296,14 +303,9 @@ function Linked({ text }: { text: string }) {
         const url = new URL(part.text)
         return (
           <span key={part.at} className="inline-flex items-center gap-0.5 align-middle">
-            <button
-              type="button"
-              onClick={() => platform.openUrl(part.text)}
-              {...externalHref(part.text)}
-              className="rounded font-medium text-brand underline underline-offset-2 hover:text-brand-hover"
-            >
+            <ExtLink href={part.text} className="font-medium">
               {`${url.host}${url.pathname === "/" ? "" : url.pathname}`}
-            </button>
+            </ExtLink>
             <CopyButton value={part.text} label={tm.copyLink(url.host)} />
           </span>
         )

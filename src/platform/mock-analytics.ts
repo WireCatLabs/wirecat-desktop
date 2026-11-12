@@ -14,7 +14,7 @@ import type { Platform } from "./types"
 
 // The Analytics page in the browser build. `?analytics=real` (no preview, as the real app), `?analytics=old` (Telegram too old to count), `?analytics=fail` (the work
 // profile does not answer), `?analytics=empty` (nothing in any period). The preview stands in for what no tool counts
-// yet (plan `docs/dev/plans/2026-11-02-analytics.md`); the real app answers null for it.
+// yet; the real app answers null for it.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("analytics")

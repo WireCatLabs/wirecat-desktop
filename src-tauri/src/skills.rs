@@ -191,19 +191,7 @@ pub(crate) fn call_with_input(
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(&bin, &refs, Some(&paths::search_path()));
-    let (mut stdout, mut stderr) = (String::new(), String::new());
-    let code = run::stream_with_input(
-        cmd,
-        Some(input.as_bytes()),
-        timeout,
-        || false,
-        |line| match line {
-            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
-            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
-        },
-    )
-    .map_err(|e| e.to_string())?;
-    let out = run::Output { code, stdout, stderr };
+    let out = run::run_with_input(cmd, Some(input.as_bytes()), timeout, || false).map_err(|e| e.to_string())?;
     let json = out.json();
     Ok((out, json))
 }
@@ -213,10 +201,15 @@ pub(crate) fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
 }
 
-/// Whether an installed version is below `need`; an unknown version counts as too old, an unreadable `need` as met.
-pub(crate) fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
+/// A run that ended well: exit 0 and no `error` in its answer.
+pub(crate) fn ok(out: &run::Output, v: &Value) -> bool {
+    out.code == Some(0) && v.get("error").is_none()
+}
+
+/// A refusal's reason id. memo puts it on the error itself; its notes name `details.reason` as well.
+pub(crate) fn reason(json: Option<&Value>) -> Option<&str> {
+    let error = &json?["error"];
+    error["reason"].as_str().or_else(|| error["details"]["reason"].as_str())
 }
 
 pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {
@@ -343,7 +336,8 @@ pub struct SkillRefresh {
     pub failed: Option<String>,
 }
 
-fn older(installed: &str, version: &str) -> bool {
+/// Unlike `tools::older`, a copy whose stamp cannot be read is left alone: it may be somebody's own.
+fn stamped_before(installed: &str, version: &str) -> bool {
     match (semver::Version::parse(installed), semver::Version::parse(version)) {
         (Ok(installed), Ok(version)) => installed < version,
         _ => false,
@@ -361,7 +355,7 @@ fn refresh_targets(report: &SkillReport, version: &str) -> Vec<String> {
         .filter(|t| match t.state.as_deref() {
             Some("stale") => true,
             // `memo doctor` reports the version only.
-            None => t.installed.as_deref().is_some_and(|i| older(i, version)),
+            None => t.installed.as_deref().is_some_and(|i| stamped_before(i, version)),
             _ => false,
         })
         .map(|t| t.target.clone())
@@ -610,6 +604,9 @@ mod tests {
     #[test]
     #[ignore = "needs the tools installed"]
     fn real_skills() {
+        if !crate::probe::allowed() {
+            return;
+        }
         let found: Vec<_> =
             agents().into_iter().filter_map(|a| a.found_by.map(|f| format!("{} ({f})", a.name))).collect();
         println!("agents: {found:?}");

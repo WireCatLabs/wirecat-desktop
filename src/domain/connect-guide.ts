@@ -6,10 +6,8 @@ export type LampState = "busy" | "done" | "todo" | "failed"
 
 type Serving = { connectorUrl: string | null }
 
-export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /** What the Stop button on a Tailscale approval raises; the guide goes back a step instead of showing a failure. */
-export const wasStopped = (e: unknown) => errorMessage(e) === "Stopped."
+export const wasStopped = (e: unknown) => (e instanceof Error ? e.message : e) === "Stopped."
 
 export const viaTailscale = (t: Tunnel) => t === "tailscale" || t === "wirecat"
 
@@ -48,7 +46,7 @@ export function reachLamp(reach: Reach, checking: boolean): LampState {
 }
 
 /** Tailscale's own figure for a new Funnel name to appear in public DNS. */
-export const PUBLISH_MS = 10 * 60_000
+const PUBLISH_MS = 10 * 60_000
 
 export function publishWait(waited: number): { share: number; minutes: number } {
   return { share: Math.min(waited / PUBLISH_MS, 1), minutes: Math.floor(waited / 60_000) }
@@ -58,7 +56,7 @@ export function publishWait(waited: number): { share: number; minutes: number } 
 export const isFunnelHost = (host: string) => host.endsWith(".ts.net")
 
 /** How long the test waits before it suggests what may be wrong. */
-export const QUIET_MS = 60_000
+const QUIET_MS = 60_000
 
 export const quietDelay = (since: number, now: number) => Math.max(QUIET_MS - (now - since), 0)
 

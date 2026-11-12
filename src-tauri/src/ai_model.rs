@@ -27,7 +27,7 @@ const LIST_FAILED: &str = "ai.list-unreachable";
 /// memo's message can quote what the provider answered, including part of a key. Only a reason the page words, or
 /// commander's refusal of a command an older memo lacks, goes on; anything else comes back as `memo.refused`.
 fn guarded(e: String) -> String {
-    let old = e.contains("unknown command") || e.contains("unknown option");
+    let old = crate::memo_cli::unknown_to_cli(&e);
     let worded = e.starts_with("ai.") || e == "local-only.refused" || e == crate::memory_add::REFUSED;
     if worded || old && e.len() < 200 { e } else { crate::memory_add::REFUSED.into() }
 }

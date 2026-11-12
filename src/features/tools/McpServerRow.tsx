@@ -5,6 +5,7 @@ import { platform } from "@/platform/bridge"
 import type { TunnelRoute } from "@/platform/cloudflare-schemas"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
@@ -24,8 +25,6 @@ export type RowState =
   | { state: "error"; message: string }
 
 type Busy = "stopping" | "copying" | "closing" | null
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const clock = (iso: string, lang: Lang) => {
   const when = new Date(iso)
@@ -93,7 +92,7 @@ export function McpServerRow(props: {
       if (funnel?.live) await platform.tailscaleFunnelClose(tool.id)
       if (route) await platform.cloudflareTunnelClose(tool.id)
     } catch (e) {
-      setFailure(message(e))
+      setFailure(errorText(e))
     }
     setBusy(null)
     reload()
@@ -105,7 +104,7 @@ export function McpServerRow(props: {
     try {
       await platform.tailscaleFunnelClose(tool.id)
     } catch (e) {
-      setFailure(message(e))
+      setFailure(errorText(e))
     }
     setBusy(null)
     reload()
@@ -117,7 +116,7 @@ export function McpServerRow(props: {
     try {
       await navigator.clipboard.writeText(await platform.mcpServerConfig(tool.id))
     } catch (e) {
-      setFailure(message(e))
+      setFailure(errorText(e))
     }
     setBusy(null)
   }

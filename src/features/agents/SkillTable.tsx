@@ -77,7 +77,7 @@ export function AgentCta({ view, all }: { view: AgentView; all: AgentsView }) {
     return (
       <span
         aria-hidden
-        className="skeleton inline-flex h-8 items-center gap-2 rounded-[0.35rem] border border-transparent px-3 text-[0.875rem] font-medium whitespace-nowrap"
+        className="skeleton inline-flex h-8 items-center gap-2 rounded-control border border-transparent px-3 text-[0.875rem] font-medium whitespace-nowrap"
       >
         <StableText className="invisible" value={m.installAll} variants={[m.installAll, m.updateAll]} />
         <span className="invisible tabular-nums">0</span>
@@ -113,7 +113,7 @@ export function SkillTable({ view, loading }: { view: AgentView; loading: boolea
   const at = Math.min(page, Math.max(1, Math.ceil(view.skills.length / size)))
   if (loading)
     return (
-      <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-[0.45rem] border border-line">
+      <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-inset border border-line">
         {[0, 1, 2].map((i) => (
           <li key={i} className="px-4 py-2">
             <div className={row}>
@@ -126,7 +126,7 @@ export function SkillTable({ view, loading }: { view: AgentView; loading: boolea
     )
   return (
     <>
-      <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-[0.45rem] border border-line">
+      <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-inset border border-line">
         {view.skills.slice((at - 1) * size, at * size).map((s) => {
           const look = skillLook(s, m)
           const version = s.cell.kind === "current" || s.cell.kind === "stale" ? s.cell.installed : null

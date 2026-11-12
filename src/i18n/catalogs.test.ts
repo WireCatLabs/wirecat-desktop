@@ -1,7 +1,28 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { LANGS, type Messages, plural, systemLang } from "."
+import { storageMessages } from "@/features/storage/messages"
+import { ownReviewMessages } from "@/features/tools/messages-own-review"
+import { syncScheduleMessages } from "@/features/tools/messages-sync-schedule"
+import { LANGS, type Messages, plural, pluralRu, systemLang } from "."
 
 const modules = import.meta.glob<Record<string, Messages<unknown>>>("/src/**/messages*.{ts,tsx}", { eager: true })
+const ROOT = join(__dirname, "../..")
+
+/** Words Spanish writes as English does, where Russian does not: a Spanish copy of them is not English left over. */
+const SAME_IN_SPANISH = new Set([
+  ...["Audio", "App", "Bot", "Bots", "bot", "chat", "Chats", "Lead", "Mentor", "Personal", "personal", "Sticker"],
+  ...["Terminal", "Token", "Total", "Google Drive", "Google Calendar", "Yandex", "Beeline Cloud PBX"],
+])
+
+/** The object literal that starts at `from`, up to its own closing brace: `${…}` inside it nests. */
+function formsAt(text: string, from: number) {
+  let depth = 1
+  let i = from
+  for (; i < text.length && depth > 0; i++) depth += text[i] === "{" ? 1 : text[i] === "}" ? -1 : 0
+  return text.slice(from, i - 1)
+}
+
 const catalogs = Object.entries(modules).flatMap(([file, mod]) =>
   Object.entries(mod).map(([name, messages]) => ({ where: `${file} ${name}`, messages })),
 )
@@ -37,6 +58,51 @@ describe("message catalogs", () => {
       ([key, v]) => !/[а-яё]/i.test(String(v)) && String(v) !== String(english.get(key)),
     )
     expect(leftover.map(([key]) => key)).toEqual([])
+  })
+
+  it.each(catalogs)("$where has Spanish written for Spanish, not English left over", ({ messages }) => {
+    const english = new Map(leaves(messages.en))
+    const russian = new Map(leaves(messages.ru))
+    // Where Russian has words of its own, a Spanish leaf equal to the English one was not translated.
+    const leftover = leaves(messages.es).filter(
+      ([key, v]) =>
+        typeof v === "string" && v === english.get(key) && russian.get(key) !== v && !SAME_IN_SPANISH.has(v),
+    )
+    expect(leftover.map(([key]) => key)).toEqual([])
+  })
+
+  it("gives every Russian count its one and few forms", () => {
+    const calls = Object.keys(modules).flatMap((file) => {
+      const text = readFileSync(join(ROOT, file), "utf8")
+      return [...text.matchAll(/plural\("ru",[^{)]*\{/g)].map((m) => [
+        file,
+        formsAt(text, (m.index ?? 0) + m[0].length),
+      ])
+    })
+    expect(calls.length).toBeGreaterThan(20)
+    expect(calls.filter(([, forms]) => !/\bone:/.test(forms ?? "") || !/\bfew:/.test(forms ?? ""))).toEqual([])
+  })
+
+  it("writes Russian counts in all three forms through pluralRu", () => {
+    const versions = ["# версия", "# версии", "# версий"] as const
+    expect([1, 3, 5, 21, 1.5].map((n) => pluralRu(n, versions))).toEqual([
+      "1 версия",
+      "3 версии",
+      "5 версий",
+      "21 версия",
+      "1,5 версии",
+    ])
+  })
+
+  it("counts in Russian where a bare number used to stand", () => {
+    const signals = ownReviewMessages.ru.signals
+    expect(signals.fewVersions(5)[0]).toBe("В npm только 5 версий")
+    expect(signals.newPackage(5)[0]).toBe("Впервые опубликован в npm 5 дней назад")
+    expect(syncScheduleMessages.ru.failingSince("вчера", 2)).toContain("2 раза подряд")
+  })
+
+  it("names the Settings page by its name", () => {
+    expect(storageMessages.en.entry.config).toContain("the Settings page")
   })
 
   it("counts in each language's own plural forms", () => {

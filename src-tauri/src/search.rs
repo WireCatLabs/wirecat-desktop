@@ -136,9 +136,9 @@ pub fn args(
 /// `--exact` for a version older than `below`, or one that cannot say: a filter that does not hold is worse than no
 /// search by meaning.
 fn with_exact(mut args: Vec<String>, below: Option<&str>, version: Option<&str>) -> Vec<String> {
-    let Some(below) = below.and_then(|b| semver::Version::parse(b).ok()) else { return args };
-    let old = version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < below);
-    if old && let Some(at) = args.iter().position(|a| a == "--no-record") {
+    if below.is_some_and(|below| crate::tools::older(version, below))
+        && let Some(at) = args.iter().position(|a| a == "--no-record")
+    {
         args.insert(at, "--exact".into());
     }
     args
@@ -320,7 +320,7 @@ pub(crate) fn read_shaped(shape: SearchShape, paged: bool, out: &run::Output, li
         if let Some(refused) = notes.iter().find_map(|n| refused_note(n)) {
             return refused;
         }
-        if let Some(note) = notes.iter().find(|n| n.contains(" not searched: ")).or(notes.first()) {
+        if let Some(note) = notes.iter().find(|n| n.contains(" not searched: ")).or_else(|| notes.first()) {
             return Answer::Failed { message: note.clone(), candidates: Vec::new() };
         }
     }
@@ -379,7 +379,7 @@ fn error_of(stderr: &str, stdout: &str) -> Answer {
         .find_map(|l| serde_json::from_str::<Value>(l.trim()).ok().filter(|v| v["error"].is_object()));
     let Some(error) = error else {
         let message = last_line(stderr, stdout);
-        return if too_old(&message) {
+        return if crate::memo_cli::unknown_to_cli(&message) {
             Answer::Old { message }
         } else {
             Answer::Failed { message, candidates: Vec::new() }
@@ -396,7 +396,7 @@ fn error_of(stderr: &str, stdout: &str) -> Answer {
         let span = span_of(&e["details"]["span"]);
         return Answer::QueryError { reason: reason.to_string(), message, span };
     }
-    if too_old(&message) {
+    if crate::memo_cli::unknown_to_cli(&message) {
         Answer::Old { message }
     } else {
         Answer::Failed { message, candidates: candidates_of(&e["details"]["candidates"]) }
@@ -417,7 +417,7 @@ fn candidates_of(v: &Value) -> Vec<Candidate> {
             let username = text("username").map(|u| format!("@{}", u.trim_start_matches('@')));
             let (label, field) = match (text("title"), text("name"), username) {
                 (Some(t), _, _) => (Some(t), Some("chat")),
-                (None, Some(n), u) => (Some(u.map_or(n.clone(), |u| format!("{n} · {u}"))), Some("from")),
+                (None, Some(n), u) => (Some(u.map_or_else(|| n.clone(), |u| format!("{n} · {u}"))), Some("from")),
                 (None, None, Some(u)) => (Some(u), Some("from")),
                 _ => (None, None),
             };
@@ -444,12 +444,6 @@ fn refused_note(note: &str) -> Option<Answer> {
         .and_then(|p| p.parse::<u32>().ok())
         .map(|p| Span { start: p.saturating_sub(1), end: p.saturating_sub(1) });
     Some(Answer::QueryError { reason, message: note.to_string(), span })
-}
-
-fn too_old(message: &str) -> bool {
-    message.starts_with("unknown command")
-        || message.starts_with("unknown option")
-        || message.starts_with("too many arguments")
 }
 
 #[cfg(test)]
@@ -822,10 +816,10 @@ mod tests {
     #[test]
     #[ignore = "needs the tools installed and signed in"]
     fn real_values() {
-        for (id, profile) in [("tg", "personal"), ("wa", "personal"), ("max", "mila")] {
-            let tool = catalog::tool(id).unwrap();
+        for (id, profile) in crate::probe::accounts() {
+            let tool = catalog::tool(&id).unwrap();
             for name in ["chats", "contacts", "tags"] {
-                let found = values(tool, Some(profile), name).unwrap();
+                let found = values(tool, profile.as_deref(), name).unwrap();
                 println!("{id} {name}: {}", found.len());
             }
         }
@@ -865,18 +859,10 @@ mod tests {
     #[test]
     #[ignore = "needs the tools installed and signed in"]
     fn real_search() {
-        let runs = [
-            ("tg", Some("personal")),
-            ("wa", Some("personal")),
-            ("zm", Some("personal")),
-            ("drive", Some("personal")),
-            ("memo", None),
-            ("email", Some("personal")),
-        ];
-        for (id, profile) in runs {
-            let tool = catalog::tool(id).unwrap();
+        for (id, profile) in crate::probe::accounts() {
+            let tool = catalog::tool(&id).unwrap();
             for query in ["hello", "bogus:x"] {
-                match search(tool, profile, query, 5, 1).unwrap() {
+                match search(tool, profile.as_deref(), query, 5, 1).unwrap() {
                     Answer::Hits { hits, has_more, notes, .. } => {
                         println!("{id} {query}: {} hits, has_more={has_more}, {} notes", hits.len(), notes.len());
                     }

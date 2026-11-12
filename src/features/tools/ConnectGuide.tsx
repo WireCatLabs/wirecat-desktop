@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import {
-  errorMessage,
   type Failure,
   funnelStopped,
   isLocalAddress,
@@ -16,10 +15,12 @@ import { platform } from "@/platform/bridge"
 import type { TunnelRoute } from "@/platform/cloudflare-schemas"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
+import { errorText } from "@/shared/errors"
+import { usePoll } from "@/shared/use-poll"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { focusInPlace } from "@/ui/motion"
-import { useCloudflare } from "./CloudflareGuide"
+import { useCloudflare, useFunnelHelper, useTailscale } from "./api"
 import { AddressStep, DEFAULT_PORT } from "./ConnectAddress"
 import { ChooseStep, ConnectStep } from "./ConnectApp"
 import { Rail } from "./ConnectRail"
@@ -30,10 +31,8 @@ import type { AppId } from "./connect-apps"
 import { Progress } from "./connect-parts"
 import { scenarioOf } from "./connect-scenario"
 import { type ConnectStepId, currentStep, type ReachState, serving, testState } from "./connect-steps"
-import { useFunnelHelper } from "./FunnelHelperGuide"
 import { useKept } from "./kept"
 import { connectMessages } from "./messages-connect"
-import { useTailscale } from "./TailscaleGuide"
 
 const POLL_MS = 4000
 
@@ -102,11 +101,7 @@ export function ConnectGuide(props: {
   }, [current, test.state, setAdded])
 
   const watching = (current === "connect" || current === "test") && test.state !== "called"
-  useEffect(() => {
-    if (!watching) return
-    const t = setInterval(reload, POLL_MS)
-    return () => clearInterval(t)
-  }, [watching, reload])
+  usePoll(reload, POLL_MS, watching)
 
   // Strict mode runs effects twice; the server must start once per press.
   const start = useCallback(async () => {
@@ -147,7 +142,7 @@ export function ConnectGuide(props: {
         setConfirmed(false)
         return
       }
-      setFailure({ at, message: errorMessage(e) })
+      setFailure({ at, message: errorText(e) })
       setPhase("failed")
     }
   }, [tunnel, tool.id, port, ownUrl, settle, setConfirmed])
@@ -217,7 +212,7 @@ export function ConnectGuide(props: {
       <AutoHeight swap={current} className="min-w-0">
         <div
           key={current}
-          className="step-in flex min-w-0 flex-col gap-3.5 rounded-[0.45rem] border border-line bg-app px-5 py-4"
+          className="step-in flex min-w-0 flex-col gap-3.5 rounded-inset border border-line bg-app px-5 py-4"
           aria-live="polite"
         >
           <h5 ref={heading} tabIndex={-1} className="step-heading scroll-mt-3 text-[1.05rem] font-semibold text-ink">

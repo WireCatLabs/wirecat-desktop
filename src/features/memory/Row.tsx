@@ -5,7 +5,6 @@ import {
   FolderKanban,
   Link2,
   ListChecks,
-  LoaderCircle,
   MessageSquareQuote,
   Pencil,
   User,
@@ -18,7 +17,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { StandingPill } from "@/shared/StandingPill"
 import { AutoHeight } from "@/ui/AutoHeight"
-import { Button } from "@/ui/Button"
+import { Button, busyIcon } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyRef } from "@/ui/CopyRef"
 import { cx } from "@/ui/cx"
@@ -173,13 +172,12 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
   const rejectItem = allowed.discard && undoLabel && { label: undoLabel, onSelect: () => discard(entry.ref) }
   const eraseItem = allowed.forget && { label: m.forget, danger: true, onSelect: () => askForget(entry.ref) }
   const approve = { label: m.approve, onClick: () => confirm(entry.ref) }
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   // A record in use leads with what the owner most likely wants: the task it became, what it created, or an edit.
   const settled =
     undo === "task" && entry.task
       ? {
           label: m.openTask,
-          icon: busy === "open" ? spin : <ListChecks className="size-4" aria-hidden />,
+          icon: busy === "open" ? busyIcon : <ListChecks className="size-4" aria-hidden />,
           onClick: () => entry.task && openTask(entry.ref, entry.task),
         }
       : undo === "created"
@@ -220,7 +218,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
                 onClick={onHead}
                 aria-expanded={open}
                 aria-controls={panel}
-                className="group flex min-w-0 flex-1 cursor-pointer items-start gap-[0.6rem] rounded-[0.3rem] text-left"
+                className="group flex min-w-0 flex-1 cursor-pointer items-start gap-[0.6rem] rounded-pill text-left"
               >
                 <span className="block min-w-0 flex-1">
                   <span className="flex items-center gap-[0.4rem]">{label}</span>
@@ -232,7 +230,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
                         "selectable min-w-0 text-[1rem] leading-snug font-medium",
                         open ? "whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
                         editable &&
-                          "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
+                          "-mx-[0.3rem] cursor-text rounded-pill px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
                       )}
                     >
                       {textOf(entry, m, roles, x)}
@@ -267,17 +265,12 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
             </Button>
           ) : allowed.confirm ? (
             <>
-              <Button
-                variant="ghost"
-                disabled={!!busy}
-                onClick={() => discard(entry.ref)}
-                icon={busy === "discard" ? spin : undefined}
-              >
+              <Button variant="ghost" disabled={!!busy} onClick={() => discard(entry.ref)} busy={busy === "discard"}>
                 {m.discard}
               </Button>
               <SplitButton
                 disabled={!!busy}
-                main={{ ...approve, ...(busy === "confirm" ? { icon: spin } : {}) }}
+                main={{ ...approve, ...(busy === "confirm" ? { icon: busyIcon } : {}) }}
                 items={[correctItem, eraseItem].filter((i) => !!i)}
                 menuLabel={m.moreActions}
                 moreLabel={m.moreButton}

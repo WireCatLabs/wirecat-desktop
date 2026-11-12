@@ -10,13 +10,18 @@ import {
 } from "@/domain/bitrix-signin"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
+import { type Gap, gapOf } from "@/domain/needs"
 import type { FailedAt } from "@/domain/signin-failure"
-import { isNewer } from "@/domain/status"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
+import { tooOld as refusedAsOld } from "@/platform/command-error"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
 import { useSandbox } from "@/shared/sandbox-store"
 import { useTools } from "@/shared/tools-store"
+import { errorText } from "./errors"
+
+/** A sign-in command the installed tool lacks is `signin.rs`'s "needs update", whichever way it failed. */
+const failedCode = (e: unknown) => (refusedAsOld(e) ? "needs_update" : null)
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
 export type Qr = Of<"qr">
@@ -245,19 +250,21 @@ export const methodOf = (tool: string, method: string | null) => {
   return entry ? signInMethods(entry).find((m) => m.id === method) : undefined
 }
 
-/** The installed version and the one needed, when it predates the method's sign-in with the tool's own app. */
-export const oauthTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
-  const need = tool ? methodOf(tool, method)?.oauthMinVersion : undefined
-  const version = tool ? installs[tool]?.[0]?.version : null
-  return need && version && isNewer(need, version) ? { version, need } : null
+type Installs = ReturnType<typeof useTools.getState>["installs"]
+
+function tooOld(tool: string | null, need: string | null | undefined, installs: Installs): Gap | null {
+  if (!tool || !need) return null
+  const gap = gapOf({ anyOf: [tool], minVersion: need }, (id) => ({ version: installs[id]?.[0]?.version }))
+  return gap !== "unknown" && gap?.kind === "old" ? gap : null
 }
 
-/** The installed version and the one needed, when it predates the method itself. */
-export const methodTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
-  const need = tool ? methodOf(tool, method)?.minVersion : undefined
-  const version = tool ? installs[tool]?.[0]?.version : null
-  return need && version && isNewer(need, version) ? { version, need } : null
-}
+/** The installed tool, when it predates the method's sign-in with the tool's own app. */
+export const oauthTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) =>
+  tooOld(tool, tool ? methodOf(tool, method)?.oauthMinVersion : undefined, installs)
+
+/** The installed tool, when it predates the method itself. */
+export const methodTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) =>
+  tooOld(tool, tool ? methodOf(tool, method)?.minVersion : undefined, installs)
 
 function inputsFor(
   tool: string,
@@ -290,8 +297,6 @@ const STOP_MS = 8000
 const previousEnded = () => Promise.race([ending, new Promise((done) => setTimeout(done, STOP_MS))])
 
 const bothKeys = () => [...KEPT].every((k) => keys.has(k))
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** Nobody waits for this stop: the run's end is ignored, and the next run waits for it through `ending`. */
 const stopInBackground = (tool: string) => {
@@ -330,7 +335,9 @@ export const useSignIn = create<SignInState>()((set, get) => {
         const key = keys.get(e.field)
         const { tool, reuse } = get()
         if (reuse && tool && key !== undefined && KEPT.has(e.field)) {
-          platform.signInAnswer(tool, key).catch((err) => apply({ event: "failed", message: message(err), code: null }))
+          platform
+            .signInAnswer(tool, key)
+            .catch((err) => apply({ event: "failed", message: errorText(err), code: failedCode(err) }))
           return
         }
         const provider = guidedProvider(get())
@@ -340,7 +347,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           typed.sentIn = get().run
           platform
             .signInAnswer(tool, value)
-            .catch((err) => apply({ event: "failed", message: message(err), code: null }))
+            .catch((err) => apply({ event: "failed", message: errorText(err), code: failedCode(err) }))
           return
         }
         const page = linkIn(e.hint)
@@ -534,7 +541,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           if (mine() && running(get().phase))
             apply({ event: "failed", message: "The sign-in ended without saying how.", code: ENDED })
         },
-        (e) => mine() && apply({ event: "failed", message: message(e), code: null }),
+        (e) => mine() && apply({ event: "failed", message: errorText(e), code: failedCode(e) }),
       )
     },
     begin() {
@@ -564,7 +571,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
         set({ planError: null })
         platform
           .settingsSet(tool, profile, false, setting, ownId.trim())
-          .then(run, (e) => set({ planError: message(e) }))
+          .then(run, (e) => set({ planError: errorText(e) }))
       }
       const launch = tool === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go
       if (!useSandbox.getState().name) return launch()
@@ -605,7 +612,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const { tool, phase, stopping } = get()
       if (!tool || !running(phase) || stopping) return
       set({ stopping: true })
-      platform.signInStop(tool).catch((e) => apply({ event: "failed", message: message(e), code: null }))
+      platform.signInStop(tool).catch((e) => apply({ event: "failed", message: errorText(e), code: failedCode(e) }))
     },
     close() {
       const { tool, phase, onFinish } = get()

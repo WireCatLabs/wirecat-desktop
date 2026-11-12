@@ -38,11 +38,12 @@ describe("Config", () => {
     render(<ConfigPage />)
     await screen.findByRole("radio", { name: "work" })
     const group = screen.getByRole("group", { name: "Profile" })
-    expect(
-      within(group)
-        .getAllByRole("radio")
-        .map((r) => r.closest("label")?.textContent),
-    ).toEqual(["Defaults (all profiles)", "personal", "work"])
+    const radio = (name: string) => within(group).getByRole("radio", { name })
+    expect(within(group).getAllByRole("radio")).toEqual([
+      radio("Defaults (all profiles)"),
+      radio("personal"),
+      radio("work"),
+    ])
   })
 
   it("asks for the defaults without waiting for the profile list", async () => {
@@ -65,10 +66,10 @@ describe("Config", () => {
     const user = userEvent.setup()
     render(<ConfigPage />)
 
-    await user.click(screen.getByRole("radio", { name: /Telegram/ }))
+    await user.click(within(screen.getByRole("group", { name: "Tool" })).getByRole("radio", { name: "Telegram" }))
     expect(screen.getByRole("tab", { name: "Settings" })).toBeInTheDocument()
     await user.click(await screen.findByRole("radio", { name: "work" }))
-    expect(await screen.findByRole("switch", { name: /^record/ }, { timeout: 3000 })).toBeInTheDocument()
+    expect(await screen.findByRole("switch", { name: /^record/ })).toBeInTheDocument()
     expect(screen.getByText(/TG_REQUESTS_PER_MINUTE/)).toBeInTheDocument()
 
     await user.click(screen.getByRole("tab", { name: "JSON" }))
@@ -94,14 +95,14 @@ describe("Config", () => {
     await user.click(await screen.findByRole("button", { name: "Save" }))
     expect(await screen.findByText("Nothing is changed yet.")).toBeInTheDocument()
     expect(JSON.parse(editor.value)).toMatchObject({ limit: 25, record: false })
-  }, 15000)
+  })
 
   it("finds keys and values in the JSON and steps through the matches", async () => {
     const user = userEvent.setup()
     render(<ConfigPage />)
     await user.click(screen.getByRole("radio", { name: /Telegram/ }))
     await user.click(await screen.findByRole("radio", { name: "work" }))
-    await screen.findByRole("switch", { name: /^record/ }, { timeout: 3000 })
+    await screen.findByRole("switch", { name: /^record/ })
     await user.click(screen.getByRole("tab", { name: "JSON" }))
     const editor = screen.getByRole("textbox", { name: "Settings as JSON" }) as HTMLTextAreaElement
     const box = screen.getByRole("searchbox", { name: "Find in the JSON" })
@@ -138,14 +139,14 @@ describe("Config", () => {
     const dialog = await screen.findByRole("dialog", { name: "Discard unsaved JSON changes?" })
     await user.click(within(dialog).getByRole("button", { name: "Keep editing" }))
     expect(screen.getByRole("radio", { name: "personal" })).toBeChecked()
-  }, 15000)
+  })
 
   it("keeps shared settings out of a profile's list", async () => {
     const user = userEvent.setup()
     render(<ConfigPage />)
     await user.click(screen.getByRole("radio", { name: /Telegram/ }))
     await user.click(await screen.findByRole("radio", { name: "work" }))
-    const list = await screen.findByRole("list", { name: "Settings" }, { timeout: 3000 })
+    const list = await screen.findByRole("list", { name: "Settings" })
     expect(within(list).getByText("limit")).toBeInTheDocument()
     expect(within(list).queryByText(/task_categories|phone_countries/)).not.toBeInTheDocument()
   })
@@ -157,7 +158,7 @@ describe("Config", () => {
     useTools.setState({ installs: installed })
     render(<ConfigPage />)
     await user.click(await screen.findByRole("radio", { name: "WireCat (shared)" }))
-    const list = await screen.findByRole("list", { name: "Task categories" }, { timeout: 3000 })
+    const list = await screen.findByRole("list", { name: "Task categories" })
     expect(screen.getByText(/Read through/)).toHaveTextContent("tg 0.88.0")
     expect(screen.queryByRole("radio", { name: "work" })).not.toBeInTheDocument()
 
@@ -182,7 +183,7 @@ describe("Config", () => {
     expect(await screen.findByText(/Removed/)).toBeInTheDocument()
     expect(within(list).queryByText("garden")).not.toBeInTheDocument()
     expect(within(list).queryByRole("button", { name: "Remove other" })).not.toBeInTheDocument()
-  }, 15000)
+  })
 
   it("keeps Save and Format clickable: nothing changed says so, broken JSON marks the editor and puts the caret in it", async () => {
     const user = userEvent.setup()
@@ -211,7 +212,7 @@ describe("Config", () => {
     screen.getByRole("button", { name: "Save" }).focus()
     await user.click(screen.getByRole("button", { name: "Save" }))
     expect(editor).toHaveFocus()
-  }, 15000)
+  })
 
   it("turns an error already on screen into Russian when the language changes", async () => {
     const user = userEvent.setup()
@@ -228,11 +229,11 @@ describe("Config", () => {
     expect(screen.getByText("JSON не разбирается начиная с broken. Не пропущена ли запятая или кавычка?")).toBeVisible()
     expect(screen.getByRole("tab", { name: "Настройки" })).toBeInTheDocument()
     expect(screen.getByText("Строка 1")).toBeInTheDocument()
-  }, 15000)
+  })
 })
 
 describe("Config with no tool installed", () => {
-  it("says to install a tool, links to Tools, and marks each chip Not installed", async () => {
+  it("says to install a tool, links to Tools, and names the tools left out in the tip", async () => {
     const { useNav } = await import("@/shared/nav")
     const none = { tg: [], max: [], wa: [], zm: [], drive: [], gcal: [], memo: [], email: [] }
     useTools.setState({ installs: none })
@@ -241,7 +242,10 @@ describe("Config with no tool installed", () => {
     render(<ConfigPage />)
 
     expect(await screen.findByText("Install a tool to change its settings.")).toBeInTheDocument()
-    expect(screen.getByRole("radio", { name: "Telegram" }).closest("label")).toHaveAttribute("title", "Not installed")
+    expect(screen.queryByRole("radio", { name: "Telegram" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Tools not shown" }))
+    expect(await screen.findByText(/^Not installed: Telegram, MAX, WhatsApp/)).toBeInTheDocument()
+    expect(screen.getByText("Install Telegram, MAX or WhatsApp to change shared settings")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Open Tools" }))
     expect(useNav.getState().active).toBe("tools")
   })

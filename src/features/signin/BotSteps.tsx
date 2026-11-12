@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { botCause, botCommand, botHandle, fieldProblem, tokenProblem } from "@/domain/bot-signin"
 import { type CatalogTool, isValidProfile } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
@@ -11,6 +12,7 @@ import { CopyField } from "@/ui/CopyField"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError } from "@/ui/FieldError"
 import { focusInPlace } from "@/ui/motion"
 import { noticeBox } from "@/ui/notice"
 import { SecretField } from "@/ui/SecretField"
@@ -20,13 +22,13 @@ export const NAME_FORM = "bot-name-form"
 export const TOKEN_FORM = "bot-token-form"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 const toolKey = (id: string): BotTool => (id === "max" || id === "wa" ? id : "tg")
 
 export function NameStep({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
-  const s = useBotSignIn()
+  const s = useBotSignIn(useShallow((s) => ({ bots: s.bots, profile: s.profile, toToken: s.toToken })))
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(s.profile)
@@ -79,7 +81,16 @@ export function NameStep({ tool }: { tool: CatalogTool }) {
 
 export function TokenStep({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
-  const s = useBotSignIn()
+  const s = useBotSignIn(
+    useShallow((s) => ({
+      checking: s.checking,
+      connect: s.connect,
+      failure: s.failure,
+      fields: s.fields,
+      reconnecting: s.reconnecting,
+      setField: s.setField,
+    })),
+  )
   const key = toolKey(tool.id)
   const shape = tool.bot?.token ?? "opaque"
   const askSettings = !s.reconnecting || (s.failure !== null && botCause(s.failure) === "settings")
@@ -162,11 +173,7 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
                 aria-describedby={error ? `${fid}-error` : undefined}
                 className={FIELD}
               />
-              {error && (
-                <p id={`${fid}-error`} role="alert" className="text-[0.9rem] text-bad">
-                  {error}
-                </p>
-              )}
+              <FieldError id={`${fid}-error`}>{error}</FieldError>
             </div>
           )
         })}
@@ -283,7 +290,7 @@ function Failure({ failure, tool, m }: { failure: BotFailure; tool: CatalogTool;
 
 export function DoneStep({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
-  const s = useBotSignIn()
+  const s = useBotSignIn(useShallow((s) => ({ connected: s.connected, profile: s.profile })))
   const key = toolKey(tool.id)
   const handle = (s.connected && botHandle(s.connected)) || s.profile
   return (

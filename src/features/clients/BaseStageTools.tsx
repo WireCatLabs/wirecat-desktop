@@ -101,7 +101,7 @@ export function AddStage({ base, busy, onEdit }: { base: readonly CrmBaseStage[]
         type="button"
         disabled={busy}
         onClick={() => setOpen(true)}
-        className="flex min-h-[3rem] w-full items-center justify-center gap-[0.45rem] rounded-[0.2rem] border border-line-strong border-dashed px-[0.9rem] text-[0.95rem] font-medium text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-2 hover:text-ink disabled:opacity-45"
+        className="flex min-h-[3rem] w-full items-center justify-center gap-[0.45rem] rounded-rack border border-line-strong border-dashed px-[0.9rem] text-[0.95rem] font-medium text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-2 hover:text-ink disabled:opacity-45"
       >
         <Plus className="size-4" aria-hidden />
         {s.addStage}
@@ -109,7 +109,7 @@ export function AddStage({ base, busy, onEdit }: { base: readonly CrmBaseStage[]
     )
   }
   return (
-    <div className="flex flex-col items-start gap-[0.6rem] rounded-[0.2rem] border border-line-strong bg-app p-[0.75rem]">
+    <div className="flex flex-col items-start gap-[0.6rem] rounded-rack border border-line-strong bg-app p-[0.75rem]">
       <Segmented<Outcome>
         label={s.outcome}
         value={outcome}

@@ -4,7 +4,7 @@ import { useMemory } from "@/features/memory"
 import { useSearch } from "@/features/search"
 import { useTasks } from "@/features/tasks"
 import type { Lang } from "@/i18n"
-import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
+import { BLANK_ENTRY, type MemoryEntry, type MemorySource } from "@/platform/memory-schemas"
 import type { SearchAnswer } from "@/platform/search-schemas"
 import type { Person, Task } from "@/platform/task-schemas"
 import { markStale } from "@/shared/fresh"
@@ -69,38 +69,14 @@ const NAMES: Record<Lang, { kai: string; ana: string }> = {
   es: { kai: "Kai Moreno", ana: "Ana Ruiz" },
 }
 
-const blank = {
-  summary: null,
-  verb: null,
-  targetName: null,
-  chatName: null,
-  counts: null,
-  subject: null,
-  subjectName: null,
-  subjectIsOwner: false,
-  scope: "work",
-  project: null,
-  projectName: null,
-  supersedes: null,
-  reason: null,
-  account: null,
-  target: null,
-  updatedAt: null,
-  findings: null,
-  task: null,
-  model: null,
-  confidence: null,
-  sourceReview: null,
-} as const
-
 const bot = (name: string) => ({ type: "bot", name })
 
-export function demoMemory(lang: Lang): MemoryEntry[] {
+function demoMemory(lang: Lang): MemoryEntry[] {
   const t = MEMORY_TEXT[lang]
   const n = NAMES[lang]
   return [
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "memory:example-1",
       type: "memory",
       kind: "preference",
@@ -113,7 +89,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(2 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "action:example-2",
       type: "action",
       kind: "create_task",
@@ -132,7 +108,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(3 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "fact:example-3",
       type: "fact",
       kind: "promise",
@@ -145,7 +121,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(5 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "fact:example-4",
       type: "fact",
       kind: "decision",
@@ -160,7 +136,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(26 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "memory:example-5",
       type: "memory",
       kind: "preference",
@@ -200,9 +176,9 @@ const SOURCE_TEXT: Record<Lang, SourceText> = {
   },
 }
 
-export const DEMO_MEMORY = "memory:example-1"
+const DEMO_MEMORY = "memory:example-1"
 
-export function demoSources(lang: Lang): MemorySource[] {
+function demoSources(lang: Lang): MemorySource[] {
   const t = SOURCE_TEXT[lang]
   const kai = NAMES[lang].kai
   const source = { tool: null, missing: false }
@@ -275,7 +251,7 @@ const SEARCH_TEXT: Record<Lang, SearchText> = {
 const SEARCH_TOOL = "tg"
 const SEARCH_PROFILE = "personal"
 
-export function demoSearch(lang: Lang): Extract<SearchAnswer, { kind: "hits" }> {
+function demoSearch(lang: Lang): Extract<SearchAnswer, { kind: "hits" }> {
   const t = SEARCH_TEXT[lang]
   const ana = NAMES[lang].ana
   const chats = [ana, t.chat, ana]
@@ -326,7 +302,7 @@ const TASK_TEXT: Record<Lang, TaskText> = {
 const OWNER = "person:example-0"
 const ANA = "person:example-2"
 
-export function demoPeople(lang: Lang): Person[] {
+function demoPeople(lang: Lang): Person[] {
   return [
     { ref: OWNER, name: null, owner: true },
     { ref: "person:example-1", name: NAMES[lang].kai, owner: false },
@@ -334,7 +310,7 @@ export function demoPeople(lang: Lang): Person[] {
   ]
 }
 
-export function demoTasks(lang: Lang): Task[] {
+function demoTasks(lang: Lang): Task[] {
   const t = TASK_TEXT[lang]
   const project = "EX"
   const base: Omit<Task, "key" | "title" | "state" | "priority" | "priorityLabel" | "assignees" | "dueAt"> = {

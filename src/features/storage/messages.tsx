@@ -3,8 +3,9 @@ import type { ArchiveWords, Counted, Dimension, TotalKey } from "@/domain/archiv
 import type { DatabaseWords } from "@/domain/database"
 import type { EntryKey } from "@/domain/files"
 import type { TableGroup } from "@/domain/table-groups"
-import { formatDate, formatNumber, type Lang, type Messages, plural } from "@/i18n"
+import { formatDate, formatNumber, type Lang, type Messages, plural, pluralRu } from "@/i18n"
 import type { StorageFolder } from "@/platform/schemas"
+import { uiMessages } from "@/ui/messages"
 
 type FolderKind = StorageFolder["kind"]
 
@@ -58,6 +59,8 @@ const enWhen = (days: number) =>
 const en = {
   title: "Storage",
   checking: "Checking…",
+  readFailed: "Could not read the folders on this computer.",
+  actionFailed: "That did not work. The folder is as it was.",
   intro:
     "What WireCat tools keep on this computer: settings, sessions, shared storage and caches. Uninstalling a tool keeps its data; once no installed tool uses it, you can delete it here. Sign-in tokens in your system keyring are not touched.",
   deleteAll: "Delete all leftover data",
@@ -86,7 +89,7 @@ const en = {
     sessions: "Sign-in sessions. Credentials: size only, never opened.",
     profiles: "Sign-in state for each profile. Credentials: size only, never opened.",
     googleClient: "Google sign-in app credentials. Size only, never opened.",
-    config: "Settings, the ones the Config page shows",
+    config: "Settings, the ones the Settings page shows",
     configCopy: "An older copy of the settings, kept before a change",
     runs: "Run logs, the ones the Logs page shows",
     backfill: "History sync jobs and how far each got",
@@ -103,10 +106,10 @@ const en = {
     models: "Search models, downloaded once",
     driveStore: "Drive's own older store, from before shared storage",
     maxCache: "An older per-profile message cache, from before shared storage",
-    folders: "Which note folders memo reads and how far it got",
+    folders: "Which note folders Memo reads and how far it got",
     mailTrash: "Mail moved to the trash, kept so it can be undone",
     domainAges: "How old each mail sender's domain is, remembered",
-    auto: "When memo last synced on its own",
+    auto: "When Memo last synced on its own",
     importLock: "A lock left by an import",
   } as Record<EntryKey, string>,
   confirmAll: "Delete all leftover WireCat data?",
@@ -222,7 +225,7 @@ const en = {
   noProblems: "No problems found",
   problems: (n: number) => plural("en", n, { one: "# problem found", other: "# problems found" }),
   checkedIn: (time: string) => `checked in ${time}`,
-  copyCommand: "Copy the command",
+  copyCommand: uiMessages.en.copyCommand,
   duration: (ms: number) => duration(ms, "s", "min"),
   databaseWords: {
     noBackup: "No backup recorded beside the storage file",
@@ -309,9 +312,6 @@ const ruCount: Record<Counted, [string, string, string]> = {
   meetings: ["встреча", "встречи", "встреч"],
 }
 
-const ruForms = (n: number, [one, few, many]: [string, string, string]) =>
-  plural("ru", n, { one, few, many, other: few })
-
 const ruAttachment: Record<string, string> = {
   photo: "Фото",
   video: "Видео",
@@ -329,11 +329,13 @@ const ruOwner: Record<string, string> = {
 }
 
 const ruWhen = (days: number) =>
-  days <= 0 ? "сегодня" : days === 1 ? "вчера" : ruForms(days, ["# день назад", "# дня назад", "# дней назад"])
+  days <= 0 ? "сегодня" : days === 1 ? "вчера" : pluralRu(days, ["# день назад", "# дня назад", "# дней назад"])
 
 const ru: typeof en = {
   title: "Хранилище",
   checking: "Проверяем…",
+  readFailed: "Не получилось прочитать папки на этом компьютере.",
+  actionFailed: "Не получилось. Папка осталась как была.",
   intro:
     "Что инструменты WireCat хранят на этом компьютере: настройки, сеансы, общее хранилище и кеш. После удаления инструмента его данные остаются; когда их не использует ни один установленный инструмент, их можно удалить здесь. Токены входа в системном хранилище ключей не затрагиваются.",
   deleteAll: "Удалить все оставшиеся данные",
@@ -439,10 +441,10 @@ const ru: typeof en = {
   },
   unit: (dim, n) =>
     dim === "provider" || dim === "account"
-      ? ruForms(n, ["запись", "записи", "записей"])
+      ? pluralRu(n, ["запись", "записи", "записей"])
       : dim === "attachment"
-        ? ruForms(n, ["файл", "файла", "файлов"])
-        : ruForms(n, ["сообщение", "сообщения", "сообщений"]),
+        ? pluralRu(n, ["файл", "файла", "файлов"])
+        : pluralRu(n, ["сообщение", "сообщения", "сообщений"]),
   breakdownsLater: (tool) =>
     `Разбивка по источникам, типам чатов, аккаунтам и годам появится со следующим обновлением ${tool}.`,
   readingStorage: "Читаем хранилище",
@@ -477,7 +479,7 @@ const ru: typeof en = {
   ),
   unusedSpace: (size, free, total) => (
     <>
-      {size} в {ruForms(free, ["# свободной странице", "# свободных страницах", "# свободных страницах"])} из{" "}
+      {size} в {pluralRu(free, ["# свободной странице", "# свободных страницах", "# свободных страницах"])} из{" "}
       {formatNumber(total, "ru")}; очистка (VACUUM) вернёт это место
     </>
   ),
@@ -493,9 +495,9 @@ const ru: typeof en = {
   checkFailed: (error) => `Проверка не завершилась: ${error}`,
   notChecked: "Ещё не проверялось. Проверка читает весь файл: минуту-две, если хранилище большое.",
   noProblems: "Проблем не найдено",
-  problems: (n) => ruForms(n, ["Найдена # проблема", "Найдено # проблемы", "Найдено # проблем"]),
+  problems: (n) => pluralRu(n, ["Найдена # проблема", "Найдено # проблемы", "Найдено # проблем"]),
   checkedIn: (time) => `проверено за ${time}`,
-  copyCommand: "Скопировать команду",
+  copyCommand: uiMessages.ru.copyCommand,
   duration: (ms) => duration(ms, "с", "мин"),
   databaseWords: {
     noBackup: "Рядом с файлом хранилища нет записи о резервной копии",
@@ -512,7 +514,7 @@ const ru: typeof en = {
       `Хранилище на схеме ${schema}, ему нужен инструмент, который знает хотя бы схему ${needs ?? "—"}; ${bin} знает ${speaks}.`,
     damaged: (details) => `SQLite нашёл повреждения в файле: ${details}. Восстановите резервную копию.`,
     danglingRows: (n) =>
-      ruForms(n, [
+      pluralRu(n, [
         "# строка ссылается на строку, которой нет.",
         "# строки ссылаются на строки, которых нет.",
         "# строк ссылаются на строки, которых нет.",
@@ -523,13 +525,13 @@ const ru: typeof en = {
       `На диске свободно только ${free}; для резервной копии или очистки нужно около ${needed}.`,
     toolSuggests: "Инструмент предлагает:",
     chatsBehind: (n) =>
-      ruForms(n, [
+      pluralRu(n, [
         "В # чате есть сообщения новее, чем в хранилище.",
         "В # чатах есть сообщения новее, чем в хранилище.",
         "В # чатах есть сообщения новее, чем в хранилище.",
       ]),
     orphans: (n) =>
-      ruForms(n, [
+      pluralRu(n, [
         "# тег или ссылка указывает на удалённое.",
         "# тега или ссылки указывают на удалённое.",
         "# тегов или ссылок указывают на удалённое.",
@@ -606,6 +608,8 @@ const esWhen = (days: number) =>
 const es: typeof en = {
   title: "Almacenamiento",
   checking: "Comprobando…",
+  readFailed: "No se pudieron leer las carpetas de este equipo.",
+  actionFailed: "No funcionó. La carpeta sigue como estaba.",
   intro:
     "Lo que las herramientas de WireCat guardan en este ordenador: ajustes, sesiones, almacenamiento compartido y cachés. Al desinstalar una herramienta, sus datos se conservan; cuando ninguna herramienta instalada los usa, puedes borrarlos aquí. Los tokens de inicio de sesión del llavero del sistema no se tocan.",
   deleteAll: "Borrar todos los datos sobrantes",
@@ -770,7 +774,7 @@ const es: typeof en = {
   noProblems: "No se encontraron problemas",
   problems: (n) => plural("es", n, { one: "Se encontró # problema", other: "Se encontraron # problemas" }),
   checkedIn: (time) => `comprobado en ${time}`,
-  copyCommand: "Copiar el comando",
+  copyCommand: uiMessages.es.copyCommand,
   duration: (ms) => duration(ms, "s", "min"),
   databaseWords: {
     noBackup: "No hay ninguna copia registrada junto al archivo del almacenamiento",

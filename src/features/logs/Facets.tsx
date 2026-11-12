@@ -68,7 +68,7 @@ function Facet(
           type="button"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
-          className="flex min-w-0 flex-1 items-center gap-1 rounded-[0.3rem] text-left text-[0.95rem] font-medium text-ink-dim hover:text-ink"
+          className="flex min-w-0 flex-1 items-center gap-1 rounded-pill text-left text-[0.95rem] font-medium text-ink-dim hover:text-ink"
         >
           <ChevronRight
             aria-hidden
@@ -84,7 +84,7 @@ function Facet(
           aria-label={grouped ? m.stopGroupingBy(label) : m.groupByField(label)}
           title={grouped ? m.stopGrouping : m.groupByThis}
           className={cx(
-            "grid size-[1.5rem] shrink-0 place-items-center rounded-[0.3rem] hover:bg-app-3 hover:text-ink focus-visible:opacity-100",
+            "grid size-[1.5rem] shrink-0 place-items-center rounded-pill hover:bg-app-3 hover:text-ink focus-visible:opacity-100",
             grouped ? "text-brand" : "text-ink-dim opacity-0 group-hover/facet:opacity-100",
           )}
         >
@@ -148,7 +148,7 @@ function Value(props: {
         aria-pressed={state === "include"}
         title={(state === "include" ? m.stopKeeping : m.keepOnly)(valueTitle(m, field, count.value))}
         className={cx(
-          "flex min-h-[1.9rem] w-full min-w-0 items-center gap-[0.45rem] rounded-[0.3rem] pr-[1.8rem] pl-[0.15rem] text-left text-[0.95rem]",
+          "flex min-h-[1.9rem] w-full min-w-0 items-center gap-[0.45rem] rounded-pill pr-[1.8rem] pl-[0.15rem] text-left text-[0.95rem]",
           "hover:bg-app-3",
           state === "exclude" && "text-ink-dim line-through decoration-ink-dim",
         )}
@@ -156,7 +156,7 @@ function Value(props: {
         <span
           aria-hidden
           className={cx(
-            "grid size-[0.95rem] shrink-0 place-items-center rounded-[0.2rem] border",
+            "grid size-[0.95rem] shrink-0 place-items-center rounded-rack border",
             state === "include" && "border-brand bg-brand text-brand-ink",
             state === "exclude" && "border-bad bg-bad/15 text-bad",
             !state && "border-line-strong bg-app",
@@ -173,7 +173,7 @@ function Value(props: {
         onClick={() => onToggle(field, count.value, true)}
         aria-label={state === "exclude" ? m.showAgainValue(count.value) : m.hideValue(count.value)}
         title={state === "exclude" ? m.showAgain : m.hideThese}
-        className="absolute right-[0.2rem] grid size-[1.4rem] place-items-center rounded-[0.3rem] text-ink-dim opacity-0 hover:bg-app hover:text-bad focus-visible:opacity-100 group-hover/value:opacity-100"
+        className="absolute right-[0.2rem] grid size-[1.4rem] place-items-center rounded-pill text-ink-dim opacity-0 hover:bg-app hover:text-bad focus-visible:opacity-100 group-hover/value:opacity-100"
       >
         <Minus className="size-[0.8rem]" aria-hidden />
       </button>

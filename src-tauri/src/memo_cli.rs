@@ -26,8 +26,14 @@ impl Failure {
 
     /// A Memo from before the command: commander's own words, before any of Memo's.
     pub fn unknown_command(&self) -> bool {
-        self.message.starts_with("unknown command")
+        unknown_to_cli(&self.message)
     }
+}
+
+/// What commander, which every `WireCat` CLI parses its words with, says when the installed version lacks a command or
+/// an option the app passes: the tool is older than the app expects, not broken.
+pub fn unknown_to_cli(text: &str) -> bool {
+    ["unknown command", "unknown option", "too many arguments"].iter().any(|w| text.contains(w))
 }
 
 impl From<Failure> for String {
@@ -52,13 +58,9 @@ fn answer(out: Result<run::Output, run::RunError>) -> Result<Value, Failure> {
     let out = out.map_err(|e| Failure::plain(e.to_string()))?;
     let json = out.json();
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(v),
         j => Err(Failure {
-            // memo puts the reason on the error itself; its notes name `details.reason` as well.
-            reason: j
-                .as_ref()
-                .and_then(|v| v["error"]["reason"].as_str().or_else(|| v["error"]["details"]["reason"].as_str()))
-                .map(str::to_string),
+            reason: crate::skills::reason(j.as_ref()).map(str::to_string),
             details: j.as_ref().map_or(Value::Null, |v| v["error"]["details"].clone()),
             message: failure(&out, j.as_ref()),
         }),
@@ -69,13 +71,26 @@ pub fn memo() -> Result<&'static Tool, String> {
     catalog::tool("memo")
 }
 
-pub fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
-}
-
 pub fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Call) -> Result<T, Failure>) -> Result<T, String> {
     let tool = memo()?;
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     f(&|args: &[String]| call_at(&bin, args, timeout)).map_err(String::from)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn commander_s_refusals_of_a_missing_command_or_option_mean_too_old() {
+        for old in [
+            "unknown command 'runs'",
+            "error: unknown option '--type'",
+            "too many arguments for 'mcp'. Expected 0 arguments but got 2: server, status.",
+        ] {
+            assert!(unknown_to_cli(old), "{old}");
+            assert!(Failure::plain(old).unknown_command(), "{old}");
+        }
+        assert!(!unknown_to_cli("database is locked"));
+    }
 }

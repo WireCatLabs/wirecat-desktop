@@ -1,6 +1,7 @@
 /** Add to Memory's rules: what the owner gave, whether it can be saved, and which reader reads it for facts. */
 
 import { modelOnThisComputer } from "./ai-model"
+import { knownReason } from "./reasons"
 
 export type Way = "text" | "link" | "file"
 export type Draft = { way: Way; text: string; title: string; url: string; path: string | null }
@@ -86,10 +87,7 @@ export type Reason = (typeof SOURCE_REASONS)[number] | (typeof READER_REASONS)[n
 
 /** memo's refusal as one of the reasons the panel words itself; anything else is shown in memo's own words. */
 export const reasonOf = (error: string): Reason | null =>
-  ([...SOURCE_REASONS, ...READER_REASONS, REFUSED] as readonly string[]).includes(error) ? (error as Reason) : null
-
-/** A memo from before `sources` answers as commander does for any word it does not know. */
-export const tooOldFor = (error: string) => /unknown (command|option)/.test(error)
+  knownReason<Reason>([...SOURCE_REASONS, ...READER_REASONS, REFUSED], error)
 
 /** Why a picture would be kept by its name only, from what Settings holds; `null` when the AI model will read it. */
 export function imageReasonBefore(

@@ -56,11 +56,7 @@ pub fn setup(tool: &Tool) -> Result<ZoomAppAnswer, String> {
     }
     let message = skills::failure(&out, json.as_ref());
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
-    if text.contains("unknown command") || text.contains("unknown option") {
-        Ok(ZoomAppAnswer::Old)
-    } else {
-        Ok(ZoomAppAnswer::Failed { message })
-    }
+    if crate::memo_cli::unknown_to_cli(&text) { Ok(ZoomAppAnswer::Old) } else { Ok(ZoomAppAnswer::Failed { message }) }
 }
 
 fn parse(json: &Value) -> ZoomAppAnswer {

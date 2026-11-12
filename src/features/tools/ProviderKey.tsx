@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react"
 import { useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { EnrichmentKey } from "@/platform/bindings"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -12,8 +13,6 @@ import { providerKeyMessages } from "./messages-provider-key"
 
 const PROVIDERS: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic" }
 export const providerName = (id: string) => PROVIDERS[id] ?? id
-
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 type Props = {
   toolId: string
@@ -68,7 +67,7 @@ function KeyForm({ toolId, provider, found, keys, missing, onChanged }: Omit<Pro
       setRemoved(!("key" in request))
       onChanged?.()
     } catch (e) {
-      setError(fail(messageOf(e)))
+      setError(fail(errorText(e)))
     } finally {
       change.reset()
     }

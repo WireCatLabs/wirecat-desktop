@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react"
 import { useLayoutEffect, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { ChatMessage } from "@/platform/bindings"
@@ -37,7 +36,7 @@ function Edge({ side, more }: { side: "older" | "newer"; more: boolean }) {
         size="sm"
         variant="ghost"
         disabled={busy}
-        icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        busy={busy}
         onClick={() => void useConversation.getState().more(side)}
       >
         {busy ? m.readingMore : side === "older" ? m.earlier : m.later}
@@ -84,7 +83,7 @@ export function MessageList(props: { messages: ChatMessage[]; email: boolean; ol
     <div
       ref={box}
       onScroll={onScroll}
-      className="selectable relative max-h-[calc(100vh-15rem)] min-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line-strong bg-app"
+      className="selectable relative max-h-[calc(100vh-15rem)] min-h-[16rem] overflow-y-auto rounded-control border border-line-strong bg-app"
     >
       <Edge side="older" more={older} />
       <ol

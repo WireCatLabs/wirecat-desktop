@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import type { NodeEvent, NodeOffer, NodePath } from "@/platform/schemas"
+import { errorText } from "@/shared/errors"
 import { useSystem } from "@/shared/system-store"
 
 export type NodeStep = Extract<NodeEvent, { event: "step" }>["step"]
@@ -34,8 +35,6 @@ type NodeState = {
   remove(): Promise<boolean>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 export const useNode = create<NodeState>((set, get) => ({
   offer: null,
   offerError: null,
@@ -56,7 +55,7 @@ export const useNode = create<NodeState>((set, get) => ({
     try {
       set({ offer: await platform.nodeOffer(), offerError: null })
     } catch (e) {
-      set({ offerError: message(e) })
+      set({ offerError: errorText(e) })
     }
   },
   async setup() {
@@ -82,7 +81,7 @@ export const useNode = create<NodeState>((set, get) => ({
     try {
       set({ path: await platform.nodePath(), error: null })
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
     }
   },
   async setPath(add) {
@@ -90,7 +89,7 @@ export const useNode = create<NodeState>((set, get) => ({
     try {
       set({ path: await platform.setNodePath(add) })
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
     } finally {
       set({ busy: false })
     }
@@ -103,7 +102,7 @@ export const useNode = create<NodeState>((set, get) => ({
       await useSystem.getState().refresh()
       return true
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
       return false
     } finally {
       set({ busy: false })

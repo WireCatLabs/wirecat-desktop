@@ -6,6 +6,7 @@ import { useMessages } from "@/i18n"
 import type { NotesFolder, NotesModel, NotesProblem, NotesSetup } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ExtLink } from "@/shared/ExtLink"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
@@ -35,8 +36,6 @@ type ModelStep =
   | (Failed & { model: string })
 type Failed = { phase: "failed"; problem: NotesProblem }
 
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /**
  * memo's first run on its details page: which folders hold the notes, the first read of them, and the optional search
  * model. A separate section from the services panel. Every step is one of memo's own commands, run by Rust.
@@ -53,7 +52,14 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
   const [confirming, setConfirming] = useState<NotesFolder | null>(null)
 
   const load = useCallback(() => {
-    platform.notesSetupStatus(tool.id).then(setSetup, (e) => setLoadError(messageOf(e)))
+    let current = true
+    platform.notesSetupStatus(tool.id).then(
+      (s) => current && setSetup(s),
+      (e) => current && setLoadError(errorText(e)),
+    )
+    return () => {
+      current = false
+    }
   }, [tool.id])
   useEffect(load, [load])
 
@@ -471,7 +477,7 @@ function ModelStepView(props: {
         {models.map((model) => (
           <li
             key={model.id}
-            className={`flex flex-col gap-2 rounded-[0.35rem] border px-3 py-2.5 transition-colors duration-(--motion-slow) ${model.inUse ? "border-brand bg-brand-soft" : "border-line-strong"}`}
+            className={`flex flex-col gap-2 rounded-control border px-3 py-2.5 transition-colors duration-(--motion-slow) ${model.inUse ? "border-brand bg-brand-soft" : "border-line-strong"}`}
           >
             <div className="flex flex-col gap-0.5">
               <span className="text-[0.95rem] font-medium text-ink">

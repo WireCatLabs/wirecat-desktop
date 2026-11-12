@@ -13,7 +13,7 @@ export function BetaBadge({ section, className }: { section: string; className?:
       aria-label={m.label}
       title={m.label}
       className={cx(
-        "inline-flex shrink-0 select-none items-center font-sans tracking-normal rounded-[0.3rem] border border-line px-[0.3rem] font-medium text-[0.78rem] text-ink-dim leading-[1.2rem]",
+        "inline-flex shrink-0 select-none items-center font-sans tracking-normal rounded-pill border border-line px-[0.3rem] font-medium text-[0.78rem] text-ink-dim leading-[1.2rem]",
         className,
       )}
     >

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { dailyCap, formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -14,6 +15,7 @@ import {
   useAgentWarning,
 } from "@/shared/BackgroundAgentChoice"
 import { useBackgroundAgents } from "@/shared/background-agent-store"
+import { errorText } from "@/shared/errors"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
@@ -24,7 +26,6 @@ import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
-import { ago } from "./connect-steps"
 import { openTool } from "./go"
 import { type MailAgentText, mailAgentMessages } from "./messages-mail-agent"
 import { syncScheduleMessages } from "./messages-sync-schedule"
@@ -34,10 +35,8 @@ const TONE: Record<RunOutcome, LampTone> = { ok: "ok", skipped: "warn", failed: 
 type Pending = { on: boolean; every?: string } | null
 type Failure = { on: boolean | null; every?: string; message: string } | null
 
-const skipWhy = (m: MailAgentText, { reason, why }: Skipped) =>
-  (reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined) ?? why
-
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
+const skipWhy = (m: MailAgentText, { reason }: Skipped) =>
+  reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined
 
 /**
  * memo's mail agent for Email: the switch is memo's own `schedule agent` and `schedule remove`, so the timer it
@@ -76,7 +75,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
         setState(s)
         if (s.state === "on" && s.every) setEvery(s.every)
       },
-      (e) => live && setFailure({ on: null, message: messageOf(e) }),
+      (e) => live && setFailure({ on: null, message: errorText(e) }),
     )
     loadWaiting()
     return () => {
@@ -104,7 +103,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
       (e) => {
         setPending(null)
         setFailure(
-          on && state?.state === "on" ? { on, every: interval, message: messageOf(e) } : { on, message: messageOf(e) },
+          on && state?.state === "on" ? { on, every: interval, message: errorText(e) } : { on, message: errorText(e) },
         )
       },
     )
@@ -268,12 +267,16 @@ function Status({ state, m, effective, agents, busy, onRun, onResave }: StatusPr
   const cap = dailyCap(state.maxCostPerDayUsd)
   return (
     <div className="flex flex-col gap-1 text-[0.9rem] text-ink-soft" aria-live="polite">
-      {last && outcome ? (
+      {last?.skipped && !skipWhy(m, last.skipped) ? (
+        <ErrorNotice inline tone="warn" raw={last.skipped.why}>
+          {m.skippedUnknown(ago(last.skipped.at))}
+        </ErrorNotice>
+      ) : last && outcome ? (
         <p className="flex items-center gap-2">
           <Lamp tone={TONE[outcome]} size="sm" />
           <span>
             {last.skipped
-              ? m.skipped(ago(last.skipped.at), skipWhy(m, last.skipped))
+              ? m.skipped(ago(last.skipped.at), skipWhy(m, last.skipped) ?? "")
               : `${m.lastRun(ago(last.at))} · ${outcome === "ok" ? m.ok : m.failed(last.failures)}`}
           </span>
         </p>

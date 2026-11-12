@@ -4,18 +4,37 @@ WireCat Desktop is a thin window onto the WireCat CLIs. The interface is React i
 the machine and runs the tools. Nothing here duplicates what a CLI already does.
 
 New here? Read [the architecture report](architecture-report.md) first. Rules per kind of change are in [guides/](guides/).
+What is not built yet: [BACKLOG.md](BACKLOG.md).
+
+## Contracts with other programs
+
+Shapes that the app and a tool, or the app and a server, must both follow. Change the file first, then both sides.
+
+| With | Contract |
+| --- | --- |
+| A tool's sign-in (`session start`) | [signin-api.md](signin-api.md) |
+| A tool's sync | [sync-api.md](sync-api.md) |
+| A tool's run log (`runs list`, `runs show`) | [runs-api.md](runs-api.md) |
+| A tool's HTTP MCP server and its public address | [mcp-server-api.md](mcp-server-api.md) |
+| `wirecat-funnel`, WireCat's own Tailscale connection | [funnel-api.md](funnel-api.md) |
+| The Analytics page's counts | [analytics-api.md](analytics-api.md) |
+| memo's `digest` commands | [digests-api.md](digests-api.md) |
+| An own tool's manifest and refusals | [cli-registry.md](cli-registry.md#your-own-tools-not-checked) |
+| The WireCat API: bug reports | [report-api.md](report-api.md) |
+| The WireCat API: notifications | [notifications-api.md](notifications-api.md) |
+| The release workflow: `latest.json` for updates | [updater-api.md](updater-api.md) |
 
 ## The layers
 
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
-  shared/       parts and stores two or more features use: ToolIcon, ReportThis, JsonTree, nav, and the stores of tools, agents, storage, system, signin and onboarding. Imports no feature (Biome rule).
+  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/, people/, groups/, privacy/, about/, fix/).
+  shared/       parts and stores two or more features use: ToolIcon, ToolNeeded, ExtLink, ReportThis, JsonTree, nav, `errorText`, `usePoll`, `safeStorage`, and the stores of tools, agents, storage, system, signin and onboarding (the full list: [guides/reuse.md](guides/reuse.md)). Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
-  features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
-  shared/query.ts            the one QueryClient (no retries, no refetch on focus: a refetch starts a tool process) and the profiles query several features share. `app/App.tsx` and `testing/render.tsx` provide it; `resetStores` replaces it before each test.
-  ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
+  features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background, the Tailscale, Cloudflare and funnel helper status), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
+  shared/query.ts            the one QueryClient (no retries, no refetch on focus unless a query asks: a refetch starts a tool process; the window's focus counts, not only its visibility), the tool query keys (`toolKeys`) and the profiles query several features share. `app/App.tsx` and `testing/render.tsx` provide it; `resetStores` replaces it before each test.
+  ui/           presentational parts: Button, Dialog, CopyButton… Props in, events out ([guides/new-component.md](guides/new-component.md)).
   platform/     the only door to Rust. Has a browser mock. `bindings.ts` holds the types generated from the Rust
                 structs (`src-tauri/src/bindings.rs`; `cargo test bindings` rewrites it and fails until it is
                 committed). An answer typed there is trusted as is; valibot stays where the shape comes from a
@@ -30,7 +49,9 @@ src-tauri/src/
                 catalog tool through `install::install` (and `node::set_up` with `--own-node`), one JSON line.
   commands/     Tauri commands, one file per feature: the whole native surface, one function each. A command
                 fails with `error.rs`'s `{ kind, message }` (`unknown_tool`, `invalid_profile`, `not_installed`,
-                `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message.
+                `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message, and the
+                interface words any failure only through `errorText` (`src/shared/errors.ts`). How to add one:
+                [guides/rust-command.md](guides/rust-command.md).
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
                 `autostart_status` / `autostart_set`: WireCat opening at login, through the Tauri autostart plugin in
                 Rust (no plugin permission in the webview); a test copy or a development build refuses to turn it on.
@@ -74,7 +95,7 @@ src-tauri/src/
                 before it (`stats` in the catalog), local store only. `analytics_aggregate` runs one of a tool's
                 `aggregates` (reply time, waiting on you, chat coverage, mail per day, `zm meetings list`, `memo stats
                 tasks show`); "unknown command" is shown as the update that brings it. Names shown unmasked, an exception to rule 4 like
-                search.rs: never logged or put in a report. Plan `docs/dev/plans/2026-11-02-analytics.md`.
+                search.rs: never logged or put in a report. Contract: [analytics-api.md](analytics-api.md).
   query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
                 signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
@@ -101,7 +122,7 @@ src-tauri/src/
   tailscale.rs  Tailscale Funnel for an MCP server: its state, `tailscale login`, and Funnel on and off for ports the app set up.
   funnel_helper.rs WireCat's own Tailscale connection, `wirecat-funnel` (catalog entry `funnel`, a helper the pages do
                 not list): `start`/`status`/`stop --json` and `route add|remove` of a tool's three paths, for a computer
-                without the Tailscale app. Its funnels join `tailscale_funnels`, marked `via: wirecat`.
+                without the Tailscale app. Its funnels join `tailscale_funnels`, marked `via: wirecat`. Contract: [funnel-api.md](funnel-api.md).
   tailscale_install.rs Tailscale's official installer or package, downloaded into Downloads and handed to the system.
   tailscale_linux.rs Tailscale's install commands for this Linux, from /etc/os-release and lists of known releases.
   cloudflare.rs  A Cloudflare tunnel on the owner's own domain: login, the tunnel and its DNS record, cloudflared run in the background.
@@ -201,7 +222,7 @@ src-tauri/src/
                 checks the provider (anthropic, openai), the model's name and the address before they become arguments.
                 The Search page's button runs `search all --only notes --harder --no-record` for the shown query (a recorded run keeps the query in memo's run log), first page
                 only; memo's `order` entry under `missing` is the outcome (no entry: the model's order stands). Gated on
-                `searchHarder.minVersion` in the catalog, null until a memo with it is on npm. Keys are enrichment's.
+                `searchHarder.minVersion` in the catalog (memo 0.131.74). Keys are enrichment's.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
@@ -247,7 +268,7 @@ src-tauri/src/
                 morning digest's `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and
                 announces a run newer than the last one it announced.
   digest_book.rs the Digests page's table: `memo digest list|add|edit|run|pause|resume|remove` (the contract in
-                docs/dev/plans/2026-11-09-people-clients-digests.md, "Digests by name"), every write with `--from-app`.
+                [digests-api.md](digests-api.md)), every write with `--from-app`.
                 A memo without `digest list` has only `morning-digest`, kept as a schedule: the page reads it through
                 digest_schedule.rs and refuses what that memo cannot do (a second digest, several times, weekdays,
                 sources, a run that is not sent) before memo runs.
@@ -270,6 +291,27 @@ src-tauri/src/
                 tool writes the timer. Its latest run (and `failing_since`) shows under the account, and a failed sync
                 from this window clears once a later run succeeded, timed or listed by `syncLast`.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
+  attachments.rs one file of a stored message by its `msg:` reference: the text the owner's agent read from a picture
+                (`<messenger> images read`), or the saved copy opened.
+  picture_reading.rs Settings "Reading pictures": memo's `models picture-reading show|set`.
+  local_only.rs Settings "Only this computer": memo's `models local-only show|set`, and where each feature sends data.
+  digest_routes.rs what a digest's route form offers: tg's bots and own users, mail's mailboxes; read only.
+  memory_edit.rs the owner's changes to a relationship, and decisions on many relationship proposals at once.
+  memory_preview.rs a source before it is added: a picked file read here, a web page read by memo (never by the app):
+                `sources preview <url> --json --no-record`; a memo without it gives no preview.
+  records_import.rs Storage's import: `memo records templates show`, then `records check` and `records import` of the
+                file chosen in the system's window.
+  config_repair.rs a tool's broken config file mended through its own repair command; values are never printed.
+  store_recover.rs a damaged store: the tool's `store recover` report and its steps, each run as the tool wrote it.
+  permissions.rs the Permissions block: each command's level per profile, from the tool's own config.
+  zoom_app.rs   what zm needs made in the Zoom App Marketplace, from `zm app --json`.
+  cache.rs      what the app remembers about a tool's program while it runs (memory only).
+  window_size.rs the main window's first size, and its saved size and place restored.
+  probe.rs      `WIRECAT_PROBES`: the skipped tests that touch the owner's accounts or this computer run only for what it
+                names ([testing.md](guides/testing.md#probes)).
+  page_loads.rs, install_e2e.rs, own_tool_e2e.rs  tests only: each page's native calls replayed and counted; the real
+                install with npm on a local registry (`bin/install-e2e`); "Add your own tool" end to end
+                (`bin/own-tool-e2e`).
 ```
 
 Biome enforces the arrows (`biome.json`, `noRestrictedImports`): `domain` imports nothing above it, `platform`
@@ -277,7 +319,7 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 
 ## How an install travels
 
-1. `ToolRow` calls `useTools().install("drive")` (`src/features/tools/store.ts`). Installs queue; one runs at a time,
+1. `ToolRow` calls `useTools().install("drive")` (`src/shared/tools-store.ts`). Installs queue; one runs at a time,
    because two global npm installs at once can corrupt each other.
    From the row, and from the setup's Install step, the install first asks `store_preflight` (`preflight.rs`) when its
    turn in the queue comes, so a batch's later tools are checked against the ones installed before them; a warning
@@ -301,7 +343,8 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
    why not, rides on the `done` event; a failure is a warning beside a working update. The Agents page then asks that
    tool again (`useAgents.recheck`).
-7. Every event is parsed by `InstallEventSchema` before the store sees it.
+7. Events reach the store as Rust sent them, typed by `InstallEvent` from the generated bindings; they are not
+   parsed again.
 
 ## Finding tools
 
@@ -410,8 +453,7 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 
 ## The Memory page
 
-What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.82 or newer (`memory.minVersion` in the catalog: 0.131.80 and 0.131.81 crash on
+What agents concluded about the owner and the people around them, read from memo. memo 0.131.82 or newer (`memory.minVersion` in the catalog: 0.131.80 and 0.131.81 crash on
 `relationships list include:ended`, which the page calls); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`,
 `actions list status:proposed --brief` (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list.
@@ -457,7 +499,7 @@ stdout; Rust reads it, so the page words memo's reason (`proposal.wrong-state`),
 
 ### Adding to memory
 
-The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-add.md`), four steps on one surface:
+The Memory page's Add to memory panel, four steps on one surface:
 
 1. **Source**: pasted text (`memo sources add -`, the text on stdin), a link (`sources add <url>`, read once by memo
    from this computer) or a file chosen in the system's file window (`memory_pick_file`). Rust keeps the picked path
@@ -590,7 +632,7 @@ agent's recent sessions and the tasks it holds.
 - **Skill preview** shows `skill show --json`, the SKILL.md the installed version ships, beside the installed copies'
   versions. The app does not read an installed SKILL.md, so what an update changes waits for a CLI that prints it.
 
-- **Hermes and OpenClaw** (plan `docs/dev/plans/2026-10-25-agents-openclaw-hermes.md`). Found by program, or by
+- **Hermes and OpenClaw**. Found by program, or by
   their settings file (`~/.hermes/config.yaml` or `$HERMES_HOME`, `~/.openclaw/openclaw.json` or
   `$OPENCLAW_STATE_DIR`); a bare `skills` folder is left by other installers and does not count. OpenClaw reads
   `~/.agents/skills`. Hermes is its own target, `hermes`, which only a tool whose `skill status` lists it can write
@@ -686,8 +728,8 @@ check, backup, reset) passes `--record`, so the Logs page shows it whether it wo
 
 ## Signing in inside the window
 
-Each tool with `signIn.methods` in the catalog signs in without a terminal (step 2 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`): tg (QR or phone), max (QR or a token from web.max.ru), wa (QR), zm, drive and gcal (the
+Each tool with `signIn.methods` in the catalog signs in without a terminal
+([signin-api.md](signin-api.md)): tg (QR or phone), max (QR or a token from web.max.ru), wa (QR), zm, drive and gcal (the
 browser), and Email (Microsoft in the browser, Gmail or another server with an app password). "Sign in here" opens a
 dialog, and `sign_in(id, method, profile, inputs)` runs that method's words for the profile the owner named. With `--json` the tool prints each step as a JSON line on stderr, from cli-core's `signInSteps` (0.443) and
 `loginQr`: `qr`, `pairing_code`, `open_url`, `needs` and `progress`. `signin_steps.rs` reads them, the tool's notes and
@@ -798,8 +840,8 @@ Mock scenarios: `?bot=<tool>`, `?bot-step=token`, `?bot-fail=<tool>|old|ids`, `?
 
 ## The MCP server for browser apps
 
-ChatGPT and Claude in the browser reach a tool through its HTTP MCP server behind the owner's tunnel (step 3 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`). The Manage panel has a "Connect an AI app" section, closed by
+ChatGPT and Claude in the browser reach a tool through its HTTP MCP server behind the owner's tunnel
+([mcp-server-api.md](mcp-server-api.md)). The Manage panel has a "Connect an AI app" section, closed by
 default because agents on this computer use the tools directly. One server serves every profile; the app names one in
 each call. Zoom serves no HTTP MCP and Email is part of memo, so neither has the section.
 
@@ -846,8 +888,8 @@ owner needs them as they are. They are never logged and never put in a report. A
 
 ## Tailscale Funnel for the MCP server
 
-The guide's address step offers Tailscale Funnel, set up by the app, or a tunnel the owner runs (step 4 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`). Tailscale's part has three steps, each with Check (the fourth below,
+The guide's address step offers Tailscale Funnel, set up by the app, or a tunnel the owner runs
+([mcp-server-api.md](mcp-server-api.md#the-public-address)). Tailscale's part has three steps, each with Check (the fourth below,
 a free public port, is checked there and done by the start step); the window re-checks when
 it regains focus. All of it is `tailscale.rs` running the `tailscale` CLI found on PATH (or inside the Mac app with
 `TAILSCALE_BE_CLI=1`, or in Program Files):
@@ -886,8 +928,8 @@ they are never logged or put in a report. The raw `tailscale status` never leave
 
 ## Cloudflare tunnel for the MCP server
 
-The second choice in the guide's address step, for when Tailscale cannot give an address (plan
-`docs/dev/plans/2026-10-27-cloudflare-fallback.md`). The choice's card says, before it is picked, that Cloudflare
+The second choice in the guide's address step, for when Tailscale cannot give an address
+([mcp-server-api.md](mcp-server-api.md#the-public-address)). The choice's card says, before it is picked, that Cloudflare
 decrypts the traffic and can read what the tools send back (NEED-102). The shape is Funnel's: one name on the owner's
 domain, the three paths of each tool to its local port, everything else 404. `cloudflare.rs`:
 
@@ -914,7 +956,7 @@ reach a bug report the owner sends from it (RISK-32).
 
 ## Syncing from the app
 
-Plan: `docs/dev/plans/2026-10-27-desktop-sync.md`. The catalog's `sync` block holds each tool's own words: tg and max
+Contract: [sync-api.md](sync-api.md). The catalog's `sync` block holds each tool's own words: tg and max
 `<profile> messages sync --all`, zm `<profile> meetings sync`, drive `<profile> sync`, memo `sync` and Email `sync --only
 mail` (one lock for both, so one running key). WhatsApp has none to start: it syncs while `wa <profile> serve` runs,
 and its `note` says so. Every sync gets `--record`, so the tool's own `runs list` holds the run and answers "last
@@ -959,7 +1001,7 @@ memo's store (never files on disk). The id is checked first (`checked_folder_id`
 
 ## The Tasks page
 
-Plan: `docs/dev/plans/2026-10-31-tasks-page.md`. memo's project tasks only (`project:*`); tasks made from messages stay
+memo's project tasks only (`project:*`); tasks made from messages stay
 on the Agents page. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
 `tasks comments list|add`, `people list|add` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
 memo's run log). The owner's search goes last, after `--`, since memo reads every word after it as the query; the page

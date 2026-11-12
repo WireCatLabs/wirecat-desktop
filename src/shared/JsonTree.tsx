@@ -1,8 +1,9 @@
-import { Check, ChevronRight, Copy, Filter, FilterX, Group } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ChevronRight, Filter, FilterX, Group } from "lucide-react"
+import { useState } from "react"
 import { inlineJson } from "@/domain/runs"
 import { useMessages } from "@/i18n"
 import { sharedMessages } from "@/shared/messages"
+import { CopyButton } from "@/ui/CopyButton"
 import { cx } from "@/ui/cx"
 
 /** Maps a leaf's path to a run field the query can filter on, or null when no run summary carries it. */
@@ -53,7 +54,7 @@ function Node({ name, value, path, depth, fieldOf, onFilter, onGroup }: NodeProp
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="-ml-[1.1rem] inline-flex items-center gap-[0.15rem] rounded-[0.3rem] pr-1 text-left hover:bg-app-3"
+          className="-ml-[1.1rem] inline-flex items-center gap-[0.15rem] rounded-pill pr-1 text-left hover:bg-app-3"
         >
           <ChevronRight
             aria-hidden
@@ -82,7 +83,7 @@ function Node({ name, value, path, depth, fieldOf, onFilter, onGroup }: NodeProp
   const term = String(scalar)
 
   return (
-    <li className="group flex min-w-0 items-baseline gap-2 rounded-[0.3rem] hover:bg-app-3/60">
+    <li className="group flex min-w-0 items-baseline gap-2 rounded-pill hover:bg-app-3/60">
       <span className="shrink-0 text-ink-soft">{name}</span>
       <span
         className={cx(
@@ -125,7 +126,7 @@ function LeafAction({ label, onClick, children }: { label: string; onClick: () =
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="grid size-[1.35rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app hover:text-ink"
+      className="grid size-[1.35rem] place-items-center rounded-pill text-ink-dim hover:bg-app hover:text-ink"
     >
       {children}
     </button>
@@ -134,22 +135,11 @@ function LeafAction({ label, onClick, children }: { label: string; onClick: () =
 
 export function CopyValue({ value, label }: { value: string; label?: string }) {
   const m = useMessages(sharedMessages)
-  const [copied, setCopied] = useState(false)
-  useEffect(() => {
-    if (!copied) return
-    const t = setTimeout(() => setCopied(false), 1600)
-    return () => clearTimeout(t)
-  }, [copied])
   return (
-    <LeafAction
-      label={copied ? m.copied : (label ?? m.copyValue)}
-      onClick={() => navigator.clipboard.writeText(value).then(() => setCopied(true))}
-    >
-      {copied ? (
-        <Check className="size-[0.85rem] text-ok" aria-hidden />
-      ) : (
-        <Copy className="size-[0.85rem]" aria-hidden />
-      )}
-    </LeafAction>
+    <CopyButton
+      value={value}
+      label={label ?? m.copyValue}
+      className="size-[1.35rem] hover:bg-app [&_svg]:size-[0.85rem]"
+    />
   )
 }

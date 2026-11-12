@@ -1,10 +1,9 @@
 import type { ReactNode } from "react"
 import type { RangeId } from "@/domain/runs"
-import { formatList, type Messages, plural } from "@/i18n"
+import { formatList, type Messages, plural, pluralRu } from "@/i18n"
 
 const ruCount = (n: number, one: string, few: string, many: string) =>
-  plural("ru", n, { one: `# ${one}`, few: `# ${few}`, many: `# ${many}`, other: `# ${few}` })
-const ruWord = (n: number, one: string, few: string, many: string) => plural("ru", n, { one, few, many, other: few })
+  pluralRu(n, [`# ${one}`, `# ${few}`, `# ${many}`])
 
 const enDays = (n: number) => plural("en", n, { one: "# day", other: "# days" })
 const ruDays = (n: number) => ruCount(n, "день", "дня", "дней")
@@ -243,7 +242,7 @@ const en = {
   settingsTrouble: "A tool's runs could not be read; open Log settings to see which",
   readingKeeping: "Reading which runs each tool keeps",
   whichRuns: (tool: string) => `Which ${tool} runs to keep`,
-  refused: (tool: string, error: string) => `${tool} refused the change: ${error}`,
+  refused: (tool: string) => `${tool} refused the change.`,
   askEvery: (tool: string) => `Keep every ${tool} run?`,
   askFailedOnly: (tool: string) => `Stop keeping successful ${tool} runs?`,
   leaveIt: "Leave it as it is",
@@ -325,12 +324,12 @@ const ru: typeof en = {
 
   matches: (n, count) => (
     <>
-      {ruWord(n, "Подходит", "Подходят", "Подходят")} {count} {ruWord(n, "запуск", "запуска", "запусков")}
+      {pluralRu(n, ["Подходит", "Подходят", "Подходят"])} {count} {pluralRu(n, ["запуск", "запуска", "запусков"])}
     </>
   ),
   matchesInConversations: (n, count, groups) => (
     <>
-      {ruWord(n, "Подходит", "Подходят", "Подходят")} {count} {ruWord(n, "запуск", "запуска", "запусков")},{" "}
+      {pluralRu(n, ["Подходит", "Подходят", "Подходят"])} {count} {pluralRu(n, ["запуск", "запуска", "запусков"])},{" "}
       {plural("ru", groups, {
         one: "в # разговоре",
         few: "в # разговорах",
@@ -341,7 +340,7 @@ const ru: typeof en = {
   ),
   matchesInGroups: (n, count, groups) => (
     <>
-      {ruWord(n, "Подходит", "Подходят", "Подходят")} {count} {ruWord(n, "запуск", "запуска", "запусков")},{" "}
+      {pluralRu(n, ["Подходит", "Подходят", "Подходят"])} {count} {pluralRu(n, ["запуск", "запуска", "запусков"])},{" "}
       {plural("ru", groups, { one: "в # группе", few: "в # группах", many: "в # группах", other: "в # группах" })}
     </>
   ),
@@ -526,7 +525,7 @@ const ru: typeof en = {
   settingsTrouble: "Запуски одного из инструментов не прочитаны; какого — видно в настройках журнала",
   readingKeeping: "Читаем, какие запуски хранит каждый инструмент",
   whichRuns: (tool) => `Какие запуски ${tool} хранить`,
-  refused: (tool, error) => `${tool} не принял изменение: ${error}`,
+  refused: (tool) => `${tool} не принял изменение.`,
   askEvery: (tool) => `Хранить каждый запуск ${tool}?`,
   askFailedOnly: (tool) => `Перестать хранить успешные запуски ${tool}?`,
   leaveIt: "Оставить как есть",
@@ -789,7 +788,7 @@ const es: typeof en = {
   settingsTrouble: "No se pudieron leer las ejecuciones de una herramienta; abre Ajustes de registros para ver cuál",
   readingKeeping: "Leyendo qué ejecuciones guarda cada herramienta",
   whichRuns: (tool) => `Qué ejecuciones de ${tool} guardar`,
-  refused: (tool, error) => `${tool} rechazó el cambio: ${error}`,
+  refused: (tool) => `${tool} rechazó el cambio.`,
   askEvery: (tool) => `¿Guardar todas las ejecuciones de ${tool}?`,
   askFailedOnly: (tool) => `¿Dejar de guardar las ejecuciones correctas de ${tool}?`,
   leaveIt: "Dejarlo como está",

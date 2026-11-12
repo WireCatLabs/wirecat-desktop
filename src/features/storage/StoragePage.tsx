@@ -9,6 +9,7 @@ import type { StorageArea } from "@/platform/schemas"
 import { useCompat } from "@/shared/compat-store"
 import { KeptFolders } from "@/shared/KeptFolders"
 import { Page, PageHeader } from "@/shared/Page"
+import { PageError } from "@/shared/PageError"
 import { ReportThis } from "@/shared/ReportThis"
 import { areaBytes, useStorage } from "@/shared/storage-store"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -33,7 +34,7 @@ const toolNames = (ids: string[]) => formatList(ids.map((id) => findTool(id)?.na
 
 export function StoragePage() {
   const m = useMessages(storageMessages)
-  const { areas, error, clearing, revalidating, refresh, clear, clearAll } = useStorage()
+  const { areas, error, actionError, clearing, revalidating, refresh, clear, clearAll } = useStorage()
   const [confirm, setConfirm] = useState<StorageArea | "all" | null>(null)
   const compatAsked = useCompat((s) => s.compat !== undefined)
 
@@ -61,14 +62,27 @@ export function StoragePage() {
       />
 
       {error && (
-        <ErrorNotice action={<ReportThis what="Working with data on this computer" error={error} />}>
-          {error}
+        <PageError
+          raw={error}
+          what="Working with data on this computer"
+          busy={revalidating}
+          onRetry={() => void refresh()}
+        >
+          {m.readFailed}
+        </PageError>
+      )}
+      {actionError && (
+        <ErrorNotice
+          raw={actionError}
+          action={<ReportThis what="Working with data on this computer" error={actionError} />}
+        >
+          {m.actionFailed}
         </ErrorNotice>
       )}
 
       {/* Room for the one-line warning box, so it arriving after the page does not push everything down. */}
       <div className="flex min-h-[2.75rem] flex-col justify-center">
-        {compatAsked ? <StorageSummary /> : <Skeleton className="h-[2.75rem] w-full rounded-[0.2rem]" />}
+        {compatAsked ? <StorageSummary /> : <Skeleton className="h-[2.75rem] w-full rounded-rack" />}
       </div>
 
       <ArchiveSummary />
@@ -77,7 +91,7 @@ export function StoragePage() {
 
       <ImportPanel />
 
-      <ul aria-label={m.areasLabel} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+      <ul aria-label={m.areasLabel} className="overflow-hidden rounded-rack border border-line-strong bg-app">
         {areas === null
           ? areaIds().map((id, i) => <RowSkeleton key={id} id={id} first={i === 0} />)
           : areas.map((a) => <Row key={a.id} area={a} busy={clearing === a.id} onDelete={() => setConfirm(a)} />)}
@@ -130,7 +144,7 @@ function Row({ area, busy, onDelete }: { area: StorageArea; busy: boolean; onDel
                   onClick={() => open(area.id, f.kind)}
                   aria-label={m.openFolder(f.kind, f.path)}
                   title={m.openInFiles}
-                  className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+                  className="grid size-6 shrink-0 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
                 >
                   <FolderOpen className="size-3.5" aria-hidden />
                 </button>
@@ -231,7 +245,7 @@ function Entries({ area }: { area: StorageArea }) {
                 onClick={() => open(area.id, e.kind, e.name)}
                 aria-label={m.openEntry(e.name)}
                 title={e.dir ? m.openInFiles : m.showInFiles}
-                className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+                className="grid size-6 shrink-0 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
               >
                 <FolderOpen className="size-3.5" aria-hidden />
               </button>
@@ -262,7 +276,7 @@ function ConfirmDelete(props: {
       onClose={onCancel}
       actions={
         <>
-          <Button variant="secondary" onClick={onCancel} autoFocus>
+          <Button variant="secondary" onClick={onCancel} data-autofocus>
             {m.keepIt}
           </Button>
           <Button variant="danger" onClick={onConfirm} icon={<Trash2 className="size-4" aria-hidden />}>

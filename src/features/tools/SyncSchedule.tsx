@@ -2,7 +2,9 @@ import { useEffect, useId, useState } from "react"
 import { type CatalogTool, syncSchedules } from "@/domain/catalog"
 import { type AdviceKind, advice } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import type { ScheduleRun } from "@/platform/bindings"
+import { errorText } from "@/shared/errors"
 import { useMachineSetup } from "@/shared/machine-setup-store"
 import { signedInSince, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -11,16 +13,13 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
-import { ago } from "./connect-steps"
 import { syncMessages } from "./messages-sync"
 import { type SyncScheduleText, syncScheduleMessages } from "./messages-sync-schedule"
 import { SignInLost } from "./SignInLost"
 import { syncKey, useSync } from "./sync-store"
 
 /** The schedule is read again this often while the row shows, so a later timed run clears an old failure. */
-export const SCHEDULE_READ_EVERY_MS = 2 * 60_000
-
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
+const SCHEDULE_READ_EVERY_MS = 2 * 60_000
 
 /** The run's failure as the sync's own words: `reason` is an error code or a reason id, never for reading. */
 const failureOf = (reason: string | null) => advice({ message: "", code: reason, reason, run: null })
@@ -100,7 +99,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
         },
         (e) => {
           setSaving(false)
-          setError(messageOf(e))
+          setError(errorText(e))
         },
       )
   }
@@ -141,7 +140,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
         </p>
       )}
       <Collapse open={open}>
-        <div className="flex flex-col gap-2 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5">
+        <div className="flex flex-col gap-2 rounded-pill border border-line bg-app-2 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor={selectId} className="text-[0.9rem] font-medium">
               {m.every}

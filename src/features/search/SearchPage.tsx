@@ -1,5 +1,6 @@
 import { AlertTriangle, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool, tools } from "@/domain/catalog"
 import { groupDigits } from "@/domain/format"
 import { formatUsd } from "@/domain/mail-agent"
@@ -20,15 +21,16 @@ import {
   valuesInHits,
 } from "@/domain/search"
 import { QueryBar } from "@/features/query"
-import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
+import { providerName, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
-import { ReportThis } from "@/shared/ReportThis"
+import { PageError } from "@/shared/PageError"
 import { ToolIcon } from "@/shared/ToolIcon"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -398,9 +400,9 @@ function resultsView(
     return {
       view: "error",
       node: (
-        <ErrorNotice raw={s.error} action={<ReportThis what={`Searching ${toolName}`} error={s.error} />}>
+        <PageError raw={s.error} what={`Searching ${toolName}`} busy={s.loading} onRetry={() => s.search(page)}>
           {m.failed}
-        </ErrorNotice>
+        </PageError>
       ),
     }
   if (answer?.kind === "old")
@@ -415,27 +417,27 @@ function resultsView(
   if (answer?.kind === "failed")
     return {
       view: "failed",
-      node: (
+      node: choices ? (
         <ErrorNotice
           raw={answer.message}
           action={
-            choices ? (
-              <NameChoiceButtons
-                tool={s.tool}
-                choices={choices}
-                onPick={(c) => {
-                  if (c.label) s.remember(choices.field, c.value, c.label)
-                  s.setQuery(c.query)
-                  s.search(1)
-                }}
-              />
-            ) : (
-              <ReportThis what={`Searching ${toolName}`} error={answer.message} />
-            )
+            <NameChoiceButtons
+              tool={s.tool}
+              choices={choices}
+              onPick={(c) => {
+                if (c.label) s.remember(choices.field, c.value, c.label)
+                s.setQuery(c.query)
+                s.search(1)
+              }}
+            />
           }
         >
           {m.failed}
         </ErrorNotice>
+      ) : (
+        <PageError raw={answer.message} what={`Searching ${toolName}`} busy={s.loading} onRetry={() => s.search(page)}>
+          {m.failed}
+        </PageError>
       ),
     }
   if (answer?.kind === "timedOut")
@@ -533,7 +535,17 @@ function HarderOutcomeText({ m, outcome }: { m: Words; outcome: NonNullable<Hard
  * the first page of two or more results. After it, what the model did, in place of the offer.
  */
 function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: number }) {
-  const s = useSearch()
+  const s = useSearch(
+    useShallow((s) => ({
+      asked: s.asked,
+      demo: s.demo,
+      harder: s.harder,
+      loading: s.loading,
+      query: s.query,
+      search: s.search,
+      searchHarder: s.searchHarder,
+    })),
+  )
   const allowed = Boolean(findTool(toolId)?.searchHarder)
   const state = useSearchHarder(toolId, allowed && !s.demo)
   const status = state.data?.state === "ready" && state.data.status.on ? state.data.status : null
@@ -619,7 +631,7 @@ function Grouped({ hits, field, now, m }: { hits: SearchHit[]; field: string; no
   const groups = useMemo(() => groupHits(hits, field), [hits, field])
   const max = groups[0]?.count ?? 1
   return (
-    <div className="reveal overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+    <div className="reveal overflow-hidden rounded-rack border border-line-strong bg-app">
       <div className="flex items-center justify-between gap-3 border-line border-b px-[1.3rem] py-[0.5rem] text-[0.9rem]">
         <span className="text-ink-soft">{m.groupedBy(field, hits.length)}</span>
         <Button
@@ -659,7 +671,7 @@ function Grouped({ hits, field, now, m }: { hits: SearchHit[]; field: string; no
                     type="button"
                     onClick={() => filterBy(field, g.value, false)}
                     title={m.showOnly(`${field}:${quoteValue(g.value)}`)}
-                    className="flex w-full min-w-0 items-center rounded-[0.3rem] px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
+                    className="flex w-full min-w-0 items-center rounded-pill px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
                   >
                     <span className="truncate">{g.value}</span>
                   </button>

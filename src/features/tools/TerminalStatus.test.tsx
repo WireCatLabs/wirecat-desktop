@@ -40,7 +40,7 @@ describe("signing in from a terminal window", () => {
 
   it("in the app, says the terminal runs the sign-in and to come back for Check sign-in", async () => {
     Object.assign(platform, { kind: "tauri" })
-    const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue()
+    const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue({ started: true, reason: null, message: null })
     const onCheck = form()
     await openTerminalFor("work")
     expect(openSetup).toHaveBeenCalledWith("tg", "work")
@@ -69,13 +69,28 @@ describe("signing in from a terminal window", () => {
   })
 
   it("with no terminal program, says so and offers the command to copy", async () => {
-    vi.spyOn(platform, "openSetup").mockRejectedValue(
-      new Error("Could not open a terminal. Run this yourself: tg work setup"),
-    )
+    vi.spyOn(platform, "openSetup").mockResolvedValue({
+      started: false,
+      reason: "terminal",
+      message: "Could not open a terminal. Run this yourself: tg work setup",
+    })
     form()
     await openTerminalFor("work")
     expect(await screen.findByText(/WireCat found no terminal program to open/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Copy the setup command" })).toBeInTheDocument()
     expect(screen.getAllByText("tg work setup").length).toBeGreaterThan(0)
+  })
+
+  it("when macOS refuses Terminal, says how to allow it in its own words, not Rust's", async () => {
+    vi.spyOn(platform, "openSetup").mockResolvedValue({
+      started: false,
+      reason: "automation",
+      message: "Rust's English sentence about Automation",
+    })
+    form()
+    await openTerminalFor("work")
+    expect(await screen.findByText(/Allow it in System Settings, Privacy & Security, Automation/)).toBeInTheDocument()
+    expect(screen.queryByText(/Rust's English sentence/)).toBeNull()
+    expect(screen.getByRole("button", { name: "Copy the setup command" })).toBeInTheDocument()
   })
 })

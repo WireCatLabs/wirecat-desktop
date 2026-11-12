@@ -548,7 +548,11 @@ fn run_aggregate(tool: &Tool, bin: &std::path::Path, args: &[String]) -> Result<
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
     let code = json.as_ref().and_then(|v| v["error"]["code"].as_str()).map(str::to_string);
-    Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message, code } })
+    Ok(if crate::memo_cli::unknown_to_cli(&message) {
+        Aggregate::Old { message }
+    } else {
+        Aggregate::Failed { message, code }
+    })
 }
 
 /// The answer sits under `item`; an older envelope put it first in `items`.
@@ -583,18 +587,12 @@ fn read(out: &run::Output) -> Counts {
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
     let code = json.as_ref().and_then(|v| v["error"]["code"].as_str()).map(str::to_string);
-    if too_old(&message) { Counts::Old { message } } else { Counts::Failed { message, code } }
+    if crate::memo_cli::unknown_to_cli(&message) { Counts::Old { message } } else { Counts::Failed { message, code } }
 }
 
 fn last_line(stderr: &str, stdout: &str) -> String {
     let text = if stderr.trim().is_empty() { stdout } else { stderr };
     text.lines().rev().map(str::trim).find(|l| !l.is_empty()).unwrap_or("the tool gave no answer").to_string()
-}
-
-fn too_old(message: &str) -> bool {
-    message.starts_with("unknown command")
-        || message.starts_with("unknown option")
-        || message.starts_with("too many arguments")
 }
 
 #[cfg(test)]
@@ -876,28 +874,25 @@ mod tests {
     }
 
     /// Times reply time and waiting on you against the owner's own store, through the page's own path. Read only:
-    /// `--offline --no-record`, counts only. `cargo test real_reply_counts_timing -- --ignored --nocapture`.
+    /// `--offline --no-record`, counts only.
+    /// `WIRECAT_PROBES=tg:personal cargo test real_reply_counts_timing -- --ignored --nocapture`.
     #[test]
     #[ignore = "reads the owner's real store"]
     fn real_reply_counts_timing() {
-        let only = std::env::var("TIMING_TOOLS").unwrap_or_else(|_| "tg,max,wa".into());
-        for id in only.split(',') {
-            let tool = catalog::tool(id).unwrap();
-            let Ok(Some(profiles)) = crate::tools::profiles(tool) else { continue };
-            for p in profiles {
-                for which in ["responses", "waiting", "coverage"] {
-                    for period in [Period::Month, Period::All] {
-                        let started = std::time::Instant::now();
-                        let answer = aggregate(tool, which, Some(&p.name), period, None, "Europe/Madrid");
-                        let kind = match &answer {
-                            Ok(Aggregate::Ready { body }) if body.as_object().is_some_and(|o| !o.is_empty()) => "ready",
-                            Ok(Aggregate::Ready { .. }) => "empty",
-                            Ok(Aggregate::Old { .. }) => "old",
-                            Ok(Aggregate::Failed { .. }) => "failed",
-                            Err(_) => "error",
-                        };
-                        println!("{id} {which} {period:?}: {kind} in {} ms", started.elapsed().as_millis());
-                    }
+        for (id, profile) in crate::probe::accounts() {
+            let (tool, Some(profile)) = (catalog::tool(&id).unwrap(), profile) else { continue };
+            for which in ["responses", "waiting", "coverage"] {
+                for period in [Period::Month, Period::All] {
+                    let started = std::time::Instant::now();
+                    let answer = aggregate(tool, which, Some(&profile), period, None, "Europe/Madrid");
+                    let kind = match &answer {
+                        Ok(Aggregate::Ready { body }) if body.as_object().is_some_and(|o| !o.is_empty()) => "ready",
+                        Ok(Aggregate::Ready { .. }) => "empty",
+                        Ok(Aggregate::Old { .. }) => "old",
+                        Ok(Aggregate::Failed { .. }) => "failed",
+                        Err(_) => "error",
+                    };
+                    println!("{id} {profile} {which} {period:?}: {kind} in {} ms", started.elapsed().as_millis());
                 }
             }
         }

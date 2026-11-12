@@ -5,6 +5,7 @@ import { useReaders } from "@/shared/readers-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { DoneStep } from "./AddDoneStep"
 import { FactsStep } from "./AddFactsStep"
 import { SavedStep } from "./AddSavedStep"
@@ -35,18 +36,13 @@ export function AddPanel() {
     <Collapse open={open}>
       <section
         aria-labelledby={PANEL_TITLE}
-        className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] pt-[1.1rem] pb-[1.3rem]"
+        className="rounded-rack border border-line-strong bg-app px-[1.3rem] pt-[1.1rem] pb-[1.3rem]"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2
-              id={PANEL_TITLE}
-              ref={title}
-              tabIndex={-1}
-              className="font-display text-[1.35rem] font-bold tracking-[-0.02em] outline-none"
-            >
+            <SectionTitle id={PANEL_TITLE} ref={title} tabIndex={-1} className="outline-none">
               {m.title}
-            </h2>
+            </SectionTitle>
             {step === "source" && <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.intro}</p>}
           </div>
           <div className="flex items-center gap-3">
@@ -71,7 +67,7 @@ export function AddPanel() {
               aria-label={m.close}
               title={m.close}
               onClick={() => useAddSource.getState().close()}
-              className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+              className="grid size-8 cursor-pointer place-items-center rounded-control text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
             >
               <X className="size-4" aria-hidden />
             </button>

@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { RECORDS_TOO_OLD } from "@/platform/records-schemas"
-import { render, screen } from "@/testing/render"
+import { act, render, screen } from "@/testing/render"
 import { ImportPanel } from "./ImportPanel"
 import { useImport } from "./import-store"
 
@@ -53,6 +53,21 @@ describe("Importing records from a file", () => {
     expect(await screen.findByText(/Template saved to .*invoice-template\.csv/)).toBeInTheDocument()
   })
 
+  it("keeps Download template pressable without a type, and then says to choose one at the type", async () => {
+    const save = vi.spyOn(platform, "recordTemplateSave")
+    const user = userEvent.setup()
+    render(<ImportPanel />)
+    const download = await screen.findByRole("button", { name: "Download template" })
+    act(() => useImport.setState({ kind: null }))
+    expect(download).toBeEnabled()
+    await user.click(download)
+    expect(screen.getByRole("alert")).toHaveTextContent("Choose a type first")
+    const type = screen.getByRole("combobox", { name: "Type" })
+    expect(type).toHaveAttribute("aria-invalid", "true")
+    expect(type).toHaveFocus()
+    expect(save).not.toHaveBeenCalled()
+  })
+
   it("imports only after a check, with the source the owner typed", async () => {
     const run = vi.spyOn(platform, "recordRun")
     const user = userEvent.setup()
@@ -91,6 +106,7 @@ describe("Importing records from a file", () => {
   it("asks for an update when memo cannot import files", async () => {
     vi.spyOn(platform, "recordTypes").mockRejectedValue(new Error(RECORDS_TOO_OLD))
     render(<ImportPanel />)
-    expect(await screen.findByText(/cannot import files/)).toBeInTheDocument()
+    expect(await screen.findByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
   })
 })

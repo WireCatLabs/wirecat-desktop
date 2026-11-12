@@ -5,7 +5,7 @@ Status: **built, keyed**. cli-docs builds and signs the list on every deploy and
 [`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub), so a build fetches and checks the list while the
 switch is on. No community tool is listed yet. Decided 2026-11-05: the list lives in cli-docs `tools.json`
 (NEED-2204 A) and is signed in CI with a key the owner holds (NEED-2205 A). Your own tools, added from the app by their
-npm name without a review, are built ([below](#your-own-tools-not-checked); [plan](plans/2026-11-07-own-tools.md)).
+npm name without a review, are built ([below](#your-own-tools-not-checked)).
 
 ## Process at a glance
 
@@ -153,9 +153,8 @@ Decided 2026-11-08 (NEED-2285): an expired list has a real effect, and the app s
 
 ## Your own tools (not checked)
 
-Status: **built** (2026-11-07): `src-tauri/src/own_tools.rs` and `src/features/tools/OwnToolDialog.tsx`; the current
-flow, refusal kinds and checks are in [the plan](plans/2026-11-07-own-tools.md), and the review's second version
-(things to check, links, the AI check, no restart) in [its plan](plans/2026-11-08-own-tool-review-v2.md). Owner's ruling 2026-11-06: anyone may
+Status: **built** (2026-11-07): `src-tauri/src/own_tools.rs` and `src/features/tools/OwnToolDialog.tsx`; the manifest
+and the refusal kinds are [below](#the-manifest-format-2). Owner's ruling 2026-11-06: anyone may
 add any tool on their own computer, behind a clear warning that WireCat has not checked it. A private repository's
 tool, which can never be listed, can only be added this way. The button is on the Tools page (NEED-2281 A); only scoped
 npm packages (NEED-2280).
@@ -227,8 +226,7 @@ workflow run and the transparency-log entry, the last three from the Fulcio cert
   service and on this computer, the entity's `fields`, the sync's own words, cli-base's standard roots in plain words,
   and the exact commands under **Commands**.
 
-A refusal is a kind with a sentence and what to do
-([plan, Failures](plans/2026-11-07-own-tools.md#failures-the-user-can-act-on)).
+A refusal is a kind with a sentence and what to do ([Refusals](#refusals)).
 
 **4. An AI check, then two confirmations.** **Add** first offers **Check it with `<agent>`** for the agent last used, with the
 others `run_agent` can start in its menu (or **Copy the check**), with a prompt that names the reviewed tarball and its sha512 and tells the agent to
@@ -264,6 +262,36 @@ own entry to use the listed one."
 
 **What this does not change.** No `community.rs` rule is relaxed for the signed list, `provenance.rs` still refuses
 for listed tools, and nothing the owner adds reaches another computer.
+
+### The manifest (format 2)
+
+`contracts/wirecat.json` in the npm tarball, written by cli-base's `cli-dev manifest`. Desktop reads only format 2:
+
+- `wcat_manifest`: `2`. `package` must be the npm name asked for. `version` may be left out; when present it must
+  be npm's version. `bin`, `name`, `description` and `docs_url` describe the program.
+- `commands`: `[{ path, effects: { remote, local }, summary, entity }]`. Each level is `none`, `read` or `write`; a
+  command with no `effects` counts as a write. Every word of `path` is a plain word.
+- `desktop`: a catalog entry with exactly these keys, `null` when unused: `tagline`, `profiles`, `doctor`, `runs`,
+  `search`, `setup`, `signIn`, `skill`, `mcpServer`, `tasks`, `sync`, `storeInfo`, `storeTables`,
+  `storeTableSizes`, `storeCheck`, `storeBackup`, `storeBackupEncrypted`, `storeResetPreview`, `storeReset`,
+  `storage`, `settings`. `community.rs` checks it like a listed entry.
+- `network`: `{ hosts, user_hosts }`. No `network` means the tool did not say; `hosts: []` means none.
+- `entities`: `{ <name>: { fields } }`.
+
+The manifest names no MCP port. Desktop picks one from 8770 to 8999 that no other tool uses, and an update keeps
+the one it had.
+
+Limits: 20 s per npm call, a 512 KiB packument, a 10 MiB tarball, a 256 KiB manifest, 64 MiB unpacked.
+
+After the install, `<bin> --wcat-describe` must answer, within 15 s and 64 KiB, with `manifest_sha256` equal (any
+case) to the SHA-256 of the manifest the owner reviewed. Otherwise the tool is not added.
+
+### Refusals
+
+Each is `{ "kind": … }` in snake_case, with its fields in camelCase: `not_found`, `not_scoped`, `wirecat_scope`,
+`no_manifest` (offers pasting the `desktop` object), `bad_manifest { key, rule }`, `collision { with, listed }`,
+`provenance_mismatch { claimed, built }`, `offline { detail }`, `too_large { what }`. Any other error reads
+"Something went wrong reading npm: <message>".
 
 ## Open decisions
 

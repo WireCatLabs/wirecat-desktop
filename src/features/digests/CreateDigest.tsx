@@ -25,10 +25,10 @@ function freeLabel(base: string, taken: readonly string[], sep: string): string 
 }
 
 /** A name memo keys files by, from the template; `-2`, `-3` when it is taken. */
-export const freeName = (base: string, taken: readonly string[]) => freeLabel(base, taken, "-")
+const freeName = (base: string, taken: readonly string[]) => freeLabel(base, taken, "-")
 
 /** A template's title, with " 2", " 3" when a digest already has it, so two rows from one template read apart. */
-export const freeTitle = (base: string, taken: readonly string[]) => freeLabel(base, taken, " ")
+const freeTitle = (base: string, taken: readonly string[]) => freeLabel(base, taken, " ")
 
 export function draftOf(template: Template, digests: readonly DigestItem[], m: BookText, lang: Lang): DigestSpec {
   const taken = digests.map((d) => d.name)
@@ -77,7 +77,7 @@ export function Starter(props: { can: Can; onPick: (t: Template) => void; compac
   const m = b.starter
   const update = <span className="text-[0.85rem] text-ink-dim">{m.needsUpdate}</span>
   return (
-    <section aria-labelledby="digest-starter" className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-labelledby="digest-starter" className="rounded-rack border border-line-strong bg-app">
       <div
         className={cx(
           "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-line border-b",

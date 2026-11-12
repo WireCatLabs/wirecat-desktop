@@ -61,7 +61,7 @@ export const OWN = {
 }
 
 /** A list kept 24 days more; `?registry=expiring` leaves it three days, `expired` ran out two days ago. */
-export function registryMock(params: URLSearchParams): Pick<CommunityStatus, "state" | "expiresAt"> {
+function registryMock(params: URLSearchParams): Pick<CommunityStatus, "state" | "expiresAt"> {
   const registry = params.get("registry")
   const days = registry === "expiring" ? 3 : registry === "expired" ? -2 : 24
   return {
@@ -115,7 +115,7 @@ const command = (
 ): OwnCommand => ({ words, remote, local, summary, entity })
 
 /** Acme CRM's commands as cli-base#529 writes them, with summaries and entities. */
-export const ACME_COMMANDS: OwnCommand[] = [
+const ACME_COMMANDS: OwnCommand[] = [
   command("session start", "read", "write"),
   command("session status", "read", "read"),
   command("sync", "read", "write", "copy contacts, deals and invoices"),
@@ -131,7 +131,7 @@ export const ACME_COMMANDS: OwnCommand[] = [
 ]
 
 /** What Rust answers today for Acme CRM 0.2.0: npm's facts only, before GitHub's arrive. */
-export const ACME_SIGNALS: OwnSignal[] = [{ kind: "newPackage", days: 1 }, { kind: "onePublisher" }]
+const ACME_SIGNALS: OwnSignal[] = [{ kind: "newPackage", days: 1 }, { kind: "onePublisher" }]
 
 export function ownReview(overrides: Partial<OwnReview> = {}): OwnReview {
   return {

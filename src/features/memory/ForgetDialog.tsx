@@ -10,7 +10,7 @@ import { canRevoke, useMemory } from "./store"
 const WORDS = 12
 
 /** The first words of a record, so the owner sees which one goes without the whole text in a list. */
-export function firstWords(text: string | null) {
+function firstWords(text: string | null) {
   const words = (text ?? "").split(/\s+/).filter(Boolean)
   return words.length > WORDS ? `${words.slice(0, WORDS).join(" ")}…` : words.join(" ")
 }
@@ -60,7 +60,7 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
       {entry && (
         <div className="flex flex-col gap-3 text-[0.95rem] text-ink-soft">
           <p>{m.forgetLead}</p>
-          <ul className="flex list-disc flex-col gap-1 rounded-[0.45rem] border border-line bg-app-2 py-3 pr-4 pl-8">
+          <ul className="flex list-disc flex-col gap-1 rounded-inset border border-line bg-app-2 py-3 pr-4 pl-8">
             <li className="text-ink">
               {m.forgetRecord(type)} <span className="font-mono text-[0.85rem]">{entry.ref}</span>:{" "}
               <span className="selectable">“{firstWords(entry.text)}”</span>

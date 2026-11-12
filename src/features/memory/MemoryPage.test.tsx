@@ -14,7 +14,7 @@ import { memoryMessages } from "./messages"
 import { useMemory } from "./store"
 
 // The mock store outlives each test, so a later test reads what an earlier one approved or rejected.
-const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
+const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" })
 const row = (text: RegExp) => screen.getByRole("button", { name: text }).closest("[data-row]") as HTMLElement
 const all = async (user: ReturnType<typeof userEvent.setup>) => {
   await rack()
@@ -61,7 +61,6 @@ describe("Memory", () => {
       text: `Long list fact ${i}`,
     }))
     vi.spyOn(platform, "memoryRead").mockResolvedValueOnce({ ...read, entries: many })
-    useMemory.setState(useMemory.getInitialState(), true)
     render(<MemoryPage />)
     const region = await rack()
     expect(within(region).getAllByText(/^Long list fact/)).toHaveLength(20)
@@ -86,7 +85,6 @@ describe("Memory", () => {
       text: `Loose ${i}`,
     }))
     vi.spyOn(platform, "memoryRead").mockResolvedValueOnce({ ...read, entries: [ana, ...loose] })
-    useMemory.setState(useMemory.getInitialState(), true)
     render(<MemoryPage />)
     await rack()
     expect(screen.getByText("1–20 of 61")).toBeInTheDocument()
@@ -131,9 +129,7 @@ describe("Memory", () => {
     expect(dialog).toHaveTextContent("memory:40")
     expect(within(dialog).getByRole("button", { name: "Reject instead" })).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Erase" }))
-    await waitFor(() => expect(screen.queryByRole("button", { name: /Ana Ruiz is moving/ })).not.toBeInTheDocument(), {
-      timeout: 3000,
-    })
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Ana Ruiz is moving/ })).not.toBeInTheDocument())
   })
 
   it("corrects the text where it stands, and Escape puts it back", async () => {
@@ -189,7 +185,7 @@ describe("Memory", () => {
     render(<MemoryPage />)
     await all(user)
     await user.click(screen.getByRole("button", { name: /Kai Moreno prefers calls on Friday/ }))
-    const [first] = await screen.findAllByRole("button", { name: "Show Kai Moreno in context" }, { timeout: 3000 })
+    const [first] = await screen.findAllByRole("button", { name: "Show Kai Moreno in context" })
     await user.click(first as HTMLElement)
     expect(await screen.findByText("Deal. I'll send them Thursday evening.")).toBeInTheDocument()
   })
@@ -205,7 +201,7 @@ describe("Memory", () => {
     const head = screen.getByRole("button", { name: /Kai Moreno prefers calls on Friday/ })
     expect(head).toHaveAttribute("aria-expanded", "false")
     await user.click(head)
-    const [show] = await screen.findAllByRole("button", { name: "Show Kai Moreno in context" }, { timeout: 3000 })
+    const [show] = await screen.findAllByRole("button", { name: "Show Kai Moreno in context" })
     const source = (show as HTMLElement).closest("li") as HTMLElement
     const copy = within(source).getByRole("button", { name: /^Copy id: msg:/ })
     const ref = copy.getAttribute("aria-label")?.slice("Copy id: ".length)
@@ -257,7 +253,7 @@ describe("Memory", () => {
     expect(within(tom).getByRole("button", { name: "Approve" })).toHaveAttribute("aria-pressed", "false")
     expect(confirm).not.toHaveBeenCalled()
     await user.click(within(batch).getByRole("button", { name: "Save: create 3, reject 1" }))
-    await waitFor(() => expect(within(batch).getAllByText(/^Created/)).toHaveLength(3), { timeout: 3000 })
+    await waitFor(() => expect(within(batch).getAllByText(/^Created/)).toHaveLength(3))
     const [, accept] = confirm.mock.calls[0] ?? []
     expect(accept).toHaveLength(3)
     expect(within(batch).getByText(/^Rejected/)).toBeInTheDocument()
@@ -385,7 +381,7 @@ describe("Memory", () => {
   it("sends All activity to Logs filtered to memo's memory runs", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
-    await user.click(await screen.findByRole("button", { name: "All activity in Logs" }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: "All activity in Logs" }))
     expect(useLogs.getState().query).toBe(MEMORY_RUNS)
     const match = matcher(parseQuery(MEMORY_RUNS).terms)
     const run = (tool: string, command: string) => ({ tool, command, run_id: "1", status: "ok", started_at: "" }) as Run
@@ -393,6 +389,15 @@ describe("Memory", () => {
     expect(match(run("memo", "projects actions confirm"))).toBe(true)
     expect(match(run("memo", "search all"))).toBe(false)
     expect(match(run("tg", "facts list"))).toBe(false)
+  })
+
+  it("offers one retry when memory cannot be read: the error's, not the header's Read again too", async () => {
+    const read = vi.spyOn(platform, "memoryRead").mockRejectedValue(new Error("spawn memo ENOENT"))
+    render(<MemoryPage />)
+    const alert = await screen.findByRole("alert")
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Read again" })).not.toBeInTheDocument()
+    read.mockRestore()
   })
 
   it("shows the rest of memory, and says so, when memo does not list the links", async () => {

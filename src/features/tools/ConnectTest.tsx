@@ -101,13 +101,13 @@ export function TestStep(props: {
 }
 
 /** Rule 9: the goal is reached, so say what else is worth doing from here. */
-export function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: string; onAgain(): void }) {
+function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: string; onAgain(): void }) {
   const all = useMessages(connectMessages)
   const m = all.next
   const installs = useTools((s) => s.installs)
   const others = otherServerTools(tools, tool.id, installs)
   return (
-    <div className="flex flex-col gap-2.5 rounded-[0.45rem] bg-app-2 px-4 py-3">
+    <div className="flex flex-col gap-2.5 rounded-inset bg-app-2 px-4 py-3">
       <p className="text-[0.92rem] font-medium text-ink">{m.title}</p>
       <div className="flex max-w-[34rem] flex-col gap-1">
         <span className="text-[0.9rem] text-ink-soft">{m.ask(name)}</span>
@@ -130,11 +130,11 @@ export function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: st
   )
 }
 
-export function Troubleshoot(props: { name: string; tool: CatalogTool; app: AppId; server: McpServerStatus }) {
+function Troubleshoot(props: { name: string; tool: CatalogTool; app: AppId; server: McpServerStatus }) {
   const { name, tool, app, server } = props
   const m = useMessages(connectMessages).trouble
   return (
-    <div className="flex flex-col gap-2 rounded-[0.45rem] bg-app-2 px-4 py-3">
+    <div className="flex flex-col gap-2 rounded-inset bg-app-2 px-4 py-3">
       <p className="text-[0.92rem] font-medium text-ink">{m.title(name)}</p>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[0.88rem] text-ink-soft">
         <li>

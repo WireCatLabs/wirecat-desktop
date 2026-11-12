@@ -1,4 +1,4 @@
-import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import {
   byReviewRank,
@@ -11,18 +11,17 @@ import {
   type Tab,
 } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
-import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
-import { ReportThis } from "@/shared/ReportThis"
+import { PageError } from "@/shared/PageError"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { keepRoom, MOTION, reducedMotion, scrollerOf } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
@@ -43,23 +42,6 @@ import { MEMORY_PAGE_SIZES, useMemory } from "./store"
 
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
-
-// A memo too old to read is the page's ToolNeeded line, with its update; a failed read only retries.
-function ReadFailedActions({ what, error }: { what: string; error: string }) {
-  const m = useMessages(memoryMessages)
-  const reading = useMemory((s) => s.reading)
-  return (
-    <>
-      <RefreshButton
-        busy={reading}
-        onClick={() => void useMemory.getState().load()}
-        label={m.tryAgain}
-        busyLabel={m.reading}
-      />
-      <ReportThis what={what} error={error} />
-    </>
-  )
-}
 
 export function MemoryPage() {
   const m = useMessages(memoryMessages)
@@ -113,7 +95,9 @@ export function MemoryPage() {
           !demo && (
             <>
               {s.read?.kind === "ready" && <AddButton />}
-              <RefreshButton busy={s.reading} onClick={() => load()} label={m.readAgain} busyLabel={m.reading} />
+              {!s.error && (
+                <RefreshButton busy={s.reading} onClick={() => load()} label={m.readAgain} busyLabel={m.reading} />
+              )}
             </>
           )
         }
@@ -122,9 +106,9 @@ export function MemoryPage() {
       {demo && <DemoNote />}
       <div inert={demo || undefined} className="contents">
         {s.error ? (
-          <ErrorNotice raw={s.error} action={<ReadFailedActions what="Reading memory" error={s.error} />}>
+          <PageError raw={s.error} what="Reading memory" busy={s.reading} onRetry={() => load()}>
             {m.readFailed}
-          </ErrorNotice>
+          </PageError>
         ) : gap ? (
           <ToolNeeded gap={gap} />
         ) : (
@@ -180,12 +164,9 @@ export function MemoryPage() {
             )}
 
             {ready?.linksError && (
-              <ErrorNotice
-                raw={ready.linksError}
-                action={<ReadFailedActions what="Reading memory links" error={ready.linksError} />}
-              >
+              <PageError raw={ready.linksError} what="Reading memory links" busy={s.reading} onRetry={() => load()}>
                 {m.linksFailed}
-              </ErrorNotice>
+              </PageError>
             )}
             {ready?.page == null
               ? ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>
@@ -367,17 +348,7 @@ function ApproveShown({ refs }: { refs: string[] }) {
   }
   return (
     <span className="flex items-center gap-[0.35rem]">
-      <Button
-        size="sm"
-        onClick={approve}
-        icon={
-          running ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <Check className="size-4" aria-hidden />
-          )
-        }
-      >
+      <Button size="sm" onClick={approve} busy={running} icon={<Check className="size-4" aria-hidden />}>
         {m.approveShown(refs.length)}
       </Button>
       <InfoTip label={f.approveAllAbout} align="end">
@@ -407,7 +378,7 @@ function SubjectRack({
   const here = new Set(slots.map((s) => s.group.key))
   const onPage = new Set(slots.flatMap((s) => (s.entry ? [s.entry.ref] : [])))
   return (
-    <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-label={m.rows} className="rounded-rack border border-line-strong bg-app">
       {groups.flatMap((whole) => {
         if (!here.has(whole.key)) return []
         const g = { ...whole, entries: whole.entries.filter((e) => onPage.has(e.ref)) }
@@ -483,11 +454,11 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
 
 function RackSkeleton() {
   return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app">
+    <div className="rounded-rack border border-line-strong bg-app">
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className="flex h-[4.5rem] items-center gap-[0.9rem] border-line px-[1.3rem] not-first:border-t">
           <Skeleton className="size-[1.4rem] rounded-full" />
-          <Skeleton className="size-[1.6rem] rounded-[0.3rem]" />
+          <Skeleton className="size-[1.6rem] rounded-pill" />
           <Skeleton className="h-[1rem] w-[60%]" />
         </div>
       ))}
@@ -538,7 +509,6 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
     setRunning(null)
     setResult(x.bulkDone(approve ? done : 0, approve ? 0 : done, failed))
   }
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   return (
     <span className="flex shrink-0 items-center gap-2">
       {said}
@@ -548,7 +518,8 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
         disabled={!!running}
         title={x.rejectAllHint}
         onClick={() => void decide(false)}
-        icon={running === "reject" ? spin : <X className="size-4" aria-hidden />}
+        busy={running === "reject"}
+        icon={<X className="size-4" aria-hidden />}
       >
         {x.rejectAll(waiting.length)}
       </Button>
@@ -557,7 +528,8 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
         disabled={!!running}
         title={x.approveAllHint}
         onClick={() => void decide(true)}
-        icon={running === "approve" ? spin : <Check className="size-4" aria-hidden />}
+        busy={running === "approve"}
+        icon={<Check className="size-4" aria-hidden />}
       >
         {x.approveAll(waiting.length)}
       </Button>

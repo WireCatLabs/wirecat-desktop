@@ -13,4 +13,9 @@ None yet.
 
 ## Советы, которые навредили
 
-None yet.
+- **SEC-3 · Pass cloudflared's tunnel secret by `--credentials-file` instead of its environment.** Rejected.
+  cloudflared outlives the app, so the file would stay on disk, outside the keyring, for the tunnel's whole life, and
+  backups and file sync would copy it. The environment variable `TUNNEL_CRED_CONTENTS` is readable only by the same
+  user (`/proc/<pid>/environ`), like a 0600 file. The variable stays, with a comment that says why
+  (`src-tauri/src/cloudflare.rs`, commit 67523393 "fix(rust): refuse an npm package address…"). 2026-11-12,
+  [review 2026-11-12](review-2026-11-12.md).

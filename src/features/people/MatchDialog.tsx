@@ -1,14 +1,13 @@
-import { Bot, CalendarDays, ExternalLink, Link2, Mail, Phone } from "lucide-react"
+import { Bot, CalendarDays, Link2, Mail, Phone } from "lucide-react"
 import { type ReactNode, useEffect, useRef } from "react"
 import { isConversation } from "@/domain/conversation"
 import { linkTargetOf } from "@/domain/links"
 import { sourceLink } from "@/domain/source-link"
 import { openConversation } from "@/features/conversation"
 import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { Identity, Listed, Match, PersonDetail } from "@/platform/people-schemas"
 import type { PersonProfile } from "@/platform/person-profile-schemas"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -196,7 +195,7 @@ function SharedSignal({ match, value }: { match: Match; value: string | null }) 
     <p
       data-autofocus
       tabIndex={-1}
-      className="flex items-center gap-[0.6rem] rounded-[0.45rem] bg-brand-soft px-[0.9rem] py-[0.65rem] font-medium text-ink step-heading"
+      className="flex items-center gap-[0.6rem] rounded-inset bg-brand-soft px-[0.9rem] py-[0.65rem] font-medium text-ink step-heading"
     >
       <Icon className="size-[1.1rem] shrink-0 text-brand" aria-hidden />
       <span className="selectable min-w-0">{words}</span>
@@ -391,17 +390,9 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
       <span className="text-ink">{crm ? m.contactIn(source) : source}</span>
       {extra && <span className="selectable min-w-0 truncate text-ink-soft">{extra}</span>}
       {href && (
-        <button
-          type="button"
-          onClick={() => void platform.openUrl(href)}
-          {...externalHref(href)}
-          aria-label={m.openIn(source)}
-          title={m.openIn(source)}
-          className="inline-flex items-center gap-[0.25rem] rounded-[0.2rem] text-[0.9rem] text-brand transition-colors duration-(--motion-fast) hover:text-brand-hover"
-        >
-          <ExternalLink className="size-[0.85rem]" aria-hidden />
+        <ExtLink href={href} label={m.openIn(source)} className="text-[0.9rem]">
           {m.openShort}
-        </button>
+        </ExtLink>
       )}
       {tie && <span className="ml-auto text-[0.8rem] font-medium text-brand">{m.tie}</span>}
     </li>
@@ -412,7 +403,7 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
 function Recent({ items }: { items: PersonProfile["recent"] }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
-  const row = "flex min-w-0 flex-col gap-[0.1rem] rounded-[0.35rem] px-[0.45rem] py-[0.35rem]"
+  const row = "flex min-w-0 flex-col gap-[0.1rem] rounded-control px-[0.45rem] py-[0.35rem]"
   return (
     <ul className="-mx-[0.45rem] flex flex-col">
       {items.map((r) => {

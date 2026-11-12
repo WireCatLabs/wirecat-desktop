@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import { platform } from "@/platform/bridge"
+import { safeStorage } from "@/shared/safe-storage"
 import { keepRoom, reducedMotion } from "@/ui/motion"
 
 /** The owner's interface size, in percent of the default. */
@@ -22,7 +23,7 @@ type ScaleState = { percent: number; set(percent: number): void }
 export const useScale = create<ScaleState>()(
   persist((set) => ({ percent: DEFAULT_SCALE, set: (percent) => set({ percent: clampScale(percent) }) }), {
     name: "wirecat.scale",
-    storage: createJSONStorage(() => localStorage),
+    storage: createJSONStorage(() => safeStorage),
     merge: (saved, current) => ({ ...current, percent: clampScale((saved as { percent?: number })?.percent ?? NaN) }),
   }),
 )

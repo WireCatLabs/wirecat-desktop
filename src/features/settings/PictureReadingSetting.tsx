@@ -1,6 +1,5 @@
 import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import type { Gap } from "@/domain/needs"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { PictureAgent, PictureReadingSetting as Setting } from "@/platform/ai-model-schemas"
 import { ToolNeeded } from "@/shared/ToolNeeded"
@@ -8,10 +7,12 @@ import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { fieldClass } from "@/ui/field"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
+import { useMemoGap } from "./memo-gap"
 import { pictureReadingMessages } from "./messages-picture-reading"
 import { usePictureReading } from "./picture-reading-store"
 
@@ -22,9 +23,7 @@ const AGENTS: readonly PictureAgent[] = ["claude", "codex"]
 /** Settings, "Reading pictures": whether the owner's coding agent may read a picture they choose, and which one. */
 export function PictureReadingSetting() {
   const m = useMessages(pictureReadingMessages)
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   const head = useId()
   if (!memo && !gap) return null
   return (
@@ -76,8 +75,11 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
   const [model, setModel] = useState(setting.model ?? "")
   const modelId = useId()
   const hint = useId()
+  const agentId = useId()
+  const noAgent = useFieldError(agentId)
 
   const reset = () => {
+    noAgent.clear()
     setMode(setting.mode)
     setAgent(setting.agent)
     setModel(setting.model ?? "")
@@ -96,6 +98,7 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
   }
   const pickAgent = (next: PictureAgent | "") => {
     if (!next) return
+    noAgent.clear()
     // memo gives a new agent its own default, not the old agent's model.
     if (next !== agent) setModel(next === setting.agent ? (setting.model ?? "") : "")
     setAgent(next)
@@ -106,7 +109,7 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
       ? m.ownerOnly
       : actionError === "picture-reading.agent-missing"
         ? m.agentMissing
-        : actionError && m.setFailed(actionError)
+        : actionError && m.setFailed
   const when = setting.since ? formatDate(setting.since, { dateStyle: "medium", timeStyle: "short" }, lang) : null
 
   return (
@@ -129,8 +132,8 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
         )}
       </div>
       <Collapse open={mode === "request"}>
-        <div className="flex flex-col gap-3 rounded-[0.35rem] border border-line px-3 py-3">
-          <div className="flex flex-col gap-[0.3rem]">
+        <div className="flex flex-col gap-3 rounded-control border border-line px-3 py-3">
+          <div id={agentId} className="flex flex-col gap-[0.3rem]">
             <span className="text-[0.9rem] text-ink-dim">{m.agent}</span>
             <Segmented<PictureAgent | "">
               label={m.agent}
@@ -140,6 +143,7 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
               onChange={pickAgent}
               disabled={busy}
             />
+            {noAgent.hint}
           </div>
           <div className="flex max-w-[22rem] flex-col gap-[0.3rem]">
             <label htmlFor={modelId} className="text-[0.9rem] text-ink-dim">
@@ -169,8 +173,12 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
               <Button
                 size="sm"
                 variant="primary"
-                disabled={busy || !agent}
-                onClick={() => void usePictureReading.getState().set("request", agent, model.trim() || null)}
+                disabled={busy}
+                onClick={() =>
+                  agent
+                    ? void usePictureReading.getState().set("request", agent, model.trim() || null)
+                    : noAgent.fail(m.agentMissing)
+                }
               >
                 {setting.mode === "request" ? m.save : m.turnOn}
               </Button>
@@ -182,7 +190,9 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
         </div>
       </Collapse>
       <Collapse open={Boolean(said)}>
-        <ErrorNotice inline>{said}</ErrorNotice>
+        <ErrorNotice inline raw={said === m.setFailed ? actionError : null}>
+          {said}
+        </ErrorNotice>
       </Collapse>
     </div>
   )

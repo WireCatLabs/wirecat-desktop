@@ -4,7 +4,7 @@ import type { DeepLinkTarget } from "@/domain/links"
 const part = v.pipe(v.string(), v.minLength(1), v.maxLength(512))
 
 // `deep_link.rs` sends what it parsed; the shape is checked again here, as every event from Rust is.
-export const DeepLinkTargetSchema = v.union([
+const DeepLinkTargetSchema = v.union([
   v.object({ type: v.literal("message"), provider: part, account: part, chat: part, message: part }),
   v.object({ type: v.literal("chat"), provider: part, account: part, chat: part }),
   v.object({ type: v.literal("task"), id: part }),

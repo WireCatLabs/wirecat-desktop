@@ -10,7 +10,9 @@ const en = {
   findNext: "Next match",
   shared: "WireCat (shared)",
   sharedNeedsTool: "Install Telegram, MAX or WhatsApp to change shared settings",
-  notInstalled: "Not installed",
+  notShown: "Tools not shown",
+  notInstalledList: (names: string) =>
+    `Not installed: ${names}. Install a tool on the Tools page to change its settings here.`,
   noneInstalled: "Install a tool to change its settings.",
   openTools: "Open Tools",
   profile: "Profile",
@@ -165,7 +167,9 @@ const ru: ConfigText = {
   findNext: "Следующее совпадение",
   shared: "WireCat (общие)",
   sharedNeedsTool: "Установите Telegram, MAX или WhatsApp, чтобы менять общие настройки",
-  notInstalled: "Не установлен",
+  notShown: "Каких инструментов здесь нет",
+  notInstalledList: (names) =>
+    `Не установлены: ${names}. Установите инструмент на странице «Инструменты», чтобы менять его настройки здесь.`,
   noneInstalled: "Установите инструмент, чтобы менять его настройки.",
   openTools: "Открыть Инструменты",
   profile: "Профиль",
@@ -325,7 +329,9 @@ const es: ConfigText = {
   findNext: "Coincidencia siguiente",
   shared: "WireCat (compartidos)",
   sharedNeedsTool: "Instala Telegram, MAX o WhatsApp para cambiar los ajustes compartidos",
-  notInstalled: "No instalado",
+  notShown: "Herramientas que no aparecen",
+  notInstalledList: (names) =>
+    `Sin instalar: ${names}. Instala una herramienta en la página Herramientas para cambiar aquí sus ajustes.`,
   noneInstalled: "Instala una herramienta para cambiar sus ajustes.",
   openTools: "Abrir Herramientas",
   profile: "Perfil",

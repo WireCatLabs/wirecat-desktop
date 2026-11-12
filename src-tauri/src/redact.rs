@@ -315,7 +315,7 @@ mod tests {
         let jwt = &format!("eyJ{}.eyJ{}.{}", "a".repeat(12), "b".repeat(16), "c".repeat(20));
         let hex = "0123456789abcdef".repeat(2);
         let mut v = json!({
-            "Authorization": "Bearer x", "api_hash": hex, "session": session.clone(),
+            "Authorization": "Bearer x", "api_hash": hex, "session": session,
             "jwt": jwt, "passphrase": "hunter2", "private_key": "k", "chat_title": "Family chat",
             "code": "rate_limited", "from": "config defaults", "key": "FLOOD_WAIT"
         });

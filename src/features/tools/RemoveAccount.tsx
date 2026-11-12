@@ -4,6 +4,7 @@ import { type CatalogTool, catalogCommand } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { AccountRemoval, AccountRemoved, Removal, RemovalEntry, RemovalKind } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
@@ -40,7 +41,7 @@ const failed = (e: unknown): Refused => ({
   result: "refused",
   reason: "failed",
   holder: null,
-  message: e instanceof Error ? e.message : String(e),
+  message: errorText(e),
 })
 
 /**
@@ -109,7 +110,7 @@ export function RemoveAccountDialog(props: {
     try {
       result = await platform.accountSignOut(tool.id, profile)
     } catch (e) {
-      result = { result: "failed", message: e instanceof Error ? e.message : String(e) }
+      result = { result: "failed", message: errorText(e) }
     }
     setPhase({ step: "signedOut", result })
     if (result.result === "signedOut") onRemoved()
@@ -162,7 +163,6 @@ type Handlers = {
 function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: AccountsText["remove"]; on: Handlers }) {
   const { tool, profile, phase, m, on } = props
   const signOutWords = tool.accountRemove?.signOut ?? null
-  const spinner = <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
   switch (phase.step) {
     case "checking":
     case "choose":
@@ -182,12 +182,7 @@ function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: A
           <Button variant="secondary" onClick={on.close} aria-disabled={running || undefined}>
             {m.cancel}
           </Button>
-          <Button
-            variant="danger"
-            aria-disabled={running || undefined}
-            onClick={running ? () => undefined : () => on.remove(phase.del, phase.removal)}
-          >
-            {running && spinner}
+          <Button variant="danger" busy={running} onClick={() => on.remove(phase.del, phase.removal)}>
             {running ? m.removing : label}
           </Button>
         </>
@@ -231,8 +226,7 @@ function Actions(props: { tool: CatalogTool; profile: string; phase: Phase; m: A
       )
     case "signingOut":
       return (
-        <Button variant="danger" aria-disabled onClick={() => undefined}>
-          {spinner}
+        <Button variant="danger" busy>
           {m.running}
         </Button>
       )
@@ -284,12 +278,7 @@ function Body(props: {
         <>
           <p>{m.lead(tool.name)}</p>
           <div className="grid gap-2">
-            <ChoiceButton
-              title={m.keepChoice}
-              note={m.keepChoiceNote(what)}
-              onClick={() => onChoose(false)}
-              autoFocus
-            />
+            <ChoiceButton title={m.keepChoice} note={m.keepChoiceNote(what)} onClick={() => onChoose(false)} first />
             <ChoiceButton
               title={m.deleteChoice}
               note={m.deleteChoiceNote(what)}
@@ -345,21 +334,15 @@ function Waiting({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ChoiceButton(props: {
-  title: string
-  note: string
-  onClick: () => void
-  danger?: boolean
-  autoFocus?: boolean
-}) {
-  const { title, note, onClick, danger = false, autoFocus } = props
+function ChoiceButton(props: { title: string; note: string; onClick: () => void; danger?: boolean; first?: boolean }) {
+  const { title, note, onClick, danger = false, first } = props
   return (
     <button
       type="button"
       onClick={onClick}
-      data-autofocus={autoFocus || undefined}
+      data-autofocus={first || undefined}
       className={cx(
-        "flex flex-col gap-1 rounded-[0.45rem] border border-line bg-app px-3 py-2.5 text-left transition-colors duration-(--motion-fast)",
+        "flex flex-col gap-1 rounded-inset border border-line bg-app px-3 py-2.5 text-left transition-colors duration-(--motion-fast)",
         "hover:border-brand/50 hover:bg-brand-soft/40 focus-visible:border-brand",
         danger && "hover:border-bad/50 hover:bg-bad/5 focus-visible:border-bad",
       )}
@@ -579,7 +562,7 @@ function Refusal(props: { tool: CatalogTool; profile: string; answer: Refused; m
       <>
         <p>{using ? `${m.busyUsing(using)} ${m.busyTool}` : m.busyTool}</p>
         <p className="text-[0.75rem] text-ink-dim">{m.details}</p>
-        <p className="selectable rounded-[0.35rem] bg-app-2 px-2.5 py-1.5 font-mono text-[0.82rem] break-words text-ink">
+        <p className="selectable rounded-control bg-app-2 px-2.5 py-1.5 font-mono text-[0.82rem] break-words text-ink">
           {message}
         </p>
       </>
@@ -642,7 +625,7 @@ function Choice({ title, on, children }: { title: string; on: boolean; children:
     <fieldset
       disabled={!on}
       className={cx(
-        "rounded-[0.45rem] border px-3 py-2.5",
+        "rounded-inset border px-3 py-2.5",
         on ? "border-brand/50 bg-brand-soft/40" : "border-line bg-app-2/60 text-ink-soft",
       )}
     >

@@ -1,4 +1,4 @@
-// Design prototype for the Memory page plan (docs/dev/plans/2026-10-31-memory-page.md). Made-up data, no platform
+// Design prototype for the Memory page. Made-up data, no platform
 // calls. `?layout=a|b|c` picks the arrangement (NEED-167): a, one rack in day groups with tabs; b, two racks, Review
 // above In use; c, a query bar with facets over a flat list. `?memory=<state>` picks what it shows: waiting (default), correct, forget, kept, empty, missing, old, loading,
 // error.

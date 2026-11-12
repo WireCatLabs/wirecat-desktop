@@ -1,21 +1,22 @@
 import type { ReactNode } from "react"
-import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CloudflareStatus } from "@/platform/cloudflare-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
+import type { useCloudflare } from "./api"
 import { type CloudflareStepId, cloudflareSteps } from "./cloudflare-steps"
 import { tunnelMessages } from "./messages-tunnel"
 import { StepHead } from "./TailscaleGuide"
+import { DownloadRow, Note, Para } from "./tunnel-parts"
 
 type Words = (typeof tunnelMessages)["en"]["cloudflare"]
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const EXAMPLE_HOST = "wirecat.example.com"
 
@@ -23,47 +24,6 @@ const PAGES = {
   downloads: "https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/",
   addDomain: "https://developers.cloudflare.com/fundamentals/manage-domains/add-site/",
   signUp: "https://dash.cloudflare.com/sign-up",
-}
-
-/** cloudflared's state for the guide, read again on Check and whenever the window comes back into focus. */
-export function useCloudflare(active: boolean) {
-  const [status, setStatus] = useState<CloudflareStatus | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [checking, setChecking] = useState(false)
-  const call = useRef(0)
-
-  const check = useCallback(async () => {
-    const mine = ++call.current
-    setChecking(true)
-    try {
-      const s = await platform.cloudflareStatus()
-      if (call.current === mine) {
-        setStatus(s)
-        setError(null)
-      }
-    } catch (e) {
-      if (call.current === mine) setError(message(e))
-    }
-    if (call.current === mine) setChecking(false)
-  }, [])
-
-  useEffect(() => {
-    if (!active) return
-    check()
-    const onFocus = () => check()
-    window.addEventListener("focus", onFocus)
-    return () => window.removeEventListener("focus", onFocus)
-  }, [active, check])
-
-  return { status, error, checking, check }
-}
-
-function Para({ children }: { children: ReactNode }) {
-  return <p className="max-w-[62ch]">{children}</p>
-}
-
-function Note({ children }: { children: ReactNode }) {
-  return <p className="max-w-[62ch] text-[0.9rem] text-ink-dim">{children}</p>
 }
 
 function InstallStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): Promise<void> }) {
@@ -77,25 +37,24 @@ function InstallStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
       await platform.cloudflareInstall()
       await check()
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
     }
     setBusy(false)
   }
   return (
     <>
       <Para>{m.install}</Para>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="primary" onClick={download} disabled={busy}>
-          {busy ? m.downloading : m.download}
-        </Button>
-        {busy ? (
+      <DownloadRow
+        label={busy ? m.downloading : m.download}
+        busy={busy}
+        checksum={m.checksum}
+        onDownload={download}
+        stop={
           <Button size="sm" variant="ghost" onClick={() => platform.cloudflareStop()}>
             {m.stop}
           </Button>
-        ) : (
-          <span className="text-[0.9rem] text-ink-dim">{m.checksum}</span>
-        )}
-      </div>
+        }
+      />
       {error && <ErrorNotice inline>{error}</ErrorNotice>}
     </>
   )
@@ -122,7 +81,7 @@ function AccountStep({ again, m, check }: { again: boolean; m: Words; check(): P
     try {
       await platform.cloudflareLogin(setPage)
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
     }
     setWaiting(false)
     check()
@@ -179,7 +138,7 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
       await platform.cloudflareCreate(name)
       await check()
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -190,7 +149,7 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
         <span className="text-[0.9rem] font-medium text-ink-dim">{m.nameLabel}</span>
         <input
           id={id}
-          className="h-8 w-full max-w-[24rem] rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
+          className="h-8 w-full max-w-[24rem] rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && create()}
@@ -235,7 +194,7 @@ export function CloudflareGuide({ cloudflare }: { cloudflare: ReturnType<typeof 
   }
 
   return (
-    <ol className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line" aria-label={m.list}>
+    <ol className="flex flex-col divide-y divide-line rounded-inset border border-line" aria-label={m.list}>
       {steps.map((step, i) => {
         const open = step.id === current
         return (

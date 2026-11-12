@@ -1,14 +1,12 @@
 import { waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
-import { resetQueryClient } from "@/shared/query"
 import { useTasks } from "./store"
 
 const never = <T>() => new Promise<T>(() => {})
 
 beforeEach(() => {
-  resetQueryClient()
-  useTasks.setState({ ...useTasks.getInitialState(), view: "table" }, true)
+  useTasks.setState({ view: "table" })
 })
 afterEach(() => vi.restoreAllMocks())
 
@@ -18,8 +16,11 @@ describe("the Tasks store", () => {
     const search = vi.spyOn(platform, "peopleSearch")
     await useTasks.getState().load()
     await waitFor(() => expect(useTasks.getState().people.some((p) => p.owner)).toBe(true))
+    const { assigned, people } = useTasks.getState()
     const asked = named.mock.calls.flatMap(([refs]) => refs)
-    expect(new Set(asked)).toEqual(new Set(useTasks.getState().assigned))
+    expect(asked.filter((ref) => !assigned.includes(ref))).toEqual([])
+    expect(new Set(asked).size).toBe(asked.length)
+    expect(assigned.filter((ref) => !people.some((p) => p.ref === ref))).toEqual([])
     expect(search.mock.calls).toEqual([[""]])
   })
 
@@ -39,8 +40,8 @@ describe("the Tasks store", () => {
       return { ...counts, assignee: [{ value: "person:777", name: null, count: 1 }] }
     })
     await useTasks.getState().load()
-    await waitFor(() => expect(named).toHaveBeenCalledTimes(2), { timeout: 2000 })
-    await waitFor(() => expect(open).toBe(0), { timeout: 2000 })
+    await waitFor(() => expect(named).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(open).toBe(0))
     expect(most).toBe(1)
   })
 

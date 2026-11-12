@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react"
-import { ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestSpec } from "@/platform/bindings"
 import { useDigestDay } from "@/shared/digest-day"
 import { Page, PageHeader } from "@/shared/Page"
-import { ReportThis } from "@/shared/ReportThis"
+import { PageError } from "@/shared/PageError"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Crossfade } from "@/ui/Crossfade"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { CreateDialog, draftOf, Starter, type Template } from "./CreateDigest"
@@ -65,13 +64,18 @@ export function DigestsPage() {
         title={m.page}
         section="digests"
         intro={m.intro}
-        actions={<RefreshButton busy={reading} onClick={() => void read()} label={m.readAgain} busyLabel={m.reading} />}
+        actions={
+          // While the page error shows, its Try again is the one retry.
+          !(error && !book) && (
+            <RefreshButton busy={reading} onClick={() => void read()} label={m.readAgain} busyLabel={m.reading} />
+          )
+        }
       />
 
       {error && !book ? (
-        <ErrorNotice raw={error} action={<ReportThis what="Reading digests" error={error} />}>
+        <PageError raw={error} what="Reading digests" busy={reading} onRetry={() => void read()}>
           {s.readFailed}
-        </ErrorNotice>
+        </PageError>
       ) : book === null ? (
         // The presets, the search and a table of three digests, at their loaded heights.
         <div className="flex flex-col gap-[1.5rem]">

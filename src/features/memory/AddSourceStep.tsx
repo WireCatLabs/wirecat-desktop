@@ -1,4 +1,4 @@
-import { FileText, Link2, LoaderCircle, Paperclip } from "lucide-react"
+import { FileText, Link2, Paperclip } from "lucide-react"
 import { useEffect, useId } from "react"
 import { fileName, isLink, missingOf, type Way, wordCount } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
@@ -17,7 +17,7 @@ const WAYS: { way: Way; Icon: typeof FileText }[] = [
   { way: "file", Icon: Paperclip },
 ]
 
-const field = `selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
+const field = `selectable w-full rounded-control border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
 
 /** Step 1: Text, Link or File, each with its own input; Save keeps it and moves on. */
 export function SourceStep() {
@@ -59,7 +59,7 @@ export function SourceStep() {
                 onChange={() => setWay(way)}
                 className="peer sr-only"
               />
-              <span className="flex w-full cursor-pointer items-start gap-[0.7rem] rounded-[0.45rem] border border-line-strong px-[0.8rem] py-[0.65rem] transition-colors duration-(--motion-fast) hover:bg-app-2 peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+              <span className="flex w-full cursor-pointer items-start gap-[0.7rem] rounded-inset border border-line-strong px-[0.8rem] py-[0.65rem] transition-colors duration-(--motion-fast) hover:bg-app-2 peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
                 <Icon className="mt-[0.15rem] size-[1.1rem] shrink-0 text-ink-soft" aria-hidden />
                 <span>
                   <span className="block font-medium">{m.ways[way].name}</span>
@@ -82,12 +82,7 @@ export function SourceStep() {
       <Refusal />
       {need.hint}
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!!busy}
-          icon={busy === "save" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-        >
+        <Button type="submit" variant="primary" disabled={!!busy} busy={busy === "save"}>
           {busy === "save" ? m.saving[draft.way] : m.save}
         </Button>
       </div>
@@ -186,7 +181,7 @@ function FileInput({ problem }: { problem: string | undefined }) {
   const { pickFile } = useAddSource.getState()
   const shown = !!path && preview?.of === path && preview.state !== "none"
   return (
-    <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-[0.45rem] border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
+    <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-inset border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
       {path &&
         (shown ? (
           <div className="w-full">
@@ -200,7 +195,7 @@ function FileInput({ problem }: { problem: string | undefined }) {
         disabled={!!busy}
         aria-describedby={problem}
         onClick={() => void pickFile()}
-        icon={busy === "pick" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        busy={busy === "pick"}
       >
         {path ? m.chooseOther : m.chooseFile}
       </Button>

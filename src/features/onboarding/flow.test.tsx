@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { appMessages } from "@/app/messages"
 import { runMockScenario } from "@/app/scenarios"
@@ -9,7 +9,6 @@ import { platform } from "@/platform/bridge"
 import type { SignInEvent } from "@/platform/signin-schemas"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import {
   currentStep,
   endInstalls,
@@ -28,7 +27,6 @@ import { uiMessages } from "@/ui/messages"
 import { nextMessages } from "./messages-next"
 
 // Every answer the mock gives comes at once; the tests wait only for what they drive.
-beforeEach(() => answerAtOnce())
 
 afterEach(async () => {
   await endInstalls()

@@ -47,7 +47,6 @@ const older = {
 describe("the People store after a write", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
   })
 
   it("forgets every touched person, reads both lists again, and keeps the decided card in place", async () => {
@@ -113,7 +112,6 @@ describe("the People store after a write", () => {
 describe("the People page opened again", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
   })
 
   it("within a minute reads nothing; later it reads with the people still on screen", async () => {
@@ -133,7 +131,6 @@ describe("the People page opened again", () => {
 describe("the People pages", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
   })
 
   it("goes to the new last page when the kind shrank under the page on screen", async () => {

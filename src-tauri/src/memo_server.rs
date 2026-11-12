@@ -639,9 +639,18 @@ echo '{"via":"spawn"}'
             fake
         }
 
+        /// Returns once the script can run. A test on another thread that forks while the script is open for
+        /// writing hands that open file to its child until the child's exec, and an exec of the script meanwhile fails
+        /// with ETXTBSY: the pool's start then fails and the call runs as a process of its own (CI, 2026-11-12).
         fn write(&self, body: &str) {
             std::fs::write(&self.0, format!("#!/bin/sh\n{body}")).unwrap();
             std::fs::set_permissions(&self.0, std::fs::Permissions::from_mode(0o755)).unwrap();
+            let since = Instant::now();
+            while let Err(e) = std::process::Command::new(&self.0).stdout(Stdio::null()).status() {
+                assert_eq!(e.raw_os_error(), Some(libc::ETXTBSY), "{e}");
+                assert!(since.elapsed() < Duration::from_secs(5), "the fake stayed busy");
+                thread::yield_now();
+            }
         }
     }
 

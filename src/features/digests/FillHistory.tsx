@@ -4,6 +4,7 @@ import { formatUsd } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
 import type { Backfill } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -23,8 +24,6 @@ type Step =
   | { step: "done"; built: number; costUsd: number | null }
   | { step: "unsupported" }
   | { step: "failed"; message: string; priced: boolean }
-
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // One build at a time across the page; the dialog may close while it runs and reopen on its result.
 const building = new Map<string, Promise<Backfill>>()
@@ -54,7 +53,7 @@ export function FillHistory({ name }: { name: string }) {
               ? { step: "unsupported" }
               : { step: "failed", message: "", priced: false },
         ),
-      (e) => setStep({ step: "failed", message: messageOf(e), priced: false }),
+      (e) => setStep({ step: "failed", message: errorText(e), priced: false }),
     )
   }
 
@@ -71,7 +70,7 @@ export function FillHistory({ name }: { name: string }) {
               ? { step: "done", built: b.built, costUsd: b.costUsd }
               : { step: "failed", message: "", priced: true },
           ),
-        (e) => setStep({ step: "failed", message: messageOf(e), priced: true }),
+        (e) => setStep({ step: "failed", message: errorText(e), priced: true }),
       )
       .finally(() => {
         building.delete(name)

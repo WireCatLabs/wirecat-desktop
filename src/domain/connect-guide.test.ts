@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   choiceOf,
-  errorMessage,
   funnelStopped,
   isFunnelHost,
   isLocalAddress,
@@ -28,11 +27,6 @@ describe("tunnel choice", () => {
 })
 
 describe("errors", () => {
-  it("reads a message from an Error or a string", () => {
-    expect(errorMessage(new Error("boom"))).toBe("boom")
-    expect(errorMessage("plain")).toBe("plain")
-  })
-
   it("knows a stopped approval from a failure", () => {
     expect(wasStopped("Stopped.")).toBe(true)
     expect(wasStopped(new Error("Stopped."))).toBe(true)

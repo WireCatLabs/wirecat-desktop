@@ -441,10 +441,10 @@ export function BoardColumn({
       data-sticky={sticky || undefined}
       aria-label={label}
       className={cx(
-        "group/column flex min-h-[22rem] min-w-0 flex-col rounded-[0.2rem] border bg-app transition-colors duration-(--motion-fast)",
+        "group/column flex min-h-[22rem] min-w-0 flex-col rounded-rack border bg-app transition-colors duration-(--motion-fast)",
         target ? "border-brand/60" : "border-line-strong",
         tiles && "max-h-[max(22rem,calc(100dvh-12rem))]",
-        sticky && "sticky left-0 z-10 shadow-[0.6rem_0_0.8rem_-0.6rem_rgb(0_0_0/0.18)]",
+        sticky && "sticky left-0 z-10 shadow-panel",
       )}
     >
       <h2 className="flex min-h-[3rem] flex-wrap items-start gap-x-[0.55rem] border-line border-b px-[0.9rem] py-[0.4rem]">
@@ -481,7 +481,7 @@ export function DragCopy<C extends string>({ drag, children }: { drag: BoardDrag
     <div
       aria-hidden
       className={cx(
-        "pointer-events-none fixed z-50 rounded-[0.35rem] border border-brand/50 bg-app shadow-panel",
+        "pointer-events-none fixed z-50 rounded-control border border-brand/50 bg-app shadow-panel",
         !reducedMotion() && "rotate-[1.2deg]",
       )}
       style={{ left: drag.x - drag.dx, top: drag.y - drag.dy, width: drag.w }}

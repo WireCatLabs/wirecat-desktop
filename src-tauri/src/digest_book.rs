@@ -1,6 +1,6 @@
 //! The Digests page's table: every digest memo keeps by name, through
-//! `memo digest list|add|edit|run|pause|resume|remove` (docs/dev/plans/2026-11-09-people-clients-digests.md,
-//! "Digests by name"; memo's own help is the source of truth).
+//! `memo digest list|add|edit|run|pause|resume|remove` (docs/dev/digests-api.md;
+//! memo's own help is the source of truth).
 //!
 //! A memo without `digest list` has one digest, `morning-digest`, kept as a schedule: the page then reads
 //! `schedule list` and writes through `schedule agent|remove|run` (`digest_schedule.rs`), and what that memo cannot do
@@ -363,7 +363,7 @@ fn without_agent(args: &[String]) -> Option<Vec<String>> {
 
 fn opened(memo: &Tool) -> Opened {
     let Some(src) = memo.digests.as_ref() else { return Opened::default() };
-    let version = tools::detect(memo, false).installs.first().and_then(|i| i.version.clone());
+    let version = tools::installed_version(memo);
     let open = |gate: &Option<Gate>| gate.as_ref().is_some_and(|g| g.open(version.as_deref()));
     Opened { agent: open(&src.agent), more_sources: open(&src.more_sources), agent_consent: open(&src.agent_consent) }
 }
@@ -523,7 +523,7 @@ pub fn book() -> Result<DigestBook, String> {
 
 /// The reason id of a refusal the window words, else memo's own words.
 fn refusal(out: &crate::run::Output, json: Option<&Value>) -> String {
-    match json.and_then(|v| v["error"]["reason"].as_str()) {
+    match crate::skills::reason(json) {
         Some(reason) if WORDED.contains(&reason) => reason.to_string(),
         _ => failure(out, json),
     }
