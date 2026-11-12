@@ -54,13 +54,7 @@ export function ClientsPage() {
         compact
         actions={
           <>
-            <RefreshButton
-              busy={board.isFetching}
-              onClick={() => void readAgain()}
-              label={m.readAgain}
-              busyLabel={m.reading}
-              className={cx((!based || board.error) && "invisible")}
-            />
+            {based && <ImportButton />}
             {based && (
               <Button
                 variant="ghost"
@@ -95,7 +89,13 @@ export function ClientsPage() {
                 return { value: k, label: m.kinds[k], icon: <Icon className="size-4" aria-hidden /> }
               })}
             />
-            {based && <ImportButton />}
+            <RefreshButton
+              busy={board.isFetching}
+              onClick={() => void readAgain()}
+              label={m.readAgain}
+              busyLabel={m.reading}
+              className={cx((!based || board.error) && "invisible")}
+            />
           </>
         }
       />

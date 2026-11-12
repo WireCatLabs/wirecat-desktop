@@ -53,12 +53,14 @@ export function TasksPage() {
             aria-hidden={!usable || undefined}
             inert={demo || undefined}
           >
-            <RefreshButton
-              busy={reading}
-              onClick={() => void useTasks.getState().load()}
-              label={m.readAgain}
-              busyLabel={m.reading}
-            />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => useTasks.getState().startCreate(true)}
+              icon={<Plus className="size-4" aria-hidden />}
+            >
+              {m.newTask}
+            </Button>
             <Segmented<View>
               size="md"
               tour="tasks-view"
@@ -70,14 +72,12 @@ export function TasksPage() {
                 { value: "board", label: m.board, icon: <Columns3 className="size-4" aria-hidden /> },
               ]}
             />
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => useTasks.getState().startCreate(true)}
-              icon={<Plus className="size-4" aria-hidden />}
-            >
-              {m.newTask}
-            </Button>
+            <RefreshButton
+              busy={reading}
+              onClick={() => void useTasks.getState().load()}
+              label={m.readAgain}
+              busyLabel={m.reading}
+            />
           </div>
         }
       />

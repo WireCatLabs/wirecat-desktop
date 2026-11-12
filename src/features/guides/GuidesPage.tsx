@@ -140,11 +140,7 @@ export function GuidesPage() {
           status={scenario === "offline" ? m.offline : m.fresh}
           busy={false}
           intro={m.intro}
-          actions={
-            <ExtLink href={`https://wirecat.dev/${lang}/docs/prompting`} className="font-medium">
-              {m.allOnSite}
-            </ExtLink>
-          }
+          guide={{ label: m.allOnSite, href: `https://wirecat.dev/${lang}/docs/prompting` }}
         />
         <label className="relative block max-w-[36rem]">
           <span className="sr-only">{m.search}</span>

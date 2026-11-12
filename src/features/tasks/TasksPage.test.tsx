@@ -831,6 +831,9 @@ describe("Tasks", () => {
     const create = vi.spyOn(platform, "taskCreate")
     render(<TasksPage />)
     await loaded()
+    const header = screen.getByRole("button", { name: "New task" }).parentElement as HTMLElement
+    expect(header.firstElementChild).toHaveTextContent("New task")
+    expect(header.lastElementChild).toHaveTextContent("Read again")
     await user.click(screen.getByRole("button", { name: "New task" }))
     const dialog = await screen.findByRole("dialog", { name: "New task" })
     await user.click(within(dialog).getByRole("button", { name: "Add task" }))
