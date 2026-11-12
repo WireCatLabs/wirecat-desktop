@@ -19,6 +19,7 @@ import type { Platform } from "./types"
 // the store), `?people=nokinds` is a memo older than kinds of people (one list of everyone, no contact),
 // `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
 // `identity.stale`, `?people-mailbox=old` is a memo that gives a company no address on a match by name,
+// `?people-company=old` one that cannot make the people of a match one company's mailboxes,
 // `?people-fail=merge` refuses the second join of a group, `?people-fail=unnamed|ambiguous` refuses
 // Company mailbox until the owner names the company or picks one of two. Two splits an agent proposed wait beside the
 // matches and eight people look wrongly joined (`people links check`); `?people=calm` has neither.
@@ -385,6 +386,7 @@ export function peopleMock(): Pick<
   | "peopleFind"
   | "peopleDecide"
   | "peopleResolve"
+  | "peopleOneCompany"
   | "peopleMerge"
   | "peopleUnlink"
   | "peopleCheck"
@@ -567,6 +569,7 @@ export function peopleMock(): Pick<
           )
         : people.map(listed)
       const companyMailbox = params.get("people-mailbox") !== "old"
+      const oneCompany = params.get("people-company") !== "old"
       return {
         kind: "ready",
         people: listing,
@@ -576,6 +579,7 @@ export function peopleMock(): Pick<
         splits,
         kinded,
         companyMailbox,
+        oneCompany,
       }
     },
     async peoplePage({ kind, page, size, query, sort }) {
@@ -661,6 +665,34 @@ export function peopleMock(): Pick<
         )
       matches = matches.filter((x) => x.id !== id)
       return { kind: "done", organization: to.organization ?? "organization:3", mailbox: m.mailbox, person: shown(ref) }
+    },
+    async peopleOneCompany(id, to) {
+      await write()
+      const m = matches.find((x) => x.id === id)
+      if (!m) throw new Error("This match is not open any more. Read again.")
+      if (fail === "unnamed" && !to.name && !to.organization)
+        return {
+          kind: "refused",
+          reason: "organization.unnamed",
+          message: `${id}: name the company or its organization`,
+          organizations: [],
+        }
+      const moved = m.persons
+      const mailboxes = moved.flatMap((p) =>
+        find(p).identities.flatMap((i) => (i.identity.startsWith("email:") ? [i.identity.slice(6)] : [])),
+      )
+      const closed = matches.filter((x) => x.persons.some((p) => moved.includes(p))).map((x) => x.id)
+      matches = matches.filter((x) => !closed.includes(x.id))
+      const name = to.name ?? (to.organization ? null : find(moved[0] ?? "").name)
+      people = people.filter((p) => !moved.includes(p.ref))
+      return {
+        kind: "organized",
+        organization: to.organization ?? "organization:5",
+        name,
+        mailboxes,
+        people: moved,
+        closed,
+      }
     },
     async peopleDecide(ref, id, answer, reason) {
       await write()

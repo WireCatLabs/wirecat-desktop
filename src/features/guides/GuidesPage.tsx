@@ -1,6 +1,6 @@
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
-import { Check, ChevronDown, Copy, Search, ShieldCheck, X } from "lucide-react"
+import { ChevronDown, Search, ShieldCheck, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { AgentLaunch, AgentRunNote, runAgent, useLaunchable } from "@/features/fix"
@@ -15,13 +15,13 @@ import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { CopyTextButton } from "@/ui/CopyTextButton"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { fieldFocus } from "@/ui/field"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
 import { Segmented } from "@/ui/Segmented"
-import { StableText } from "@/ui/Skeleton"
 import {
   docsOf,
   fill,
@@ -439,7 +439,12 @@ function GuideBody(props: {
           </AutoHeight>
           <p className="text-[0.9rem] text-ink-dim">{launchers.length > 0 ? m.askHintOpen : m.askHint}</p>
           <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
-            <CopyButton text={prompt} m={m} primary={!quiet && known && fit.ready} />
+            <CopyTextButton
+              text={prompt}
+              label={m.copy}
+              primary={!quiet && known && fit.ready}
+              className="min-w-[9rem]"
+            />
             <AgentLaunch
               label={m.openIn}
               openingLabel={m.opening}
@@ -589,36 +594,5 @@ function MessengerSwitch(props: { choices: string[]; value: string; onChange: (i
         }))}
       />
     </span>
-  )
-}
-
-function CopyButton({ text, m, primary }: { text: string; m: Text; primary: boolean }) {
-  const [copied, setCopied] = useState(false)
-  useEffect(() => {
-    if (!copied) return
-    const t = setTimeout(() => setCopied(false), 1600)
-    return () => clearTimeout(t)
-  }, [copied])
-  return (
-    <Button
-      variant={primary ? "primary" : "secondary"}
-      className="min-w-[9rem]"
-      icon={
-        copied ? (
-          <Check className={cx("size-4", primary ? "text-brand-ink" : "text-ok")} aria-hidden />
-        ) : (
-          <Copy className={cx("size-4", primary ? "text-brand-ink" : "text-ink-dim")} aria-hidden />
-        )
-      }
-      onClick={async () => {
-        await navigator.clipboard?.writeText(text).catch(() => undefined)
-        setCopied(true)
-      }}
-    >
-      <StableText value={copied ? m.copied : m.copy} variants={[m.copy, m.copied]} />
-      <span className="sr-only" aria-live="polite">
-        {copied ? m.copied : ""}
-      </span>
-    </Button>
   )
 }

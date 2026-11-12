@@ -280,6 +280,8 @@ pub enum Read {
         kinded: bool,
         /// This memo gives a company one of the two people's addresses on a match by name (`--mailbox`).
         company_mailbox: bool,
+        /// This memo makes the people of a match one company's mailboxes (`people resolve … organization`).
+        one_company: bool,
     },
 }
 
@@ -341,6 +343,7 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
         splits: list(&matches, "items", split_row),
         kinded,
         company_mailbox: false,
+        one_company: false,
     })
 }
 
@@ -420,8 +423,9 @@ pub fn read(kind: &str) -> Result<Read, String> {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
     let mut read = with_memo(|call| read_with(call, kind))?;
-    if let Read::Ready { company_mailbox, .. } = &mut read {
+    if let Read::Ready { company_mailbox, one_company, .. } = &mut read {
         *company_mailbox = company_mailbox_open(tool, first.version.as_deref());
+        *one_company = one_company_open(tool, first.version.as_deref());
     }
     Ok(read)
 }
@@ -429,6 +433,11 @@ pub fn read(kind: &str) -> Result<Read, String> {
 /// Whether the installed memo takes `people resolve … company --mailbox`; a null `minVersion` is not released yet.
 fn company_mailbox_open(tool: &Tool, version: Option<&str>) -> bool {
     tool.people.as_ref().and_then(|p| p.company_mailbox.as_ref()).is_some_and(|g| g.open(version))
+}
+
+/// Whether the installed memo takes `people resolve … organization`.
+fn one_company_open(tool: &Tool, version: Option<&str>) -> bool {
+    tool.people.as_ref().and_then(|p| p.one_company.as_ref()).is_some_and(|g| g.open(version))
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -671,12 +680,28 @@ pub struct Organization {
 }
 
 /// What `people resolve … company` did: the mailbox went to `organization` and the two people stay apart, or memo's
-/// refusal with its reason and words; `organizations` are the ones an ambiguous address could go to.
+/// refusal with its reason and words; `organizations` are the ones an ambiguous address could go to. `Organized` is
+/// `people resolve … organization`: the people were the company's own mailboxes, so they are now its addresses.
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Resolved {
-    Done { organization: Option<String>, mailbox: Option<String>, person: Person },
-    Refused { reason: String, message: String, organizations: Vec<Organization> },
+    Done {
+        organization: Option<String>,
+        mailbox: Option<String>,
+        person: Person,
+    },
+    Organized {
+        organization: String,
+        name: Option<String>,
+        mailboxes: Vec<String>,
+        people: Vec<String>,
+        closed: Vec<String>,
+    },
+    Refused {
+        reason: String,
+        message: String,
+        organizations: Vec<Organization>,
+    },
 }
 
 /// A memo before `people resolve`: the page asks for its update.
@@ -752,21 +777,8 @@ fn resolve_with(
     args.extend(name);
     args.extend(mailbox);
     let v = call(&args)?;
-    if let Some(reason) = v["error"]["reason"].as_str() {
-        let message = text(&v["error"], "message").unwrap_or_default();
-        let reason = if message.starts_with("unknown command") { OLD_MEMO } else { reason };
-        let organizations = if reason == "organization.ambiguous" {
-            named_organizations(&message)
-                .into_iter()
-                .map(|r| {
-                    let name = call(&words(&["organizations", "show", &r])).ok().and_then(|o| text(body(&o), "name"));
-                    Organization { reference: r, name }
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
-        return Ok(Resolved::Refused { reason: reason.to_string(), message, organizations });
+    if let Some(refused) = refusal(call, &v) {
+        return Ok(refused);
     }
     let item = body(&v);
     Ok(Resolved::Done {
@@ -792,6 +804,69 @@ pub fn resolve(
         }
     }
     with_memo(|call| resolve_with(call, reference, id, organization, name, mailbox))
+}
+
+fn organization_name(call: &Call, reference: &str) -> Option<String> {
+    call(&words(&["organizations", "show", reference])).ok().and_then(|o| text(body(&o), "name"))
+}
+
+/// memo's refusal of a `people resolve`, with the organizations an ambiguous company could be.
+fn refusal(call: &Call, v: &Value) -> Option<Resolved> {
+    let reason = v["error"]["reason"].as_str()?;
+    let message = text(&v["error"], "message").unwrap_or_default();
+    let reason = if message.starts_with("unknown command") { OLD_MEMO } else { reason };
+    let organizations = if reason == "organization.ambiguous" {
+        named_organizations(&message)
+            .into_iter()
+            .map(|r| Organization { name: organization_name(call, &r), reference: r })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    Some(Resolved::Refused { reason: reason.to_string(), message, organizations })
+}
+
+/// The owner says the people of a match are one company's own mailboxes: memo makes their addresses the
+/// organization's, and the people leave the list. There is no person left to read after it.
+fn one_company_with(call: &Call, id: &str, organization: Option<&str>, name: Option<&str>) -> Result<Resolved, String> {
+    if number(&json!(id)).is_none() {
+        return Err("Not a match memo listed. Read again.".into());
+    }
+    let organization = match organization {
+        Some(o) => Some(organization_ref(o).ok_or("Not an organization memo listed.")?),
+        None => None,
+    };
+    let mut args = decision(&["people", "resolve", id, "organization"]);
+    if let Some(o) = organization {
+        args.insert(4, o.to_string());
+    }
+    args.extend(company_name(name)?);
+    let v = call(&args)?;
+    if let Some(refused) = refusal(call, &v) {
+        return Ok(refused);
+    }
+    let item = body(&v);
+    let organization = text(item, "organization").ok_or("memo named no organization")?;
+    let strings = |key: &str| -> Vec<String> {
+        item[key].as_array().map(|a| a.iter().filter_map(id_text).collect()).unwrap_or_default()
+    };
+    Ok(Resolved::Organized {
+        name: organization_name(call, &organization),
+        organization,
+        mailboxes: strings("mailboxes"),
+        people: strings("people"),
+        closed: strings("closed"),
+    })
+}
+
+pub fn one_company(id: &str, organization: Option<&str>, name: Option<&str>) -> Result<Resolved, String> {
+    let tool = memo()?;
+    let version = tools::program(&tool.bin).and_then(|bin| tools::version_of(&bin));
+    if !one_company_open(tool, version.as_deref()) {
+        let message = "this memo cannot make people a company's mailboxes".to_string();
+        return Ok(Resolved::Refused { reason: OLD_MEMO.into(), message, organizations: Vec::new() });
+    }
+    with_memo(|call| one_company_with(call, id, organization, name))
 }
 
 /// The memo move that would set a doubted person right; `None` from a memo that gives only the command line.
@@ -1306,6 +1381,69 @@ mod tests {
         let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
         let r = resolve_with(&call, "person:8", "3", None, None, None).unwrap();
         assert!(matches!(r, Resolved::Refused { ref reason, .. } if reason == OLD_MEMO));
+    }
+
+    #[test]
+    fn one_company_sends_the_organization_kind_and_reads_back_its_mailboxes() {
+        let sent = Mutex::new(Vec::new());
+        let call = |a: &[String]| match a[1].as_str() {
+            "resolve" => {
+                sent.lock().unwrap().push(a.to_vec());
+                Ok(json!({"item": {"id": "17190", "kind": "identity_link", "status": "rejected",
+                    "organization": "organization:5", "mailboxes": ["pro@beeline.ru", "b2bmail@beeline.ru"],
+                    "people": ["person:90", "person:91"], "closed": ["17190", 17191]}}))
+            }
+            "show" => Ok(json!({"item": {"ref": "organization:5", "name": "Билайн"}})),
+            _ => Err("unexpected".into()),
+        };
+        let Resolved::Organized { organization, name, mailboxes, people, closed } =
+            one_company_with(&call, "17190", None, Some("Билайн")).unwrap()
+        else {
+            panic!("not organized")
+        };
+        assert_eq!((organization.as_str(), name.as_deref()), ("organization:5", Some("Билайн")));
+        assert_eq!(mailboxes, ["pro@beeline.ru", "b2bmail@beeline.ru"]);
+        assert_eq!(people, ["person:90", "person:91"]);
+        assert_eq!(closed, ["17190", "17191"]);
+        one_company_with(&call, "17190", Some("organization:5"), None).unwrap();
+        assert!(one_company_with(&call, "17190", Some("person:5"), None).is_err());
+        assert!(one_company_with(&call, "--all", None, None).is_err());
+        let tail = ["--from-app", "--json", "--no-record"];
+        let sent = sent.into_inner().unwrap();
+        assert_eq!(
+            sent[0],
+            strs(&[&["people", "resolve", "17190", "organization"][..], &tail, &["--name=Билайн"]].concat())
+        );
+        assert_eq!(
+            sent[1],
+            strs(&[&["people", "resolve", "17190", "organization", "organization:5"][..], &tail].concat())
+        );
+    }
+
+    #[test]
+    fn one_company_comes_back_with_memos_refusal_like_a_company_mailbox() {
+        let refused = json!({"error": {"reason": "organization.ambiguous",
+            "message": "2 organizations match beeline.ru (organization:1, organization:12); name the one meant"}});
+        let (f, reply) = resolving(refused);
+        let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
+        let Resolved::Refused { reason, organizations, .. } = one_company_with(&call, "17190", None, None).unwrap()
+        else {
+            panic!("not refused")
+        };
+        assert_eq!(reason, "organization.ambiguous");
+        assert_eq!(organizations.len(), 2);
+        let (f, reply) =
+            resolving(json!({"error": {"reason": "input.invalid", "message": "unknown command 'organization'"}}));
+        let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
+        let r = one_company_with(&call, "17190", None, None).unwrap();
+        assert!(matches!(r, Resolved::Refused { ref reason, .. } if reason == OLD_MEMO));
+    }
+
+    #[test]
+    fn one_company_stays_closed_until_its_memo_is_released() {
+        let tool = memo().unwrap();
+        assert!(!one_company_open(tool, Some("0.131.86")));
+        assert!(one_company_open(tool, Some("0.132.0")));
     }
 
     #[test]

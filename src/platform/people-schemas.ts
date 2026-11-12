@@ -104,6 +104,8 @@ export const PeopleReadSchema = v.variant("kind", [
     kinded: v.optional(v.boolean(), false),
     /** This memo gives a company one of the two people's addresses on a match by name (`--mailbox`). */
     companyMailbox: v.optional(v.boolean()),
+    /** This memo makes the people of a match one company's mailboxes (`people resolve … organization`). */
+    oneCompany: v.optional(v.boolean()),
   }),
 ])
 
@@ -153,6 +155,15 @@ export const MergedSchema = v.object({
 
 export const ResolvedSchema = v.variant("kind", [
   v.object({ kind: v.literal("done"), organization: text, mailbox: text, person: PersonDetailSchema }),
+  /** The people were the company's own mailboxes: `mailboxes` are its addresses now and `people` left the list. */
+  v.object({
+    kind: v.literal("organized"),
+    organization: v.string(),
+    name: text,
+    mailboxes: v.array(v.string()),
+    people: v.array(v.string()),
+    closed: v.array(v.string()),
+  }),
   v.object({
     kind: v.literal("refused"),
     reason: v.string(),

@@ -70,7 +70,7 @@ describe("the People store after a write", () => {
     await usePeople.getState().decide("person:9", "1", "confirm")
     const s = usePeople.getState()
     expect(Object.keys(s.details).sort()).toEqual(["person:4", "person:9"])
-    expect(s.matches.map((m) => m.id)).toEqual(["3", "1"])
+    expect(s.matches.map((m) => m.id)).toEqual(["1", "3"])
     expect(s.matchesMore).toBe(true)
     expect(s.people.map((p) => p.ref)).toEqual(["person:7"])
   })

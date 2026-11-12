@@ -375,6 +375,7 @@ pub fn run() {
             commands::people::people_show,
             commands::people::people_decide,
             commands::people::people_resolve,
+            commands::people::people_one_company,
             commands::people::people_merge,
             commands::people::people_unlink,
             commands::people::people_unmerge,

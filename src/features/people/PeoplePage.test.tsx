@@ -250,7 +250,7 @@ describe("People", () => {
     const buttons = within(card)
       .getAllByRole("button")
       .map((b) => b.textContent)
-    expect(buttons.slice(-3)).toEqual(["Details", "Same person", "Not the same"])
+    expect(buttons.slice(-4)).toEqual(["Details", "Same person", "Not the same", "One company"])
     await user.click(within(card).getByRole("button", { name: "Same person" }))
     expect(decide).toHaveBeenCalledWith("person:9", "17100", "confirm", undefined)
     expect(await within(card).findByText("Joined into one person.")).toBeInTheDocument()

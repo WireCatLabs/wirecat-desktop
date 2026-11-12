@@ -10,6 +10,7 @@ import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
+import { sortMessages } from "./messages-sort"
 import { Refusal } from "./Refusal"
 import { usePeople } from "./store"
 
@@ -93,8 +94,19 @@ export function CompanyAddress({
 /** What giving the mailbox to a company did, and what memo needs when it refused: a company's name, or which one. */
 export function CompanyFollowUp({ group }: { group: MatchGroup }) {
   const m = useMessages(peopleMessages)
+  const sm = useMessages(sortMessages)
+  const lang = useLang()
   const done = usePeople((s) => s.company[group.key])
   if (!done) return null
+  if (!done.refused && done.via === "organization")
+    return (
+      <p role="status" className="reveal flex items-center gap-2 text-[0.95rem] text-ink-soft">
+        <Check className="size-4 shrink-0 text-ok" aria-hidden />
+        {done.mailboxes.length > 0
+          ? sm.oneCompanyDone(formatList(done.mailboxes, lang), done.name)
+          : sm.oneCompanyMoved(done.name)}
+      </p>
+    )
   if (!done.refused)
     return (
       <div className="reveal flex flex-col gap-[0.6rem]">
@@ -107,12 +119,15 @@ export function CompanyFollowUp({ group }: { group: MatchGroup }) {
     )
   const { reason, message, organizations } = done.refused
   // On a match by name memo refuses an address that is not one of theirs at a company's domain.
-  const said = !group.mailbox && reason === "identity.not-shared" ? m.companyAddressRefused : m.companyReasons[reason]
+  const said =
+    !group.mailbox && reason === "identity.not-shared"
+      ? m.companyAddressRefused
+      : (m.companyReasons[reason] ?? sm.reasons[reason])
   return (
     <div className="flex flex-col gap-[0.5rem]">
       <ErrorNotice inline>{said ?? m.companyFailed}</ErrorNotice>
       {(reason === "organization.unnamed" || reason === "organization.ambiguous") && (
-        <CompanyChoice group={group} organizations={organizations} />
+        <CompanyChoice group={group} organizations={organizations} via={done.via} />
       )}
       <Disclosure summary={m.details}>
         <p className="selectable font-mono text-[0.85rem] text-ink-soft">{message}</p>
@@ -124,17 +139,22 @@ export function CompanyFollowUp({ group }: { group: MatchGroup }) {
 function CompanyChoice({
   group,
   organizations,
+  via,
 }: {
   group: MatchGroup
   organizations: readonly { ref: string; name: string | null }[]
+  /** The answer that was refused: the company's name or choice goes back to it, not to the other one. */
+  via: "mailbox" | "organization"
 }) {
   const m = useMessages(peopleMessages)
   const busy = usePeople((s) => s.busy[group.key])
   const [name, setName] = useState("")
   const field = useId()
   const error = useFieldError(field)
-  const send = (to: { organization?: string; name?: string }) =>
-    void usePeople.getState().resolveMailbox(group.key, open(group), to)
+  const send = (to: { organization?: string; name?: string }) => {
+    const { resolveCompany, resolveMailbox } = usePeople.getState()
+    void (via === "organization" ? resolveCompany : resolveMailbox)(group.key, open(group), to)
+  }
   return (
     <div className="flex flex-col gap-[0.45rem]">
       {organizations.length > 0 && (

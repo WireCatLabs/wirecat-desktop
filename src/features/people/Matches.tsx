@@ -10,6 +10,7 @@ import { SectionTitle } from "@/ui/SectionTitle"
 import { groupMatches } from "./groups"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
+import { SortWithAgent } from "./SortWithAgent"
 import { SplitCard } from "./SplitCard"
 import { usePeople } from "./store"
 
@@ -25,6 +26,15 @@ export function MatchesWaiting() {
   const splits = usePeople((s) => new Set(s.splits.filter((x) => !s.splitDecided[x.id]).map((x) => x.person)).size)
   const head = useId()
   if (waiting + splits === 0) return null
+  const review = (
+    <Button
+      variant="primary"
+      onClick={() => usePeople.getState().setView("matches")}
+      icon={<ArrowRight className="size-4" aria-hidden />}
+    >
+      {m.reviewMatches}
+    </Button>
+  )
   return (
     <section
       aria-labelledby={head}
@@ -40,14 +50,7 @@ export function MatchesWaiting() {
           {waiting > 0 && splits > 0 && ` ${m.splitsToo(splits)}`}
         </p>
       </div>
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={() => usePeople.getState().setView("matches")}
-        icon={<ArrowRight className="size-4" aria-hidden />}
-      >
-        {m.reviewMatches}
-      </Button>
+      {waiting > 0 ? <SortWithAgent>{review}</SortWithAgent> : review}
     </section>
   )
 }

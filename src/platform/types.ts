@@ -438,6 +438,11 @@ export type Platform = {
     id: string,
     to: { organization?: string; name?: string; mailbox?: string },
   ): Promise<Resolved>
+  /**
+   * Says the people of a match are one company's own mailboxes (`organization`, or a new one `name`d): their addresses
+   * go to it and they leave the list.
+   */
+  peopleOneCompany(id: string, to: { organization?: string; name?: string }): Promise<Resolved>
   /** The owner's answer to a split an agent proposed on this person; answers the person read again. */
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */

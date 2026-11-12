@@ -294,6 +294,9 @@ pub struct PeopleSource {
     /// mailbox, such as one by name.
     #[serde(default)]
     pub company_mailbox: Option<crate::enrichment::Gate>,
+    /// `people resolve <id> organization`: the people of a match are one company's own mailboxes.
+    #[serde(default)]
+    pub one_company: Option<crate::enrichment::Gate>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

@@ -66,6 +66,19 @@ pub async fn people_resolve(
     .await
 }
 
+/// Says the people of one match are a company's own mailboxes: their addresses go to the organization.
+#[tauri::command]
+pub async fn people_one_company(
+    id: String,
+    organization: Option<String>,
+    name: Option<String>,
+) -> Result<people::Resolved, AppError> {
+    crate::log::command("people_one_company", async move {
+        attempt(move || people::one_company(&id, organization.as_deref(), name.as_deref())).await
+    })
+    .await
+}
+
 /// Joins the people the owner chose from one group of matches into one person.
 #[tauri::command]
 pub async fn people_merge(references: Vec<String>) -> Result<people::Merged, AppError> {

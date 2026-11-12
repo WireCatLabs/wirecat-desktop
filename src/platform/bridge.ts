@@ -289,6 +289,12 @@ function createTauri(): Platform {
         name: to.name ?? null,
         mailbox: to.mailbox ?? null,
       }),
+    peopleOneCompany: (id, to) =>
+      call(ResolvedSchema, "people_one_company", {
+        id,
+        organization: to.organization ?? null,
+        name: to.name ?? null,
+      }),
     peopleSplitDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),
     peopleDoubts: (page, size) => call(DoubtsSchema, "people_doubts", { page, size }),
