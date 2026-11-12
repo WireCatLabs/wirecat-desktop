@@ -164,7 +164,7 @@ export function AddressStep(props: {
   )
 }
 
-export function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunnel): void }) {
+function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunnel): void }) {
   const m = useMessages(connectMessages)
   const privacy = useMessages(tunnelMessages).cloudflare.privacy
   const name = useId()
@@ -210,7 +210,7 @@ export function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(
   )
 }
 
-export function PortField({ id, port, setPort }: { id: string; port: string; setPort(p: string): void }) {
+function PortField({ id, port, setPort }: { id: string; port: string; setPort(p: string): void }) {
   const m = useMessages(connectMessages)
   return (
     <label className="flex flex-col gap-1" htmlFor={id}>

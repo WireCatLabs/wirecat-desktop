@@ -441,7 +441,7 @@ export type PermissionGroup = NonNullable<CatalogTool["permissions"]>["groups"][
 
 export const doctorNeedsProfile = (t: CatalogTool) => t.doctor.includes("{profile}")
 
-export const PROFILE_NAME = /^[A-Za-z0-9._-]{1,64}$/
+const PROFILE_NAME = /^[A-Za-z0-9._-]{1,64}$/
 export const isValidProfile = (name: string) =>
   PROFILE_NAME.test(name) && !name.startsWith("-") && !name.startsWith(".")
 

@@ -46,7 +46,7 @@ export function reachLamp(reach: Reach, checking: boolean): LampState {
 }
 
 /** Tailscale's own figure for a new Funnel name to appear in public DNS. */
-export const PUBLISH_MS = 10 * 60_000
+const PUBLISH_MS = 10 * 60_000
 
 export function publishWait(waited: number): { share: number; minutes: number } {
   return { share: Math.min(waited / PUBLISH_MS, 1), minutes: Math.floor(waited / 60_000) }
@@ -56,7 +56,7 @@ export function publishWait(waited: number): { share: number; minutes: number } 
 export const isFunnelHost = (host: string) => host.endsWith(".ts.net")
 
 /** How long the test waits before it suggests what may be wrong. */
-export const QUIET_MS = 60_000
+const QUIET_MS = 60_000
 
 export const quietDelay = (since: number, now: number) => Math.max(QUIET_MS - (now - since), 0)
 

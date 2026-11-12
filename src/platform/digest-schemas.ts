@@ -17,7 +17,7 @@ const text = v.nullish(v.string(), null)
 const moment = v.nullish(v.string(), null)
 const refs = v.nullish(v.array(v.string()), [])
 
-export const CHANNELS = ["telegram", "max", "whatsapp", "mail", "meeting", "task"] as const
+const CHANNELS = ["telegram", "max", "whatsapp", "mail", "meeting", "task"] as const
 type Channel = (typeof CHANNELS)[number]
 const isChannel = (kind: string): kind is Channel => (CHANNELS as readonly string[]).includes(kind)
 

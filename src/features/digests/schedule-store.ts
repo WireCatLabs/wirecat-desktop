@@ -11,7 +11,7 @@ export { MORNING }
 
 /** The caps memo's digest skill was set up with: one run, then one day. */
 export const DEFAULT_CAPS = { maxCostUsd: 0.5, maxCostPerDayUsd: 1 }
-export const DEFAULT_TIME = "08:30"
+const DEFAULT_TIME = "08:30"
 
 /**
  * The morning digest's settings as the page last read them. An older memo forgets them when it is taken off the
@@ -92,7 +92,7 @@ export function specOf(
 }
 
 /** The local day `days` before today, `2026-11-07`. */
-export function dayBefore(days: number, now = new Date()): string {
+function dayBefore(days: number, now = new Date()): string {
   const d = new Date(now)
   d.setDate(d.getDate() - days)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`

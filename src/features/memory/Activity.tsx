@@ -20,7 +20,7 @@ export const MEMORY_RUNS = [
   ...["memories *", "facts *", "actions *", "projects actions *"].map((c) => termText("command", c)),
 ].join(" ")
 
-export function openMemoryLogs() {
+function openMemoryLogs() {
   const logs = useLogs.getState()
   logs.setQuery(MEMORY_RUNS)
   logs.setRange("all")

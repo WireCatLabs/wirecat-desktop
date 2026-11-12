@@ -7,8 +7,7 @@ const selecting = () => {
 }
 
 /** Someone reading a run, copying text, or not looking at the window: a new round would only get in the way. */
-export const livePaused = () =>
-  document.visibilityState === "hidden" || useLogs.getState().expanded !== null || selecting()
+const livePaused = () => document.visibilityState === "hidden" || useLogs.getState().expanded !== null || selecting()
 
 const PAUSED_CHECK = 1000
 

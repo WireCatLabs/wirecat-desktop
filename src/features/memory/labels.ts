@@ -34,7 +34,7 @@ export const savedAt = (iso: string, lang: Lang) =>
   )
 
 /** A relationship's other end and its role, under the heading of the end it starts from: "Acme Ltd · Manager". */
-export function relationLine(e: MemoryEntry, m: M, roles: readonly OwnerRole[]) {
+function relationLine(e: MemoryEntry, m: M, roles: readonly OwnerRole[]) {
   const to = e.targetName ?? e.target ?? ""
   return e.role ? `${to} · ${roleLabel(e.role, roles, m.roles, currentLang())}` : to
 }

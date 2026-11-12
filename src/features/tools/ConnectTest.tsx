@@ -101,7 +101,7 @@ export function TestStep(props: {
 }
 
 /** Rule 9: the goal is reached, so say what else is worth doing from here. */
-export function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: string; onAgain(): void }) {
+function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: string; onAgain(): void }) {
   const all = useMessages(connectMessages)
   const m = all.next
   const installs = useTools((s) => s.installs)
@@ -130,7 +130,7 @@ export function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: st
   )
 }
 
-export function Troubleshoot(props: { name: string; tool: CatalogTool; app: AppId; server: McpServerStatus }) {
+function Troubleshoot(props: { name: string; tool: CatalogTool; app: AppId; server: McpServerStatus }) {
   const { name, tool, app, server } = props
   const m = useMessages(connectMessages).trouble
   return (

@@ -1,7 +1,7 @@
 import * as v from "valibot"
 
 export const TaskStateSchema = v.picklist(["open", "todo", "in_progress", "done", "dismissed"])
-export const PriorityLabelSchema = v.picklist(["low", "medium", "high", "critical"])
+const PriorityLabelSchema = v.picklist(["low", "medium", "high", "critical"])
 export const TaskKindSchema = v.picklist(["bug", "feature", "chore"])
 /** What memo finds in messages; a found task keeps one of these until it moves into a project. */
 export const FOUND_KINDS = ["question", "request", "mention", "promise"] as const

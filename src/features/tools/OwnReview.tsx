@@ -18,7 +18,7 @@ import type { OwnText } from "./messages-own"
 import { type OwnReviewText, ownReviewMessages } from "./messages-own-review"
 import { signalWords } from "./own-signals"
 
-export function WarnBox({ children }: { children: ReactNode }) {
+function WarnBox({ children }: { children: ReactNode }) {
   return <div className={cx("flex flex-col gap-1 text-body text-ink", noticeBox("warn"))}>{children}</div>
 }
 

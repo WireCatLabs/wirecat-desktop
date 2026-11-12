@@ -24,7 +24,7 @@ import { Lamp, type LampTone } from "@/ui/Lamp"
 import { dueDay, type TaskWords, taskMessages } from "./messages"
 import { useTasks } from "./store"
 
-export const STATE_TONE: Record<State, LampTone> = {
+const STATE_TONE: Record<State, LampTone> = {
   open: "idle",
   todo: "warn",
   in_progress: "doing",

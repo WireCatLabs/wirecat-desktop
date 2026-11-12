@@ -114,7 +114,7 @@ const sourceTone = (s: Source): LampTone =>
           ? "ok"
           : "idle"
 
-export function sourceWords(m: LogsWords, s: Source): string {
+function sourceWords(m: LogsWords, s: Source): string {
   if (s.state === "late") return m.late(timing.answer / 1000, s.runs.length > 0)
   if (s.state === "none") return m.keepsNoLogs
   if (s.state === "missing") return m.notInstalled

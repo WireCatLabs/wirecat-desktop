@@ -148,7 +148,7 @@ type MemoryState = {
 const REFUSALS = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"] as const
 
 /** A findings batch changed since the page read it: Rust's id for memo's `*-findings.stale`. */
-export const STALE = "findings.stale"
+const STALE = "findings.stale"
 
 /** memo's reasons for refusing `facts revoke` or a review decision arrive as they are and are worded here. */
 const message = (e: unknown) => {
@@ -176,7 +176,7 @@ const NO_ROLES: Role[] = []
 export const ownerRoles = (s: { read: MemoryRead | null }) =>
   (s.read?.kind === "ready" ? s.read.roles : undefined) ?? NO_ROLES
 
-export const LEAVE_MS = 320
+const LEAVE_MS = 320
 
 /** A memory row is several lines tall, so a page holds fewer of them than a table holds rows. */
 export const MEMORY_PAGE_SIZES = [20, 50, 100] as const

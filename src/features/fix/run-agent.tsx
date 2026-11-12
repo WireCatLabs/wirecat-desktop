@@ -8,7 +8,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fixMessages } from "./messages"
 
 /** The agents `run_agent` can start with a prompt, and the program each runs; Rust holds the same list. */
-export const STARTABLE: Record<string, string> = {
+const STARTABLE: Record<string, string> = {
   claude: "claude",
   codex: "codex",
   gemini: "gemini",
@@ -18,7 +18,7 @@ export const STARTABLE: Record<string, string> = {
   openclaw: "openclaw",
 }
 
-export const canStart = (agent: Agent) => agent.id in STARTABLE && agent.foundBy === "program"
+const canStart = (agent: Agent) => agent.id in STARTABLE && agent.foundBy === "program"
 
 /**
  * What each startable agent is called before it is found, and the npm command that installs it. Cursor and Hermes

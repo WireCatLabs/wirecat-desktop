@@ -30,7 +30,7 @@ const lastOf = (d: DigestItem) => (d.last ? (d.last.ok ? "ok" : "failed") : "nev
 const reads = (d: DigestItem, source: string) => d.sources.length === 0 || d.sources.includes(source)
 
 /** Whether a digest passes the filter chips and every typed word, which is looked for in its title and name. */
-export function digestMatches(d: DigestItem, query: string, title: string) {
+function digestMatches(d: DigestItem, query: string, title: string) {
   const wants = (field: string, value: string) => {
     const values = valuesOf(query, field)
     return values.length === 0 || values.includes(value)

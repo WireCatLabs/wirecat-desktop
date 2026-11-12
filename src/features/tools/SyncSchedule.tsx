@@ -19,7 +19,7 @@ import { SignInLost } from "./SignInLost"
 import { syncKey, useSync } from "./sync-store"
 
 /** The schedule is read again this often while the row shows, so a later timed run clears an old failure. */
-export const SCHEDULE_READ_EVERY_MS = 2 * 60_000
+const SCHEDULE_READ_EVERY_MS = 2 * 60_000
 
 /** The run's failure as the sync's own words: `reason` is an error code or a reason id, never for reading. */
 const failureOf = (reason: string | null) => advice({ message: "", code: reason, reason, run: null })

@@ -47,7 +47,7 @@ export function greetOnArrival() {
 }
 
 /** The guides "Start here" offers in turn: the ready ones in START_ORDER, then the other ready ones. */
-export function startOrder(fits: Map<string, Fit>): string[] {
+function startOrder(fits: Map<string, Fit>): string[] {
   const ready = (id: string) => fits.get(id)?.ready
   return [...new Set([...START_ORDER.filter(ready), ...GUIDES.map((g) => g.id).filter(ready)])]
 }
@@ -64,7 +64,7 @@ const orList = (items: string[], lang: Lang) => new Intl.ListFormat(lang, { type
 /** `messengers`: the installed ones the guide works with, in catalog order; the owner picks among them. */
 type Fit = { ready: boolean; missing: string[]; messengers: string[]; extras: string[] }
 
-export function fitOf(g: Guide, has: (id: string) => boolean): Fit {
+function fitOf(g: Guide, has: (id: string) => boolean): Fit {
   const missing = (g.needs.all ?? []).filter((id) => !has(id))
   const any = g.needs.any ?? []
   const messengers = tools.map((t) => t.id).filter((id) => any.includes(id) && has(id))

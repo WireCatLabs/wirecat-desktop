@@ -2,7 +2,7 @@ import * as v from "valibot"
 
 // The shapes `groups.rs` builds from memo's `groups list`, `add`, `remove` and `move`; each write answers every group.
 
-export const GroupMemberSchema = v.object({
+const GroupMemberSchema = v.object({
   source: v.string(),
   provider: v.string(),
   profiles: v.array(v.string()),
@@ -11,7 +11,7 @@ export const GroupMemberSchema = v.object({
   scope: v.nullable(v.string()),
 })
 
-export const AccountGroupSchema = v.object({
+const AccountGroupSchema = v.object({
   name: v.string(),
   members: v.array(GroupMemberSchema),
   suggested: v.array(v.string()),

@@ -16,7 +16,7 @@ export const useTheme = create<ThemeState>()(
 
 const media = () => window.matchMedia("(prefers-color-scheme: dark)")
 
-export function resolveTheme(choice: ThemeChoice, systemDark: boolean): "light" | "dark" {
+function resolveTheme(choice: ThemeChoice, systemDark: boolean): "light" | "dark" {
   return choice === "system" ? (systemDark ? "dark" : "light") : choice
 }
 

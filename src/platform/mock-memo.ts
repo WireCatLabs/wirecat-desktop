@@ -8,7 +8,7 @@ export const memoState = state === "missing" || state === "old" || state === "fa
 export const OLD_MEMO = "0.131.0"
 
 /** What the real app passes on when memo's server stops before it answers (memo_server.rs). */
-export const MEMO_FAILED = "memo's command server stopped before it answered"
+const MEMO_FAILED = "memo's command server stopped before it answered"
 
 /** A page switch's word for the global state, in that page's own vocabulary. */
 export function memoDefault(words: Partial<Record<"missing" | "old" | "failing", string>>): string | null {

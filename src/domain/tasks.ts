@@ -61,7 +61,7 @@ export const addDays = (from: Date, n: number) => {
 const DAY = String.raw`\d{4}-\d{2}-\d{2}`
 
 /** memo's words for each choice. It reads `7d` as seven days ago, so the week's last day is written out. */
-export function dueTerm(choice: DueChoice, today = new Date()): string {
+function dueTerm(choice: DueChoice, today = new Date()): string {
   if (typeof choice === "object") {
     const [a, b] = choice.to && choice.to < choice.from ? [choice.to, choice.from] : [choice.from, choice.to]
     return b && b !== a ? `due:[${a} TO ${b}]` : `due:${a}`

@@ -9,7 +9,7 @@ import { analyticsMessages } from "./messages"
 export type Series = { id: string; label: string; color: string }
 
 /** A round top for the axis: 1, 2, 2.5 or 5 times a power of ten, so the gridlines fall on numbers people read. */
-export function niceMax(v: number): number {
+function niceMax(v: number): number {
   if (v <= 0) return 1
   const pow = 10 ** Math.floor(Math.log10(v))
   return ([1, 2, 2.5, 5, 10].find((m) => m * pow >= v) ?? 10) * pow
@@ -19,7 +19,7 @@ const compact = (n: number, lang: string) =>
   new Intl.NumberFormat(lang, { notation: n >= 10_000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(n)
 
 /** Which bars get a label under them: about six, counted back from the newest so today is always named. */
-export function labelled(n: number, most = 6): Set<number> {
+function labelled(n: number, most = 6): Set<number> {
   const step = Math.max(1, Math.ceil(n / most))
   const out = new Set<number>()
   for (let i = n - 1; i >= 0; i -= step) out.add(i)

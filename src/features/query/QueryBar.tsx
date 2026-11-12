@@ -313,7 +313,7 @@ function Highlight(props: Pick<Props, "query" | "parsed" | "problems">) {
 }
 
 /** Each `field:id` term the page knows a name for, as typed and with that name. */
-export function namesOf(parsed: Parsed, named: Props["named"]): { raw: string; label: string }[] {
+function namesOf(parsed: Parsed, named: Props["named"]): { raw: string; label: string }[] {
   if (!named) return []
   return parsed.terms.flatMap((t) => {
     if (t.kind !== "field") return []

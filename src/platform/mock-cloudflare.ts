@@ -11,7 +11,7 @@ import type { Platform } from "./types"
 // itself after a few seconds.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
-export const TUNNEL_HOST = "wirecat.example.com"
+const TUNNEL_HOST = "wirecat.example.com"
 
 function initial(): CloudflareStatus {
   const os = (["macos", "windows"] as const).find((o) => o === params.get("cloudflare-os")) ?? "linux"

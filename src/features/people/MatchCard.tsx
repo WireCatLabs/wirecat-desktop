@@ -161,7 +161,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
 }
 
 /** Each name once, whatever its case: «Билайн бизнес · билайн бизнес» says nothing the count does not. */
-export function titleOf(names: readonly string[], count: (n: number) => string) {
+function titleOf(names: readonly string[], count: (n: number) => string) {
   const unique = names.filter((n, i) => names.findIndex((x) => x.toLocaleLowerCase() === n.toLocaleLowerCase()) === i)
   return unique.length < names.length ? `${unique.join(" · ")} · ${count(names.length)}` : unique.join(" · ")
 }

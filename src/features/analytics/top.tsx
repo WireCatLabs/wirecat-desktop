@@ -11,7 +11,7 @@ import { problemMessages } from "./messages-problems"
 import { useAggregate, useAnalytics, useExtra } from "./store"
 
 /** This week so far (Monday to today) and the same days of last week. */
-export function sameDays(rows: readonly { key: string; count: number }[], today: string) {
+function sameDays(rows: readonly { key: string; count: number }[], today: string) {
   const monday = weekOf(today)
   const before = [addDays(monday, -7), addDays(today, -7)] as const
   let now = 0

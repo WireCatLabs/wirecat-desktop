@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import { safeStorage } from "@/shared/safe-storage"
 
-export const NIGHTLY_TIME = "04:45"
+const NIGHTLY_TIME = "04:45"
 
 export type MachineChoices = {
   /** WireCat opens when the owner logs in to this computer. */

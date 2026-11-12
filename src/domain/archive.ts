@@ -51,7 +51,7 @@ const COLLECTED_BY: Record<string, string> = {
   beeline: "beeline",
 }
 
-export const collectedBy = (p: string): string | null => COLLECTED_BY[p] ?? null
+const collectedBy = (p: string): string | null => COLLECTED_BY[p] ?? null
 
 /** The source a tool collects into storage, by its program: memo's `msg:whatsapp/…` for `wa`. */
 export const providerOf = (bin: string): string | null =>

@@ -16,7 +16,7 @@ export function bySource<T extends IdentityLike>(identities: readonly T[]): { pr
  * A bot account: the source says so, or it is a Telegram username ending in "bot", which Telegram requires of every
  * bot (core.telegram.org/bots/features#botfather) and of no person.
  */
-export const isBotAccount = (i: { provider: string; bot: boolean; username: string | null }) =>
+const isBotAccount = (i: { provider: string; bot: boolean; username: string | null }) =>
   i.bot || (i.provider === "telegram" && /bot$/i.test(i.username?.trim() ?? ""))
 
 /** A person is a bot only when every account of theirs is one: a person may also run a bot. */

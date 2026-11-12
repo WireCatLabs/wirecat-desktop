@@ -71,7 +71,7 @@ const NAMES: Record<Lang, { kai: string; ana: string }> = {
 
 const bot = (name: string) => ({ type: "bot", name })
 
-export function demoMemory(lang: Lang): MemoryEntry[] {
+function demoMemory(lang: Lang): MemoryEntry[] {
   const t = MEMORY_TEXT[lang]
   const n = NAMES[lang]
   return [
@@ -176,9 +176,9 @@ const SOURCE_TEXT: Record<Lang, SourceText> = {
   },
 }
 
-export const DEMO_MEMORY = "memory:example-1"
+const DEMO_MEMORY = "memory:example-1"
 
-export function demoSources(lang: Lang): MemorySource[] {
+function demoSources(lang: Lang): MemorySource[] {
   const t = SOURCE_TEXT[lang]
   const kai = NAMES[lang].kai
   const source = { tool: null, missing: false }
@@ -251,7 +251,7 @@ const SEARCH_TEXT: Record<Lang, SearchText> = {
 const SEARCH_TOOL = "tg"
 const SEARCH_PROFILE = "personal"
 
-export function demoSearch(lang: Lang): Extract<SearchAnswer, { kind: "hits" }> {
+function demoSearch(lang: Lang): Extract<SearchAnswer, { kind: "hits" }> {
   const t = SEARCH_TEXT[lang]
   const ana = NAMES[lang].ana
   const chats = [ana, t.chat, ana]
@@ -302,7 +302,7 @@ const TASK_TEXT: Record<Lang, TaskText> = {
 const OWNER = "person:example-0"
 const ANA = "person:example-2"
 
-export function demoPeople(lang: Lang): Person[] {
+function demoPeople(lang: Lang): Person[] {
   return [
     { ref: OWNER, name: null, owner: true },
     { ref: "person:example-1", name: NAMES[lang].kai, owner: false },
@@ -310,7 +310,7 @@ export function demoPeople(lang: Lang): Person[] {
   ]
 }
 
-export function demoTasks(lang: Lang): Task[] {
+function demoTasks(lang: Lang): Task[] {
   const t = TASK_TEXT[lang]
   const project = "EX"
   const base: Omit<Task, "key" | "title" | "state" | "priority" | "priorityLabel" | "assignees" | "dueAt"> = {

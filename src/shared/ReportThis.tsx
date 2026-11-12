@@ -16,7 +16,7 @@ type Props = Omit<Failure, "message" | "page"> & {
 }
 
 /** Opens the report form filled in from a failure. Nothing is sent until the owner presses Send there. */
-export function reportFailure({ error, log, page, ...failure }: Omit<Props, "onOpen">) {
+function reportFailure({ error, log, page, ...failure }: Omit<Props, "onOpen">) {
   const f = failureReport({
     ...failure,
     message: errorText(error),

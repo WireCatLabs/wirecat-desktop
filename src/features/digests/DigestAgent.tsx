@@ -101,7 +101,7 @@ export const needsConsent = (spec: DigestSpec, agents: BackgroundAgents | null) 
   !spec.allowDangerous && (agents?.agents.some((a) => a.id === spec.agent && withConsent(a)) ?? false)
 
 /** The agent a new digest starts with: Claude Code, else the agent for background jobs, else the only one that runs. */
-export function firstAgent(agents: BackgroundAgents | null): string | null {
+function firstAgent(agents: BackgroundAgents | null): string | null {
   const offered = agents?.agents.filter(runs) ?? []
   const pick = (id: string | null) => offered.find((a) => a.id === id)?.id
   return pick(PREFERRED) ?? pick(agents?.effective ?? null) ?? (offered.length === 1 ? offered[0]?.id : null) ?? null

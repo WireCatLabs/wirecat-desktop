@@ -16,7 +16,7 @@ export const rowsFor = (rows: readonly SettingRow[], view: View) =>
   rows.filter((r) => (view === "shared") === (r.scope !== null))
 
 export const isCategory = (r: SettingRow) => r.key.startsWith(CATEGORY)
-export const categoryName = (r: SettingRow) => r.key.slice(CATEGORY.length)
+const categoryName = (r: SettingRow) => r.key.slice(CATEGORY.length)
 
 /** Tools whose `config show` reports the shared rows; one that is at its latest version answers first. */
 export function sharedCandidates(

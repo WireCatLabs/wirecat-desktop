@@ -77,7 +77,7 @@ export function SavedStep() {
   )
 }
 
-export function SourceCard({ added }: { added: AddedSource }) {
+function SourceCard({ added }: { added: AddedSource }) {
   const m = useMessages(addMessages)
   const stored = useAddSource((s) => s.stored)
   const [open, setOpen] = useState(false)

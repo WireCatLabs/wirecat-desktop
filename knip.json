@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/features/*/index.ts", "src/features/*/page.{ts,tsx}", "scripts/**/*.mjs"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+  "ignoreDependencies": ["@fontsource-variable/.+", "tailwindcss", "@cspell/dict-es-es"],
+  "ignoreBinaries": ["gitleaks"],
+  "ignoreExportsUsedInFile": { "type": true, "interface": true }
+}

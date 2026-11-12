@@ -6,7 +6,7 @@ import * as v from "valibot"
 const text = v.nullable(v.string())
 
 /** One fact or task of an agent's findings batch; `outcome` is set once the batch is reviewed. */
-export const FindingSchema = v.object({
+const FindingSchema = v.object({
   id: v.string(),
   kind: v.string(),
   text: v.string(),

@@ -43,7 +43,7 @@ const toolOfRef = (ref: string | null) => {
   return provider ? toolOfProvider(provider) : null
 }
 
-export function hitFiles(hit: Record<string, unknown>): HitFile[] {
+function hitFiles(hit: Record<string, unknown>): HitFile[] {
   const list = Array.isArray(hit.attachments) ? hit.attachments : []
   return list.flatMap((raw) => {
     const f = obj(raw)
@@ -116,7 +116,7 @@ export type QueryOption = {
 export type QueryOptions = { from: number; to: number; items: QueryOption[] }
 
 export type FieldGroup = "who" | "where" | "when" | "what" | "files"
-export const GROUPS: readonly FieldGroup[] = ["who", "where", "when", "what", "files"]
+const GROUPS: readonly FieldGroup[] = ["who", "where", "when", "what", "files"]
 
 export type SearchFieldInfo = {
   name: string
@@ -180,7 +180,7 @@ export function fieldsIn(query: string): string[] {
 }
 
 /** Most used by the owner first, then the usual first filters, then by group. */
-export function rankFields(
+function rankFields(
   fields: readonly SearchFieldInfo[],
   what: string,
   used: Readonly<Record<string, number>>,
@@ -243,12 +243,12 @@ export function withoutPatterns(query: string): string | null {
 export type ValueOption = { value: string; label?: string | null; detail?: string | null; count?: number | null }
 
 /** As cli-core compares names (`foldName`): any case, and е for ё, which is how Russian is mostly typed. */
-export const foldText = (text: string) => text.normalize("NFC").toLowerCase().replaceAll("ё", "е")
+const foldText = (text: string) => text.normalize("NFC").toLowerCase().replaceAll("ё", "е")
 
 const byCount = (a: ValueOption, b: ValueOption) => (b.count ?? -1) - (a.count ?? -1)
 
 /** The values whose name, @username or id start with `typed`, then those that contain it; most used first in each. */
-export function matchingValues(all: readonly ValueOption[], typed: string): ValueOption[] {
+function matchingValues(all: readonly ValueOption[], typed: string): ValueOption[] {
   const wanted = foldText(typed)
   const texts = (v: ValueOption) =>
     [v.label, v.detail, v.detail ? `@${v.detail.replace(/^@/, "")}` : null, v.value]
@@ -516,7 +516,7 @@ export function hitField(path: readonly string[], known: readonly string[]): str
 }
 
 /** The values a hit has for a query field; a list gives each element. */
-export function hitValues(hit: Record<string, unknown>, field: string): string[] {
+function hitValues(hit: Record<string, unknown>, field: string): string[] {
   for (const path of HIT_PATHS[field] ?? []) {
     let v: unknown = hit
     for (const k of path) v = obj(v)[k]

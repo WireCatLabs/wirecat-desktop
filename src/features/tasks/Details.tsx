@@ -39,7 +39,7 @@ function value(field: string, v: unknown, m: TaskWords, known: Known, lang: Lang
 /** memo's rule that finds tasks in messages signs them "rule"; the owner knows it as Memo. */
 const named = (name: string | null | undefined) => (name === "rule" ? "Memo" : name)
 
-export function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang): string[] {
+function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang): string[] {
   const who = e.by?.owner ? m.you : (named(e.by?.name) ?? m.someone)
   if (e.kind === "created" || e.changes.length === 0)
     return [e.kind === "created" ? m.created(who) : `${who}: ${e.kind}`]
@@ -71,7 +71,7 @@ const writesDone = (key: string) =>
 const isAgent = (by: TaskEvent["by"]) => Boolean(by && !by.owner && !by.ref?.startsWith("person:"))
 
 /** "You", a person's name, or the agent's. */
-export const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (named(c.name) ?? m.someone))
+const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (named(c.name) ?? m.someone))
 
 function Who({ by }: { by: TaskEvent["by"] }) {
   const m = useMessages(taskMessages)

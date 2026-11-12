@@ -32,7 +32,7 @@ const NO_FAILURE: SyncFailure = { message: "", code: null, reason: null, run: nu
  * "Last synced 12 min ago". With no time the tool still may have synced: a run log keeps a success only when asked
  * (`--record`, which the app passes), and drive sets its time only once nothing is left to fetch.
  */
-export function lastLine(last: LastSync, what: SyncWhat, m: Words): string {
+function lastLine(last: LastSync, what: SyncWhat, m: Words): string {
   if (!last.known) return m.lastUnknown
   const left = last.left && last.left > 0 ? m.left(what, last.left) : null
   if (last.at) return [m.lastSynced(ago(last.at)), left].filter(Boolean).join(" · ")

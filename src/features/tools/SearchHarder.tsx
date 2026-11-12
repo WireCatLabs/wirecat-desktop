@@ -32,7 +32,7 @@ export function choiceOf(d: Draft): HarderChoice {
   return { provider: d.provider, model, baseUrl }
 }
 
-export const draftOf = (s: HarderStatus): Draft => ({ provider: s.provider, model: s.model, baseUrl: s.baseUrl ?? "" })
+const draftOf = (s: HarderStatus): Draft => ({ provider: s.provider, model: s.model, baseUrl: s.baseUrl ?? "" })
 
 /** Browser build only: `?harder=consent` opens the consent step without a click, for review captures. */
 const consentByScenario = () =>

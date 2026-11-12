@@ -1,5 +1,5 @@
 /** As long as Clients keeps memo's answer; a page opened again within it shows what it has and reads nothing. */
-export const FRESH_MS = 60_000
+const FRESH_MS = 60_000
 
 let changedAt = 0
 

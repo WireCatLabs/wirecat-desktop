@@ -30,7 +30,7 @@ export function systemLang(preferred: readonly string[] = globalThis.navigator?.
   return "en"
 }
 
-export const resolveLang = (choice: LangChoice): Lang => (choice === "system" ? systemLang() : choice)
+const resolveLang = (choice: LangChoice): Lang => (choice === "system" ? systemLang() : choice)
 export const currentLang = () => resolveLang(useLanguage.getState().choice)
 export const useLang = () => resolveLang(useLanguage((s) => s.choice))
 

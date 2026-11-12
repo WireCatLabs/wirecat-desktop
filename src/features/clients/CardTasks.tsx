@@ -23,7 +23,7 @@ const rawOf = (error: Error | null, got: TaskRead | undefined) => {
 }
 
 /** The client's contact people; the CRM user responsible for the card is the owner's side, not the client. */
-export const contactRefs = (card: CrmCard) => [
+const contactRefs = (card: CrmCard) => [
   ...new Set(card.people.flatMap((p) => (p.role !== "owner" && p.ref ? [p.ref] : []))),
 ]
 

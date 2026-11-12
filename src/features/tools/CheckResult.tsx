@@ -102,7 +102,7 @@ function ConfigProblems(props: {
 }
 
 /** What the tool's repair changed, kept above the fresh check so the owner sees why the problem is gone. */
-export function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
+function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
   if (repaired.state === "unchanged")
     return (
       <p role="status" className="reveal flex items-center gap-2 text-[0.9rem] text-ink-soft">
@@ -129,7 +129,7 @@ export function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) 
   )
 }
 
-export function CheckResult(props: {
+function CheckResult(props: {
   check: Check
   tool: CatalogTool
   onRepaired: (r: Repaired) => void

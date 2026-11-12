@@ -8,7 +8,7 @@ import { CopyButton } from "@/ui/CopyButton"
 import { Disclosure } from "@/ui/Disclosure"
 import { type OwnReviewText, ownReviewMessages } from "./messages-own-review"
 
-export const checkPrompt = (review: OwnReview, r: OwnReviewText) =>
+const checkPrompt = (review: OwnReview, r: OwnReviewText) =>
   r.check.prompt({
     pkg: review.package,
     version: review.version,

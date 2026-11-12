@@ -10,7 +10,7 @@ const FADE_MS = 260
 const held = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("boot") === "hold"
 
 /** Fades index.html's boot screen out over the app, which is already laid out under it, then removes it. */
-export function finishBoot() {
+function finishBoot() {
   const boot = document.getElementById("boot")
   if (!boot || boot.dataset.done !== undefined) return
   boot.dataset.done = ""

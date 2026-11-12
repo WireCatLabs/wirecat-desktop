@@ -10,7 +10,7 @@ import { canRevoke, useMemory } from "./store"
 const WORDS = 12
 
 /** The first words of a record, so the owner sees which one goes without the whole text in a list. */
-export function firstWords(text: string | null) {
+function firstWords(text: string | null) {
   const words = (text ?? "").split(/\s+/).filter(Boolean)
   return words.length > WORDS ? `${words.slice(0, WORDS).join(" ")}…` : words.join(" ")
 }

@@ -15,7 +15,7 @@ import { accountName, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
 /** A ref memo gave, in words: the account's source and name from the person's own read, never the id itself. */
-export function useAccountWords() {
+function useAccountWords() {
   const m = useMessages(peopleMessages)
   const lang = useLang()
   return (ref: string, person: PersonDetail | null): string => {

@@ -33,7 +33,7 @@ export function weekOf(day: string): string {
 
 const monthOf = (day: string) => `${day.slice(0, 7)}-01`
 
-export function bucketOf(day: string, grain: Grain): string {
+function bucketOf(day: string, grain: Grain): string {
   return grain === "day" ? day : grain === "week" ? weekOf(day) : monthOf(day)
 }
 
@@ -346,7 +346,7 @@ export function helped(runs: readonly Run[], period: Period, today: string): Hel
  * Sources that are not the owner's data: `chat` is cli-core's own test program (account 500), which a developer's
  * store may hold. Storage names it "Test data"; Analytics leaves it out of every number.
  */
-export const TEST_PROVIDERS: readonly string[] = ["chat"]
+const TEST_PROVIDERS: readonly string[] = ["chat"]
 
 type Group = { provider: string; chats: number; messages: number; emails: number; documents: number; meetings: number }
 
@@ -455,7 +455,7 @@ export function tableRows(tables: readonly { name: string; rows: number | null }
 }
 
 /** Working hours for the after-hours share: Monday to Friday, 9:00 to 18:00 in the owner's zone. */
-export const WORK_HOURS = { from: 9, to: 18 } as const
+const WORK_HOURS = { from: 9, to: 18 } as const
 
 /** Shares of messages written after working hours on weekdays, and at weekends, from a weekday-by-hour grid. */
 export function offHours(grid: readonly (readonly number[])[]): { total: number; evenings: number; weekends: number } {
@@ -498,7 +498,7 @@ type Meeting = { started_at: string | null; duration_ms: number | null; title: s
  * time. A title stands for a series: the list names no series yet (plan, A2).
  */
 /** A meeting two signed-in Zoom accounts both have is stored once per account, each with its own id. */
-export function uniqueMeetings<T extends Meeting>(items: readonly T[]): T[] {
+function uniqueMeetings<T extends Meeting>(items: readonly T[]): T[] {
   const seen = new Map<string, T>()
   for (const m of items) {
     const key = `${m.started_at}|${m.title?.trim() ?? ""}`

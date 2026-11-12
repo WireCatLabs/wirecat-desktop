@@ -49,7 +49,7 @@ export const TerminalReachSchema = v.record(v.string(), v.boolean())
 
 /** What `fix_terminal_path` changed: folders put on the user's PATH, and where, or the line to add by hand. */
 /** One shell whose startup files hold WireCat's PATH blocks, and whether a new terminal running it finds the tools. */
-export const ShellReachSchema = v.object({
+const ShellReachSchema = v.object({
   name: v.string(),
   program: v.nullable(v.string()),
   files: v.array(v.string()),

@@ -114,7 +114,7 @@ const FULL: Intl.DateTimeFormatOptions = { dateStyle: "full", timeStyle: "long" 
 const CHAT_KINDS = new Set(["hermes-agent", "openclaw"])
 
 /** Who held the conversation: the agent, else the app that called, else how the runs were started. */
-export function conversationTitle(m: LogsWords, c: Conversation): string {
+function conversationTitle(m: LogsWords, c: Conversation): string {
   if (c.agent === "mcp-client" || (!c.agent && c.client)) return c.client?.name ?? m.mcpApp
   if (c.agent) return agentName(c.agent, m.mcpApp)
   return c.via ? viaName(m, c.via) : m.notInConversation

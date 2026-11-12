@@ -13,7 +13,7 @@ import { useClients } from "./store"
 
 export type Based = Extract<CrmRead, { kind: "base" }>
 
-export const clientKeys = {
+const clientKeys = {
   all: ["clients"] as const,
   board: (kind: Kind, pipeline: string | null) => ["clients", kind, pipeline] as const,
   scope: (account: CrmAccount, profile: string | null) =>
@@ -68,7 +68,7 @@ useSync.subscribe((s, before) => {
  * The card moves at once; memo writes the owner's own, the CRM's own CLI a CRM's copy. A refusal puts it back and says
  * why on the card. Counts and sums are read again either way: they are memo's, never the page's.
  */
-export function useMove(kind: Kind, pipeline: string | null) {
+function useMove(kind: Kind, pipeline: string | null) {
   const key = clientKeys.board(kind, pipeline)
   return useMutation({
     // `stage` is the name the board shows; a CRM's CLI gets the stage's own id when memo lists it (`sent`).

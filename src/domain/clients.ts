@@ -19,7 +19,7 @@ type CrmCard = {
   people: { name: string | null; role: string }[]
 }
 
-export const OWN = "own"
+const OWN = "own"
 /** `bitrix24:northstar.example`, or `own` for the owner's own pipelines. */
 export const accountKey = (account: CrmAccount | null) => (account ? `${account.provider}:${account.account}` : OWN)
 

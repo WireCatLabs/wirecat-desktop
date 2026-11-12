@@ -25,7 +25,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { useMemoGap } from "./memo-gap"
 import { aiModelMessages, SAVE_REASONS, type SaveReason } from "./messages-ai-model"
 
-export const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
+const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
 type Provider = (typeof AI_PROVIDERS)[number]
 
 const OPENROUTER = "https://openrouter.ai/api/v1"

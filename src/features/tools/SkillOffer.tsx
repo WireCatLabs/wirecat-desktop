@@ -19,7 +19,7 @@ import { skillOfferMessages } from "./messages-skill"
 const ICONS = [BookOpen, Feather, HardDrive]
 
 /** Why a skill is worth adding, for the offer after an install and for the setup's Agents step. */
-export function SkillBenefits({ tool, className }: { tool: string; className?: string }) {
+function SkillBenefits({ tool, className }: { tool: string; className?: string }) {
   const m = useMessages(skillOfferMessages)
   return (
     <ul aria-label={m.benefits} className={cx("grid gap-x-6 gap-y-3 sm:grid-cols-3", className)}>

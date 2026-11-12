@@ -24,7 +24,7 @@ import { ofSource, useSource } from "./source"
 import { moveSlot, useTasks } from "./store"
 
 /** Cards a column shows before "Show more"; each click shows as many again. */
-export const COLUMN_PAGE = 20
+const COLUMN_PAGE = 20
 
 /** A column's first `limit` cards, and a card held by the keyboard wherever it now stands, so it never moves out of view. */
 export function pageOf(keys: readonly string[], limit: number, keep?: string): string[] {

@@ -30,7 +30,7 @@ const phaseOf = (stage: ToolStage): Phase => {
 }
 
 /** What the install is doing now, in a few words, with npm's own counts. */
-export function stageLine(stage: ToolStage, m: ProgressText): string {
+function stageLine(stage: ToolStage, m: ProgressText): string {
   switch (stage.kind) {
     case "waiting":
       return m.waiting

@@ -62,7 +62,7 @@ export function openCountsOf(
 }
 
 /** The stages of the card's own pipeline the owner confirmed for this base stage. */
-export const candidatesOf = (card: Card, base: string, mapping: readonly StageMap[]) =>
+const candidatesOf = (card: Card, base: string, mapping: readonly StageMap[]) =>
   mapping.filter((m) => m.pipeline === card.pipeline && m.confirmed && m.base?.ref === base).map((m) => m.name)
 
 export type Refusal = "readOnly" | "unsorted" | "unmapped" | "unconfirmed"

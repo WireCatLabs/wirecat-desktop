@@ -163,7 +163,7 @@ export function AppPasswordStep({ provider }: { provider: AppPasswordProvider })
 }
 
 /** A Google Desktop app client the way Google's console gives it; the tool reads only `installed`. */
-export const clientJson = (clientId: string, secret: string) =>
+const clientJson = (clientId: string, secret: string) =>
   JSON.stringify({ installed: { client_id: clientId.trim(), client_secret: secret.trim() } })
 
 const GOOGLE_CLIENT = /\.apps\.googleusercontent\.com$/

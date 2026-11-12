@@ -13,7 +13,7 @@ import { tableMessages } from "./messages-table"
 type Pair = { tool: CatalogTool; profile: string }
 
 /** Every installed CRM tool with each profile signed in to it; the owner picks one, the page never does (rule 3). */
-export function useImportPairs(): Pair[] {
+function useImportPairs(): Pair[] {
   const installs = useTools((s) => s.installs)
   const crms = tools.filter((t) => t.crm && (installs[t.id]?.length ?? 0) > 0)
   const profiles = useQueries({ queries: crms.map((t) => profilesQuery(t.id)) })

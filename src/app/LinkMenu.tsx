@@ -10,7 +10,7 @@ const LINKS = `[${EXTERNAL_HREF}], a[href^="https://"], a[href^="http://"]`
 type Open = { url: string; x: number; y: number; from: HTMLElement }
 
 /** The address a right-click (or the Menu key) lands on, if it is on something that opens a web page. */
-export function linkAt(target: EventTarget | null) {
+function linkAt(target: EventTarget | null) {
   const el = target instanceof Element ? target.closest<HTMLElement>(LINKS) : null
   const url = el?.getAttribute(EXTERNAL_HREF) ?? el?.getAttribute("href")
   return el && url ? { el, url } : null

@@ -32,7 +32,7 @@ export function explainView(s: SignInView): ExplainedFailure | null {
 }
 
 /** The other way in the catalog has for this tool, if any. */
-export function otherMethod(s: Pick<SignInView, "tool" | "method">) {
+function otherMethod(s: Pick<SignInView, "tool" | "method">) {
   const entry = s.tool ? findTool(s.tool) : undefined
   if (!entry || entry.signIn?.pick) return undefined
   return signInMethods(entry).find((m) => m.id !== s.method)
