@@ -1,5 +1,6 @@
 import { AlertTriangle, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool, tools } from "@/domain/catalog"
 import { groupDigits } from "@/domain/format"
 import { formatUsd } from "@/domain/mail-agent"
@@ -534,7 +535,17 @@ function HarderOutcomeText({ m, outcome }: { m: Words; outcome: NonNullable<Hard
  * the first page of two or more results. After it, what the model did, in place of the offer.
  */
 function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: number }) {
-  const s = useSearch()
+  const s = useSearch(
+    useShallow((s) => ({
+      asked: s.asked,
+      demo: s.demo,
+      harder: s.harder,
+      loading: s.loading,
+      query: s.query,
+      search: s.search,
+      searchHarder: s.searchHarder,
+    })),
+  )
   const allowed = Boolean(findTool(toolId)?.searchHarder)
   const state = useSearchHarder(toolId, allowed && !s.demo)
   const status = state.data?.state === "ready" && state.data.status.on ? state.data.status : null

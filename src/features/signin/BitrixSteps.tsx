@@ -1,5 +1,6 @@
 import { Clock, Info, LoaderCircle, ShieldCheck } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import {
   APP_HANDLER,
   type AppProblem,
@@ -29,7 +30,7 @@ const FIELD =
  * paste it in, or how to make the local application and its id and key.
  */
 export function BitrixSteps() {
-  const { planStep } = useSignIn()
+  const { planStep } = useSignIn(useShallow((s) => ({ planStep: s.planStep })))
   if (planStep === "app") return <LocalApp />
   if (planStep === "webhook") return <MakeWebhook />
   if (planStep === "paste") return <PasteWebhook />
@@ -42,7 +43,9 @@ function Heading({ children }: { children: string }) {
 
 function Portal() {
   const m = useMessages(bitrixMessages).portal
-  const { portal, planMissing, tool, method } = useSignIn()
+  const { portal, planMissing, tool, method } = useSignIn(
+    useShallow((s) => ({ portal: s.portal, planMissing: s.planMissing, tool: s.tool, method: s.method })),
+  )
   const old = planMissing === "update" ? methodTooOld(tool, method) : null
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
@@ -99,7 +102,7 @@ function Portal() {
 /** The two ways in, the webhook first: both need the portal, so the choice sits beside it. */
 function Ways() {
   const m = useMessages(bitrixMessages).portal
-  const { method } = useSignIn()
+  const { method } = useSignIn(useShallow((s) => ({ method: s.method })))
   const name = useId()
   return (
     <fieldset className="flex max-w-[34rem] flex-col gap-2 border-0 p-0">
@@ -132,7 +135,7 @@ function Ways() {
 
 function MakeWebhook() {
   const m = useMessages(bitrixMessages).webhook
-  const { portal } = useSignIn()
+  const { portal } = useSignIn(useShallow((s) => ({ portal: s.portal })))
   const steps = [
     { text: m.steps.open(portal), open: true },
     { text: m.steps.other },
@@ -199,7 +202,9 @@ function Scopes({ m }: { m: BitrixText["webhook"] }) {
 function LocalApp() {
   const all = useMessages(bitrixMessages)
   const m = all.app
-  const { portal, planMissing, appId, appProblem } = useSignIn()
+  const { portal, planMissing, appId, appProblem } = useSignIn(
+    useShallow((s) => ({ portal: s.portal, planMissing: s.planMissing, appId: s.appId, appProblem: s.appProblem })),
+  )
   const lang = useLang()
   const id = useId()
   const idField = useRef<HTMLInputElement>(null)
@@ -331,8 +336,15 @@ function AppRefusal({ problem }: { problem: AppProblem }) {
 
 function PasteWebhook() {
   const m = useMessages(bitrixMessages)
-  const s = useSignIn()
-  const { portal, planMissing, webhookProblem, comparing, phase } = s
+  const { portal, planMissing, webhookProblem, comparing, phase } = useSignIn(
+    useShallow((s) => ({
+      portal: s.portal,
+      planMissing: s.planMissing,
+      webhookProblem: s.webhookProblem,
+      comparing: s.comparing,
+      phase: s.phase,
+    })),
+  )
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState("")

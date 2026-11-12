@@ -24,6 +24,9 @@ A component shows state and sends events. It does not decide. Put each kind of c
 - **Target.** Reads are `useQuery` and writes are `useMutation` in `api.ts`. The query key names the tool and
   profile: `["tools", "profiles", id]`.
 - **Target.** zustand holds only what no query holds: UI state and the state built from a live event channel.
+- **Today.** A component reads a store through a selector, `useStore((s) => s.field)`, or several fields at once
+  with `useStore(useShallow((s) => ({ a: s.a, b: s.b })))`. A bare `useStore()` re-renders on every change of the
+  store; only a container that hands the whole state to a helper keeps it.
 - **Target.** `useEffect` is for effects on the outside world (focus, a timer, a subscription). Not for loading.
 
 ## Checklist

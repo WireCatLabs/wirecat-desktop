@@ -1,5 +1,6 @@
 import { ArrowUp, Settings2, SlidersHorizontal } from "lucide-react"
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { tools } from "@/domain/catalog"
 import {
   CONVERSATION,
@@ -69,7 +70,20 @@ const NONE = new Set<string>()
 export function LogsPage() {
   const m = useMessages(logsMessages)
   const lang = useLang()
-  const { loadedAt, liveRound, reading, asked, live, query, range, groupBy, expanded, details } = useLogs()
+  const { loadedAt, liveRound, reading, asked, live, query, range, groupBy, expanded, details } = useLogs(
+    useShallow((s) => ({
+      loadedAt: s.loadedAt,
+      liveRound: s.liveRound,
+      reading: s.reading,
+      asked: s.asked,
+      live: s.live,
+      query: s.query,
+      range: s.range,
+      groupBy: s.groupBy,
+      expanded: s.expanded,
+      details: s.details,
+    })),
+  )
   const sources = useShownLogs((s) => s.sources)
   const keeping = useShownLogs((s) => s.keeping)
   const { load, setQuery, setRange, setGroupBy, toggle, setLive } = useLogs.getState()

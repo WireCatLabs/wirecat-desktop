@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { botCause, botCommand, botHandle, fieldProblem, tokenProblem } from "@/domain/bot-signin"
 import { type CatalogTool, isValidProfile } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
@@ -27,7 +28,7 @@ const toolKey = (id: string): BotTool => (id === "max" || id === "wa" ? id : "tg
 
 export function NameStep({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
-  const s = useBotSignIn()
+  const s = useBotSignIn(useShallow((s) => ({ bots: s.bots, profile: s.profile, toToken: s.toToken })))
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(s.profile)
@@ -80,7 +81,16 @@ export function NameStep({ tool }: { tool: CatalogTool }) {
 
 export function TokenStep({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
-  const s = useBotSignIn()
+  const s = useBotSignIn(
+    useShallow((s) => ({
+      checking: s.checking,
+      connect: s.connect,
+      failure: s.failure,
+      fields: s.fields,
+      reconnecting: s.reconnecting,
+      setField: s.setField,
+    })),
+  )
   const key = toolKey(tool.id)
   const shape = tool.bot?.token ?? "opaque"
   const askSettings = !s.reconnecting || (s.failure !== null && botCause(s.failure) === "settings")
@@ -280,7 +290,7 @@ function Failure({ failure, tool, m }: { failure: BotFailure; tool: CatalogTool;
 
 export function DoneStep({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
-  const s = useBotSignIn()
+  const s = useBotSignIn(useShallow((s) => ({ connected: s.connected, profile: s.profile })))
   const key = toolKey(tool.id)
   const handle = (s.connected && botHandle(s.connected)) || s.profile
   return (

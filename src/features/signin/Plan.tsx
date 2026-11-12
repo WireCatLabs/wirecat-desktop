@@ -1,5 +1,6 @@
 import { CircleCheck, Clock, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
@@ -143,7 +144,7 @@ function GuideLink({ url, label }: { url: string; label: string }) {
 
 /** The first choice for mail: which provider, and so which steps. Nothing is preselected beyond the catalog's first. */
 function Providers() {
-  const { tool, method } = useSignIn()
+  const { tool, method } = useSignIn(useShallow((s) => ({ tool: s.tool, method: s.method })))
   const m = useMessages(planMessages)
   const name = useId()
   const entry = tool ? findTool(tool) : undefined
@@ -178,7 +179,9 @@ function Providers() {
 
 /** The address and app password; the password lives outside the store and is never shown back. */
 function Typed({ missing }: { missing: "address" | "password" | null }) {
-  const { tool, method, address, ownFile } = useSignIn()
+  const { tool, method, address, ownFile } = useSignIn(
+    useShallow((s) => ({ tool: s.tool, method: s.method, address: s.address, ownFile: s.ownFile })),
+  )
   const m = useMessages(planMessages)
   const id = useId()
   const [password, setTyped] = useState("")
@@ -256,7 +259,7 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
  */
 function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefined; m: PlanText }) {
   const m = useMessages(mailMessages)
-  const { way, tool, method } = useSignIn()
+  const { way, tool, method } = useSignIn(useShallow((s) => ({ way: s.way, tool: s.tool, method: s.method })))
   const installs = useTools((s) => s.installs)
   const old = oauthTooOld(tool, method, installs)
   const name = useId()
@@ -282,7 +285,7 @@ function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefine
 }
 
 function WayOption({ option, name, children }: { option: MailWay; name: string; children?: ReactNode }) {
-  const { way } = useSignIn()
+  const { way } = useSignIn(useShallow((s) => ({ way: s.way })))
   const text = useMessages(mailMessages).ways[option]
   return (
     <div className="rounded-[0.35rem] border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
@@ -324,7 +327,7 @@ function WayOption({ option, name, children }: { option: MailWay; name: string; 
 
 /** The owner's Google client: a file picked here, or its ID and secret typed. */
 function ClientChoice({ m }: { m: PlanText }) {
-  const { ownFile, planError } = useSignIn()
+  const { ownFile, planError } = useSignIn(useShallow((s) => ({ ownFile: s.ownFile, planError: s.planError })))
   const picker = useRef<HTMLInputElement>(null)
   const [unreadable, setUnreadable] = useState(false)
   const pick = async (file: File | undefined) => {
@@ -374,7 +377,9 @@ function OwnApp({
   m: PlanText
   open?: boolean
 }) {
-  const { ownFile, ownId, planError } = useSignIn()
+  const { ownFile, ownId, planError } = useSignIn(
+    useShallow((s) => ({ ownFile: s.ownFile, ownId: s.ownId, planError: s.planError })),
+  )
   const id = useId()
   return (
     <Disclosure summary={m.ownApp} openWhen={open || ownFile !== null || ownId !== "" || planError !== null}>

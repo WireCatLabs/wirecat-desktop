@@ -1,5 +1,6 @@
 import { ArrowLeft, CalendarCheck, CalendarX, LoaderCircle, Play, Trash2, TriangleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { dayTitle } from "@/domain/digest"
 import { formatUsd } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
@@ -34,7 +35,9 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
   const m = useMessages(bookMessages)
   const lang = useLang()
   const title = titleOf(item, m)
-  const { busy, failed, openDigest } = useDigestBook()
+  const { busy, failed, openDigest } = useDigestBook(
+    useShallow((s) => ({ busy: s.busy, failed: s.failed, openDigest: s.openDigest })),
+  )
   const working = busy[item.name]
   const name = item.name === MORNING ? undefined : item.name
 
@@ -106,7 +109,7 @@ function GetNow({ item, can, harness }: { item: DigestItem; can: Can; harness: b
   const m = useMessages(bookMessages)
   const s = useMessages(scheduleMessages)
   const lang = useLang()
-  const { busy, run } = useDigestBook()
+  const { busy, run } = useDigestBook(useShallow((s) => ({ busy: s.busy, run: s.run })))
   const [asked, setAsked] = useState<SendTo | null>(null)
   const label = (route: string) => {
     const p = parsedRoute(route)
@@ -179,7 +182,7 @@ function GetNow({ item, can, harness }: { item: DigestItem; can: Can; harness: b
 
 function ScheduleButton({ item, harness }: { item: DigestItem; harness: boolean }) {
   const m = useMessages(bookMessages)
-  const { busy, setScheduled } = useDigestBook()
+  const { busy, setScheduled } = useDigestBook(useShallow((s) => ({ busy: s.busy, setScheduled: s.setScheduled })))
   const on = item.scheduled
   return (
     <Button
@@ -204,7 +207,7 @@ function ScheduleButton({ item, harness }: { item: DigestItem; harness: boolean 
 function RemoveButton({ item, title }: { item: DigestItem; title: string }) {
   const all = useMessages(bookMessages)
   const m = all.one
-  const { busy, remove } = useDigestBook()
+  const { busy, remove } = useDigestBook(useShallow((s) => ({ busy: s.busy, remove: s.remove })))
   const [asking, setAsking] = useState(false)
   return (
     <>
@@ -249,7 +252,7 @@ function Days({ name }: { name: string }) {
   const one = useMessages(bookMessages).one
   const later = useMessages(scheduleMessages).history.builtLater
   const lang = useLang()
-  const { days, error, load } = useDigests()
+  const { days, error, load } = useDigests(useShallow((s) => ({ days: s.days, error: s.error, load: s.load })))
   const shownName = useDigests((s) => s.name ?? MORNING)
   const chosen = useDigestDay((s) => s.date)
 

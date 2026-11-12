@@ -1,4 +1,5 @@
 import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { findTool } from "@/domain/catalog"
 import { openTool, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -193,7 +194,7 @@ function Scopes({ scopes }: { scopes: ZoomScope[] }) {
 
 /** zm asked for the ID in the window: the answer goes to its stdin, and zm saves it only once the sign-in works. */
 function ClientIdAnswer({ need }: { need: Need }) {
-  const { sent, answer } = useSignIn()
+  const { sent, answer } = useSignIn(useShallow((s) => ({ sent: s.sent, answer: s.answer })))
   return (
     <div className="border-line border-t pt-4">
       <AnswerForm need={need} sent={sent} onAnswer={answer} initial={keptAnswer(need.field)} />
@@ -218,7 +219,9 @@ function GuideLink({ url }: { url: string | null }) {
 function ClientIdForm() {
   const id = useId()
   const m = useMessages(signinMessages)
-  const { tool, profile, start, onFinish, method } = useSignIn()
+  const { tool, profile, start, onFinish, method } = useSignIn(
+    useShallow((s) => ({ tool: s.tool, profile: s.profile, start: s.start, onFinish: s.onFinish, method: s.method })),
+  )
   const [value, setValue] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -275,7 +278,7 @@ function ClientIdForm() {
 function NoApp() {
   const id = useId()
   const wm = useMessages(wizardMessages)
-  const { tool, profile } = useSignIn()
+  const { tool, profile } = useSignIn(useShallow((s) => ({ tool: s.tool, profile: s.profile })))
   const [folder, setFolder] = useState("")
   const [zone, setZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
   const [saving, setSaving] = useState(false)

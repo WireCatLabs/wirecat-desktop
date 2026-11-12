@@ -1,5 +1,6 @@
 import { Clock, Eye, EyeOff, FileJson, KeyRound } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { linkParts } from "@/domain/format"
 import type { AppPasswordProvider, MailNotes } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
@@ -43,7 +44,9 @@ function OpenPage({ url, label }: { url: string; label: string }) {
  */
 export function AppPasswordStep({ provider }: { provider: AppPasswordProvider }) {
   const m = useMessages(mailMessages)
-  const { planMissing, passwordProblem, method } = useSignIn()
+  const { planMissing, passwordProblem, method } = useSignIn(
+    useShallow((s) => ({ planMissing: s.planMissing, passwordProblem: s.passwordProblem, method: s.method })),
+  )
   const guide = m.guides[provider]
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
@@ -181,7 +184,7 @@ export function GoogleClient({
   onPick: () => void
 }) {
   const m = useMessages(mailMessages)
-  const { ownFile, planMissing } = useSignIn()
+  const { ownFile, planMissing } = useSignIn(useShallow((s) => ({ ownFile: s.ownFile, planMissing: s.planMissing })))
   const id = useId()
   const [typing, setTyping] = useState(false)
   const [clientId, setClientId] = useState("")
