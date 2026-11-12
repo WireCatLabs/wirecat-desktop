@@ -10,7 +10,7 @@ import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { useBadges } from "./badges"
 import { appMessages } from "./messages"
-import { type Section, sections } from "./sections"
+import { listed, type Section, type SectionId, sections } from "./sections"
 import { type ThemeChoice, useTheme } from "./theme"
 
 export function Sidebar(props: { active: string; onSelect: (id: string) => void; help: HelpActions }) {
@@ -38,13 +38,15 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
       <div className="scroll-quiet ring-inside flex min-h-0 flex-1 flex-col overflow-y-auto" data-tauri-drag-region>
         <nav aria-label={m.sectionsNav} className="flex flex-col gap-[0.3rem]">
           {sections
-            .filter((s) => !s.group && !s.hidden)
+            .filter(listed)
+            .filter((s) => !s.group)
             .map((s) => (
               <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
             ))}
         </nav>
         <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
           {sections
+            .filter(listed)
             .filter((s) => s.group === "system")
             .map((s) => (
               <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
@@ -93,7 +95,7 @@ function NavItem({
   onSelect,
   badge,
 }: {
-  section: Section
+  section: Section & { id: SectionId }
   active: string
   onSelect: (id: string) => void
   badge: boolean

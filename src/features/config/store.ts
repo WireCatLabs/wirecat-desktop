@@ -1,3 +1,4 @@
+import * as v from "valibot"
 import { create } from "zustand"
 import { findTool, type SettingsSource } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
@@ -58,12 +59,21 @@ type ConfigState = {
 
 // Only what the owner picked last time; a profile is never chosen for them, the shared defaults are.
 const LAST = "wirecat.config.last"
+const ShapeSchema = v.object({ rows: v.number(), categories: v.number(), file: v.boolean() })
+// An older app version may have written another shape, so what comes back from storage is checked.
+const LastSchema = v.object({
+  view: v.optional(v.picklist(["tool", "shared"] satisfies View[])),
+  tool: v.optional(v.string()),
+  targets: v.optional(v.record(v.string(), v.nullable(v.string()))),
+  shapes: v.optional(v.record(v.string(), ShapeSchema)),
+})
 /** How the last list of a view looked, so its placeholder can take the same room next time. */
-export type Shape = { rows: number; categories: number; file: boolean }
-type Last = { view?: View; tool?: string; targets?: Record<string, string | null>; shapes?: Record<string, Shape> }
+export type Shape = v.InferOutput<typeof ShapeSchema>
+type Last = v.InferOutput<typeof LastSchema>
 export function readLast(): Last {
   try {
-    return JSON.parse(safeStorage.getItem(LAST) ?? "{}") as Last
+    const parsed = v.safeParse(LastSchema, JSON.parse(safeStorage.getItem(LAST) ?? "{}"))
+    return parsed.success ? parsed.output : {}
   } catch {
     return {}
   }
