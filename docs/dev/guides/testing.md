@@ -26,10 +26,12 @@ for Rust.
 - Use the mock's scenarios instead of building fake data in each test when one exists (`src/platform/mock-*.ts`).
 - No real waits. The mock answers at once in every test ([mock-speed.ts](../../../src/testing/mock-speed.ts)); a test
   of a loading state calls `answerAtOnce(false)` to get the real delays back. Wait for what the click starts (a focus
-  move, a list) before you type or read, with the default timeouts: no `{ timeout: }` on `waitFor`, `findBy` or the
-  test. A test of something that must take time uses fake timers or a small knob such as the logs' `timing`; a test
-  that waits for a fade to end calls `reduceMotion()` ([motion.ts](../../../src/testing/motion.ts)) instead. A `vi.mock`
-  of `mock-delay` in a test file has no effect: [setup.ts](../../../src/testing/setup.ts) loads the mock first.
+  move, a list) before you type or read, with the default timeouts. A `{ timeout: }` only waits out the app's own
+  pause, written from its `MOTION` value (a finished state held on screen), or a page made slow on purpose
+  (TourSlowPage). A test of something that must take time uses fake timers or a small knob such as the logs' `timing`;
+  a test that waits for a fade to end calls `reduceMotion()` ([motion.ts](../../../src/testing/motion.ts)) instead. A
+  `vi.mock` of `mock-delay` in a test file has no effect: [setup.ts](../../../src/testing/setup.ts) loads the mock
+  first.
 - Every command line in `catalog/tools.json` is checked against the tools' own command lists in
   [commands.fixture.json](../../../src/features/guides/commands.fixture.json)
   ([catalog-commands.test.ts](../../../src/domain/catalog-commands.test.ts)): an option a tool removed fails, and so
