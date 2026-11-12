@@ -14,7 +14,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
-import { type Contacts, contactsOf, keyOf, matchFacts, sameMark, sharedValue } from "./contacts"
+import { addressesOf, type Contacts, contactsOf, keyOf, matchFacts, sameMark, sharedValue } from "./contacts"
 import { groupMatches, type MatchGroup } from "./groups"
 import { useComparableName, usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
@@ -129,6 +129,7 @@ export function MatchDialog() {
               group={group}
               chosen={chosen}
               confirmLabel={confirmLabel}
+              addresses={addressesOf(contacts)}
               hint={picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
             />
           </div>

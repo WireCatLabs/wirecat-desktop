@@ -351,6 +351,7 @@ pub fn run() {
             commands::memory::conversation_read,
             commands::memory::memory_sources,
             commands::memory::memory_confirm,
+            commands::memory::memory_finding_edit,
             commands::memory::memory_discard,
             commands::memory::memory_correct,
             commands::memory::memory_relation_edit,

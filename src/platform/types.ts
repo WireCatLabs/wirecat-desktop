@@ -354,6 +354,16 @@ export type Platform = {
    * batch, `accept` names the findings to create (all when absent); the rest are rejected.
    */
   memoryConfirm(ref: string, accept?: string[]): Promise<MemoryEntry>
+  /**
+   * Changes one waiting finding of a batch at the fingerprint the page read; `value: null` empties a field. The batch
+   * comes back with a new fingerprint. A batch that changed meanwhile is refused with `findings.stale`.
+   */
+  memoryFindingEdit(
+    ref: string,
+    finding: string,
+    fingerprint: string,
+    changes: { name: string; value: string | null }[],
+  ): Promise<MemoryEntry>
   /** "No longer holds": a memory goes stale, a fact is rejected or reversed, an action is rejected. */
   memoryDiscard(ref: string): Promise<MemoryEntry>
   /** Writes the owner's version, which replaces the old one, with a new kind or subject if given; the new record. */
@@ -419,8 +429,15 @@ export type Platform = {
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */
   peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
-  /** Says the shared mailbox of a match is a company's (`organization` or a new one `name`d): the people stay apart. */
-  peopleResolve(ref: string, id: string, to: { organization?: string; name?: string }): Promise<Resolved>
+  /**
+   * Says the shared mailbox of a match is a company's (`organization` or a new one `name`d): the people stay apart. On
+   * a match by name, `mailbox` names which of the two people's addresses is the company's.
+   */
+  peopleResolve(
+    ref: string,
+    id: string,
+    to: { organization?: string; name?: string; mailbox?: string },
+  ): Promise<Resolved>
   /** The owner's answer to a split an agent proposed on this person; answers the person read again. */
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */

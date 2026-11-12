@@ -1,4 +1,4 @@
-import { Check, LoaderCircle } from "lucide-react"
+import { Building2, Check, LoaderCircle } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type PeopleReason, reasonOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
@@ -7,7 +7,7 @@ import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
-import { CompanyButton, CompanyFollowUp } from "./Company"
+import { CompanyAddress, CompanyButton, CompanyFollowUp } from "./Company"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
@@ -26,6 +26,7 @@ export function MatchActions({
   lead,
   hint,
   pickId,
+  addresses = [],
 }: {
   group: MatchGroup
   from?: string | undefined
@@ -38,6 +39,8 @@ export function MatchActions({
   /** The list where the people of a group are ticked; an answer with too few ticked puts focus there. Without it
    * (the details dialog, which has no ticks) the error is said and focus stays. */
   pickId?: string | undefined
+  /** The two people's mail addresses, for "Company address" on a match by name. */
+  addresses?: readonly string[]
 }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
@@ -47,6 +50,8 @@ export function MatchActions({
   const failedOf = usePeople((s) => s.failed)
   const joined = usePeople((s) => s.joinedGroup[group.key])
   const company = usePeople((s) => s.company[group.key])
+  const offersAddress = usePeople((s) => s.companyMailbox)
+  const [addressing, setAddressing] = useState(false)
   const { decide, joinGroup, rejectGroup } = usePeople.getState()
   const open = group.matches.filter((x) => !decided[x.id])
   const first = open[0] ?? group.matches[0]
@@ -70,6 +75,8 @@ export function MatchActions({
     live: { problem: tooFew ? (l) => peopleMessages[l].pickTwo : null },
   })
   if (!first) return null
+  // A match by name alone may be two contacts of one company: one of their addresses may be the company's.
+  const companyAddress = offersAddress && !group.mailbox && first.signal === "name" && addresses.length > 0
 
   const ids = group.matches.map((x) => x.id)
   const busy = busyOf[group.key] ?? ids.map((id) => busyOf[id]).find(Boolean)
@@ -174,13 +181,27 @@ export function MatchActions({
               {m.reject}
             </Button>
             {group.mailbox && <CompanyButton group={group} />}
+            {companyAddress && (
+              <Button
+                size="sm"
+                disabled={!!busy}
+                aria-expanded={addressing}
+                icon={<Building2 className="size-4" aria-hidden />}
+                onClick={() => setAddressing((v) => !v)}
+              >
+                {m.companyAddress}
+              </Button>
+            )}
             {few.error === null && hint}
           </span>
         )}
       </AutoHeight>
       {few.hint}
       {failed && <Refusal error={failed} />}
-      {group.mailbox && <CompanyFollowUp group={group} />}
+      {companyAddress && addressing && !done && (
+        <CompanyAddress group={group} addresses={addresses} onCancel={() => setAddressing(false)} />
+      )}
+      {(group.mailbox || company) && <CompanyFollowUp group={group} />}
     </>
   )
 }

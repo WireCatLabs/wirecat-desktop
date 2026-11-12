@@ -251,6 +251,8 @@ function createTauri(): Platform {
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
+    memoryFindingEdit: (ref, finding, fingerprint, changes) =>
+      call(MemoryEntrySchema, "memory_finding_edit", { reference: ref, finding, fingerprint, changes }),
     memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
     memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
     conversationRead: (place, ask) => invoke("conversation_read", { place, ask }),
@@ -285,6 +287,7 @@ function createTauri(): Platform {
         id,
         organization: to.organization ?? null,
         name: to.name ?? null,
+        mailbox: to.mailbox ?? null,
       }),
     peopleSplitDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),

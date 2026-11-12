@@ -179,3 +179,10 @@ export const claimActive = (until: string | null, now = Date.now()) => until !==
  */
 export const tasksQuery = (refs: readonly string[]) =>
   `project:* ${setField("", "assignee", refs)} state:(${STATES.join(" OR ")})`
+
+/**
+ * The tasks of a deal, a lead or a company (`deal:7`, `lead:3`, `organization:4`) in every state: its project's, those
+ * its CRM stages opened, and for a company those of its projects, deals and leads. No `project:`: from memo 0.131.83 a
+ * list with it holds project tasks only.
+ */
+export const relatedTasksQuery = (ref: string) => `related:"${ref}" state:(${STATES.join(" OR ")})`

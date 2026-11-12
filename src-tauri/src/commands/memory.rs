@@ -23,6 +23,27 @@ pub async fn memory_confirm(reference: String, accept: Option<Vec<String>>) -> R
     .await
 }
 
+/// One field of a finding the owner changed; `value: null` empties it.
+#[derive(serde::Deserialize)]
+pub struct FindingChange {
+    name: String,
+    value: Option<String>,
+}
+
+#[tauri::command]
+pub async fn memory_finding_edit(
+    reference: String,
+    finding: String,
+    fingerprint: String,
+    changes: Vec<FindingChange>,
+) -> Result<memory::Entry, AppError> {
+    crate::log::command("memory_finding_edit", async move {
+        let changes: Vec<(String, Option<String>)> = changes.into_iter().map(|c| (c.name, c.value)).collect();
+        attempt(move || memory::edit_finding(&reference, &finding, &fingerprint, &changes)).await
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn memory_discard(reference: String) -> Result<memory::Entry, AppError> {
     crate::log::command("memory_discard", async move { attempt(move || memory::discard(&reference)).await }).await

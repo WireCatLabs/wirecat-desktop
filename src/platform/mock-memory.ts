@@ -10,6 +10,7 @@ import type {
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import { memoryAddMock } from "./mock-memory-add"
+import { decide, findingEditMock, findingsEditOpen, partly, withEdits } from "./mock-memory-findings"
 import { TASK_IDS } from "./mock-tasks"
 import type { Platform } from "./types"
 
@@ -122,6 +123,7 @@ function seed(): MemoryEntry[] {
       ref: "action:7",
       type: "action",
       kind: "evidence_findings",
+      fingerprint: "5adf3e",
       text: null,
       summary: "Create 2 facts and 2 tasks in Northbridge Bench",
       verb: "create",
@@ -790,6 +792,7 @@ export function memoryMock(): Pick<
   | "memoryRead"
   | "memorySources"
   | "memoryConfirm"
+  | "memoryFindingEdit"
   | "memoryDiscard"
   | "memoryCorrect"
   | "memoryRelationEdit"
@@ -805,7 +808,7 @@ export function memoryMock(): Pick<
   | keyof ReturnType<typeof memoryAddMock>
 > {
   const marked = (e: MemoryEntry): MemoryEntry =>
-    scenario === "changed" && MARKED[e.ref] ? { ...e, sourceReview: MARKED[e.ref] ?? null } : e
+    withEdits(partly(scenario === "changed" && MARKED[e.ref] ? { ...e, sourceReview: MARKED[e.ref] ?? null } : e))
   let entries: MemoryEntry[] =
     scenario === "none" ? [] : scenario === "many" ? many() : [...seed(), ...relationships()].map(marked)
   let next = 50
@@ -827,17 +830,15 @@ export function memoryMock(): Pick<
     return e
   }
 
-  // memo closes a batch with nothing accepted as rejected.
+  const put = (e: MemoryEntry) => {
+    entries = entries.map((x) => (x.ref === e.ref ? e : x))
+  }
   const review = (ref: string, accept: string[]) => {
-    const e = find(ref)
-    const findings = (e.findings ?? []).map((f) => {
-      const accepted = accept.includes(f.id)
-      // The mock has no store behind it: a created fact is not added, a created task is one the Tasks mock holds.
-      const created = !accepted ? null : f.kind === "task" ? CLINICS_TASK : null
-      return { ...f, outcome: accepted ? "accepted" : "rejected", created }
-    })
-    const done = { ...update(ref, accept.length ? "approved" : "rejected"), findings }
-    entries = entries.map((x) => (x.ref === ref ? done : x))
+    // The mock has no store behind it: a created fact is not added, a created task is one the Tasks mock holds.
+    const findings = decide(find(ref), accept, (kind) => (kind === "task" ? CLINICS_TASK : null))
+    const any = findings.some((f) => f.outcome === "accepted")
+    const done = { ...update(ref, any ? "approved" : "rejected"), findings }
+    put(done)
     return done
   }
 
@@ -845,6 +846,7 @@ export function memoryMock(): Pick<
     ...memoryAddMock((batch) => {
       entries = [batch, ...entries]
     }),
+    ...findingEditMock(find, put, write),
     async memoryShow(ref) {
       await delay(200)
       return find(ref)
@@ -886,6 +888,7 @@ export function memoryMock(): Pick<
         activityError: null,
         linksError: params.get("memory-links") === "failed" ? "the command failed; this is a bug" : null,
         revoke: params.get("memory-revoke") !== "old",
+        findingsEdit: findingsEditOpen,
         roles,
       }
     },

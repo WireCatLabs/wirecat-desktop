@@ -284,7 +284,7 @@ export type CrmCard = {
 	amount: string | null,
 	currency: string | null,
 	organization: string | null,
-	/**  `organization:<id>`, for copying; memo's task search has no field to find a company's tasks by it yet. */
+	/**  `organization:<id>`: copied, and the company's tasks are asked for with it (`related:`). */
 	organizationRef: string | null,
 	people: CrmPerson[],
 	closeDate: string | null,
@@ -330,7 +330,9 @@ export type CrmPipeline = {
 
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
 /**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages. */
-{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
+{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean; 
+/**  This memo lists a deal's, a lead's and a company's own tasks (`related:`). */
+relatedTasks: boolean };
 
 /**  A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
 export type CrmStageMap = {

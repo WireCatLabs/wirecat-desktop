@@ -40,7 +40,7 @@ export function CardDialog() {
             pipeline={data?.kind === "base" ? data.pipelines.find((p) => p.ref === card.pipeline)?.name : undefined}
             stage={data?.kind === "base" ? <StageField read={data} kind={kind} card={card} /> : undefined}
           />
-          <CardTasks card={card} />
+          <CardTasks card={card} related={data?.kind === "base" && data.relatedTasks} />
         </div>
       )}
     </Dialog>

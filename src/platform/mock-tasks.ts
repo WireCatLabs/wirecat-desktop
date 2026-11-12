@@ -330,6 +330,10 @@ function parse(q: string): Node {
 
 const rank = (l: string) => LABELS.indexOf(l as (typeof LABELS)[number])
 
+/** memo's `related:` in the Clients mock: every deal and lead has one task, Northstar Labs three across its deals. */
+const RELATED: Record<string, string[]> = { "organization:1": ["HRB-12", "HRB-14", "OPS-7"] }
+const relatedOf = (ref: string) => RELATED[ref] ?? (/^(deal|lead):\d+$/.test(ref) ? ["HRB-12"] : [])
+
 function fieldMatch(t: Task, field: string, value: string): boolean {
   const v = value.toLowerCase()
   const range = /^\[(.+) TO (.+)\]$/.exec(value)
@@ -374,6 +378,8 @@ function fieldMatch(t: Task, field: string, value: string): boolean {
       return (v === "true") === (t.ready ?? true)
     case "text":
       return `${t.title} ${t.description ?? ""}`.toLowerCase().includes(v)
+    case "related":
+      return relatedOf(v).includes(t.key)
     default:
       throw new BadQuery(`unknown field ${field}`)
   }

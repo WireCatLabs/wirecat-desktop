@@ -10,7 +10,16 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
-import { type Contacts, contactsOf, keyOf, type MatchFact, matchFacts, sameMark, sharedValue } from "./contacts"
+import {
+  addressesOf,
+  type Contacts,
+  contactsOf,
+  keyOf,
+  type MatchFact,
+  matchFacts,
+  sameMark,
+  sharedValue,
+} from "./contacts"
 import type { MatchGroup } from "./groups"
 import { useComparableName, usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
@@ -133,6 +142,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         from={from}
         chosen={chosen}
         pickId={pickList}
+        addresses={addressesOf(contacts)}
         confirmLabel={picking ? (all ? m.mergeAll(people.length) : m.joinPicked(chosen.length)) : m.confirm}
         hint={picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
         lead={

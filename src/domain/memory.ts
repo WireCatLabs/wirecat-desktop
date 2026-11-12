@@ -283,9 +283,16 @@ export const isCorrection = (text: string, original: string | null) =>
 
 type Finding = { id: string; kind: string; outcome?: string | null }
 
-/** How many findings Approve would create: the ones the owner did not untick. */
+/**
+ * The findings still to decide. From memo 0.132.0 a batch decided in part stays waiting, its decided findings carrying
+ * their outcome: they are shown as decided and never named again.
+ */
+export const waitingOf = <F extends Finding>(findings: readonly F[] | null) =>
+  (findings ?? []).filter((f) => !f.outcome)
+
+/** How many findings Approve would create: the waiting ones the owner did not untick. */
 export const tickedCount = (findings: readonly Finding[] | null, skipped: readonly string[] | undefined) =>
-  findings ? findings.filter((f) => !skipped?.includes(f.id)).length : 0
+  waitingOf(findings).filter((f) => !skipped?.includes(f.id)).length
 
 /**
  * The two counts a findings batch is told by: once reviewed, the ones created and the ones left; before, its facts
@@ -296,8 +303,9 @@ export function findingsCounts(findings: readonly Finding[], status: string) {
     const created = findings.filter((f) => f.outcome === "accepted").length
     return { reviewed: true, first: created, second: findings.length - created }
   }
-  const facts = findings.filter((f) => f.kind === "fact").length
-  return { reviewed: false, first: facts, second: findings.length - facts }
+  const waiting = waitingOf(findings)
+  const facts = waiting.filter((f) => f.kind === "fact").length
+  return { reviewed: false, first: facts, second: waiting.length - facts }
 }
 
 export type SourceKind = "meeting" | "mail" | "message" | "note"

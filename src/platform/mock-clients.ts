@@ -19,7 +19,8 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // and "Invoice sent" both on Quote (a drop there asks which), none on Contract (a drop there is refused) and "Waiting
 // for payment" unmapped; Northstar partners and the "In progress" lead stage are suggestions not confirmed yet. A
 // second CRM, Acme on amoCRM, has one pipeline of stages and no cards; its Estimate is a suggestion not confirmed yet.
-// Drops of the portal's cards need crm-write or crm-profiles.
+// Drops of the portal's cards need crm-write or crm-profiles. `?clients-related=old` is a memo before `related:`, whose
+// card dialog lists only the contact people's tasks.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("clients") ?? memoDefault({ missing: "missing", old: "old", failing: "fail" }) ?? "default"
@@ -444,6 +445,7 @@ export function clientsMock(writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
     const listed = mapping.filter((m) => pipes.some((p) => p.ref === m.pipeline))
     return {
       kind: "base",
+      relatedTasks: params.get("clients-related") !== "old",
       pipelines: pipes.map((p) => ({
         ref: p.ref,
         name: p.name,

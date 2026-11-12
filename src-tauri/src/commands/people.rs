@@ -57,9 +57,11 @@ pub async fn people_resolve(
     id: String,
     organization: Option<String>,
     name: Option<String>,
+    mailbox: Option<String>,
 ) -> Result<people::Resolved, AppError> {
     crate::log::command("people_resolve", async move {
-        attempt(move || people::resolve(&reference, &id, organization.as_deref(), name.as_deref())).await
+        attempt(move || people::resolve(&reference, &id, organization.as_deref(), name.as_deref(), mailbox.as_deref()))
+            .await
     })
     .await
 }

@@ -15,6 +15,8 @@ export const FindingSchema = v.object({
   outcome: text,
   /** What an accepted finding became, `fact:12` or `task:<id>`. */
   created: text,
+  /** The fields the owner may change before deciding it, with their values now; none once decided. */
+  edits: v.optional(v.array(v.object({ name: v.string(), value: text }))),
 })
 
 export const MemoryEntrySchema = v.object({
@@ -45,6 +47,8 @@ export const MemoryEntrySchema = v.object({
   createdAt: v.string(),
   updatedAt: text,
   findings: v.nullable(v.array(FindingSchema)),
+  /** A findings batch as the owner sees it: an edit names it, and each edit or partial decision gives a new one. */
+  fingerprint: v.optional(text),
   /** The task an approved action became, `task:<id>`. */
   task: text,
   model: text,
@@ -95,6 +99,8 @@ export const MemoryReadSchema = v.variant("kind", [
     linksError: v.optional(text, null),
     /** The installed memo takes back an agent's accepted fact (`facts revoke`, memo 0.131.28). */
     revoke: v.optional(v.boolean(), false),
+    /** The installed memo changes a waiting finding before it is decided (`actions edit`). */
+    findingsEdit: v.optional(v.boolean()),
     roles: v.optional(v.array(RoleSchema)),
   }),
 ])

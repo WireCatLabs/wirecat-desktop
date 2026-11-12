@@ -10,6 +10,7 @@ import {
   subjectOf,
   type Tab,
   tabOf,
+  waitingOf,
   withCleanNames,
 } from "@/domain/memory"
 import { useTasks } from "@/features/tasks"
@@ -28,13 +29,14 @@ import type {
 import { fresh } from "@/shared/fresh"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
+import { findingsMessages } from "./messages-findings"
 import { reviewMessages } from "./messages-review"
 
 export type Context =
   | { state: "loading" }
   | { state: "ready"; context: SourceContext }
   | { state: "failed"; error: string }
-export type Op = "confirm" | "discard" | "correct" | "forget" | "open" | "remove" | ReviewAnswer
+export type Op = "confirm" | "discard" | "correct" | "edit" | "forget" | "open" | "remove" | ReviewAnswer
 export type Review =
   | { state: "loading" }
   | { state: "ready"; review: SourceReview }
@@ -127,6 +129,11 @@ type MemoryState = {
   /** The owner's answer to a record's source review; the record comes back with no review open. */
   answerReview(ref: string, answer: ReviewAnswer, reason?: string): Promise<boolean>
   askForget(ref: string | null): void
+  /**
+   * Changes one waiting finding of a batch at the fingerprint the page read; memo answers the batch with a new one,
+   * which the next decision uses. A batch that changed meanwhile is read again and the refusal says so.
+   */
+  editFinding(ref: string, finding: string, changes: { name: string; value: string | null }[]): Promise<boolean>
   skip(ref: string, finding: string, skipped: boolean): void
   /** Marks every finding of a batch approved, or every one rejected; nothing is saved until Save. */
   skipAll(ref: string, skipped: boolean): void
@@ -138,19 +145,26 @@ type MemoryState = {
 
 const REFUSALS = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"] as const
 
+/** A findings batch changed since the page read it: Rust's id for memo's `*-findings.stale`. */
+export const STALE = "findings.stale"
+
 /** memo's reasons for refusing `facts revoke` or a review decision arrive as they are and are worded here. */
 const message = (e: unknown) => {
   const text = e instanceof Error ? e.message : String(e)
   const reason = REFUSALS.find((r) => r === text)
   return (
-    (reason && messagesOf(memoryMessages).revokeRefused[reason]) || messagesOf(reviewMessages).refused[text] || text
+    (reason && messagesOf(memoryMessages).revokeRefused[reason]) ||
+    messagesOf(reviewMessages).refused[text] ||
+    (text === STALE ? messagesOf(findingsMessages).stale : null) ||
+    text
   )
 }
 
 /** Whether a row's failure is already one of the sentences above, rather than the tool's own text. */
 export const isWorded = (text: string) =>
   Object.values(messagesOf(memoryMessages).revokeRefused).includes(text) ||
-  Object.values(messagesOf(reviewMessages).refused).includes(text)
+  Object.values(messagesOf(reviewMessages).refused).includes(text) ||
+  text === messagesOf(findingsMessages).stale
 
 /** The installed memo takes back an agent's accepted fact. */
 export const canRevoke = (s: { read: MemoryRead | null }) => s.read?.kind === "ready" && s.read.revoke
@@ -179,6 +193,11 @@ export const useMemory = create<MemoryState>((set, get) => {
       return await f()
     } catch (e) {
       set((s) => ({ failed: { ...s.failed, [ref]: message(e) } }))
+      // The batch is shown again as memo has it now, so the owner decides on what is there.
+      if (e instanceof Error && e.message === STALE) {
+        const now = await platform.memoryShow(ref).catch(() => null)
+        if (now) replace(now)
+      }
       return null
     } finally {
       set((s) => ({ busy: without(s.busy, ref) }))
@@ -420,7 +439,7 @@ export const useMemory = create<MemoryState>((set, get) => {
       // A batch is approved only as the owner sees it: opened, and only the findings still ticked (NEED-2166).
       if (findings && get().open !== ref) return
       const skipped = get().skipped[ref] ?? []
-      const accept = findings ? findings.map((f) => f.id).filter((id) => !skipped.includes(id)) : undefined
+      const accept = findings ? waitingOf(findings).flatMap((f) => (skipped.includes(f.id) ? [] : [f.id])) : undefined
       if (accept?.length === 0) return
       const entry = await run(ref, "confirm", () => platform.memoryConfirm(ref, accept))
       if (entry) replace(entry)
@@ -487,6 +506,13 @@ export const useMemory = create<MemoryState>((set, get) => {
       useNav.getState().go("tasks")
       void useTasks.getState().openTask(shown.key)
     },
+    async editFinding(ref, finding, changes) {
+      const fingerprint = get().entries.find((e) => e.ref === ref)?.fingerprint
+      if (!fingerprint) return false
+      const entry = await run(ref, "edit", () => platform.memoryFindingEdit(ref, finding, fingerprint, changes))
+      if (entry) replace(entry)
+      return !!entry
+    },
     skip: (ref, finding, skipped) =>
       set((s) => {
         const now = (s.skipped[ref] ?? []).filter((id) => id !== finding)
@@ -494,7 +520,7 @@ export const useMemory = create<MemoryState>((set, get) => {
       }),
     skipAll: (ref, skipped) =>
       set((s) => {
-        const ids = s.entries.find((e) => e.ref === ref)?.findings?.map((f) => f.id) ?? []
+        const ids = waitingOf(s.entries.find((e) => e.ref === ref)?.findings ?? null).map((f) => f.id)
         return { skipped: { ...s.skipped, [ref]: skipped ? ids : [] } }
       }),
   }

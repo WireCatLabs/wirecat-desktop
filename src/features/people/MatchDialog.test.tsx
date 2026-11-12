@@ -194,3 +194,67 @@ describe("what the people share", () => {
     expect(contactsOf(person, null, undefined)).toEqual({ phones: ["+34 600 111 222"], emails: ["lena@example.org"] })
   })
 })
+
+describe("A match by name", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    usePeople.setState(usePeople.getInitialState(), true)
+    useProfiles.getState().clear()
+  })
+
+  const byName = (companyMailbox: boolean) => {
+    const read = platform.peopleRead.bind(platform)
+    vi.spyOn(platform, "peopleRead").mockImplementation(async (kind) => {
+      const out = await read(kind)
+      if (out.kind !== "ready") return out
+      const matches = out.matches.map((m) => (m.id === "17102" ? { ...m, signal: "name", evidence: [] } : m))
+      return { ...out, matches, companyMailbox }
+    })
+  }
+
+  it("gives the company the address the owner picks, and says which one memo refused", async () => {
+    byName(true)
+    const resolve = vi
+      .spyOn(platform, "peopleResolve")
+      .mockResolvedValueOnce({
+        kind: "refused",
+        reason: "identity.not-shared",
+        message: "marta@studio.example is not an address of these two people at a company's domain",
+        organizations: [],
+      })
+      .mockImplementation(async (ref) => ({
+        kind: "done",
+        organization: "organization:3",
+        mailbox: "marta@studio.example",
+        person: await platform.peopleShow(ref),
+      }))
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+    const button = await screen.findByRole("button", { name: "Company address" }, { timeout: 4000 })
+    const card = button.closest("article") as HTMLElement
+    expect(within(card).queryByRole("button", { name: "Company mailbox" })).not.toBeInTheDocument()
+    await user.click(button)
+    const ask = within(card).getByRole("group", { name: "Which of their addresses is the company's?" })
+    const address = await within(ask).findByRole("button", { name: "marta@studio.example" }, { timeout: 4000 })
+    await user.click(address)
+    expect(await within(card).findByText(/not one of their addresses at a company's domain/)).toBeInTheDocument()
+    await user.click(within(ask).getByRole("button", { name: "marta@studio.example" }))
+    expect(
+      await within(card).findByText(/marta@studio.example is a company's mailbox now/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    expect(resolve.mock.calls.map(([, id, to]) => [id, to])).toEqual([
+      ["17102", { mailbox: "marta@studio.example" }],
+      ["17102", { mailbox: "marta@studio.example" }],
+    ])
+  })
+
+  it("offers no company address before a memo that takes one", async () => {
+    byName(false)
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+    await screen.findAllByRole("article", {}, { timeout: 4000 })
+    expect(screen.queryByRole("button", { name: "Company address" })).not.toBeInTheDocument()
+  })
+})

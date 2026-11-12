@@ -227,6 +227,9 @@ pub struct MemorySource {
     /// The first memo with `facts revoke`; below it an accepted fact that is not a decision has no way back.
     #[serde(default)]
     pub revoke_min_version: Option<String>,
+    /// `actions edit`: the owner changes a waiting finding before deciding it.
+    #[serde(default)]
+    pub findings_edit: Option<crate::enrichment::Gate>,
 }
 
 /// `{task}` is a validated task id or key; `release` names the owner as holder, who may release any claim.
@@ -246,6 +249,9 @@ pub struct TaskBoardSource {
 #[serde(rename_all = "camelCase")]
 pub struct CrmBoardSource {
     pub min_version: String,
+    /// `tasks list 'related:"deal:<id>"'` (also `lead:` and `organization:`): a deal's and a company's own tasks.
+    #[serde(default)]
+    pub related_tasks: Option<crate::enrichment::Gate>,
 }
 
 /// `{profile}` is the one the owner chose, `{ref}` a validated `deal:<id>` or `lead:<id>`, `{stage}` a validated stage
@@ -277,6 +283,10 @@ pub struct CrmScopeSource {
 #[serde(rename_all = "camelCase")]
 pub struct PeopleSource {
     pub min_version: String,
+    /// `people resolve <id> company --mailbox <address>`: a company's address on a match that is not about a shared
+    /// mailbox, such as one by name.
+    #[serde(default)]
+    pub company_mailbox: Option<crate::enrichment::Gate>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

@@ -1835,17 +1835,20 @@
       },
       "memory": {
         "minVersion": "0.131.83",
-        "revokeMinVersion": "0.131.28"
+        "revokeMinVersion": "0.131.28",
+        "findingsEdit": { "minVersion": null }
       },
       "tasks": null,
       "taskBoard": {
         "minVersion": "0.131.83"
       },
       "crmBoard": {
-        "minVersion": "0.131.71"
+        "minVersion": "0.131.71",
+        "relatedTasks": { "minVersion": null }
       },
       "people": {
-        "minVersion": "0.131.84"
+        "minVersion": "0.131.84",
+        "companyMailbox": { "minVersion": null }
       },
       "digests": {
         "minVersion": "0.131.75",

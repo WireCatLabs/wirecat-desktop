@@ -130,6 +130,8 @@ pub struct Entry {
     pub updated_at: Option<String>,
     /// A findings batch's facts and tasks; absent on every other record.
     pub findings: Option<Vec<Finding>>,
+    /// The batch as the owner sees it: an edit names it, and each edit or partial decision gives a new one.
+    pub fingerprint: Option<String>,
     /// The task an approved action became (`task:<id>`): the owner dismisses it there, since Memo has no undo.
     pub task: Option<String>,
     pub model: Option<String>,
@@ -237,11 +239,59 @@ pub struct Finding {
     pub outcome: Option<String>,
     /// What an accepted finding became, `fact:12` or `task:<id>`: undoing the batch means erasing or dismissing it.
     pub created: Option<String>,
+    /// The fields the owner may change before deciding it, with their values now; none once decided.
+    pub edits: Vec<FindingEdit>,
 }
 
+/// One field of a waiting finding the owner may change, as `actions edit --set <name>=<value>` takes it.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct FindingEdit {
+    pub name: &'static str,
+    pub value: Option<String>,
+}
+
+/// The fields cli-core's `FINDING_EDITS` and `MAIL_EDITS` let the owner change, less those that name a record or a
+/// choice (type, subject, project, assignee, scope). `due_at` is offered only where the finding has one: cli-core
+/// refuses a due date without the evidence that gives it, which the owner cannot add here.
+fn editable(batch: &str, kind: &str) -> &'static [&'static str] {
+    let mail = batch == MAIL_FINDINGS;
+    match kind {
+        "task" => &["title", "reason", DUE],
+        "fact" if mail => &["statement", "reason"],
+        "fact" => &["statement"],
+        "payment" if !mail => &["statement"],
+        "memory" if mail => &["body", "reason"],
+        "task_update" if mail => &["detail", "reason"],
+        "new_contact" if mail => &["name", "reason"],
+        "link" | "invoice" | "payment" | "order" | "order_update" if mail => &["reason"],
+        _ => &[],
+    }
+}
+
+/// cli-core's name for a due date: memo hands `actions edit --set` to its finding edit as it is.
+const DUE: &str = "dueAt";
+
+fn edits_of(batch: &str, f: &Value) -> Vec<FindingEdit> {
+    let Some(kind) = text(f, "kind") else { return Vec::new() };
+    editable(batch, &kind)
+        .iter()
+        .filter_map(|&name| {
+            let value = if name == DUE { text(f, DUE).or_else(|| text(f, "due_at")) } else { text(f, name) };
+            (name != DUE || value.is_some()).then_some(FindingEdit { name, value })
+        })
+        .collect()
+}
+
+/// A decided finding's outcome: in the receipt once the batch is closed, in `payload.decided` while a partial
+/// decision keeps the rest waiting (cli-core 0.643.0).
 fn findings_of(v: &Value) -> Vec<Finding> {
+    let batch = text(v, "kind").unwrap_or_default();
+    let open = text(v, "status").as_deref() == Some("proposed");
     let item = |id: &str| {
-        v["result"]["items"].as_array().and_then(|items| items.iter().find(|i| i["id"].as_str() == Some(id)))
+        [&v["result"]["items"], &v["payload"]["decided"]]
+            .into_iter()
+            .filter_map(Value::as_array)
+            .find_map(|items| items.iter().find(|i| i["id"].as_str() == Some(id)))
     };
     v["payload"]["findings"]
         .as_array()
@@ -253,6 +303,7 @@ fn findings_of(v: &Value) -> Vec<Finding> {
                     Some(Finding {
                         outcome: decided.and_then(|i| text(i, "status")),
                         created: decided.and_then(|i| text_field(i, "reference")),
+                        edits: if open && decided.is_none() { edits_of(&batch, f) } else { Vec::new() },
                         kind: finding_kind(f)?,
                         text: finding_text(f)?,
                         reason: text(f, "reason"),
@@ -357,6 +408,7 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
         findings: None,
+        fingerprint: None,
         task: None,
         model: text(v, "model"),
         confidence: v["confidence"].as_f64(),
@@ -416,6 +468,7 @@ pub(crate) fn action(v: &Value) -> Option<Entry> {
         role: None,
         standing: None,
         findings: batch.then(|| findings_of(v)),
+        fingerprint: batch.then(|| text_field(v, "fingerprint")).flatten(),
         task: text_field(&v["result"], "task").map(|id| format!("task:{id}")),
         source_review: None,
         role_list: None,
@@ -492,6 +545,7 @@ fn relationship(v: &Value, pending: bool) -> Option<Entry> {
         created_at: text(v, "created_at")?,
         updated_at: None,
         findings: None,
+        fingerprint: None,
         task: None,
         model: None,
         confidence: None,
@@ -630,6 +684,8 @@ pub enum Read {
         links_error: Option<String>,
         /// The installed memo takes back the approval of an agent's fact (`facts revoke`).
         revoke: bool,
+        /// The installed memo changes a waiting finding before it is decided (`actions edit`).
+        findings_edit: bool,
         roles: Vec<Role>,
     },
 }
@@ -692,9 +748,9 @@ pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         // `review confirm|reject` exits 2 when it refuses and prints its whole answer: the caller reads `refused`.
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
-        // A meeting's findings can still change after the agent read them; memo's own words name its command.
+        // The batch changed since the window read it (an agent restaged it, or another edit): the page reads it again.
         Some(_) if ["evidence-findings.stale", "mail-findings.stale", "meeting-findings.stale"].contains(&reason) => {
-            Err("These findings changed since the agent proposed them.".into())
+            Err(STALE.into())
         }
         // The page words these in the owner's language, so the reason goes back as it is.
         Some(_) if REVOKE_REFUSALS.contains(&reason) => Err(reason.to_string()),
@@ -702,8 +758,16 @@ pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
     }
 }
 
+/// A findings batch changed since it was read; the page words it and reads the batch again.
+pub const STALE: &str = "findings.stale";
+
 /// `facts revoke` refuses a fact that is not accepted, one the owner wrote, and an accepted correction.
 pub const REVOKE_REFUSALS: [&str; 3] = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"];
+
+/// Whether the installed memo has `actions edit`; a null `minVersion` is a memo not released yet.
+fn can_edit_findings(tool: &Tool, version: Option<&str>) -> bool {
+    tool.memory.as_ref().and_then(|m| m.findings_edit.as_ref()).is_some_and(|g| g.open(version))
+}
 
 /// Whether the installed memo has `facts revoke`.
 fn can_revoke(tool: &Tool, version: Option<&str>) -> bool {
@@ -723,8 +787,17 @@ pub fn read(page: u32) -> Result<Read, String> {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
-    let revoke = can_revoke(tool, crate::tools::version_of(&bin).as_deref());
-    read_with(&|args: &[String]| call_at(&bin, args, if is_held_links(args) { LINKS } else { READ }), revoke, page)
+    let version = crate::tools::version_of(&bin);
+    let revoke = can_revoke(tool, version.as_deref());
+    let mut read = read_with(
+        &|args: &[String]| call_at(&bin, args, if is_held_links(args) { LINKS } else { READ }),
+        revoke,
+        page,
+    )?;
+    if let Read::Ready { findings_edit, .. } = &mut read {
+        *findings_edit = can_edit_findings(tool, version.as_deref());
+    }
+    Ok(read)
 }
 
 fn is_held_links(args: &[String]) -> bool {
@@ -830,7 +903,7 @@ fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
         }
         Err(e) => (None, Some(e)),
     };
-    Ok(Read::Ready { entries, more, page, activity, activity_error, links_error, revoke, roles })
+    Ok(Read::Ready { entries, more, page, activity, activity_error, links_error, revoke, findings_edit: false, roles })
 }
 
 pub(crate) fn memo_bin() -> Result<std::path::PathBuf, String> {
@@ -844,9 +917,6 @@ pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result
 
 /// One memory or fact read back as memo now has it, after the owner answered something about it.
 pub(crate) fn show_with(call: &Call, r: &Ref) -> Result<Entry, String> {
-    if r.kind == Kind::Action {
-        return Err("An action is read back from the list.".into());
-    }
     parse_entry(r, &call(&words(&[r.noun(), "show", &r.memo()]))?)
 }
 
@@ -887,8 +957,10 @@ pub fn sources(reference: &str) -> Result<Vec<Source>, String> {
 }
 
 /// A findings batch is decided with the fingerprint `actions show` gives, so the owner decides on the batch as it is
-/// now. `accept` names the findings to create; Memo rejects the others. Only IDs the batch itself holds reach the
-/// command line.
+/// now. `accept` names the findings to create among those still waiting; the others the owner rejected. From cli-core
+/// 0.643.0 a confirm leaves the findings it does not name waiting, so a reject follows for them, at the fingerprint
+/// the confirm answered; an older memo rejected them in the confirm and closed the batch. Only IDs the batch itself
+/// holds reach the command line.
 fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option<Entry>, String> {
     if r.kind != Kind::Action {
         return Ok(None);
@@ -899,10 +971,10 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     if !kind.as_deref().is_some_and(|k| BATCHES.contains(&k)) {
         return Ok(None);
     }
-    let held: Vec<String> = findings_of(item).into_iter().map(|f| f.id).collect();
+    let waiting: Vec<String> = findings_of(item).into_iter().filter(|f| f.outcome.is_none()).map(|f| f.id).collect();
     // Approving every finding unseen is what NEED-2166 ruled out: the window names the ones the owner saw ticked.
     let accept: Vec<String> = accept.ok_or("Open the findings and tick the ones to approve.")?.to_vec();
-    if accept.iter().any(|id| !held.contains(id) || plain(id).is_none()) {
+    if accept.iter().any(|id| !waiting.contains(id) || plain(id).is_none()) {
         return Err("Pick only findings this batch holds.".into());
     }
     // memo gives no fingerprint for a mail batch and does not ask for one; an evidence batch cannot be decided without.
@@ -910,16 +982,32 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     if fingerprint.is_none() && kind.as_deref() == Some(FINDINGS) {
         return Err("Memo did not give these findings' fingerprint".into());
     }
+    let decide = |verb: &str, names: &[String], fingerprint: Option<String>| {
+        let mut args: Vec<String> = vec!["actions".into(), verb.into(), r.memo()];
+        args.extend(names.iter().cloned());
+        if let Some(fingerprint) = fingerprint {
+            args.extend(["--fingerprint".into(), fingerprint]);
+        }
+        args.push(FROM_APP.into());
+        args.extend(QUIET.iter().map(|s| (*s).to_string()));
+        call(&args)
+    };
     // `actions confirm` with no finding named creates them all, so nothing accepted is a rejection.
-    let mut args: Vec<String> = vec!["actions".into(), if accept.is_empty() { "reject" } else { "confirm" }.into()];
-    args.push(r.memo());
-    args.extend(accept);
-    if let Some(fingerprint) = fingerprint {
-        args.extend(["--fingerprint".into(), fingerprint]);
+    if accept.is_empty() {
+        return parse_entry(r, &decide("reject", &[], fingerprint)?).map(Some);
     }
-    args.push(FROM_APP.into());
-    args.extend(QUIET.iter().map(|s| (*s).to_string()));
-    parse_entry(r, &call(&args)?).map(Some)
+    let confirmed = decide("confirm", &accept, fingerprint)?;
+    let rest = accept.len() < waiting.len();
+    let still = body(&confirmed);
+    let still = still.get("proposal").unwrap_or(still);
+    if !rest || text(still, "status").as_deref() != Some("proposed") {
+        return parse_entry(r, &confirmed).map(Some);
+    }
+    // A refused reject leaves the rest waiting, as the batch then shows them: what was approved stays approved.
+    match decide("reject", &[], text_field(still, "fingerprint")) {
+        Ok(rejected) => parse_entry(r, &rejected).map(Some),
+        Err(_) => parse_entry(r, &confirmed).map(Some),
+    }
 }
 
 fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry, String> {
@@ -937,6 +1025,93 @@ pub fn confirm(reference: &str, accept: Option<&[String]>) -> Result<Entry, Stri
     }
     let r = Ref::parse(reference)?;
     with_memo(|call| confirm_with(call, &r, accept))
+}
+
+/// A value the owner typed into a finding: one line, or the few lines of a memory's body, never read as an option.
+fn edit_value(name: &str, value: &str) -> Result<String, String> {
+    let v = value.trim();
+    let lines = name == "body";
+    let bad = v.is_empty()
+        || v.chars().count() > MAX_TEXT
+        || v.chars().any(|c| c.is_control() && !(lines && c == '\n'))
+        || (name == DUE && !is_timestamp(v));
+    if bad {
+        return Err(format!("{name} is 1 to {MAX_TEXT} characters on one line"));
+    }
+    Ok(v.to_string())
+}
+
+/// cli-core's due date: an ISO timestamp with its zone, `2026-11-20T09:00:00Z` or `…+01:00`.
+fn is_timestamp(v: &str) -> bool {
+    let b = v.as_bytes();
+    b.len() >= 20
+        && b.len() <= 35
+        && b[..10].iter().enumerate().all(|(i, c)| if i == 4 || i == 7 { *c == b'-' } else { c.is_ascii_digit() })
+        && b[10] == b'T'
+        && v.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '-' | '+' | '.'))
+        && (v.ends_with('Z') || v.ends_with('z') || v[v.len() - 6..].starts_with(['+', '-']))
+}
+
+/// The owner's change to one waiting finding, at the fingerprint the window read: memo answers the batch with a new
+/// one. Only a field the finding offers in `edits` is sent; `None` empties it (`field=null`).
+fn edit_finding_with(
+    call: &Call,
+    r: &Ref,
+    finding: &str,
+    fingerprint: &str,
+    changes: &[(String, Option<String>)],
+) -> Result<Entry, String> {
+    if r.kind != Kind::Action {
+        return Err("Only a findings batch has findings to change.".into());
+    }
+    if plain(finding).is_none() || plain(fingerprint).is_none() {
+        return Err("Pick only findings this batch holds.".into());
+    }
+    if changes.is_empty() {
+        return Err("Nothing was changed.".into());
+    }
+    let shown = call(&words(&["actions", "show", &r.memo()]))?;
+    let item = body(&shown);
+    if text_field(item, "fingerprint").as_deref() != Some(fingerprint) {
+        return Err(STALE.into());
+    }
+    let found =
+        findings_of(item).into_iter().find(|f| f.id == finding).ok_or("Pick only findings this batch holds.")?;
+    let mut args: Vec<String> = vec!["actions".into(), "edit".into(), r.memo(), finding.into()];
+    args.extend(["--fingerprint".into(), fingerprint.into()]);
+    for (name, value) in changes {
+        let Some(edit) = found.edits.iter().find(|e| e.name == name) else {
+            return Err(format!("{name} cannot be changed in this finding"));
+        };
+        // memo reads the value as JSON when it parses: a text sent as a JSON string stays the text it is.
+        let value = match value {
+            Some(v) => Value::String(edit_value(edit.name, v)?).to_string(),
+            // A title, a statement, a body or a name is never empty; memo clears only an optional field.
+            None if ["title", "statement", "body", "name"].contains(&edit.name) => {
+                return Err(format!("{name} cannot be empty"));
+            }
+            None => "null".into(),
+        };
+        args.extend(["--set".into(), format!("{}={value}", edit.name)]);
+    }
+    args.push(FROM_APP.into());
+    args.extend(QUIET.iter().map(|s| (*s).to_string()));
+    parse_entry(r, &call(&args)?)
+}
+
+pub fn edit_finding(
+    reference: &str,
+    finding: &str,
+    fingerprint: &str,
+    changes: &[(String, Option<String>)],
+) -> Result<Entry, String> {
+    let r = Ref::parse(reference)?;
+    let tool = memo()?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    if !can_edit_findings(tool, crate::tools::version_of(&bin).as_deref()) {
+        return Err("Update Memo to change a finding before deciding it.".into());
+    }
+    with_memo(|call| edit_finding_with(call, &r, finding, fingerprint, changes))
 }
 
 /// Memo has one word per record for "this does not hold": a memory goes stale, a proposed fact is rejected, an
@@ -1939,6 +2114,133 @@ mod tests {
         assert!(confirm_with(&call, &r, None).is_err(), "a batch is never approved without naming its findings");
     }
 
+    // memo on cli-core 0.643.0: a confirm naming some findings keeps the batch waiting, with a new fingerprint, and
+    // its decided findings in `payload.decided`.
+    fn partly_decided() -> Value {
+        let mut v = findings_batch("proposed", &Value::Null);
+        v["payload"]["decided"] =
+            json!([{"id":"f2","fingerprint":"b","status":"accepted","reference":"task:HRB-7","reused":false}]);
+        v["fingerprint"] = json!("77c0de");
+        v
+    }
+
+    #[test]
+    fn a_partial_confirm_is_followed_by_a_reject_of_the_rest_at_the_fingerprint_it_answered() {
+        let fake = Fake::new(|a| {
+            Ok(json!({"item": match a[1].as_str() {
+                "show" => findings_batch("proposed", &Value::Null),
+                "confirm" => partly_decided(),
+                _ => findings_batch("approved", &json!({"accepted":["f2"],"items":[
+                    {"id":"f1","status":"rejected","reference":null},
+                    {"id":"f2","status":"accepted","reference":"task:HRB-7"}]})),
+            }}))
+        });
+        let r = Ref::parse("action:9").unwrap();
+        let done = confirm_with(&|a: &[String]| fake.call(a), &r, Some(&strs(&["f2"]))).unwrap();
+        assert_eq!(done.status, "approved");
+        let seen = fake.seen();
+        assert_eq!(
+            seen[2],
+            strs(&["actions", "reject", "9", "--fingerprint", "77c0de", "--from-app", "--json", "--no-record"])
+        );
+        assert_eq!(seen.len(), 3);
+    }
+
+    #[test]
+    fn a_batch_decided_in_part_shows_what_was_decided_and_names_only_what_waits() {
+        let batch = action(&partly_decided()).unwrap();
+        let found = batch.findings.unwrap();
+        assert_eq!((found[1].outcome.as_deref(), found[1].created.as_deref()), (Some("accepted"), Some("task:HRB-7")));
+        assert!(found[1].edits.is_empty(), "a decided finding is not changed any more");
+        assert_eq!((found[0].outcome.as_deref(), batch.fingerprint.as_deref()), (None, Some("77c0de")));
+
+        let fake = Fake::new(|a| {
+            Ok(json!({"item": if a[1] == "show" { partly_decided() } else {
+            findings_batch("approved", &Value::Null) }}))
+        });
+        let r = Ref::parse("action:9").unwrap();
+        let call = |a: &[String]| fake.call(a);
+        assert!(confirm_with(&call, &r, Some(&strs(&["f2"]))).is_err(), "f2 was decided already");
+        confirm_with(&call, &r, Some(&strs(&["f1"]))).unwrap();
+        assert_eq!(
+            fake.seen().last().unwrap(),
+            &strs(&["actions", "confirm", "9", "f1", "--fingerprint", "77c0de", "--from-app", "--json", "--no-record"])
+        );
+    }
+
+    #[test]
+    fn a_waiting_finding_offers_its_words_and_is_changed_at_the_fingerprint_the_window_read() {
+        let found = action(&findings_batch("proposed", &Value::Null)).unwrap().findings.unwrap();
+        let names = |f: &Finding| f.edits.iter().map(|e| (e.name, e.value.clone())).collect::<Vec<_>>();
+        assert_eq!(names(&found[0]), [("statement", Some("The eval set moves to 120 queries.".into()))]);
+        assert_eq!(
+            names(&found[1]),
+            [
+                ("title", Some("Add 40 Spanish queries".into())),
+                ("reason", Some("Lena asked for Spanish coverage".into()))
+            ],
+            "no due date to change: cli-core takes one only with the evidence that gives it"
+        );
+
+        let fake = Fake::new(|a| {
+            Ok(
+                json!({"item": if a[1] == "show" { findings_batch("proposed", &Value::Null) } else { partly_decided() }}),
+            )
+        });
+        let r = Ref::parse("action:9").unwrap();
+        let call = |a: &[String]| fake.call(a);
+        let change = |name: &str, value: Option<&str>| vec![(name.to_string(), value.map(str::to_string))];
+        let edited = edit_finding_with(&call, &r, "f2", "5adf3e", &change("title", Some(" Add 30 "))).unwrap();
+        assert_eq!(edited.fingerprint.as_deref(), Some("77c0de"));
+        assert_eq!(
+            fake.seen()[1],
+            strs(&[
+                "actions",
+                "edit",
+                "9",
+                "f2",
+                "--fingerprint",
+                "5adf3e",
+                "--set",
+                r#"title="Add 30""#,
+                "--from-app",
+                "--json",
+                "--no-record"
+            ])
+        );
+        edit_finding_with(&call, &r, "f2", "5adf3e", &change("reason", None)).unwrap();
+        assert!(fake.seen().last().unwrap().contains(&"reason=null".to_string()));
+
+        let before = fake.seen().len();
+        assert_eq!(edit_finding_with(&call, &r, "f2", "0ld", &change("title", Some("x"))), Err(STALE.into()));
+        assert!(edit_finding_with(&call, &r, "f2", "5adf3e", &change("project", Some("project:2"))).is_err());
+        assert!(edit_finding_with(&call, &r, "f2", "5adf3e", &change("title", None)).is_err());
+        assert!(edit_finding_with(&call, &r, "f2", "5adf3e", &change("title", Some("a\u{7}b"))).is_err());
+        assert!(edit_finding_with(&call, &r, "f9", "5adf3e", &change("title", Some("x"))).is_err());
+        assert!(fake.seen()[before..].iter().all(|a| a[1] == "show"), "nothing refused reaches memo's edit");
+    }
+
+    #[test]
+    fn a_due_date_is_changed_only_where_the_finding_has_one_and_only_to_a_timestamp() {
+        let mut v = findings_batch("proposed", &Value::Null);
+        v["payload"]["findings"][1]["dueAt"] = json!("2026-11-20T09:00:00Z");
+        let found = action(&v).unwrap().findings.unwrap();
+        assert!(found[1].edits.iter().any(|e| e.name == DUE && e.value.as_deref() == Some("2026-11-20T09:00:00Z")));
+        assert!(edit_value(DUE, "2026-11-21T09:00:00Z").is_ok());
+        assert!(edit_value(DUE, "2026-11-21T09:00:00+01:00").is_ok());
+        assert!(edit_value(DUE, "2026-11-21").is_err());
+    }
+
+    #[test]
+    fn a_stale_batch_comes_back_as_an_id_the_window_words() {
+        let out = run::Output {
+            code: Some(1),
+            stdout: r#"{"error":{"reason":"evidence-findings.stale","message":"stage a new batch"}}"#.into(),
+            stderr: String::new(),
+        };
+        assert_eq!(answer(&out), Err(STALE.into()));
+    }
+
     // A mail batch as memo 0.131.82's `actions show` answers it: no fingerprint, no counts, every kind of finding.
     fn mail_batch(status: &str) -> Value {
         json!({"id":"12","kind":"mail_findings","account":{"provider":"email","account":"owner@example.com"},
@@ -2184,6 +2486,7 @@ mod tests {
             activity_error: None,
             links_error: None,
             revoke: true,
+            findings_edit: false,
             roles: vec![Role {
                 list: "organization".into(),
                 id: "employee".into(),

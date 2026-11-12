@@ -80,12 +80,45 @@ describe("Clients on the base stages", () => {
     render(<ClientsPage />)
     await user.click(await card("Northstar: 40 office chairs"))
     const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
-    const task = await within(dialog).findByRole("button", { name: /Book the two pilot clinics/ })
+    const contacts = within(dialog)
+      .getByRole("heading", { name: /Tasks of the client's contacts/ })
+      .closest("section")
+    const task = await within(contacts as HTMLElement).findByRole("button", { name: /Book the two pilot clinics/ })
     expect(list).toHaveBeenCalledWith(expect.stringContaining('assignee:"person:2"'))
     expect(list).not.toHaveBeenCalledWith(expect.stringContaining("person:13"))
-    expect(within(dialog).getByRole("button", { name: "Copy id: task:HRB-14" })).toBeInTheDocument()
+    expect(within(contacts as HTMLElement).getByRole("button", { name: "Copy id: task:HRB-14" })).toBeInTheDocument()
     await user.click(task)
     expect(screen.queryByRole("dialog", { name: "Northstar: 40 office chairs" })).toBeNull()
+  })
+
+  it("lists the deal's own tasks and its company's beside its contacts'", async () => {
+    const list = vi.spyOn(platform, "taskList")
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    const section = (name: RegExp) => within(dialog).getByRole("heading", { name }).closest("section") as HTMLElement
+    expect(await within(section(/Tasks of this deal/)).findByText("HRB-12")).toBeInTheDocument()
+    expect(await within(section(/Tasks of Northstar Labs/)).findByText("HRB-14")).toBeInTheDocument()
+    expect(list).toHaveBeenCalledWith(expect.stringMatching(/^related:"deal:\d+" state:\(/))
+    expect(list).toHaveBeenCalledWith(expect.stringMatching(/^related:"organization:1" state:\(/))
+    expect(list.mock.calls.some(([q]) => q.includes("project:*") && q.includes("related:"))).toBe(false)
+  })
+
+  it("asks a memo before related: only for the contacts' tasks", async () => {
+    const memo = clientsMock("none")
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (kind) => {
+      const out = await memo.clientsRead(kind)
+      return out.kind === "base" ? { ...out, relatedTasks: false } : out
+    })
+    const list = vi.spyOn(platform, "taskList")
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    await within(dialog).findAllByRole("button", { name: /Book the two pilot clinics/ })
+    expect(within(dialog).queryByRole("heading", { name: /Tasks of this deal/ })).toBeNull()
+    expect(list).not.toHaveBeenCalledWith(expect.stringContaining("related:"))
   })
 
   it("says in one line when a card has no contact person to find tasks for", async () => {

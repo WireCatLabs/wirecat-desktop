@@ -278,6 +278,8 @@ pub enum Read {
         splits: Vec<Split>,
         /// memo lists one kind at a time; false from a memo older than kinds, which lists everyone.
         kinded: bool,
+        /// This memo gives a company one of the two people's addresses on a match by name (`--mailbox`).
+        company_mailbox: bool,
     },
 }
 
@@ -338,6 +340,7 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
         matches_more: more(&matches),
         splits: list(&matches, "items", split_row),
         kinded,
+        company_mailbox: false,
     })
 }
 
@@ -416,7 +419,16 @@ pub fn read(kind: &str) -> Result<Read, String> {
     if too_old(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
-    with_memo(|call| read_with(call, kind))
+    let mut read = with_memo(|call| read_with(call, kind))?;
+    if let Read::Ready { company_mailbox, .. } = &mut read {
+        *company_mailbox = company_mailbox_open(tool, first.version.as_deref());
+    }
+    Ok(read)
+}
+
+/// Whether the installed memo takes `people resolve … company --mailbox`; a null `minVersion` is not released yet.
+fn company_mailbox_open(tool: &Tool, version: Option<&str>) -> bool {
+    tool.people.as_ref().and_then(|p| p.company_mailbox.as_ref()).is_some_and(|g| g.open(version))
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -687,6 +699,19 @@ fn named_organizations(message: &str) -> Vec<String> {
     found
 }
 
+/// The address the owner says is the company's, as memo's `--mailbox` takes it: one plain address, never an option.
+fn company_address(mailbox: Option<&str>) -> Result<Option<String>, String> {
+    let Some(a) = mailbox.map(str::trim).filter(|a| !a.is_empty()) else { return Ok(None) };
+    let plain = a.chars().count() <= 254
+        && !a.starts_with('-')
+        && a.split_once('@').is_some_and(|(local, domain)| !local.is_empty() && domain.contains('.'))
+        && !a.chars().any(|c| c.is_whitespace() || c.is_control());
+    if !plain {
+        return Err("Pick one of the addresses listed.".into());
+    }
+    Ok(Some(format!("--mailbox={a}")))
+}
+
 fn company_name(name: Option<&str>) -> Result<Option<String>, String> {
     let Some(t) = name.map(str::trim).filter(|t| !t.is_empty()) else { return Ok(None) };
     if t.chars().count() > 200 || t.chars().any(char::is_control) {
@@ -703,6 +728,7 @@ fn resolve_with(
     id: &str,
     organization: Option<&str>,
     name: Option<&str>,
+    mailbox: Option<&str>,
 ) -> Result<Resolved, String> {
     let reference = person_ref(reference)?;
     if number(&json!(id)).is_none() {
@@ -713,6 +739,7 @@ fn resolve_with(
         None => None,
     };
     let name = company_name(name)?;
+    let mailbox = company_address(mailbox)?;
     // The pairs of one mailbox go one by one; one memo already closed is skipped, as memo says of a decided one.
     if !show_with(call, reference)?.matches.into_iter().any(|m| m.id == id) {
         let message = format!("{id} is not open on {reference} any more");
@@ -723,6 +750,7 @@ fn resolve_with(
         args.insert(4, o.to_string());
     }
     args.extend(name);
+    args.extend(mailbox);
     let v = call(&args)?;
     if let Some(reason) = v["error"]["reason"].as_str() {
         let message = text(&v["error"], "message").unwrap_or_default();
@@ -748,8 +776,22 @@ fn resolve_with(
     })
 }
 
-pub fn resolve(reference: &str, id: &str, organization: Option<&str>, name: Option<&str>) -> Result<Resolved, String> {
-    with_memo(|call| resolve_with(call, reference, id, organization, name))
+pub fn resolve(
+    reference: &str,
+    id: &str,
+    organization: Option<&str>,
+    name: Option<&str>,
+    mailbox: Option<&str>,
+) -> Result<Resolved, String> {
+    if mailbox.is_some() {
+        let tool = memo()?;
+        let version = tools::program(&tool.bin).and_then(|bin| tools::version_of(&bin));
+        if !company_mailbox_open(tool, version.as_deref()) {
+            let message = "this memo gives a company an address only on a shared-mailbox match".to_string();
+            return Ok(Resolved::Refused { reason: OLD_MEMO.into(), message, organizations: Vec::new() });
+        }
+    }
+    with_memo(|call| resolve_with(call, reference, id, organization, name, mailbox))
 }
 
 /// The memo move that would set a doubted person right; `None` from a memo that gives only the command line.
@@ -1176,15 +1218,15 @@ mod tests {
         let (f, reply) = resolving(done);
         let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
         let Resolved::Done { organization, mailbox, person } =
-            resolve_with(&call, "person:8", "3", Some("organization:4"), Some(" Acme ")).unwrap()
+            resolve_with(&call, "person:8", "3", Some("organization:4"), Some(" Acme "), None).unwrap()
         else {
             panic!("not done")
         };
         assert_eq!((organization.as_deref(), mailbox.as_deref()), (Some("organization:4"), Some("info@acme.example")));
         assert_eq!(person.reference, "person:8");
         assert!(f.seen().iter().any(|a| a.first().map(String::as_str) == Some("people") && a[1] == "show"));
-        assert!(resolve_with(&call, "person:8", "3", Some("person:4"), None).is_err());
-        let closed = resolve_with(&call, "person:8", "9", None, None).unwrap();
+        assert!(resolve_with(&call, "person:8", "3", Some("person:4"), None, None).is_err());
+        let closed = resolve_with(&call, "person:8", "9", None, None, None).unwrap();
         assert!(matches!(closed, Resolved::Refused { ref reason, .. } if reason == "proposal.wrong-state"));
     }
 
@@ -1199,12 +1241,37 @@ mod tests {
             }
             f.call(a)
         };
-        resolve_with(&call, "person:8", "3", Some("organization:4"), None).unwrap();
-        resolve_with(&call, "person:8", "3", None, Some("Acme Ltd")).unwrap();
+        resolve_with(&call, "person:8", "3", Some("organization:4"), None, None).unwrap();
+        resolve_with(&call, "person:8", "3", None, Some("Acme Ltd"), None).unwrap();
         let seen = seen.into_inner().unwrap();
         let tail = ["--from-app", "--json", "--no-record"];
         assert_eq!(seen[0], strs(&[&["people", "resolve", "3", "company", "organization:4"][..], &tail].concat()));
         assert_eq!(seen[1], strs(&[&["people", "resolve", "3", "company"][..], &tail, &["--name=Acme Ltd"]].concat()));
+    }
+
+    #[test]
+    fn a_match_by_name_gives_the_company_the_address_the_owner_picked() {
+        let done = json!({"item": {"status": "rejected", "mailbox": "sales@acme.example",
+            "organization": "organization:4", "closed": ["3"]}});
+        let (f, reply) = resolving(done);
+        let sent = Mutex::new(Vec::new());
+        let call = |a: &[String]| {
+            if a[1] == "resolve" {
+                sent.lock().unwrap().push(a.to_vec());
+            }
+            reply(a).map_or_else(|| f.call(a), Ok)
+        };
+        let Resolved::Done { mailbox, .. } =
+            resolve_with(&call, "person:8", "3", None, None, Some(" sales@acme.example ")).unwrap()
+        else {
+            panic!("not done")
+        };
+        assert_eq!(mailbox.as_deref(), Some("sales@acme.example"));
+        let tail = ["--from-app", "--json", "--no-record", "--mailbox=sales@acme.example"];
+        assert_eq!(sent.lock().unwrap()[0], strs(&[&["people", "resolve", "3", "company"][..], &tail].concat()));
+        for bad in ["--yes", "sales acme@x.example", "nobody", "a@b"] {
+            assert!(resolve_with(&call, "person:8", "3", None, None, Some(bad)).is_err(), "{bad}");
+        }
     }
 
     #[test]
@@ -1214,7 +1281,7 @@ mod tests {
         let (f, reply) = resolving(refused);
         let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
         let Resolved::Refused { reason, message, organizations } =
-            resolve_with(&call, "person:8", "3", None, None).unwrap()
+            resolve_with(&call, "person:8", "3", None, None, None).unwrap()
         else {
             panic!("not refused")
         };
@@ -1231,13 +1298,13 @@ mod tests {
             json!({"error": {"reason": "organization.unnamed", "message": "info@gmail.com is a free mailbox"}});
         let (f, reply) = resolving(unnamed);
         let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
-        let r = resolve_with(&call, "person:8", "3", None, None).unwrap();
+        let r = resolve_with(&call, "person:8", "3", None, None, None).unwrap();
         assert!(matches!(r, Resolved::Refused { ref reason, ref organizations, .. }
             if reason == "organization.unnamed" && organizations.is_empty()));
         let (f, reply) =
             resolving(json!({"error": {"reason": "input.invalid", "message": "unknown command 'resolve'"}}));
         let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
-        let r = resolve_with(&call, "person:8", "3", None, None).unwrap();
+        let r = resolve_with(&call, "person:8", "3", None, None, None).unwrap();
         assert!(matches!(r, Resolved::Refused { ref reason, .. } if reason == OLD_MEMO));
     }
 
