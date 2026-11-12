@@ -278,7 +278,6 @@ const en = {
   doubtsHelp:
     "We found people whose accounts may not all be theirs. Check each one. If it is right, press «These belong together» and they will not come up here again. If an account is someone else's, move it away.",
   doubtReasons: {
-    "owner-other-name": "An account of yours carries someone else's name.",
     "test-data": "These accounts look like test data, not a real person.",
     "shared-address": "This address is shared by several people, such as a team inbox.",
     "mixed-names": "The accounts carry different names.",
@@ -622,7 +621,6 @@ const ru: typeof en = {
   doubtsHelp:
     "Нашли людей, у которых, возможно, есть чужие аккаунты. Проверьте каждого. Если всё верно, нажмите «Связь верная», и он больше здесь не появится. Если аккаунт чужой, отделите его.",
   doubtReasons: {
-    "owner-other-name": "На вашем аккаунте стоит чужое имя.",
     "test-data": "Эти аккаунты похожи на тестовые данные, а не на человека.",
     "shared-address": "Этим адресом пользуются несколько людей, например общий ящик команды.",
     "mixed-names": "На аккаунтах разные имена.",
@@ -953,7 +951,6 @@ const es: typeof en = {
   doubtsHelp:
     "Encontramos personas cuyas cuentas quizá no son todas suyas. Revisa cada una. Si está bien, pulsa «El vínculo es correcto» y no volverá a aparecer aquí. Si una cuenta es de otra persona, sepárala.",
   doubtReasons: {
-    "owner-other-name": "Una cuenta tuya lleva el nombre de otra persona.",
     "test-data": "Estas cuentas parecen datos de prueba, no una persona real.",
     "shared-address": "Varias personas comparten esta dirección, como un buzón de equipo.",
     "mixed-names": "Las cuentas llevan nombres distintos.",

@@ -350,6 +350,32 @@ describe("People", () => {
     await waitFor(() => expect(within(dialog).getByRole("checkbox", { name: /Mila Example/ })).toBeChecked())
   })
 
+  it("says what each answer does to an account of the owner's own card with another name", async () => {
+    vi.spyOn(platform, "peopleDoubts").mockResolvedValue({
+      items: [
+        {
+          person: "person:1",
+          name: "You",
+          owner: true,
+          reason: "owner-other-name",
+          identities: [{ identity: "telegram:9001", name: "Sirgris Personal Bot" }],
+          moves: [{ op: "unlink", identities: ["telegram:9001"] }],
+        },
+      ],
+      total: 1,
+      more: false,
+    })
+    render(<PeoplePage />)
+    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const card = (await within(panel).findAllByRole("listitem")).find((row) =>
+      row.textContent?.includes("Sirgris Personal Bot"),
+    ) as HTMLElement
+    expect(card).toHaveTextContent("for example your bot or a shared mailbox")
+    expect(card).toHaveTextContent(
+      "«These belong together»: it stays yours, its messages count as yours in search and digests, and you are not asked again. «Split»: it becomes a contact of its own.",
+    )
+  })
+
   it("names a doubt with no letter in its name after its accounts, and opens the person from the card", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
