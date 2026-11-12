@@ -411,7 +411,7 @@ describe("Logs snapshot", () => {
     await user.click(screen.getByRole("button", { name: "Read again" }))
     answerTg()
     await loaded()
-    expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
+    expect(await within(runsOf(sources, "Telegram")).findByText(/^\d+\+? runs$/)).toBeInTheDocument()
     expect(spy.mock.calls.filter(([id]) => id === "tg")).toHaveLength(1)
   })
 })
