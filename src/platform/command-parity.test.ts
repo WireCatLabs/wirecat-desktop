@@ -11,7 +11,7 @@ const CLOSE = ")}]>"
 function closing(text: string, open: number, angles = false): number {
   let depth = 0
   for (let i = open; i < text.length; i++) {
-    const c = text[i]
+    const c = text.charAt(i)
     if (c === "-" && text[i + 1] === ">") i++
     else if (OPEN.includes(c) && (angles || c !== "<")) depth++
     else if (CLOSE.includes(c) && (angles || c !== ">") && --depth === 0) return i
@@ -37,7 +37,7 @@ function keysOf(arg: string): string[] {
   for (let i = 0; i < arg.length; i++) {
     if (arg[i] !== "{") continue
     const end = closing(arg, i)
-    keys.push(...topLevel(arg.slice(i + 1, end)).map((p) => p.split(":")[0].trim()))
+    keys.push(...topLevel(arg.slice(i + 1, end)).map((p) => p.replace(/:.*/s, "").trim()))
     i = end
   }
   return keys
@@ -75,19 +75,22 @@ function commands(): Map<string, Param[]> {
     )) {
       const open = (m.index ?? 0) + m[0].length - 1
       const params = topLevel(src.slice(open + 1, closing(src, open, true)), true)
-        .map((p) => p.split(/:(.*)/s).map((s) => s.trim()))
-        .filter(([, type]) => !INJECTED.test(type))
-        .map(([name, type]) => ({ key: camel(name), optional: type.startsWith("Option<") }))
-      found.set(m[1], params)
+        .map((p) => {
+          const [name = "", type = ""] = p.split(/:(.*)/s).map((s) => s.trim())
+          return { name, type }
+        })
+        .filter(({ type }) => !INJECTED.test(type))
+        .map(({ name, type }) => ({ key: camel(name), optional: type.startsWith("Option<") }))
+      found.set(String(m[1]), params)
     }
   }
   return found
 }
 
-const registered = () =>
-  [
-    ...(read("src-tauri/src/lib.rs").match(/generate_handler!\[([^\]]*)\]/)?.[1] ?? "").matchAll(/(\w+)\s*(?:,|$)/g),
-  ].map((m) => m[1])
+function registered(): string[] {
+  const handler = read("src-tauri/src/lib.rs").match(/generate_handler!\[([^\]]*)\]/)?.[1] ?? ""
+  return [...handler.matchAll(/(\w+)\s*(?:,|$)/g)].map((m) => String(m[1]))
+}
 
 describe("the interface and Rust agree on every command", () => {
   const calls = invoked()
