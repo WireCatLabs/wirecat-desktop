@@ -101,8 +101,13 @@ Automation, under WireCat.";
 /// A fixed line from `tailscale::terminal_line` (Tailscale's own install command) or `package_update` (the update
 /// package Rust saved). It asks for the password itself; the app runs no `sudo`. It is written for `sh`, so a fish user's terminal gets it through `/bin/sh`.
 pub fn open_line(line: &str) -> Result<(), String> {
-    launch(paths::user_shell().as_deref(), line, Syntax::Posix)
-        .map_err(|_| format!("Could not open a terminal. Run this yourself: {line}"))
+    launch(paths::user_shell().as_deref(), line, Syntax::Posix).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::PermissionDenied {
+            format!("{AUTOMATION} Or run this yourself: {line}")
+        } else {
+            format!("Could not open a terminal. Run this yourself: {line}")
+        }
+    })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

@@ -4,8 +4,10 @@ import type { CatalogTool } from "@/domain/catalog"
 import { setupCommand } from "@/domain/catalog"
 import { readLast, remember } from "@/features/config"
 import { useMessages } from "@/i18n"
+import type { TerminalRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import type { CommandAccess, Permissions as Data, Level, OwnLevel } from "@/platform/permissions-schemas"
+import { terminalMessages } from "@/shared/messages-terminal"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -287,15 +289,23 @@ function Notes(props: { tool: CatalogTool; data: Data | null; defaultsView: bool
 function Ceiling({ tool, profile, ceiling }: { tool: CatalogTool; profile: string | null; ceiling: Level }) {
   const command = setupCommand(tool, profile)
   const m = useMessages(permissionsMessages).permissions
+  const refused = useMessages(terminalMessages)
+  const [why, setWhy] = useState<TerminalRun["reason"]>(null)
+  const open = async (profile: string) => {
+    const run = await platform.openSetup(tool.id, profile)
+    setWhy(run.started ? null : (run.reason ?? "terminal"))
+  }
   return (
     <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2", noticeBox("warn"))}>
       <p className="min-w-0 flex-1 text-[0.9rem] text-ink">{m.ceiling(ceiling === "deny")}</p>
+      {why && (
+        <p role="status" className="w-full text-[0.9rem] text-ink">
+          {why === "automation" ? refused.automation : refused.terminal}{" "}
+          <code className="selectable font-mono text-[0.85rem]">{command}</code>
+        </p>
+      )}
       {tool.setup && profile ? (
-        <Button
-          size="sm"
-          onClick={() => platform.openSetup(tool.id, profile)}
-          icon={<Terminal className="size-4" aria-hidden />}
-        >
+        <Button size="sm" onClick={() => open(profile)} icon={<Terminal className="size-4" aria-hidden />}>
           {m.openSetup}
         </Button>
       ) : (
