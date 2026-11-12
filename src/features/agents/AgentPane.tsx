@@ -5,6 +5,7 @@ import type { Agent } from "@/platform/agents-schemas"
 import { AgentIcon } from "@/shared/AgentIcon"
 import { Button } from "@/ui/Button"
 import { Disclosure } from "@/ui/Disclosure"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { AgentDetails } from "./AgentDetails"
 import { ConnectDialog } from "./ConnectDialog"
@@ -22,7 +23,9 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
   if (entry.type === "seen")
     return (
       <div className="flex flex-col gap-3">
-        <h2 className="text-[1.3rem] font-semibold text-ink-soft">{entry.name}</h2>
+        <SectionTitle>
+          <span className="text-ink-soft">{entry.name}</span>
+        </SectionTitle>
         <p className="max-w-[70ch] text-[0.95rem] text-ink-soft">{m.seenBody(entry.sessions)}</p>
         <div>
           <SeenLink kind={entry.kind} name={entry.name} />
@@ -32,10 +35,10 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
   if (entry.type === "absent")
     return (
       <div className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-2 text-[1.3rem] font-semibold text-ink-soft">
+        <SectionTitle className="flex items-center gap-2">
           <AgentIcon id={entry.id} className="size-[1.3rem] shrink-0 text-ink-dim" />
-          {entry.name}
-        </h2>
+          <span className="text-ink-soft">{entry.name}</span>
+        </SectionTitle>
         <p className="max-w-[70ch] text-[0.95rem] text-ink-soft">
           {(entry.agent.reads.some((t) => t !== "hermes") ? m.absentShared : m.absentAlone)(
             <span className="selectable font-mono text-[0.9rem]">
@@ -53,10 +56,10 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
       <div className="flex min-h-[3.4rem] flex-wrap items-center justify-between gap-3">
         {/* Grows from zero, so a longer sentence wraps inside it instead of pushing the buttons to a new line. */}
         <div className="min-w-[14rem] flex-1 basis-0">
-          <h2 className="flex items-center gap-2 text-[1.3rem] font-semibold leading-tight">
+          <SectionTitle className="flex items-center gap-2">
             <AgentIcon id={view.agent.id} className="size-[1.3rem] shrink-0 text-ink-soft" />
             {view.agent.name}
-          </h2>
+          </SectionTitle>
           <p className="mt-1 text-[0.95rem] text-ink-soft">
             {checking ? <Skeleton chars={34} /> : statusWords(view, m).sentence}
           </p>

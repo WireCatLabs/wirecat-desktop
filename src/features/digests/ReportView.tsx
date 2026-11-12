@@ -24,6 +24,7 @@ import type { Report, ReportItem } from "@/platform/digest-schemas"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ExpandChevron } from "@/ui/ExpandChevron"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { digestMessages } from "./messages"
 
 type M = (typeof digestMessages)["en"]
@@ -303,9 +304,9 @@ export function ReportView({ report, now }: { report: Report; now: number }) {
   return (
     <article className="flex flex-col gap-[1.2rem] text-[0.95rem]">
       <header>
-        <h2 className="text-[1.25rem] font-semibold text-ink">
+        <SectionTitle>
           {TITLE_EMOJI} {m.title(dayTitle(report.date, lang))}
-        </h2>
+        </SectionTitle>
         {report.summary && <p className="mt-1 text-ink-soft">{report.summary}</p>}
       </header>
       {sections.length === 0 && <p className="text-ink-soft">{health.length > 0 ? m.quietStale : m.quiet}</p>}

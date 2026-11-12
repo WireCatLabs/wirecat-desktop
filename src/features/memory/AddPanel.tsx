@@ -5,6 +5,7 @@ import { useReaders } from "@/shared/readers-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { DoneStep } from "./AddDoneStep"
 import { FactsStep } from "./AddFactsStep"
 import { SavedStep } from "./AddSavedStep"
@@ -39,14 +40,9 @@ export function AddPanel() {
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2
-              id={PANEL_TITLE}
-              ref={title}
-              tabIndex={-1}
-              className="font-display text-[1.35rem] font-bold tracking-[-0.02em] outline-none"
-            >
+            <SectionTitle id={PANEL_TITLE} ref={title} tabIndex={-1} className="outline-none">
               {m.title}
-            </h2>
+            </SectionTitle>
             {step === "source" && <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.intro}</p>}
           </div>
           <div className="flex items-center gap-3">

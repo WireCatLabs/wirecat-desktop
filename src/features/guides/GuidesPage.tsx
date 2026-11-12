@@ -21,6 +21,7 @@ import { cx } from "@/ui/cx"
 import { fieldFocus } from "@/ui/field"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import {
   docsOf,
@@ -263,9 +264,9 @@ function GoalBlock(props: {
         className="grid scroll-mt-[1rem] gap-x-[2rem] gap-y-[0.6rem] border-line border-t py-[1.3rem] @min-[46rem]:grid-cols-[12rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[15rem_minmax(0,1fr)]"
       >
         <div className="flex flex-col gap-[0.3rem] @min-[46rem]:pt-[0.55rem]">
-          <h2 ref={heading} id={headingId} tabIndex={-1} className="text-[1.2rem] font-semibold outline-none">
+          <SectionTitle ref={heading} id={headingId} tabIndex={-1} className="outline-none">
             {m.goals[goal].name}
-          </h2>
+          </SectionTitle>
           <p className="text-[0.9rem] leading-snug text-ink-dim">{m.goals[goal].line}</p>
         </div>
         <ul className="flex min-w-0 flex-col">
@@ -398,7 +399,7 @@ function GuideBody(props: {
           <div className="flex items-start justify-between gap-3">
             {lead ? (
               <div className="min-w-0">
-                <h3 className="text-[1.35rem] font-semibold leading-snug">{textOf(g.title, lang)}</h3>
+                <SectionTitle as="h3">{textOf(g.title, lang)}</SectionTitle>
                 <p className="mt-1 text-[0.98rem] text-ink-soft">{textOf(g.outcome, lang)}</p>
               </div>
             ) : (
