@@ -4,6 +4,7 @@ import { type NameChoices, nameChoices, queryReason, type ValueOption, withoutPa
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { QueryDraft as Draft, QueryWriter, SearchAnswer } from "@/platform/search-schemas"
+import { errorText } from "@/shared/errors"
 import { useNav } from "@/shared/nav"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -103,9 +104,7 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
         if (draft.kind !== "query") return setState(draft)
         setState({ kind: "checking", by: draft.by })
         const tried = (query: string) =>
-          check(query).catch(
-            (e: unknown): SearchAnswer => ({ kind: "old", message: e instanceof Error ? e.message : String(e) }),
-          )
+          check(query).catch((e: unknown): SearchAnswer => ({ kind: "old", message: errorText(e) }))
         let query = draft.query
         let answer = await tried(query)
         // A tool on an older cli-core refuses part-of-name patterns, and a part inside a word on a large store; its
@@ -131,7 +130,7 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
         return
       }
     } catch (e) {
-      setState({ kind: "error", message: e instanceof Error ? e.message : String(e) })
+      setState({ kind: "error", message: errorText(e) })
     }
   }
 

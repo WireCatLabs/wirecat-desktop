@@ -3,6 +3,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState 
 import { useMessages } from "@/i18n"
 import type { DriveFolder, FolderLevel } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -17,8 +18,6 @@ const SHARED_WITH_ME = "shared_with_me"
 type Crumb = { id: string | null; name: string }
 export type FailedLevel = Extract<FolderLevel, { result: "failed" }>
 type Level = { state: "loading" } | { state: "ready"; level: FolderLevel }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /**
  * After Drive signs in: the owner's folders one level at a time (drive-cli PR #335's `folders browse`), ticked ones
@@ -59,7 +58,7 @@ export function DriveFolderPicker(props: {
       (e) =>
         setLevels((l) => ({
           ...l,
-          [k]: { state: "ready", level: { result: "failed", message: message(e), code: null, reason: null } },
+          [k]: { state: "ready", level: { result: "failed", message: errorText(e), code: null, reason: null } },
         })),
     )
   }

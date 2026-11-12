@@ -12,6 +12,7 @@ import type {
   TaskEvent,
   TaskWrite,
 } from "@/platform/task-schemas"
+import { errorText } from "@/shared/errors"
 import { fresh } from "@/shared/fresh"
 import { queryClient } from "@/shared/query"
 
@@ -137,7 +138,6 @@ function savedView(): View {
 /** A refused move is said on its card, apart from a refused edit, which the dialog and the table say. */
 export const moveSlot = (key: string) => `move:${key}`
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const without = <T>(record: Record<string, T>, key: string) => {
   const { [key]: _, ...rest } = record
   return rest
@@ -150,7 +150,7 @@ const TYPING_MS = 350
  * from a link or a row a filter hides has no account on the page yet, so each listed account is tried in turn.
  */
 const showAsAny = async (key: string, refusal: unknown) => {
-  const text = message(refusal)
+  const text = errorText(refusal)
   if (!/\bgive --(source|account)\b/.test(text)) throw refusal
   for (const [, account] of text.matchAll(/--(?:source|account) ([\w-]+:[^\s;]+)/g)) {
     const task = await platform.taskShow(key, account).catch(() => null)
@@ -285,7 +285,7 @@ export const useTasks = create<TasksState>((set, get) => {
       return out
     } catch (e) {
       undo?.()
-      set((s) => ({ failed: { ...s.failed, [slot]: message(e) } }))
+      set((s) => ({ failed: { ...s.failed, [slot]: errorText(e) } }))
       return null
     } finally {
       set((s) => ({ busy: without(s.busy, key) }))
@@ -410,7 +410,7 @@ export const useTasks = create<TasksState>((set, get) => {
         })
         void name(get().assigned)
       } catch (e) {
-        if (mine === seq && !get().demo) set({ error: message(e), loaded: true, reading: false })
+        if (mine === seq && !get().demo) set({ error: errorText(e), loaded: true, reading: false })
         return
       }
       await Promise.all([counts, projects])
@@ -469,7 +469,7 @@ export const useTasks = create<TasksState>((set, get) => {
         // The list may have arrived meanwhile; the copy in it is the one rows and writes use.
         if (!find(key)) set((s) => ({ outside: { ...s.outside, [key]: task } }))
       } catch (e) {
-        set((s) => ({ failed: { ...s.failed, [key]: message(e) } }))
+        set((s) => ({ failed: { ...s.failed, [key]: errorText(e) } }))
       }
     },
 
@@ -532,7 +532,7 @@ export const useTasks = create<TasksState>((set, get) => {
         void name(made.assignees)
         return true
       } catch (e) {
-        set((s) => ({ failed: { ...s.failed, new: message(e) } }))
+        set((s) => ({ failed: { ...s.failed, new: errorText(e) } }))
         return false
       } finally {
         set((s) => ({ busy: without(s.busy, "new") }))
@@ -546,7 +546,7 @@ export const useTasks = create<TasksState>((set, get) => {
         const events = await platform.taskHistory(key)
         set((s) => ({ history: { ...s.history, [key]: { state: "ready", events } } }))
       } catch (e) {
-        if (!shown()) set((s) => ({ history: { ...s.history, [key]: { state: "failed", message: message(e) } } }))
+        if (!shown()) set((s) => ({ history: { ...s.history, [key]: { state: "failed", message: errorText(e) } } }))
       }
     },
 
@@ -556,7 +556,7 @@ export const useTasks = create<TasksState>((set, get) => {
         const items = await platform.taskComments(key)
         set((s) => ({ comments: { ...s.comments, [key]: { state: "ready", items } } }))
       } catch (e) {
-        set((s) => ({ comments: { ...s.comments, [key]: { state: "failed", message: message(e) } } }))
+        set((s) => ({ comments: { ...s.comments, [key]: { state: "failed", message: errorText(e) } } }))
       }
     },
 
@@ -583,7 +583,7 @@ export const useTasks = create<TasksState>((set, get) => {
       } catch (e) {
         items((all) => all.filter((c) => c.local !== local))
         set((s) => ({
-          failed: { ...s.failed, [slot]: message(e) },
+          failed: { ...s.failed, [slot]: errorText(e) },
           unsent: { ...s.unsent, [key]: s.unsent[key] ? `${s.unsent[key]}\n\n${text}` : text },
         }))
         return false
@@ -604,7 +604,7 @@ export const useTasks = create<TasksState>((set, get) => {
         void queryClient().invalidateQueries({ queryKey: PEOPLE_FOUND })
         return person
       } catch (e) {
-        set((s) => ({ failed: { ...s.failed, person: message(e) } }))
+        set((s) => ({ failed: { ...s.failed, person: errorText(e) } }))
         return null
       }
     },

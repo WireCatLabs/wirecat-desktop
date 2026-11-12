@@ -3,6 +3,7 @@ import { FUNNEL_HELPER } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { FunnelHelperStatus } from "@/platform/tailscale-schemas"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
@@ -11,8 +12,6 @@ import { Lamp } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
 import { InstallProgress } from "./InstallProgress"
 import { helperMessages } from "./messages-helper"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** WireCat's own Tailscale connection, read again on focus: the owner signs in or approves in the browser. */
 export function useFunnelHelper(active: boolean) {
@@ -82,7 +81,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
     try {
       setStatus(await platform.funnelHelperStart(setPage))
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
       check()
     }
     setBusy(false)

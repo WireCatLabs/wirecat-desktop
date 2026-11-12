@@ -2,6 +2,7 @@ import * as v from "valibot"
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import { type DigestDay, type Report, ReportSchema } from "@/platform/digest-schemas"
+import { errorText } from "@/shared/errors"
 
 export type Shown =
   | { state: "loading" }
@@ -23,8 +24,6 @@ type DigestsState = {
 }
 
 export const MORNING = "morning-digest"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useDigests = create<DigestsState>((set, get) => ({
   name: undefined,
@@ -50,7 +49,7 @@ export const useDigests = create<DigestsState>((set, get) => ({
         shown: Object.fromEntries(Object.entries(s.shown).filter(([date]) => !stale.includes(date))),
       }))
     } catch (e) {
-      if (get().name === which) set({ error: message(e), reading: false })
+      if (get().name === which) set({ error: errorText(e), reading: false })
     }
   },
   async show(date) {
@@ -66,7 +65,7 @@ export const useDigests = create<DigestsState>((set, get) => ({
         ? { state: "report", report: report.output }
         : { state: "text", text: digest.text ?? JSON.stringify(digest.document, null, 2) }
     } catch (e) {
-      shown = { state: "failed", error: message(e) }
+      shown = { state: "failed", error: errorText(e) }
     }
     if (get().name !== name) return
     set((s) => ({ shown: { ...s.shown, [date]: shown } }))

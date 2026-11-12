@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
-import { errorMessage, isFunnelHost, publishWait, reachLamp } from "@/domain/connect-guide"
+import { isFunnelHost, publishWait, reachLamp } from "@/domain/connect-guide"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -45,7 +46,7 @@ export function ReachStep(props: {
       if (next.state === "publishing") firstMissing.current ??= Date.now()
       setReach(next)
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
     setChecking(false)
   }, [tool.id, setReach])
@@ -175,7 +176,7 @@ export function FunnelOff(props: {
       }
       await reload()
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -205,7 +206,7 @@ export function TunnelOff(props: { tool: CatalogTool; port: number; name: string
       await platform.cloudflareTunnelOpen(tool.id, port)
       await reload()
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }

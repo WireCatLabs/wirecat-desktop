@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { BackupFile, Backups, ResetPreview } from "@/platform/backup-schemas"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { useStorage } from "@/shared/storage-store"
 
 export type Progress = { step: "starting" | "copying" | "compressing" | "encrypting"; done: number; total: number }
@@ -32,8 +33,6 @@ type BackupState = {
   clear(backupFirst: boolean): Promise<boolean>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 export const useBackups = create<BackupState>((set, get) => ({
   backups: undefined,
   listError: null,
@@ -50,7 +49,7 @@ export const useBackups = create<BackupState>((set, get) => ({
     try {
       set({ backups: await platform.listBackups(), listError: null })
     } catch (e) {
-      set({ listError: message(e) })
+      set({ listError: errorText(e) })
     }
   },
 
@@ -77,7 +76,7 @@ export const useBackups = create<BackupState>((set, get) => ({
           }
         }, password)
         .catch((e) => {
-          set({ progress: null, backupError: message(e) })
+          set({ progress: null, backupError: errorText(e) })
           resolve(false)
         })
     })
@@ -94,7 +93,7 @@ export const useBackups = create<BackupState>((set, get) => ({
     try {
       await platform.openBackups(name)
     } catch (e) {
-      set({ listError: message(e) })
+      set({ listError: errorText(e) })
     }
   },
 
@@ -103,7 +102,7 @@ export const useBackups = create<BackupState>((set, get) => ({
     try {
       set({ preview: await platform.storeResetPreview() })
     } catch (e) {
-      set({ preview: null, previewError: message(e) })
+      set({ preview: null, previewError: errorText(e) })
     }
   },
 
@@ -118,7 +117,7 @@ export const useBackups = create<BackupState>((set, get) => ({
       set({ cleared: await platform.storeReset() })
       return true
     } catch (e) {
-      set({ clearError: { backupFailed: false, message: message(e) } })
+      set({ clearError: { backupFailed: false, message: errorText(e) } })
       return false
     } finally {
       set({ clearing: false })

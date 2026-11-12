@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import type { PersonProfile } from "@/platform/person-profile-schemas"
+import { errorText } from "@/shared/errors"
 
 export type ProfileRead =
   | { state: "loading" }
@@ -33,7 +34,7 @@ export const useProfiles = create<ProfilesState>((set, get) => {
       try {
         put(asked, ref, { state: "ready", profile: await platform.peopleProfile(ref) })
       } catch (e) {
-        put(asked, ref, { state: "failed", error: e instanceof Error ? e.message : String(e) })
+        put(asked, ref, { state: "failed", error: errorText(e) })
       }
     },
     clear() {

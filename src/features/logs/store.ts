@@ -3,6 +3,7 @@ import { findTool, ownerId, runTool, tools } from "@/domain/catalog"
 import { cliCommand, NO_COMMAND_HIDDEN, type RangeId, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
 import type { RunDetail, RunItem } from "@/platform/runs-schemas"
+import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 
 /** Runs fetched per tool and page: about a month of a busy tool's failures. */
@@ -82,7 +83,7 @@ type LogsState = {
 }
 
 const message = (e: unknown) => {
-  const text = e instanceof Error ? e.message : String(e)
+  const text = errorText(e)
   // A tool's JSON error that reached here unread still has a plain message inside.
   if (!text.startsWith("{")) return text
   try {

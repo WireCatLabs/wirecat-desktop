@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { TerminalRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { useSandbox } from "@/shared/sandbox-store"
 
 /**
@@ -30,7 +31,7 @@ export const useTerminal = create<TerminalState>((set) => ({
         ? { profile, state: platform.kind === "mock" ? "preview" : "opened" }
         : { profile, state: "failed", reason: run.reason, error: run.message ?? "" }
     } catch (e) {
-      next = { profile, state: "failed", reason: null, error: e instanceof Error ? e.message : String(e) }
+      next = { profile, state: "failed", reason: null, error: errorText(e) }
     }
     set((s) => ({ byTool: { ...s.byTool, [tool]: next } }))
   },

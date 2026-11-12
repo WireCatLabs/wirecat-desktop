@@ -17,6 +17,7 @@ import { platform } from "@/platform/bridge"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
 import { useSandbox } from "@/shared/sandbox-store"
 import { useTools } from "@/shared/tools-store"
+import { errorText } from "./errors"
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
 export type Qr = Of<"qr">
@@ -291,8 +292,6 @@ const previousEnded = () => Promise.race([ending, new Promise((done) => setTimeo
 
 const bothKeys = () => [...KEPT].every((k) => keys.has(k))
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /** Nobody waits for this stop: the run's end is ignored, and the next run waits for it through `ending`. */
 const stopInBackground = (tool: string) => {
   platform.signInStop(tool).catch(() => {})
@@ -330,7 +329,9 @@ export const useSignIn = create<SignInState>()((set, get) => {
         const key = keys.get(e.field)
         const { tool, reuse } = get()
         if (reuse && tool && key !== undefined && KEPT.has(e.field)) {
-          platform.signInAnswer(tool, key).catch((err) => apply({ event: "failed", message: message(err), code: null }))
+          platform
+            .signInAnswer(tool, key)
+            .catch((err) => apply({ event: "failed", message: errorText(err), code: null }))
           return
         }
         const provider = guidedProvider(get())
@@ -340,7 +341,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           typed.sentIn = get().run
           platform
             .signInAnswer(tool, value)
-            .catch((err) => apply({ event: "failed", message: message(err), code: null }))
+            .catch((err) => apply({ event: "failed", message: errorText(err), code: null }))
           return
         }
         const page = linkIn(e.hint)
@@ -534,7 +535,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           if (mine() && running(get().phase))
             apply({ event: "failed", message: "The sign-in ended without saying how.", code: ENDED })
         },
-        (e) => mine() && apply({ event: "failed", message: message(e), code: null }),
+        (e) => mine() && apply({ event: "failed", message: errorText(e), code: null }),
       )
     },
     begin() {
@@ -564,7 +565,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
         set({ planError: null })
         platform
           .settingsSet(tool, profile, false, setting, ownId.trim())
-          .then(run, (e) => set({ planError: message(e) }))
+          .then(run, (e) => set({ planError: errorText(e) }))
       }
       const launch = tool === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go
       if (!useSandbox.getState().name) return launch()
@@ -605,7 +606,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const { tool, phase, stopping } = get()
       if (!tool || !running(phase) || stopping) return
       set({ stopping: true })
-      platform.signInStop(tool).catch((e) => apply({ event: "failed", message: message(e), code: null }))
+      platform.signInStop(tool).catch((e) => apply({ event: "failed", message: errorText(e), code: null }))
     },
     close() {
       const { tool, phase, onFinish } = get()

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { BotProfile, BotResult } from "@/platform/bot-schemas"
 import { platform } from "@/platform/bridge"
+import { errorText } from "./errors"
 
 export type BotStep = "name" | "token" | "done"
 type Connected = Extract<BotResult, { outcome: "connected" }>
@@ -51,8 +52,6 @@ const closed = {
 }
 
 const checkSeq: Record<string, number> = {}
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useBotSignIn = create<BotSignInState>()((set, get) => ({
   ...closed,
@@ -109,7 +108,7 @@ export const useBotSignIn = create<BotSignInState>()((set, get) => ({
     try {
       result = await platform.botSignIn(tool, profile, token.trim(), fields)
     } catch (e) {
-      result = { outcome: "failed", message: message(e), code: null, reason: null }
+      result = { outcome: "failed", message: errorText(e), code: null, reason: null }
     }
     void get().loadBots(tool)
     if (result.outcome === "connected") void get().checkBots(tool)

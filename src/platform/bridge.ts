@@ -4,6 +4,7 @@ import { relaunch } from "@tauri-apps/plugin-process"
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import * as v from "valibot"
 import { DamageReportSchema } from "@/domain/store-damage"
+import { errorText } from "@/shared/errors"
 import {
   AgentRunSchema,
   AgentsSchema,
@@ -546,8 +547,7 @@ export const onOpenUrlFailure = (show: (failure: OpenFailure) => void) => {
 /** Every caller fires and forgets `openUrl`, so a failure is caught here once instead of vanishing at each call. */
 export const withOpenFailure = (p: Platform): Platform => ({
   ...p,
-  openUrl: (url) =>
-    p.openUrl(url).catch((e: unknown) => openFailed({ url, error: e instanceof Error ? e.message : String(e) })),
+  openUrl: (url) => p.openUrl(url).catch((e: unknown) => openFailed({ url, error: errorText(e) })),
 })
 
 /** Must settle before anything reads `platform`. The mock is a dynamic import so a Tauri build never carries it. */

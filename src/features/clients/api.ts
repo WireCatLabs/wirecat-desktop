@@ -6,13 +6,12 @@ import { useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { CrmAccount, CrmBaseEdit, CrmBaseRef, CrmCard, CrmPipeline, CrmRead, CrmVia } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { queryClient } from "@/shared/query"
 import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
 
 export type Based = Extract<CrmRead, { kind: "base" }>
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const clientKeys = {
   all: ["clients"] as const,
@@ -85,7 +84,7 @@ export function useMove(kind: Kind, pipeline: string | null) {
     },
     onError: (e, { ref }, context) => {
       if (context?.before) queryClient().setQueryData(key, context.before)
-      useClients.getState().fail(ref, message(e))
+      useClients.getState().fail(ref, errorText(e))
     },
     onSettled: () => queryClient().invalidateQueries({ queryKey: key }),
   })

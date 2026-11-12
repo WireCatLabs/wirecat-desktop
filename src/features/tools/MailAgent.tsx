@@ -14,6 +14,7 @@ import {
   useAgentWarning,
 } from "@/shared/BackgroundAgentChoice"
 import { useBackgroundAgents } from "@/shared/background-agent-store"
+import { errorText } from "@/shared/errors"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
@@ -36,8 +37,6 @@ type Failure = { on: boolean | null; every?: string; message: string } | null
 
 const skipWhy = (m: MailAgentText, { reason, why }: Skipped) =>
   (reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined) ?? why
-
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /**
  * memo's mail agent for Email: the switch is memo's own `schedule agent` and `schedule remove`, so the timer it
@@ -76,7 +75,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
         setState(s)
         if (s.state === "on" && s.every) setEvery(s.every)
       },
-      (e) => live && setFailure({ on: null, message: messageOf(e) }),
+      (e) => live && setFailure({ on: null, message: errorText(e) }),
     )
     loadWaiting()
     return () => {
@@ -104,7 +103,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
       (e) => {
         setPending(null)
         setFailure(
-          on && state?.state === "on" ? { on, every: interval, message: messageOf(e) } : { on, message: messageOf(e) },
+          on && state?.state === "on" ? { on, every: interval, message: errorText(e) } : { on, message: errorText(e) },
         )
       },
     )

@@ -5,6 +5,7 @@ import { SKILL_TARGETS, TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
+import { errorText } from "@/shared/errors"
 import { ReportThis } from "@/shared/ReportThis"
 import { useTools } from "@/shared/tools-store"
 import { Dialog } from "@/ui/Dialog"
@@ -35,7 +36,7 @@ export function SkillPreview() {
     setText({ state: "loading" })
     platform.skillShow(id).then(
       (t) => setText({ state: "ready", content: t.content }),
-      (e) => setText({ state: "error", error: e instanceof Error ? e.message : String(e) }),
+      (e) => setText({ state: "error", error: errorText(e) }),
     )
   }, [id])
 

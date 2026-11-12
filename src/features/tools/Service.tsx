@@ -3,6 +3,7 @@ import { useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { Background, BackgroundAction, BackgroundFault } from "@/platform/sync-schemas"
+import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -65,8 +66,7 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
     setDone(null)
     run.mutate(action, {
       onSuccess: (o) => setDone({ action, fault: o.fault } as Done),
-      onError: (e) =>
-        setDone({ action, fault: { kind: "other", message: e instanceof Error ? e.message : String(e) } }),
+      onError: (e) => setDone({ action, fault: { kind: "other", message: errorText(e) } }),
     })
   }
   const signIn = () => reconnect(tool, profile, onSignedIn)

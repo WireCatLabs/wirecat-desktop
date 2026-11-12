@@ -4,6 +4,7 @@ import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { ChosenFolder } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -14,8 +15,6 @@ import { driveMessages } from "./messages-drive"
 import { SyncButton, useSyncControl } from "./Sync"
 
 type Chosen = { state: "loading" } | { state: "ready"; folders: ChosenFolder[] } | { state: "failed"; message: string }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /**
  * One Drive account's folders, any time after its sign-in: what drive's `folders list` holds, each with Remove
@@ -39,7 +38,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         r.result === "listed" ? { state: "ready", folders: r.folders } : { state: "failed", message: r.message },
       )
     } catch (e) {
-      setChosen({ state: "failed", message: message(e) })
+      setChosen({ state: "failed", message: errorText(e) })
     }
   }, [tool.id, profile])
 
@@ -58,7 +57,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         await load()
       } else setRefused(m.removeFailed(name, r.message))
     } catch (e) {
-      setRefused(m.removeFailed(name, message(e)))
+      setRefused(m.removeFailed(name, errorText(e)))
     }
     setBusy(null)
   }

@@ -4,6 +4,7 @@ import { citedLabelOf, sourceKindOf } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyRef } from "@/ui/CopyRef"
@@ -143,7 +144,7 @@ function ContextBody({ reference }: { reference: string }) {
                 platform
                   .memoryOpenSource(reference)
                   .then(() => setOpening(null))
-                  .catch((e: unknown) => setOpening(e instanceof Error ? e.message : String(e)))
+                  .catch((e: unknown) => setOpening(errorText(e)))
               }}
               icon={<ExternalLink className="size-4" aria-hidden />}
             >

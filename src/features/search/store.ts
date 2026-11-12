@@ -5,6 +5,7 @@ import { fieldsIn } from "@/domain/search"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { HarderAnswer, SearchAnswer } from "@/platform/search-schemas"
+import { errorText } from "@/shared/errors"
 import { listProfiles } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 
@@ -52,8 +53,6 @@ type SearchState = {
   /** The tour's example request, shown in "Describe what you're looking for" while `demo` holds. */
   demoAsk: string
 }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // Key names only, never the values typed after them: those are people's and chats' names.
 const USED_KEY = "wirecat.search.keys"
@@ -135,7 +134,7 @@ export const useSearch = create<SearchState>((set, get) => {
       const mine = () => call === profilesSeq && !get().demo
       listProfiles(id).then(
         (profiles) => mine() && set({ profiles: profiles ?? [] }),
-        (e) => mine() && set({ profiles: [], profilesError: message(e) }),
+        (e) => mine() && set({ profiles: [], profilesError: errorText(e) }),
       )
     },
     chooseProfile(name) {
@@ -161,7 +160,7 @@ export const useSearch = create<SearchState>((set, get) => {
         }
       } catch (e) {
         if (call !== seq || get().demo) return
-        set({ error: message(e), asked, answer: null, harder: null, loading: false })
+        set({ error: errorText(e), asked, answer: null, harder: null, loading: false })
       }
     },
     async searchHarder() {
@@ -178,7 +177,7 @@ export const useSearch = create<SearchState>((set, get) => {
         set({ answer, asked, harder: outcome, loading: false, expanded: null, groupBy: null })
       } catch (e) {
         if (call !== seq || get().demo) return
-        set({ error: message(e), asked, answer: null, harder: null, loading: false })
+        set({ error: errorText(e), asked, answer: null, harder: null, loading: false })
       }
     },
     toggle: (key) => set((s) => ({ expanded: s.expanded === key ? null : key })),

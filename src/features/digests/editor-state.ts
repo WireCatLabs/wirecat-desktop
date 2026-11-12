@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react"
+import { errorText } from "@/shared/errors"
 import { fieldFocus } from "@/ui/field"
 
 export const card =
   "flex min-w-0 flex-col gap-3 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.1rem]"
 export const area = `selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.92rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
-
-const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** One memo-backed editor: what memo has, a read failure, the change in flight and why the last one failed. */
 /** `key` names what is read: a new key reads again. */
@@ -23,7 +22,7 @@ export function useMemoEditor<T>(read: () => Promise<T>, key: string) {
     setFailed(null)
     read().then(
       (v) => live && setValue(v),
-      (e) => live && setReadError(messageOf(e)),
+      (e) => live && setReadError(errorText(e)),
     )
     return () => {
       live = false
@@ -36,7 +35,7 @@ export function useMemoEditor<T>(read: () => Promise<T>, key: string) {
     try {
       setValue(await call())
     } catch (e) {
-      setFailed(messageOf(e))
+      setFailed(errorText(e))
     } finally {
       setBusy(false)
     }

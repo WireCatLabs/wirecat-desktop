@@ -1,5 +1,6 @@
 import * as v from "valibot"
 import { type UpdateFailure, UpdateFailureSchema } from "@/platform/update-schemas"
+import { errorText } from "@/shared/errors"
 
 const SERVER = /status:? (403|429|5\d\d)\b|valid release JSON/i
 const OFFLINE =
@@ -10,7 +11,7 @@ const OFFLINE =
 export function failureOf(e: unknown): UpdateFailure {
   const parsed = v.safeParse(UpdateFailureSchema, e)
   if (parsed.success) return parsed.output
-  const detail = e instanceof Error ? e.message : String(e)
+  const detail = errorText(e)
   if (SERVER.test(detail)) return { reason: "server", detail }
   if (OFFLINE.test(detail)) return { reason: "offline", detail }
   return { reason: "other", detail }

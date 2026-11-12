@@ -3,6 +3,7 @@ import { findTool, type SettingsSource } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { SettingRow, Settings } from "@/platform/settings-schemas"
+import { errorText } from "@/shared/errors"
 import { useNav } from "@/shared/nav"
 import { listProfiles } from "@/shared/query"
 import { change, format, type Op, type Problem, parse, plan, toDocument } from "./diff"
@@ -74,9 +75,8 @@ export function remember(f: (last: Last) => Last) {
   }
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 class NoTool extends Error {}
-const reasonOf = (e: unknown): Reason => (e instanceof NoTool ? { code: "noTool" } : told(message(e)))
+const reasonOf = (e: unknown): Reason => (e instanceof NoTool ? { code: "noTool" } : told(errorText(e)))
 
 // Rust writes "… from a profile (work), not …"; the sentence is translated here, so only the name is taken from it.
 const noticeOf = (s: Settings): Shown["notice"] =>
@@ -136,7 +136,7 @@ export const useConfig = create<ConfigState>((set, get) => {
         view === "shared" ? { rows, configFile: null, notice: null } : { ...shown, rows, notice: noticeOf(shown) }
       if (mine === generation) set({ settings, loading: false })
     } catch (e) {
-      if (mine === generation) set({ settings: null, error: told(message(e)), loading: false })
+      if (mine === generation) set({ settings: null, error: told(errorText(e)), loading: false })
     }
   }
 
@@ -202,7 +202,7 @@ export const useConfig = create<ConfigState>((set, get) => {
           set({ tool: id, settings: { rows, configFile: null, notice: null }, loading: false })
           return
         } catch (e) {
-          failure ??= told(message(e))
+          failure ??= told(errorText(e))
         }
       }
       if (mine === generation) set({ loading: false, error: failure ?? { code: "noShared" } })
@@ -233,7 +233,7 @@ export const useConfig = create<ConfigState>((set, get) => {
         const target = last !== undefined && stillThere ? { profile: last } : src.defaults ? { profile: null } : null
         if (target && !get().target) await get().chooseTarget(target)
       } catch (e) {
-        if (get().tool === id) set({ profiles: [], profilesError: message(e) })
+        if (get().tool === id) set({ profiles: [], profilesError: errorText(e) })
       }
     },
 
@@ -292,7 +292,7 @@ export const useConfig = create<ConfigState>((set, get) => {
           update(i, { state: "done" })
         } catch (e) {
           failed = { key: step.op.key, message: reasonOf(e) }
-          update(i, { state: "failed", message: message(e) })
+          update(i, { state: "failed", message: errorText(e) })
         }
       }
       await load()

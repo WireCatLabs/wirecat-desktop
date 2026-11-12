@@ -4,6 +4,7 @@ import { openTool, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ZoomScope } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { keptAnswer, type Need, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -20,8 +21,6 @@ import { ZOOM_APP } from "./wizard"
 
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 type AppValues = {
   marketplace: string
@@ -236,7 +235,7 @@ function ClientIdForm() {
       await platform.settingsSet(tool, null, false, "zoom.client_id", value.trim())
       start(tool, profile, onFinish ?? undefined, method ?? undefined)
     } catch (err) {
-      setError(message(err))
+      setError(errorText(err))
       setSaving(false)
     }
   }
@@ -297,7 +296,7 @@ function NoApp() {
       await platform.settingsSet(tool, null, false, "source", "files")
       setSaved(folder.trim())
     } catch (err) {
-      setError(message(err))
+      setError(errorText(err))
     } finally {
       setSaving(false)
     }

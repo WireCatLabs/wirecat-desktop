@@ -4,6 +4,7 @@ import { type CatalogTool, removeCommand } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CopyRemoval, ToolState } from "@/platform/schemas"
+import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -54,7 +55,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
     try {
       result = await platform.removeCopy(tool.id, target.path)
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const message = errorText(e)
       result = { removed: false, refused: null, log: [], message, hint: null }
     }
     setPhase({ step: "result", result })

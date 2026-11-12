@@ -2,6 +2,7 @@ import { create } from "zustand"
 import type { SkillTarget } from "@/domain/skills"
 import type { Agent, SkillReport } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
+import { errorText } from "./errors"
 
 type ToolSkill = { report: SkillReport | null; error: string | null }
 
@@ -34,8 +35,6 @@ type AgentsState = {
 
 export const cellKey = (id: string, target: SkillTarget) => `${id}:${target}`
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 // Every guide on the page asks at once; one question answers them all.
 let detecting: Promise<void> | null = null
 
@@ -50,7 +49,7 @@ async function write(id: string, target: SkillTarget) {
     const report = await platform.skillStatus(id).catch(() => null)
     if (report) set((s) => ({ skills: { ...s.skills, [id]: { report, error: null } } }))
   } catch (e) {
-    set((s) => ({ failures: { ...s.failures, [key]: message(e) } }))
+    set((s) => ({ failures: { ...s.failures, [key]: errorText(e) } }))
   } finally {
     set((s) => ({ busy: without(s.busy, key) }))
   }
@@ -73,7 +72,7 @@ export const useAgents = create<AgentsState>((set, get) => ({
     detecting ??= platform
       .detectAgents()
       .then((agents) => set({ agents, agentsError: null }))
-      .catch((e) => set({ agents: [], agentsError: message(e) }))
+      .catch((e) => set({ agents: [], agentsError: errorText(e) }))
       .finally(() => {
         detecting = null
       })
@@ -87,12 +86,12 @@ export const useAgents = create<AgentsState>((set, get) => ({
     const agents = platform
       .detectAgents()
       .then((agents) => set({ agents, agentsError: null }))
-      .catch((e) => set({ agents: [], agentsError: message(e) }))
+      .catch((e) => set({ agents: [], agentsError: errorText(e) }))
     const skills = installed.map((id) =>
       platform
         .skillStatus(id)
         .then((report) => ({ report, error: null }))
-        .catch((e) => ({ report: null, error: message(e) }))
+        .catch((e) => ({ report: null, error: errorText(e) }))
         .then((result) => set((s) => ({ skills: { ...s.skills, [id]: result } }))),
     )
     await Promise.all([agents, ...skills])

@@ -4,6 +4,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { TailscaleDownload, TailscaleLinux, TailscaleStatus } from "@/platform/tailscale-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { errorText } from "@/shared/errors"
 import { terminalMessages } from "@/shared/messages-terminal"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
@@ -18,8 +19,6 @@ import { tunnelMessages } from "./messages-tunnel"
 import { type StepId, stepsOf } from "./tailscale-steps"
 
 type Words = (typeof tunnelMessages)["en"]["tailscale"]
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const PAGES = {
   download: {
@@ -78,7 +77,7 @@ export function useTailscale(active: boolean) {
         setError(null)
       }
     } catch (e) {
-      if (call.current === mine) setError(message(e))
+      if (call.current === mine) setError(errorText(e))
     }
     if (call.current === mine) setChecking(false)
   }, [])
@@ -120,7 +119,7 @@ function Commands({ linux, label, m }: { linux: TailscaleLinux; label: string; m
       const run = await platform.tailscaleTerminal("install")
       if (!run.started) setError(run.reason === "automation" ? terminal.automation : terminal.terminal)
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -217,7 +216,7 @@ function InstallStep({ s, m }: { s: TailscaleStatus; m: Words }) {
     try {
       setDone(await platform.tailscaleDownload(s.package))
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }
@@ -291,7 +290,7 @@ function LoginStep({ s, m, check }: { s: TailscaleStatus; m: Words; check(): Pro
     try {
       await platform.tailscaleLogin(setPage)
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
     }
     setWaiting(false)
     check()

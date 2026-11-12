@@ -5,6 +5,7 @@ import { platform } from "@/platform/bridge"
 import type { TunnelRoute } from "@/platform/cloudflare-schemas"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Disclosure } from "@/ui/Disclosure"
@@ -22,8 +23,6 @@ import { mcpMessages } from "./messages-mcp"
 type Words = (typeof mcpMessages)["en"]["server"]
 
 const CODE_POLL_MS = 3000
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** Browser build only: these scenarios open the section without a click, for review captures. */
 function openedByScenario(id: string) {
@@ -118,8 +117,8 @@ export function McpServer({ tool }: { tool: CatalogTool }) {
     } catch (e) {
       if (calls.current !== call) return
       // A failed re-read keeps what is on screen: the guide must not vanish mid-step because one read failed.
-      setRow((r) => (r.state === "ready" ? r : { state: "error", message: message(e) }))
-      setStale(message(e))
+      setRow((r) => (r.state === "ready" ? r : { state: "error", message: errorText(e) }))
+      setStale(errorText(e))
     }
   }, [tool.id])
 

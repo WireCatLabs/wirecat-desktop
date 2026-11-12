@@ -7,6 +7,7 @@ import { useMessages } from "@/i18n"
 import type { TerminalRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import type { CommandAccess, Permissions as Data, Level, OwnLevel } from "@/platform/permissions-schemas"
+import { errorText } from "@/shared/errors"
 import { terminalMessages } from "@/shared/messages-terminal"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
@@ -70,8 +71,6 @@ type Change = {
 }
 type Row = { state: "saving" } | { state: "failed"; message: string; tool: string; key: string }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 function initialProfile(id: string): string | null {
   const last = readLast().targets?.[id]
   return typeof last === "string" ? last : null
@@ -85,7 +84,7 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
   const read = usePermissions(tool.id, profile)
   const data = read.data?.data ?? null
   const defaults = read.data?.defaults ?? null
-  const error = read.error ? message(read.error) : null
+  const error = read.error ? errorText(read.error) : null
   const loading = read.isFetching
   const setPermission = useSetPermission(tool.id, profile)
   const [rows, setRows] = useState<Record<string, Row>>({})
@@ -114,7 +113,10 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
       await setPermission.mutateAsync({ key: change.key, level: change.level })
       setRows(({ [change.key]: _, ...rest }) => rest)
     } catch (e) {
-      setRows((r) => ({ ...r, [change.key]: { state: "failed", message: message(e), tool: tool.id, key: change.key } }))
+      setRows((r) => ({
+        ...r,
+        [change.key]: { state: "failed", message: errorText(e), tool: tool.id, key: change.key },
+      }))
     }
   }
 

@@ -7,6 +7,7 @@ import { useMessages } from "@/i18n"
 import type { OwnRefusal, OwnReview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { reloadAddedTools } from "@/shared/added-tools"
+import { errorText } from "@/shared/errors"
 import { useOwnDialog } from "@/shared/own-dialog-store"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -44,8 +45,6 @@ const NAME_FIELD = "own-tool-name"
 const PASTE_FIELD = "own-tool-paste"
 const ACCEPT_FIELD = "own-tool-accept"
 type Field = typeof NAME_FIELD | typeof PASTE_FIELD | typeof ACCEPT_FIELD
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const startSession = (): InstallSession => ({
   operation: "install",
@@ -89,7 +88,7 @@ export function OwnToolDialog() {
       setStep({ kind: "review", review: found.review, accepted: false })
     } catch (e) {
       // Rust reports an unreachable npm as an `offline` refusal; a thrown error is something else.
-      setStep({ kind: "refused", pkg: name, refusal: { kind: "unexpected", detail: message(e) } })
+      setStep({ kind: "refused", pkg: name, refusal: { kind: "unexpected", detail: errorText(e) } })
     }
   }
 

@@ -1,10 +1,10 @@
 import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
-import { errorMessage } from "@/domain/connect-guide"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus, OAuthSettings } from "@/platform/mcp-server-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Disclosure } from "@/ui/Disclosure"
@@ -96,7 +96,7 @@ export function DiscoveryHelp({ tool, app }: { tool: CatalogTool; app: AppId }) 
     try {
       setSettings(await platform.mcpServerOAuth(tool.id))
     } catch (e) {
-      setError(errorMessage(e))
+      setError(errorText(e))
     }
   }
   return (

@@ -7,6 +7,7 @@ import { clock } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchContext, SearchHit } from "@/platform/search-schemas"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -36,7 +37,7 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
     setState({ kind: "loading" })
     platform
       .searchContext(tool, profile, ref)
-      .then(setState, (e) => setState({ kind: "failed", message: e instanceof Error ? e.message : String(e) }))
+      .then(setState, (e) => setState({ kind: "failed", message: errorText(e) }))
   }
   const toggle = () => {
     if (!open && (state === null || state.kind === "failed")) load()

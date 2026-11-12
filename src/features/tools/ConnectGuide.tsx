@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import {
-  errorMessage,
   type Failure,
   funnelStopped,
   isLocalAddress,
@@ -16,6 +15,7 @@ import { platform } from "@/platform/bridge"
 import type { TunnelRoute } from "@/platform/cloudflare-schemas"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { focusInPlace } from "@/ui/motion"
@@ -147,7 +147,7 @@ export function ConnectGuide(props: {
         setConfirmed(false)
         return
       }
-      setFailure({ at, message: errorMessage(e) })
+      setFailure({ at, message: errorText(e) })
       setPhase("failed")
     }
   }, [tunnel, tool.id, port, ownUrl, settle, setConfirmed])

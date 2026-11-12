@@ -5,6 +5,7 @@ import type { Finding } from "@/domain/doctor"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Repair } from "@/platform/repair-schemas"
+import { errorText } from "@/shared/errors"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { toolsMessages } from "./messages"
@@ -45,7 +46,7 @@ export function ConfigRepair(props: {
       if (r.state === "refused") setRefused(r)
       else onRepaired(r)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorText(e))
     } finally {
       setRunning(false)
     }
@@ -57,7 +58,7 @@ export function ConfigRepair(props: {
       // The folder opens with the file selected; the file itself never opens in whatever app claims .json.
       await platform.openFolder(tool.id, "config", file ? fileName(file) : undefined)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorText(e))
     }
   }
 

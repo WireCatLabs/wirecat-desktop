@@ -19,6 +19,7 @@ import type { StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { MemoryRead } from "@/platform/memory-schemas"
 import type { Project, TaskCounts } from "@/platform/task-schemas"
+import { errorText } from "@/shared/errors"
 import { fresh } from "@/shared/fresh"
 import { listProfiles, queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
@@ -122,8 +123,6 @@ type State = {
   setOnlySources(ids: string[]): void
   setOnlyProfiles(names: string[]): void
 }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** A profile the tool says was never signed in is not asked: its answer would only be "nothing recorded". */
 const split = (list: readonly { name: string; signedIn: boolean | null }[]) => ({
@@ -327,7 +326,7 @@ export const useAnalytics = create<State>((set, get) => {
         BYS.map(async (by) => {
           const ask: Ask = { period, by, only: "all", previous: false }
           const answer = await run(() => platform.messageStats(id, profile, ask, tz)).catch(
-            (e): MessageCounts => ({ kind: "failed", message: message(e), code: null }),
+            (e): MessageCounts => ({ kind: "failed", message: errorText(e), code: null }),
           )
           return { profile, by, answer }
         }),
@@ -359,7 +358,7 @@ export const useAnalytics = create<State>((set, get) => {
       ])
       if (round === mine) set({ tasks: { state: "ready", data: { open, overdue, closed, created, bars } } })
     } catch (e) {
-      if (round === mine) set({ tasks: { state: "error", error: message(e) } })
+      if (round === mine) set({ tasks: { state: "error", error: errorText(e) } })
     }
   }
 
@@ -390,14 +389,14 @@ export const useAnalytics = create<State>((set, get) => {
     platform
       .storeInfo()
       .then((data) => set({ volume: { state: "ready", data } }))
-      .catch((e) => set({ volume: { state: "error", error: message(e) } }))
+      .catch((e) => set({ volume: { state: "error", error: errorText(e) } }))
     platform
       .storeTables(false)
       .then((tables) => set({ tables }))
       .catch(() => set({ tables: null }))
     void readSyncs()
       .then((data) => set({ syncs: { state: "ready", data } }))
-      .catch((e) => set({ syncs: { state: "error", error: message(e) } }))
+      .catch((e) => set({ syncs: { state: "error", error: errorText(e) } }))
     // What the Memory and Tasks pages read under a minute ago is what memo would answer again.
     const tasks = useTasks.getState()
     ;(fresh(tasks.projectsAt) ? Promise.resolve(tasks.projects) : platform.projectList())
@@ -409,14 +408,14 @@ export const useAnalytics = create<State>((set, get) => {
       : platform.memoryRead()
     )
       .then((data) => set({ memory: { state: "ready", data } }))
-      .catch((e) => set({ memory: { state: "error", error: message(e) } }))
+      .catch((e) => set({ memory: { state: "error", error: errorText(e) } }))
     const logs = useLogs.getState()
     ;(logs.loadedAt === null ? logs.load() : Promise.resolve())
       .then(() => {
         const runs = Object.values(useLogs.getState().sources).flatMap((s) => s.runs)
         set({ runs: { state: "ready", data: runs } })
       })
-      .catch((e) => set({ runs: { state: "error", error: message(e) } }))
+      .catch((e) => set({ runs: { state: "error", error: errorText(e) } }))
   }
 
   const loadPeriod = () => {

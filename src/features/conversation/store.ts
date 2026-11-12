@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { type ConversationTarget, joined, placeOf } from "@/domain/conversation"
 import type { ChatHeader, ChatMessage, ChatMissing } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 
 export type Shown =
   | { state: "loading" }
@@ -21,8 +22,6 @@ type ConversationState = {
   more(side: "older" | "newer"): Promise<void>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 // A second link can land while the first is still being read; only the newest read may write.
 let reading = 0
 
@@ -37,7 +36,7 @@ export const useConversation = create<ConversationState>((set, get) => ({
       const answer = await platform.conversationRead(placeOf(target), { kind: "open" })
       if (run === reading) set({ shown: answer })
     } catch (e) {
-      if (run === reading) set({ shown: { state: "failed", message: message(e) } })
+      if (run === reading) set({ shown: { state: "failed", message: errorText(e) } })
     }
   },
   async more(side) {
@@ -62,7 +61,7 @@ export const useConversation = create<ConversationState>((set, get) => ({
         shown: { ...now, messages: joined(now.messages, answer.messages, side === "older"), [side]: answer[side] },
       })
     } catch (e) {
-      if (run === reading) set({ paging: { side, error: message(e) } })
+      if (run === reading) set({ paging: { side, error: errorText(e) } })
     }
   },
 }))

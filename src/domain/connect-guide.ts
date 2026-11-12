@@ -6,10 +6,8 @@ export type LampState = "busy" | "done" | "todo" | "failed"
 
 type Serving = { connectorUrl: string | null }
 
-export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 /** What the Stop button on a Tailscale approval raises; the guide goes back a step instead of showing a failure. */
-export const wasStopped = (e: unknown) => errorMessage(e) === "Stopped."
+export const wasStopped = (e: unknown) => (e instanceof Error ? e.message : e) === "Stopped."
 
 export const viaTailscale = (t: Tunnel) => t === "tailscale" || t === "wirecat"
 

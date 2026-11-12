@@ -1,6 +1,7 @@
 import { Eye, EyeOff, LoaderCircle, ShieldCheck } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
+import { errorText } from "@/shared/errors"
 import type { Need } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -98,7 +99,7 @@ export function AnswerForm({
     try {
       await onAnswer(checked.value)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
     }
   }
 

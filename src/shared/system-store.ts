@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import type { Readiness } from "@/platform/schemas"
+import { errorText } from "./errors"
 
 type SystemState = {
   readiness: Readiness | null
@@ -19,7 +20,7 @@ export const useSystem = create<SystemState>((set) => ({
       .readiness()
       .then(
         (readiness) => set({ readiness, error: null }),
-        (e) => set({ error: e instanceof Error ? e.message : String(e) }),
+        (e) => set({ error: errorText(e) }),
       )
       .finally(() => {
         pending = null

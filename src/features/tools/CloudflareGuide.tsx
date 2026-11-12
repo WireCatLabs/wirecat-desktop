@@ -4,6 +4,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CloudflareStatus } from "@/platform/cloudflare-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -14,8 +15,6 @@ import { tunnelMessages } from "./messages-tunnel"
 import { StepHead } from "./TailscaleGuide"
 
 type Words = (typeof tunnelMessages)["en"]["cloudflare"]
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const EXAMPLE_HOST = "wirecat.example.com"
 
@@ -42,7 +41,7 @@ export function useCloudflare(active: boolean) {
         setError(null)
       }
     } catch (e) {
-      if (call.current === mine) setError(message(e))
+      if (call.current === mine) setError(errorText(e))
     }
     if (call.current === mine) setChecking(false)
   }, [])
@@ -77,7 +76,7 @@ function InstallStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
       await platform.cloudflareInstall()
       await check()
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
     }
     setBusy(false)
   }
@@ -122,7 +121,7 @@ function AccountStep({ again, m, check }: { again: boolean; m: Words; check(): P
     try {
       await platform.cloudflareLogin(setPage)
     } catch (e) {
-      if (message(e) !== "Stopped.") setError(message(e))
+      if (errorText(e) !== "Stopped.") setError(errorText(e))
     }
     setWaiting(false)
     check()
@@ -179,7 +178,7 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
       await platform.cloudflareCreate(name)
       await check()
     } catch (e) {
-      setError(message(e))
+      setError(errorText(e))
     }
     setBusy(false)
   }

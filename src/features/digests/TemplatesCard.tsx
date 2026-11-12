@@ -9,6 +9,7 @@ import {
 import { ENDONYMS, type Lang, useLang, useMessages } from "@/i18n"
 import type { TemplatePreview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
@@ -62,7 +63,7 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
     setShown({ state: "asking" })
     platform.digestTemplatePreview(channel, locale, draft === saved ? null : draft, name).then(
       (p) => setShown({ state: "shown", preview: p }),
-      (e) => setShown({ state: "failed", message: e instanceof Error ? e.message : String(e) }),
+      (e) => setShown({ state: "failed", message: errorText(e) }),
     )
   }
 

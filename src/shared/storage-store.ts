@@ -2,6 +2,7 @@ import { create } from "zustand"
 import type { StoreCheck, StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { StorageArea, StorageFolder } from "@/platform/schemas"
+import { errorText } from "./errors"
 
 type StorageState = {
   areas: StorageArea[] | null
@@ -37,8 +38,6 @@ type StorageState = {
   open(id: string, kind: StorageFolder["kind"], entry?: string): Promise<void>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 export const useStorage = create<StorageState>((set, get) => ({
   areas: null,
   error: null,
@@ -69,7 +68,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       set({ tables: await platform.storeTables(false) })
     } catch (e) {
-      set({ tables: null, tablesError: message(e) })
+      set({ tables: null, tablesError: errorText(e) })
     }
   },
 
@@ -80,7 +79,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       set({ tables: await platform.storeTables(true), measuredIn: Date.now() - started })
     } catch (e) {
-      set({ tablesError: message(e) })
+      set({ tablesError: errorText(e) })
     } finally {
       set({ measuring: null })
     }
@@ -93,7 +92,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       set({ check: await platform.storeCheck(), checkedIn: Date.now() - started })
     } catch (e) {
-      set({ checkError: message(e) })
+      set({ checkError: errorText(e) })
     } finally {
       set({ checking: null })
     }
@@ -104,7 +103,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       set({ info: await platform.storeInfo(), infoAt: Date.now() })
     } catch (e) {
-      set({ info: null, infoError: message(e) })
+      set({ info: null, infoError: errorText(e) })
     }
   },
 
@@ -112,7 +111,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       set({ areas: await platform.storage(), error: null })
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
     }
   },
 
@@ -121,7 +120,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       await platform.clearStorage(id)
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
     } finally {
       set({ clearing: null })
       await get().load()
@@ -140,7 +139,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       await platform.openFolder(id, kind, entry)
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: errorText(e) })
     }
   },
 }))

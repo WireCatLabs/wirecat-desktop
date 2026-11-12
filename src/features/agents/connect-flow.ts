@@ -4,6 +4,7 @@ import type { SkillTarget } from "@/domain/skills"
 import type { Chats } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import { cellKey, useAgents } from "@/shared/agents-store"
+import { errorText } from "@/shared/errors"
 import { type Loaded, useConnect } from "./connect"
 
 export type StepState = "waiting" | "running" | "ok" | "warn" | "failed"
@@ -51,7 +52,6 @@ type Flow = {
   run(plan: ConnectPlan): Promise<void>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const toggled = (list: readonly string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x])
 
 export const useConnectFlow = create<Flow>((set, get) => {
@@ -72,7 +72,7 @@ export const useConnectFlow = create<Flow>((set, get) => {
       set({ chats: { state: "loading" } })
       platform.agentChats(agent).then(
         (data) => get().agent === agent && set({ chats: { state: "ready", data } }),
-        (e) => get().agent === agent && set({ chats: { state: "error", error: message(e) } }),
+        (e) => get().agent === agent && set({ chats: { state: "error", error: errorText(e) } }),
       )
     },
     close: () => set({ agent: null }),
@@ -155,7 +155,7 @@ export const useConnectFlow = create<Flow>((set, get) => {
             detail: [base, ...notes],
           })
         } catch (e) {
-          update(key, { state: "failed", detail: [{ k: "printed", text: message(e) }] })
+          update(key, { state: "failed", detail: [{ k: "printed", text: errorText(e) }] })
         }
       }
 

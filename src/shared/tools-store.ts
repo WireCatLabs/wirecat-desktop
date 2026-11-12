@@ -12,6 +12,7 @@ import { useOwnDialog } from "@/shared/own-dialog-store"
 import { readSaved, save } from "@/shared/saved-tools"
 import { useStorage } from "@/shared/storage-store"
 import { useSystem } from "@/shared/system-store"
+import { errorText } from "./errors"
 
 type LoadError = { message: string } | null
 
@@ -43,8 +44,6 @@ type ToolsState = {
   dismiss(id: string): void
   toggle(id: string): void
 }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useTools = create<ToolsState>((set, get) => {
   const patchSession = (id: string, f: (s: InstallSession) => InstallSession) =>
@@ -79,7 +78,7 @@ export const useTools = create<ToolsState>((set, get) => {
     } catch (e) {
       patchSession(id, (s) => ({
         ...s,
-        outcome: { event: "failed", reason: "failed", message: message(e), hint: null },
+        outcome: { event: "failed", reason: "failed", message: errorText(e), hint: null },
         ended: Date.now(),
       }))
     }
@@ -113,7 +112,7 @@ export const useTools = create<ToolsState>((set, get) => {
       await platform.clearStorage(id)
       setData({ state: "deleted", bytes })
     } catch (e) {
-      setData({ state: "failed", bytes, message: message(e) })
+      setData({ state: "failed", bytes, message: errorText(e) })
     }
     await useStorage.getState().load()
   }
@@ -198,7 +197,7 @@ export const useTools = create<ToolsState>((set, get) => {
         // Compatibility asks every tool's store info: once a session, on Check again, and after an install.
         if (fresh || useCompat.getState().compat === undefined) useCompat.getState().load()
       } catch (e) {
-        set({ error: { message: message(e) } })
+        set({ error: { message: errorText(e) } })
       } finally {
         set({ refreshing: false })
       }

@@ -1,9 +1,8 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import type { Similar } from "@/platform/people-schemas"
+import { errorText } from "@/shared/errors"
 import { usePeople } from "./store"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** Shorter names match half the list: the check waits for a second letter. */
 const MIN_CHECK = 2
@@ -43,7 +42,7 @@ export const useAddPerson = create<AddState>((set) => ({
       if (mine === asked) set({ checked: typed, similar, checkError: null })
       return similar
     } catch (e) {
-      if (mine === asked) set({ checked: typed, similar: [], checkError: message(e) })
+      if (mine === asked) set({ checked: typed, similar: [], checkError: errorText(e) })
       return []
     }
   },
@@ -57,7 +56,7 @@ export const useAddPerson = create<AddState>((set) => ({
       void usePeople.getState().load()
       return true
     } catch (e) {
-      set({ adding: false, addError: message(e) })
+      set({ adding: false, addError: errorText(e) })
       return false
     }
   },

@@ -4,6 +4,7 @@ import { type CatalogTool, catalogCommand } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { AccountRemoval, AccountRemoved, Removal, RemovalEntry, RemovalKind } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
@@ -40,7 +41,7 @@ const failed = (e: unknown): Refused => ({
   result: "refused",
   reason: "failed",
   holder: null,
-  message: e instanceof Error ? e.message : String(e),
+  message: errorText(e),
 })
 
 /**
@@ -109,7 +110,7 @@ export function RemoveAccountDialog(props: {
     try {
       result = await platform.accountSignOut(tool.id, profile)
     } catch (e) {
-      result = { result: "failed", message: e instanceof Error ? e.message : String(e) }
+      result = { result: "failed", message: errorText(e) }
     }
     setPhase({ step: "signedOut", result })
     if (result.result === "signedOut") onRemoved()

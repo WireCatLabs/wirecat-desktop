@@ -26,6 +26,7 @@ import type {
   SourceContext,
   SourceReview,
 } from "@/platform/memory-schemas"
+import { errorText } from "@/shared/errors"
 import { fresh } from "@/shared/fresh"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
@@ -150,7 +151,7 @@ export const STALE = "findings.stale"
 
 /** memo's reasons for refusing `facts revoke` or a review decision arrive as they are and are worded here. */
 const message = (e: unknown) => {
-  const text = e instanceof Error ? e.message : String(e)
+  const text = errorText(e)
   const reason = REFUSALS.find((r) => r === text)
   return (
     (reason && messagesOf(memoryMessages).revokeRefused[reason]) ||

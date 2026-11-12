@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware"
 import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Backfill, DigestBook, DigestItem, DigestSpec, SendTo } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { errorText } from "@/shared/errors"
 import { safeStorage } from "@/shared/safe-storage"
 import { MORNING, useDigests } from "./store"
 
@@ -47,8 +48,6 @@ type State = {
   setScheduled(item: DigestItem, on: boolean): Promise<void>
   remove(name: string): Promise<boolean>
 }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const rememberedOf = (book: DigestBook): Remembered | null => {
   if (book.state !== "ready" || book.named) return null
@@ -118,7 +117,7 @@ export const useDigestBook = create<State>()(
           take(await call())
           return true
         } catch (e) {
-          set({ failed: { name, what: failedAs, message: message(e) } })
+          set({ failed: { name, what: failedAs, message: errorText(e) } })
           return false
         } finally {
           set((s) => {
@@ -145,7 +144,7 @@ export const useDigestBook = create<State>()(
           try {
             take(await platform.digestBook())
           } catch (e) {
-            set({ error: message(e) })
+            set({ error: errorText(e) })
           }
           if (get().backfill !== null) return
           // Pricing is free and builds nothing: it only tells whether this memo has the command.
