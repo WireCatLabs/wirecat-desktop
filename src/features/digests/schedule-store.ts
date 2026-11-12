@@ -31,6 +31,13 @@ type State = {
   open: string | null
   /** Whether this memo has `digest backfill`; null until asked. */
   backfill: "yes" | "no" | null
+  /** The table's search and page, kept while a digest is open so the way back finds them as they were. */
+  query: string
+  page: number
+  pageSize: number
+  setQuery(query: string): void
+  setPage(page: number): void
+  setPageSize(size: number): void
   load(): Promise<void>
   openDigest(name: string | null): void
   /** True once memo saved it. */
@@ -115,6 +122,12 @@ export const useDigestBook = create<State>()(
         remembered: null,
         open: null,
         backfill: null,
+        query: "",
+        page: 1,
+        pageSize: 50,
+        setQuery: (query) => set({ query, page: 1 }),
+        setPage: (page) => set({ page }),
+        setPageSize: (pageSize) => set({ pageSize, page: 1 }),
         async load() {
           try {
             take(await platform.digestBook())

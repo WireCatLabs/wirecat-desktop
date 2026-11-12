@@ -32,10 +32,6 @@ const en = {
   clearSearch: "Clear the search",
   lookAtAll: "Look at all loaded runs",
   newRuns: (n: number) => plural("en", n, { one: "# new run", other: "# new runs" }),
-  showingConversations: (shown: number, total: number) => `Showing ${shown} of ${total} conversations`,
-  showMore: "Show more",
-  showingRuns: (shown: number, total: number) => `Showing ${shown} of ${total}`,
-  showNMore: (n: number) => `Show ${n} more`,
 
   sources: "Where the runs come from",
   loadOlder: "Load older",
@@ -311,11 +307,6 @@ const ru: typeof en = {
       many: "# новых запусков",
       other: "# новых запуска",
     }),
-  showingConversations: (shown, total) =>
-    `Показано ${shown} ${plural("ru", total, { one: "из # разговора", few: "из # разговоров", many: "из # разговоров", other: "из # разговора" })}`,
-  showMore: "Показать ещё",
-  showingRuns: (shown, total) => `Показано ${shown} из ${total}`,
-  showNMore: (n) => `Показать ещё ${n}`,
 
   sources: "Откуда взяты запуски",
   loadOlder: "Загрузить старые",
@@ -590,11 +581,6 @@ const es: typeof en = {
   clearSearch: "Borrar la búsqueda",
   lookAtAll: "Ver todas las ejecuciones cargadas",
   newRuns: (n) => plural("es", n, { one: "# ejecución nueva", other: "# ejecuciones nuevas" }),
-  showingConversations: (shown, total) =>
-    `Mostrando ${shown} de ${plural("es", total, { one: "# conversación", other: "# conversaciones" })}`,
-  showMore: "Mostrar más",
-  showingRuns: (shown, total) => `Mostrando ${shown} de ${total}`,
-  showNMore: (n) => `Mostrar ${n} más`,
 
   sources: "De dónde vienen las ejecuciones",
   loadOlder: "Cargar anteriores",

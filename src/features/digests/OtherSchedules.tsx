@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useId, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { dailyCap, formatUsd, runOutcome } from "@/domain/mail-agent"
 import { parseWhen } from "@/domain/schedule-when"
@@ -8,6 +8,7 @@ import type { OtherSchedule } from "@/platform/bindings"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { Lamp } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { type ScheduleText, scheduleMessages } from "./messages-schedule"
 import { TONE } from "./ScheduleCard"
@@ -28,6 +29,9 @@ export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
   const m = useMessages(scheduleMessages)
   const lang = useLang()
   const titleId = useId()
+  const [page, setPage] = useState(1)
+  const [size, setSize] = useState(50)
+  const at = Math.min(page, Math.max(1, Math.ceil(others.length / size)))
   const columns: Column<OtherSchedule>[] = [
     {
       id: "name",
@@ -116,7 +120,22 @@ export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
         columns={columns}
         minWidth="60rem"
         leadWidth="minmax(9rem,1fr)"
+        page={{ index: at, size }}
       />
+      {others.length > PAGE_SIZES[0] && (
+        <Pager
+          label={m.others}
+          page={at}
+          onPage={setPage}
+          total={others.length}
+          size={size}
+          sizes={PAGE_SIZES}
+          onSize={(s) => {
+            setSize(s)
+            setPage(1)
+          }}
+        />
+      )}
     </section>
   )
 }

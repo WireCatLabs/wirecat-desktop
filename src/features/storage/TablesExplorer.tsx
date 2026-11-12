@@ -15,6 +15,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
@@ -34,6 +35,17 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
   const [query, setQuery] = useState("")
   const [sort, setSort] = useState<TableSort>({ key: "name", descending: false })
   const [group, setGroup] = useState<TableGroup | null>(null)
+  const [pages, setPages] = useState({ main: 1, search: 1 })
+  const [size, setSize] = useState(50)
+  const paging = (list: "main" | "search") => ({
+    page: pages[list],
+    onPage: (p: number) => setPages((at) => ({ ...at, [list]: p })),
+    size,
+    onSize: (s: number) => {
+      setSize(s)
+      setPages({ main: 1, search: 1 })
+    },
+  })
   const tool = findTool(answeredBy)?.name ?? answeredBy
 
   if (tables === undefined) return <TablesSkeleton />
@@ -80,13 +92,24 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
                 spellCheck={false}
                 autoComplete="off"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setPages({ main: 1, search: 1 })
+                }}
                 className="selectable h-8 w-full rounded-[0.35rem] border border-line-strong bg-app pr-2 pl-[2rem] font-mono text-[0.875rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
               />
             </label>
             <MeasureSizes measured={tables.measured} />
           </div>
-          <GroupFilter tables={[...main, ...search]} value={group} onChange={setGroup} measured={tables.measured} />
+          <GroupFilter
+            tables={[...main, ...search]}
+            value={group}
+            onChange={(g) => {
+              setGroup(g)
+              setPages({ main: 1, search: 1 })
+            }}
+            measured={tables.measured}
+          />
           <AutoHeight swap={group}>
             <TableOf
               tables={shownMain}
@@ -95,6 +118,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
               onSort={onSort}
               label={m.tables}
               measured={tables.measured}
+              {...paging("main")}
             />
           </AutoHeight>
           {query.trim() !== "" && shownMain.length === 0 && (!searchShown || shownSearch.length === 0) && (
@@ -122,6 +146,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
                 onSort={onSort}
                 label={m.searchTablesLabel}
                 measured={tables.measured}
+                {...paging("search")}
               />
             </Disclosure>
           </Collapse>
@@ -232,56 +257,74 @@ function TableOf(props: {
   onSort: (key: TableSort["key"]) => void
   label: string
   measured: boolean
+  page: number
+  onPage: (page: number) => void
+  size: number
+  onSize: (size: number) => void
 }) {
-  const { tables, typeOf, sort, onSort, label, measured } = props
+  const { tables, typeOf, sort, onSort, label, measured, page, onPage, size, onSize } = props
   const m = useMessages(storageMessages)
   if (tables.length === 0) return null
+  const at = Math.min(page, Math.max(1, Math.ceil(tables.length / size)))
   return (
-    <div className="max-h-[26rem] overflow-auto rounded-[0.45rem] border border-line">
-      <table aria-label={label} className="w-full text-[0.9rem]">
-        <thead className="sticky top-0 bg-app-2">
-          <tr className="border-line border-b text-left text-[0.9rem] text-ink-dim">
-            {COLUMNS.map((c) => (
-              <th
-                key={c.key}
-                scope="col"
-                aria-sort={sort.key === c.key ? (sort.descending ? "descending" : "ascending") : undefined}
-                className={`px-3 py-[0.45rem] font-medium ${c.numeric ? "text-right" : ""}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => onSort(c.key)}
-                  className="inline-flex items-center gap-1 rounded-[0.3rem] hover:text-ink"
+    <>
+      <div className="max-h-[26rem] overflow-auto rounded-[0.45rem] border border-line">
+        <table aria-label={label} className="w-full text-[0.9rem]">
+          <thead className="sticky top-0 bg-app-2">
+            <tr className="border-line border-b text-left text-[0.9rem] text-ink-dim">
+              {COLUMNS.map((c) => (
+                <th
+                  key={c.key}
+                  scope="col"
+                  aria-sort={sort.key === c.key ? (sort.descending ? "descending" : "ascending") : undefined}
+                  className={`px-3 py-[0.45rem] font-medium ${c.numeric ? "text-right" : ""}`}
                 >
-                  {m.column[c.key]}
-                  {sort.key === c.key &&
-                    (sort.descending ? (
-                      <ArrowDown className="size-[0.85rem]" aria-hidden />
-                    ) : (
-                      <ArrowUp className="size-[0.85rem]" aria-hidden />
-                    ))}
-                </button>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {tables.map((t) => (
-            <tr key={t.name} className="border-line border-t first:border-t-0">
-              <th scope="row" className="selectable px-3 py-[0.35rem] text-left font-mono text-[0.9rem] font-normal">
-                {t.name}
-              </th>
-              <td className="px-3 py-[0.35rem] text-ink-soft">{typeOf(t)}</td>
-              <td className="px-3 py-[0.35rem] text-right font-mono tabular-nums">
-                {t.rows === null ? <span className="text-ink-dim">—</span> : formatNumber(t.rows)}
-              </td>
-              <td className="px-3 py-[0.35rem] text-right font-mono tabular-nums">
-                {measured && t.bytes !== null ? formatBytes(t.bytes) : <span className="text-ink-dim">—</span>}
-              </td>
+                  <button
+                    type="button"
+                    onClick={() => onSort(c.key)}
+                    className="inline-flex items-center gap-1 rounded-[0.3rem] hover:text-ink"
+                  >
+                    {m.column[c.key]}
+                    {sort.key === c.key &&
+                      (sort.descending ? (
+                        <ArrowDown className="size-[0.85rem]" aria-hidden />
+                      ) : (
+                        <ArrowUp className="size-[0.85rem]" aria-hidden />
+                      ))}
+                  </button>
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {tables.slice((at - 1) * size, at * size).map((t) => (
+              <tr key={t.name} className="border-line border-t first:border-t-0">
+                <th scope="row" className="selectable px-3 py-[0.35rem] text-left font-mono text-[0.9rem] font-normal">
+                  {t.name}
+                </th>
+                <td className="px-3 py-[0.35rem] text-ink-soft">{typeOf(t)}</td>
+                <td className="px-3 py-[0.35rem] text-right font-mono tabular-nums">
+                  {t.rows === null ? <span className="text-ink-dim">—</span> : formatNumber(t.rows)}
+                </td>
+                <td className="px-3 py-[0.35rem] text-right font-mono tabular-nums">
+                  {measured && t.bytes !== null ? formatBytes(t.bytes) : <span className="text-ink-dim">—</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {tables.length > PAGE_SIZES[0] && (
+        <Pager
+          label={label}
+          page={at}
+          onPage={onPage}
+          total={tables.length}
+          size={size}
+          sizes={PAGE_SIZES}
+          onSize={onSize}
+        />
+      )}
+    </>
   )
 }
