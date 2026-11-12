@@ -70,13 +70,11 @@ describe("an account row", () => {
     await waitFor(() => expect(onReload).toHaveBeenCalled())
   })
 
-  it("offers Bitrix24 only the sign-out under Remove account until a released b24 has account remove", async () => {
+  it("offers Bitrix24 keep or delete under Remove account, as b24 0.15.0 has account remove", async () => {
     render(<AccountList tool={tool("bitrix")} profiles={signedIn} onReload={() => undefined} />)
     await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Remove account" }))
     const dialog = screen.getByRole("dialog", { name: "Remove work?" })
-    expect(await within(dialog).findByText("Sign out, keep its data")).toBeInTheDocument()
-    expect(within(dialog).queryByText("Remove and delete its data")).not.toBeInTheDocument()
-    expect(within(dialog).getByRole("button", { name: "Sign out" })).toBeInTheDocument()
+    expect(await within(dialog).findByText("Remove and delete its data", {}, { timeout: 4000 })).toBeInTheDocument()
   })
 
   it("shows a name of the owner's own with the profile id beside it, and keeps commands on the profile", async () => {

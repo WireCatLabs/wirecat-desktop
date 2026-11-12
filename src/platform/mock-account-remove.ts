@@ -89,7 +89,7 @@ export function accountRemoveMock(params: URLSearchParams, forget: (id: string, 
   return {
     async accountRemoveSupported(id: string) {
       await delay(250)
-      // As Rust: a catalog with no released version yet (bitrix) has no `account remove`.
+      // As Rust: a catalog with no released version yet (tg) has no `account remove`.
       return params.get("remove-old") !== id && Boolean(findTool(id)?.accountRemove?.remove?.minVersion)
     },
     async accountRemovePlan(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval> {
