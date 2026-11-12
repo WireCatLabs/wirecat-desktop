@@ -29,7 +29,6 @@ import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
 import { PageError } from "@/shared/PageError"
-import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
@@ -418,27 +417,27 @@ function resultsView(
   if (answer?.kind === "failed")
     return {
       view: "failed",
-      node: (
+      node: choices ? (
         <ErrorNotice
           raw={answer.message}
           action={
-            choices ? (
-              <NameChoiceButtons
-                tool={s.tool}
-                choices={choices}
-                onPick={(c) => {
-                  if (c.label) s.remember(choices.field, c.value, c.label)
-                  s.setQuery(c.query)
-                  s.search(1)
-                }}
-              />
-            ) : (
-              <ReportThis what={`Searching ${toolName}`} error={answer.message} />
-            )
+            <NameChoiceButtons
+              tool={s.tool}
+              choices={choices}
+              onPick={(c) => {
+                if (c.label) s.remember(choices.field, c.value, c.label)
+                s.setQuery(c.query)
+                s.search(1)
+              }}
+            />
           }
         >
           {m.failed}
         </ErrorNotice>
+      ) : (
+        <PageError raw={answer.message} what={`Searching ${toolName}`} busy={s.loading} onRetry={() => s.search(page)}>
+          {m.failed}
+        </PageError>
       ),
     }
   if (answer?.kind === "timedOut")
