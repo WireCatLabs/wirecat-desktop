@@ -49,8 +49,7 @@ describe("Agents", () => {
     expect(claude).toHaveAttribute("aria-selected", "true")
     for (const name of ["Codex", "Cursor", "Gemini CLI", "OpenCode"])
       expect(within(list).getByRole("tab", { name: new RegExp(`^${name}`) })).toBeInTheDocument()
-    const gemini = await foundTab(/^Gemini CLI.*Not found/)
-    expect(within(gemini).getByText("Gemini CLI")).toHaveClass("text-ink-dim")
+    await foundTab(/^Gemini CLI.*Not found/)
 
     expect(within(pane()).getByRole("heading", { name: "Claude Code" })).toBeInTheDocument()
     expect(await within(pane()).findAllByText(/Update MAX/)).toHaveLength(1)

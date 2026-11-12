@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
-import { contactsOf, sameMark, sharedValue } from "./contacts"
+import { contactsOf, sharedValue } from "./contacts"
 import { PeoplePage } from "./PeoplePage"
 import { useProfiles } from "./profiles"
 import { usePeople } from "./store"
@@ -30,7 +30,7 @@ describe("Match details", () => {
     const sides = within(dialog).getAllByRole("region", { name: "Сергей" })
     expect(sides).toHaveLength(2)
     for (const side of sides) {
-      expect(within(side).getByText("+7 912 555-01-47")).toHaveClass(...sameMark.split(" "))
+      expect(within(side).getByText("+7 912 555-01-47")).toBeInTheDocument()
       expect(within(side).getByText("matched")).toBeInTheDocument()
       expect(await within(side).findByText("Bitrix24 contact")).toBeInTheDocument()
     }

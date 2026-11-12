@@ -145,7 +145,11 @@ describe("Logs", () => {
     const sources = await openSettings(userEvent.setup())
     expect(within(sources).getByText("arrives with the next update of Zoom")).toBeInTheDocument()
     expect(within(sources).getByText("arrives with the next update of Memo")).toBeInTheDocument()
-    expect(within(sources).getByText(/did not finish in time/)).toHaveClass("text-bad")
+    const drive = within(sources)
+      .getByText(/did not finish in time/)
+      .closest("li") as HTMLElement
+    expect(within(drive).getByRole("button", { name: "Report this" })).toBeInTheDocument()
+    expect(within(runsOf(sources, "Zoom")).queryByRole("button", { name: "Report this" })).not.toBeInTheDocument()
   })
 
   it("shows a tool without a keep setting as a plain fact, not a failure", async () => {
@@ -155,7 +159,7 @@ describe("Logs", () => {
 
     expect(screen.queryByRole("img", { name: /could not be read/ })).not.toBeInTheDocument()
     const email = runsOf(await openSettings(user), "Email")
-    expect(await within(email).findByText("Has no setting for which runs to keep")).toHaveClass("text-ink-dim")
+    expect(await within(email).findByText("Has no setting for which runs to keep")).toBeInTheDocument()
     expect(within(email).queryByRole("combobox")).not.toBeInTheDocument()
     expect(within(email).queryByRole("button", { name: /Report/ })).not.toBeInTheDocument()
   })

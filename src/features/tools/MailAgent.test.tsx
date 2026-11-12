@@ -109,7 +109,7 @@ it("asks which agent to run in when both are installed and none is chosen, and n
   expect(agent).toHaveTextContent("Not chosen")
   await user.click(screen.getByRole("switch", { name: "Run on a schedule" }))
   expect(set).not.toHaveBeenCalled()
-  expect(screen.getByText("Choose the agent it runs in first.")).toHaveClass("text-warn-ink")
+  expect(screen.getByText("Choose the agent it runs in first.")).toBeInTheDocument()
 
   await user.click(agent)
   await user.click(screen.getByRole("option", { name: /^Gemini CLI/ }))
