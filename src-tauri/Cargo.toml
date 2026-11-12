@@ -23,6 +23,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
+# Only its free functions (reveal, open a file); the plugin is not registered, so the window has no second way to
+# open an address that skips host_open.rs.
 tauri-plugin-opener = "2"
 # The launchers the opener uses, started here with the system's environment instead of the AppImage's (host_open.rs).
 open = "5"

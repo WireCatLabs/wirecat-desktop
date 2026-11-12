@@ -144,7 +144,6 @@ pub fn run() {
         // First, as the plugin asks: a second launch for a wirecat:// link reaches this window through it.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| deep_link::show_window(app)))
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
