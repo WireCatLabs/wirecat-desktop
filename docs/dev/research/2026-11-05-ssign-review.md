@@ -81,7 +81,7 @@ Every source reference is at both commits: the source is identical. Paths are in
 **What happens.**
 - [`release.yml`](../../../.github/workflows/release.yml) (main at review time, lines 159-166) puts `CERTUM_EMAIL` and `CERTUM_OTP` into the env of the tauri-action step.
 - That step runs `pnpm build` and the whole Rust build of the app. Every npm script and every Rust build script in it
-  can read the seed. The plan already says so ([the first-release plan](../plans/2026-10-29-first-release.md#windows-certum), "How the workflow uses
+  can read the seed. The plan already says so ([signing.md](../signing.md#how-ci-signs), "How the workflow uses
   it", point 4).
 - Earlier steps on the same runner have no secrets, but they can still plant something for that step:
   - write `PATH` or proxy variables into `$GITHUB_ENV` or `$GITHUB_PATH`;

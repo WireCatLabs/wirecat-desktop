@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Hands the release workflow what it needs to sign the Windows installer with Certum SimplySign (TASK-39).
-# Owner's steps: /home/leemour/Projects/AI/visage/docs/dev/plans/2026-11-05-windows-signing-setup.md
+# Owner's steps: docs/dev/signing.md, "Windows: the Certum seed". Only for a new seed or certificate; a release needs nothing.
 set -euo pipefail
 
 repo="WireCatLabs/wirecat-desktop"
 env_name="release"
-self="/home/leemour/Projects/AI/visage/bin/setup-windows-signing"
+self="$(cd "$(dirname "$0")/.." && pwd)/bin/setup-windows-signing"
 
 usage() {
   cat <<EOF

@@ -2,7 +2,7 @@ name: Release
 
 # A tag v<package.json version> builds every installer into a draft GitHub Release, published once latest.json has
 # every platform (the owner wants releases fully automated, NEED-134).
-# Plan: docs/dev/plans/2026-10-29-first-release.md
+# How it signs and why: docs/dev/signing.md#how-ci-signs; the steps: docs/dev/guides/release.md
 # Signing is split from the build: `build` compiles with no
 # secret, and `sign` bundles that build with the keys and never installs or runs our dependencies.
 on:
@@ -204,7 +204,7 @@ jobs:
           version="$(sed -n "s|^  '@tauri-apps/cli@\([0-9.]*\)':$|\1|p" pnpm-lock.yaml | head -n 1)"
           [ -n "$version" ] || { echo "::error::No @tauri-apps/cli version in pnpm-lock.yaml."; exit 1; }
           npm install --global --ignore-scripts "@tauri-apps/cli@$version"
-      # ssign signs over Certum's cloud API with the SimplySign TOTP seed: docs/dev/plans/2026-10-29-first-release.md.
+      # ssign signs over Certum's cloud API with the SimplySign TOTP seed: docs/dev/signing.md#how-ci-signs.
       # Our fork, equal to upstream v0.1.11 (reviewed in docs/dev/research/2026-11-05-ssign-review.md). It is built
       # before the secrets step because its crates' build scripts run here and must not see the seed (NEED-2222).
       # A dry run builds it too, so a pin that no longer builds on Windows shows up before a tag.
@@ -226,7 +226,7 @@ jobs:
           CERTUM_OTP: ${{ runner.os == 'Windows' && secrets.CERTUM_OTP || '' }}
           WINDOWS_SIGNER_SHA1: ${{ vars.WINDOWS_SIGNER_SHA1 }}
         run: |
-          guide="docs/dev/plans/2026-11-05-windows-signing-setup.md"
+          guide="docs/dev/signing.md#windows-the-certum-seed"
           export_env() {
             local end="END_${RANDOM}${RANDOM}${RANDOM}${RANDOM}"
             { echo "$1<<$end"; echo "${!1}"; echo "$end"; } >> "$GITHUB_ENV"

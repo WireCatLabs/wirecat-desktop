@@ -1,8 +1,11 @@
 # Signing WireCat Desktop: what to get, where it goes, how to keep it
 
 This is the owner's guide. It lists every file, password and key that signing needs, where each one comes from, where
-it goes, and how to keep it. The technical details are in
-[the release plan](plans/2026-10-29-first-release.md#signing).
+it goes, and how to keep it. [How CI signs](#how-ci-signs) has the technical details.
+
+**A release needs nothing from you.** Everything below is set up (macOS since v0.5.0, Windows since 2026-11-07), and
+every `v*` tag is signed in GitHub. The scripts here are for the rare case: a new or reissued certificate, a leak, a
+new app-specific password, a lost key. They are not part of the release flow.
 
 ## Why sign
 
@@ -30,11 +33,20 @@ too, but nobody can read a GitHub secret back, so GitHub is not your backup.
 
 ## Before you start
 
-Run the scripts from the up-to-date main branch:
+Run the scripts from a copy of the repository on the current `main`. The shared checkout may be on another branch and
+other sessions use it, so use a separate copy. Make it once:
 
 ```sh
-cd ~/Projects/AI/visage/.claude/worktrees/release-main && git pull
+git -C /home/leemour/Projects/AI/wirecat-desktop worktree add --detach .claude/worktrees/signing-setup origin/main
 ```
+
+Before each use, bring it up to date:
+
+```sh
+git -C /home/leemour/Projects/AI/wirecat-desktop/.claude/worktrees/signing-setup pull -q --ff-only origin main
+```
+
+The commands below start with `bin/`: run them from that folder.
 
 You need `gh` logged in (`gh auth status`). The scripts never print a secret.
 
@@ -107,42 +119,55 @@ What it does:
 
 After that, you can leave the `.p12` on disk or delete it. It is safe in the password manager and in GitHub.
 
-## Windows: the Certum SimplySign seed
-
-**Current steps: [Windows signing setup](plans/2026-11-05-windows-signing-setup.md).** It replaces Steps 1 and 2
-below: the seed goes from the QR image straight into GitHub, with no screenshot and no copy.
+## Windows: the Certum seed
 
 The certificate itself stays in Certum's cloud; there is no file to download. To sign, GitHub logs in to Certum with
 your e-mail and the 6-digit code that the SimplySign phone app shows. The code comes from a **seed**, a secret inside
-the QR code that activated the app. GitHub needs that seed.
+the QR code that activated the app (an `otpauth://` link). There is no PIN: **the seed and the e-mail are the whole
+credential.** Whoever has them can sign programs as WireCat until Certum resets the seed. So the seed goes from the QR
+image straight into GitHub: never on screen, never in a file on disk, never in a chat.
 
-### Step 1. Get the seed
+Do this only for a new seed (a leak, a lost phone) or a new certificate. Run steps 2 to 7 in one sitting: the QR page
+must stay open from step 2 to step 6.
 
-- **If you have not activated the phone app yet:**
-  1. Open the activation link from Certum's e-mail.
-  2. Enter the activation code from Certum's second e-mail. A QR code appears on the page.
-  3. Before you scan it with the SimplySign app, read it with any QR reader, or take a screenshot. The reader shows
-     a link that starts with `otpauth://`. That link is the seed.
-  4. Then scan the same QR code with the SimplySign app as usual.
-- **If the phone app is already activated:** the QR code is gone. Certum's manual describes a reset through their
-  help line, after which they send a new QR code. The reset link is valid for 24 hours. Then do the steps above. I
-  have not tried this.
+**Step 1. Install the QR reader** (Ubuntu package `zbar-tools`): `sudo apt install zbar-tools`.
 
-- **You get:** the `otpauth://…` link. It is the most sensitive item in this guide: with it and your e-mail, anyone
-  can sign Windows programs as WireCat until Certum resets it.
-- Put it straight into the "WireCat signing" entry. Don't save it in a file or a chat. Delete the screenshot once it
-  is in the password manager.
+**Step 2. Get the certificate file and open the QR page.**
 
-### Step 2. Give it to GitHub
+- The certificate (public, not secret): download it from your Certum account as a PEM file, for example to
+  `/home/leemour/Downloads/wirecat-certum.pem`. A binary `.cer` converts with
+  `openssl x509 -inform der -in /home/leemour/Downloads/wirecat-certum.cer -out /home/leemour/Downloads/wirecat-certum.pem`.
+- The QR code: the activated phone app's QR code is gone and cannot be shown again. Call Certum's help line and ask for
+  a SimplySign reset. Certum's iOS manual, section 6.3, describes a 6-digit secret plus a link sent by e-mail, valid
+  for 24 hours ([SimplySign iOS manual](https://files.certum.eu/documents/manual_en/SimplySign-Instruction-manual-iOS-6-1-2.pdf)).
+  It leads to a new QR page, as on first activation
+  ([Certum: activating SimplySign](https://support.certum.eu/en/how-to-activate-access-to-simply-sign-application/)).
+  The reset stops the old phone setup, so step 4 scans again.
+
+**Step 3. Save the QR image to memory, not to disk.** `/dev/shm` is a folder held in RAM, gone after a reboot.
+Right-click the QR code → "Save image as…" → `/dev/shm/simplysign-qr.png`. Not to Downloads or Pictures, not to the
+clipboard. Ubuntu's screenshot (Shift+PrtSc) also saves to `/home/leemour/Pictures/Screenshots` and the clipboard: if
+you used it, shred that file in step 6 and copy some other text.
+
+**Step 4. Scan the same QR code with the SimplySign phone app.** Keep the page open.
+
+**Step 5. Give the seed and the thumbprint to GitHub:**
 
 ```sh
-bin/setup-windows-signing
+bin/setup-windows-signing --qr /dev/shm/simplysign-qr.png --thumbprint-from /home/leemour/Downloads/wirecat-certum.pem
 ```
 
-- It asks for your SimplySign login e-mail, the seed, and the 6-digit code your phone shows now.
-- It checks on this computer that the seed makes the same code as the phone. Nothing is sent for this check.
-- It saves `CERTUM_EMAIL` and `CERTUM_OTP` in a GitHub area called `release` that only release tags can open. A pull
-  request, or someone else's branch, cannot read them.
+- It asks for your SimplySign login e-mail and the 6-digit code the phone shows now, and checks on this computer that
+  the seed makes the same code. Nothing is sent for the check; the seed is never printed.
+- It stores `CERTUM_EMAIL` and `CERTUM_OTP` as secrets and `WINDOWS_SIGNER_SHA1` as a variable in the `release`
+  environment, and prints the certificate's subject, end date and thumbprint (public).
+- The subject must name you or WireCat, not a Certum CA. If it names Certum, the PEM starts with the CA certificate of
+  a chain: save only your own certificate block and run `--thumbprint-from` on that.
+- "The code does not match": wait for the next code and run it again.
+
+**Step 6. Delete the image:** `shred -u /dev/shm/simplysign-qr.png`.
+
+**Step 7. Close the QR page.**
 
 ## The updater key (already done)
 
@@ -178,5 +203,101 @@ The next release tag is signed with no other change. To check:
 | Laptop lost, password manager fine | Nothing urgent. GitHub still signs. Restore the files from the password manager when needed. |
 | `.p12` or its password leaked | Revoke the certificate at [Certificates](https://developer.apple.com/account/resources/certificates/list), then repeat the macOS steps. Apple allows up to five such certificates. |
 | App-specific password leaked | Revoke it at account.apple.com and make a new one. Run `bin/setup-apple-signing <the .p12 file>`; it asks for the `.p12` password (from the password manager) and the new app-specific password. |
-| Certum seed leaked | Call Certum to reset SimplySign, then repeat the Windows steps. Until the reset, someone can sign as WireCat. |
+| Certum seed leaked | See [The seed leaked](#the-seed-leaked). |
+| Certum certificate reissued | See [A new certificate](#a-new-certificate). |
 | Updater key lost | Installed copies can no longer update. Users have to download the next version by hand. Avoid this: keep the copy in the password manager. |
+
+### The seed leaked
+
+A screenshot, a chat, a log, a lost laptop with the image on disk:
+
+1. Stop CI from using it: `gh secret delete CERTUM_OTP --env release --repo WireCatLabs/wirecat-desktop`. The next
+   release then stops at the Windows `sign` job instead of shipping unsigned, until a new seed is stored.
+2. Call Certum's help line and reset SimplySign. Until then, anyone with the seed and your e-mail can sign as WireCat.
+3. If you think someone signed something with it, ask Certum to revoke the certificate and issue a new one.
+4. Repeat [the Windows steps](#windows-the-certum-seed).
+
+### A new certificate
+
+Certum code-signing certificates last at most 459 days; a renewal or a revocation gives a new one. The thumbprint
+changes and the next release fails the check after signing. Update only the variable; the seed stays:
+
+```sh
+bin/setup-windows-signing --thumbprint-from /home/leemour/Downloads/wirecat-certum-new.pem
+```
+
+If the new certificate has another subject, also change `WINDOWS_SIGNER` at the top of the Windows job in
+[install-check.yml](../../.github/workflows/install-check.yml).
+
+## How to check the setup
+
+Each command prints names or public values only. GitHub never shows a secret's value.
+
+- `gh secret list --env release --repo WireCatLabs/wirecat-desktop`: `TAURI_SIGNING_PRIVATE_KEY`,
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, the five `APPLE_*` names, `CERTUM_EMAIL` and `CERTUM_OTP`.
+- `gh secret list --repo WireCatLabs/wirecat-desktop`: none of them. Any branch's workflow can read a repository
+  secret; `bin/move-signing-secrets` moved them into the environment once (2026-11-06) and is needed again only if
+  one comes back there.
+- `gh variable list --env release --repo WireCatLabs/wirecat-desktop`: `WINDOWS_SIGNER_SHA1`.
+- `gh api repos/WireCatLabs/wirecat-desktop/environments/release --jq '{can_admins_bypass, rules: [.protection_rules[].type]}'`:
+  `"can_admins_bypass": false`. Adding yourself as a required reviewer there (Settings → Environments → release) would
+  make each release wait for your click before signing; the owner chose not to (D2 B).
+- `gh api repos/WireCatLabs/wirecat-desktop/environments/release/deployment-branch-policies --jq '.branch_policies[] | "\(.type) \(.name)"'`:
+  only `tag v*`.
+
+## How CI signs
+
+[release.yml](../../.github/workflows/release.yml) and its comments are the source; the security review of the
+Windows tool is [ssign review](research/2026-11-05-ssign-review.md).
+
+- **No secret in the build.** The `build` job compiles the app (`tauri build --no-bundle`) with no environment and no
+  secret; every npm and Rust build script runs there. Only the `sign` job declares `environment: release`, and only
+  jobs that declare an environment read its secrets
+  ([GitHub: environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)).
+  The environment admits only `v*` tags, so a branch or a pull request cannot read them, and a `dry_run` on a branch
+  runs with none.
+- **The `sign` job** takes the compiled app and runs `tauri bundle`. It installs only the Tauri CLI (with
+  `--ignore-scripts`) and, on Windows, ssign; it never runs `pnpm install`. Tauri treats a variable that is set but
+  empty as a certificate to import (`crates/tauri-bundler/src/bundle/macos/sign.rs`), so each secret is exported only
+  when it is needed.
+- **macOS.** Tauri signs and notarizes with the five `APPLE_*` secrets
+  ([Tauri: macOS signing](https://v2.tauri.app/distribute/sign/macos/)). `APPLE_SIGNING_IDENTITY` is not needed:
+  Tauri infers it from the certificate. `bin/make-apple-certificate` makes the key and the `.p12` without a Mac.
+- **Windows.** Certum documents only signing on a PC with SimplySign Desktop
+  ([signtool manual](https://www.files.certum.eu/documents/manual_en/Signing_with_the_use_of_jarsigner_tool_and_signtool.pdf)),
+  nothing for CI. The owner chose the unofficial [ssign](https://github.com/Le-Syl21/ssign) in Actions (NEED-129 C)
+  over a manual Windows PC (A) or a self-hosted runner (B). ssign speaks Certum's cloud API over HTTPS
+  (`cloudsign.webnotarius.pl`, timestamps from `time.certum.pl`), computes the code from `CERTUM_OTP`, wipes the seed
+  from memory and never writes it.
+  - It is built from our fork [WireCatLabs/ssign](https://github.com/WireCatLabs/ssign) at the full commit in
+    `release.yml` (`cargo install --locked --git … --rev`), before the step that reads the secrets, so its crates'
+    build scripts never see the seed. The fork's Actions are off; rulesets protect its `main` and its tags.
+  - `src-tauri/tauri.windows-sign.conf.json` sets `bundle.windows.signCommand`. Tauri runs it for the app `.exe`, the
+    NSIS plugin DLLs, the uninstaller and the installer, then makes the updater `.sig`, so the update signature covers
+    the signed file. ssign signs PE files only, so Windows ships NSIS, not MSI.
+  - A last step unpacks the installer with 7-Zip and fails unless the installer and every `.exe` in it are `Valid`,
+    timestamped, and signed by the certificate whose thumbprint is `WINDOWS_SIGNER_SHA1`.
+- **Fail closed.** While none of `CERTUM_EMAIL`, `CERTUM_OTP` and `WINDOWS_SIGNER_SHA1` exists, Windows ships
+  unsigned with a notice. Once any exists, a missing one or any signing or check failure stops the release, and it
+  stays a private draft.
+- **The `updater` job** checks every updater `.sig` against the public key in `src-tauri/tauri.conf.json` with
+  minisign before it writes `latest.json` ([updater-api.md](updater-api.md)).
+
+What a failed Windows `sign` job means:
+
+- "Not set in the release environment: WINDOWS_SIGNER_SHA1": run `bin/setup-windows-signing --thumbprint-from <pem>`.
+- "signer thumbprint X, expected Y": the certificate changed or the PEM was another one. See
+  [A new certificate](#a-new-certificate).
+- A login failure that names another host: Certum redirected the login away from its servers, and our patched ssign
+  refuses that. Find out why before working around it.
+- A failure about the key type or size: ssign refuses a key that is not RSA or is under 2048 bits. Ask Certum.
+- A login failure at Certum: do not re-run many times in a row; repeated bad codes can lock the account
+  ([RongxinAI#1266](https://github.com/rongxinzy/RongxinAI/pull/1266)).
+- ssign is unofficial: Certum can change its API and break it. Then releases stop at this job until the fork is fixed.
+
+## Upkeep
+
+- **Upstream ssign, monthly.** Read new commits and advisories of [Le-Syl21/ssign](https://github.com/Le-Syl21/ssign)
+  (`cargo audit` on its lockfile). Move the fork only after reading the diff, through a squash-merged pull request
+  there, then move the `--rev` in `release.yml` to that commit.
+- **Certificate end date.** `bin/setup-windows-signing` printed it; set a reminder a month before.
