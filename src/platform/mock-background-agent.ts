@@ -12,8 +12,8 @@ const AGENTS: Omit<BackgroundAgent, "state" | "signedIn" | "reason">[] = [
   { id: "openclaw", name: "OpenClaw", reportsCost: false },
   { id: "kimi", name: "Kimi CLI", reportsCost: false },
 ]
-// cli-core #2882: memo starts each of these; these three approve every command in their one-shot mode, so memo refuses
-// them for schedules.
+// cli-core #2882: memo starts each of these and marks which it cannot limit (`restricted: false`); the real list comes
+// from memo, so this set is only the mock's.
 const UNHELD = ["openclaw", "hermes", "kimi"]
 
 // The agent for background jobs: Claude Code and Codex ready, Kimi CLI installed but greyed (it runs every command

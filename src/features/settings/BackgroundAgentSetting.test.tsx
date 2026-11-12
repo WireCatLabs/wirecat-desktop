@@ -43,7 +43,7 @@ it("says the only ready agent runs the jobs, and greys the others with the reaso
   expect(screen.getByText(/Greyed agents cannot run background jobs/)).toBeInTheDocument()
 })
 
-it("greys an agent that runs every command without asking, with memo's reason, and never offers it", async () => {
+it("greys an agent memo cannot limit, with memo's reason, and never offers it", async () => {
   const kimi = {
     id: "kimi",
     name: "Kimi CLI",
@@ -60,7 +60,7 @@ it("greys an agent that runs every command without asking, with memo's reason, a
   expect(await screen.findByText("Kimi CLI: approves every command in print mode")).toBeInTheDocument()
   expect(screen.getByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
   await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
-  expect(screen.getByRole("option", { name: "Kimi CLI · Runs every command without asking" })).toHaveAttribute(
+  expect(screen.getByRole("option", { name: "Kimi CLI · Its commands cannot be limited" })).toHaveAttribute(
     "aria-disabled",
     "true",
   )

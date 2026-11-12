@@ -476,6 +476,15 @@ mod tests {
         let cursor = Runnable { installed: Some(false), ..runnable("cursor", false) };
         let c = join(&registry, &[cursor], true, &[], |_| true, None);
         assert_eq!(c.agents.iter().find(|x| x.id == "cursor").unwrap().state, AgentState::ProgramMissing);
+        let programs = vec!["cursor-agent".into(), "agent".into()];
+        let cursor = Runnable { programs, ..runnable("cursor", true) };
+        let c = join(&registry, &[cursor], true, &[], |p| p == "cursor", None);
+        let state = |c: &BackgroundAgents| c.agents.iter().find(|x| x.id == "cursor").unwrap().state;
+        assert_eq!(state(&c), AgentState::ProgramMissing, "memo's programs, never the registry's `cursor`");
+        let mut held = runnable("cursor", true);
+        held.restricted = false;
+        let c = join(&registry, &[held], true, &[], |_| true, None);
+        assert_eq!(state(&c), AgentState::Unrestricted, "memo's `restricted` decides, for any agent");
     }
 
     #[test]
