@@ -1,30 +1,17 @@
 import { X } from "lucide-react"
 import { useState } from "react"
+import { TOOLS_INTRO_KEY } from "@/domain/storage-keys"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { safeStorage } from "@/shared/safe-storage"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { LinkButton } from "@/ui/LinkButton"
 import { toolsMessages } from "./messages"
 
-const KEY = "wirecat.tools.intro"
-
-function readHidden() {
-  try {
-    return localStorage.getItem(KEY) === "hidden"
-  } catch {
-    return false
-  }
-}
-
-function writeHidden() {
-  try {
-    localStorage.setItem(KEY, "hidden")
-  } catch {
-    // Private windows may refuse storage; the intro then simply returns next time.
-  }
-}
+const readHidden = () => safeStorage.getItem(TOOLS_INTRO_KEY) === "hidden"
+const writeHidden = () => safeStorage.setItem(TOOLS_INTRO_KEY, "hidden")
 
 /** Static text on the first frame, so the list below never moves; only the action at the right waits for the scan. */
 export function ToolsIntro() {

@@ -16,6 +16,7 @@ import type {
 import { errorText } from "@/shared/errors"
 import { fresh } from "@/shared/fresh"
 import { queryClient } from "@/shared/query"
+import { safeStorage } from "@/shared/safe-storage"
 
 export type View = "table" | "board"
 export type Unusable = { kind: "missing" } | { kind: "old"; version: string | null; need: string }
@@ -128,13 +129,7 @@ export const FINDER_FRESH_MS = 5 * 60_000
 
 const VIEW_KEY = "wirecat.tasks.view"
 
-function savedView(): View {
-  try {
-    return localStorage.getItem(VIEW_KEY) === "board" ? "board" : "table"
-  } catch {
-    return "table"
-  }
-}
+const savedView = (): View => (safeStorage.getItem(VIEW_KEY) === "board" ? "board" : "table")
 
 /** A refused move is said on its card, apart from a refused edit, which the dialog and the table say. */
 export const moveSlot = (key: string) => `move:${key}`
@@ -437,11 +432,7 @@ export const useTasks = create<TasksState>((set, get) => {
     },
 
     setView(view) {
-      try {
-        localStorage.setItem(VIEW_KEY, view)
-      } catch {
-        // A remembered view is a convenience; without storage the page opens on the table.
-      }
+      safeStorage.setItem(VIEW_KEY, view)
       set({ view, open: null })
     },
 

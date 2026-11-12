@@ -7,6 +7,7 @@ import type { Profile } from "@/platform/schemas"
 import type { HarderAnswer, SearchAnswer } from "@/platform/search-schemas"
 import { errorText } from "@/shared/errors"
 import { listProfiles } from "@/shared/query"
+import { safeStorage } from "@/shared/safe-storage"
 import { useTools } from "@/shared/tools-store"
 
 export const LIMIT = 50
@@ -60,7 +61,7 @@ const UsedSchema = v.record(v.string(), v.pipe(v.number(), v.integer(), v.minVal
 
 function readUsed(): Record<string, number> {
   try {
-    const parsed = v.safeParse(UsedSchema, JSON.parse(globalThis.localStorage?.getItem(USED_KEY) ?? "{}"))
+    const parsed = v.safeParse(UsedSchema, JSON.parse(safeStorage.getItem(USED_KEY) ?? "{}"))
     return parsed.success ? parsed.output : {}
   } catch {
     return {}
@@ -70,11 +71,7 @@ function readUsed(): Record<string, number> {
 function countUsed(used: Record<string, number>, query: string): Record<string, number> {
   const next = { ...used }
   for (const name of fieldsIn(query)) next[name] = (next[name] ?? 0) + 1
-  try {
-    globalThis.localStorage?.setItem(USED_KEY, JSON.stringify(next))
-  } catch {
-    // Without storage the keys keep their usual order on the next start.
-  }
+  safeStorage.setItem(USED_KEY, JSON.stringify(next))
   return next
 }
 

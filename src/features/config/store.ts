@@ -6,6 +6,7 @@ import type { SettingRow, Settings } from "@/platform/settings-schemas"
 import { errorText } from "@/shared/errors"
 import { useNav } from "@/shared/nav"
 import { listProfiles } from "@/shared/query"
+import { safeStorage } from "@/shared/safe-storage"
 import { change, format, type Op, type Problem, parse, plan, toDocument } from "./diff"
 import { type Reason, told } from "./reason"
 import { rowsFor, sharedDocument, sharedPlan, type View } from "./scope"
@@ -62,17 +63,13 @@ export type Shape = { rows: number; categories: number; file: boolean }
 type Last = { view?: View; tool?: string; targets?: Record<string, string | null>; shapes?: Record<string, Shape> }
 export function readLast(): Last {
   try {
-    return JSON.parse(localStorage.getItem(LAST) ?? "{}") as Last
+    return JSON.parse(safeStorage.getItem(LAST) ?? "{}") as Last
   } catch {
     return {}
   }
 }
 export function remember(f: (last: Last) => Last) {
-  try {
-    localStorage.setItem(LAST, JSON.stringify(f(readLast())))
-  } catch {
-    // Without storage the page simply opens on the defaults next time.
-  }
+  safeStorage.setItem(LAST, JSON.stringify(f(readLast())))
 }
 
 class NoTool extends Error {}

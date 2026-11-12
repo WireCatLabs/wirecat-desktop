@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+import { safeStorage } from "@/shared/safe-storage"
 
 export type ThemeChoice = "system" | "light" | "dark"
 
@@ -9,7 +10,7 @@ type ThemeState = { choice: ThemeChoice; set(choice: ThemeChoice): void }
 export const useTheme = create<ThemeState>()(
   persist((set) => ({ choice: "system", set: (choice) => set({ choice }) }), {
     name: "wirecat.theme",
-    storage: createJSONStorage(() => localStorage),
+    storage: createJSONStorage(() => safeStorage),
   }),
 )
 

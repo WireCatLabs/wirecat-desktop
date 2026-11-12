@@ -7,6 +7,7 @@ import type { KeyringFallback } from "@/domain/signin-notes"
 import { isTelegramAppsUrl, type KeyHint, MY_TELEGRAM, type TelegramFailure, waitParts } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
+import { safeStorage } from "@/shared/safe-storage"
 import type { OpenUrl } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Crossfade } from "@/ui/Crossfade"
@@ -97,13 +98,7 @@ function ShotButton({ shot }: { shot: Shot }) {
 
 const OS_KEY = "wirecat.signin.phone"
 
-function savedOs(): PhoneOs {
-  try {
-    return localStorage.getItem(OS_KEY) === "iphone" ? "iphone" : "android"
-  } catch {
-    return "android"
-  }
-}
+const savedOs = (): PhoneOs => (safeStorage.getItem(OS_KEY) === "iphone" ? "iphone" : "android")
 
 /**
  * Where Telegram keeps its scanner differs by phone. Nothing is guessed from this computer: the first tab until the
@@ -114,9 +109,7 @@ export function TelegramScanSteps() {
   const [os, setOs] = useState<PhoneOs>(savedOs)
   const choose = (next: PhoneOs) => {
     setOs(next)
-    try {
-      localStorage.setItem(OS_KEY, next)
-    } catch {}
+    safeStorage.setItem(OS_KEY, next)
   }
   const phone = <Smartphone className="size-4" aria-hidden />
   return (

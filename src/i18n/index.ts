@@ -1,6 +1,8 @@
 import { useEffect } from "react"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+import { LANGUAGE_KEY } from "@/domain/storage-keys"
+import { safeStorage } from "@/shared/safe-storage"
 
 export const LANGS = ["en", "ru", "es"] as const
 export type Lang = (typeof LANGS)[number]
@@ -13,8 +15,8 @@ type LanguageState = { choice: LangChoice; set(choice: LangChoice): void }
 
 export const useLanguage = create<LanguageState>()(
   persist((set) => ({ choice: "system", set: (choice) => set({ choice }) }), {
-    name: "wirecat.language",
-    storage: createJSONStorage(() => localStorage),
+    name: LANGUAGE_KEY,
+    storage: createJSONStorage(() => safeStorage),
   }),
 )
 
