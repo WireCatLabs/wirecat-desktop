@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { LogsPage } from "./LogsPage"
 import { timing } from "./store"
@@ -128,9 +129,15 @@ describe("Logs", () => {
     const listRuns = platform.listRuns.bind(platform)
     vi.spyOn(platform, "listRuns").mockImplementation(async (id, ...rest) => {
       if (id === "zm")
-        throw new Error(`unknown command 'list' — "runs" is not a command, so it was read as a profile name`)
+        throw new CommandError(
+          TOO_OLD,
+          `unknown command 'list' — "runs" is not a command, so it was read as a profile name`,
+        )
       if (id === "memo")
-        throw '{"error":{"code":"validation_error","message":"unknown command \'runs\'","retry":{"safe":false}}}'
+        throw new CommandError(
+          TOO_OLD,
+          '{"error":{"code":"validation_error","message":"unknown command \'runs\'","retry":{"safe":false}}}',
+        )
       if (id === "drive") throw new Error("drive runs list: the program did not finish in time")
       return listRuns(id, ...rest)
     })

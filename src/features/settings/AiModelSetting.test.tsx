@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { LANGS } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import { useAiModel } from "@/shared/ai-model-store"
 import { useTools } from "@/shared/tools-store"
 import { render, screen, waitFor } from "@/testing/render"
@@ -356,7 +357,7 @@ describe("AI model", () => {
   })
 
   it("asks for a memo update when memo has no models ai", async () => {
-    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
+    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'ai'"))
     render(<AiModelSetting />)
     expect(await screen.findByText("This needs a newer Memo than 0.131.86.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()

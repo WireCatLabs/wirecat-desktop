@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
@@ -289,7 +290,7 @@ describe("Add to memory", () => {
   })
 
   it("asks for a memo update, not for a model, when memo has no models ai", async () => {
-    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
+    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'ai'"))
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
     vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
     vi.spyOn(platform, "memoryFilePreview").mockResolvedValue({
@@ -370,7 +371,7 @@ describe("Add to memory", () => {
   })
 
   it("tells the owner to update memo when it cannot list readers yet, and still saves", async () => {
-    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new Error("error: unknown command 'readers'"))
+    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'readers'"))
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
     const user = userEvent.setup()
     const panel = await openPanel(user)

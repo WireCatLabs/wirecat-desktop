@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { type Draft, emptyDraft, givenOf, untickedAtFirst, type Way } from "@/domain/memory-add"
 import { platform } from "@/platform/bridge"
+import { tooOld } from "@/platform/command-error"
 import type { AddedSource, FilePreview, LinkPreview, Mentions, StoredSource } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { errorText as message } from "@/shared/errors"
@@ -24,6 +25,8 @@ type AddState = {
   busy: "save" | "pick" | "suggest" | "keep" | null
   /** The last refusal, on the step that made it; a later step never loses what an earlier one saved. */
   error: string | null
+  /** The error is memo refusing a command it lacks: an update fixes it. */
+  old: boolean
   added: AddedSource | null
   mentions: { state: "loading" } | { state: "ready"; mentions: Mentions } | { state: "failed"; error: string } | null
   /** The text as memo stored it: the source opens here, not at a path that may be gone. */
@@ -63,6 +66,7 @@ const fresh = {
   draft: emptyDraft(),
   busy: null,
   error: null,
+  old: false,
   added: null,
   mentions: null,
   stored: null,
@@ -80,11 +84,11 @@ export const useAddSource = create<AddState>((set, get) => ({
   ...fresh,
   openPanel: () => set({ open: true }),
   close: () => set({ open: false, ...(get().step === "done" ? fresh : {}) }),
-  setWay: (way) => set((s) => ({ draft: { ...s.draft, way }, error: null })),
-  edit: (patch) => set((s) => ({ draft: { ...s.draft, ...patch }, error: null })),
+  setWay: (way) => set((s) => ({ draft: { ...s.draft, way }, error: null, old: false })),
+  edit: (patch) => set((s) => ({ draft: { ...s.draft, ...patch }, error: null, old: false })),
   async pickFile() {
     if (get().busy) return
-    set({ busy: "pick", error: null })
+    set({ busy: "pick", error: null, old: false })
     try {
       const path = await platform.memoryPickFile()
       if (path) {
@@ -92,7 +96,7 @@ export const useAddSource = create<AddState>((set, get) => ({
         void showFile(path)
       }
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: message(e), old: tooOld(e) })
     } finally {
       set({ busy: null })
     }
@@ -111,13 +115,13 @@ export const useAddSource = create<AddState>((set, get) => ({
     const { draft, busy } = get()
     const given = givenOf(draft)
     if (!given || busy) return
-    set({ busy: "save", error: null })
+    set({ busy: "save", error: null, old: false })
     try {
       const added = await platform.memorySourceAdd({ given, title: draft.title.trim() || null, subjects: [] })
       set({ added, step: "saved", mentions: { state: "loading" } })
       void loadMentions(added.ref)
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: message(e), old: tooOld(e) })
     } finally {
       set({ busy: null })
     }
@@ -138,12 +142,12 @@ export const useAddSource = create<AddState>((set, get) => ({
   async suggest(reader, again = false) {
     const { added, subjects, busy } = get()
     if (!added || busy) return
-    set({ busy: "suggest", error: null })
+    set({ busy: "suggest", error: null, old: false })
     try {
       const { batch, reused } = await platform.memorySourceSuggest(added.ref, reader, subjects, again)
       set({ batch, reused, skipped: untickedAtFirst(batch.findings ?? []), step: "facts" })
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: message(e), old: tooOld(e) })
     } finally {
       set({ busy: null })
     }
@@ -156,7 +160,7 @@ export const useAddSource = create<AddState>((set, get) => ({
     if (!batch || busy) return
     if (batch.status !== "proposed") return get().finish()
     const accept = (batch.findings ?? []).map((f) => f.id).filter((id) => !skipped.includes(id))
-    set({ busy: "keep", error: null })
+    set({ busy: "keep", error: null, old: false })
     try {
       // Ticking is confirming: the kept facts count at once. Nothing ticked turns the batch down, the source stays.
       await (accept.length ? platform.memoryConfirm(batch.ref, accept) : platform.memoryDiscard(batch.ref))
@@ -164,7 +168,7 @@ export const useAddSource = create<AddState>((set, get) => ({
       void loadLinked()
       void useMemory.getState().load()
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: message(e), old: tooOld(e) })
     } finally {
       set({ busy: null })
     }

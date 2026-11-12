@@ -1,6 +1,6 @@
 import { TriangleAlert } from "lucide-react"
 import { useId } from "react"
-import { chosenReader, readerOff, tooOldFor } from "@/domain/memory-add"
+import { chosenReader, readerOff } from "@/domain/memory-add"
 import { ReaderChoice } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
@@ -19,10 +19,11 @@ export function ReaderLine() {
   const m = useMessages(addMessages)
   const readers = useReaders((s) => s.readers)
   const error = useReaders((s) => s.error)
+  const old = useReaders((s) => s.old)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
   const reader = chosenReader(readers ?? [])
   if (error)
-    return tooOldFor(error) ? (
+    return old ? (
       <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need: null }}>
         <p>{m.tooOldReaders}</p>
       </ToolNeeded>

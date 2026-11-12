@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { findTool, ownerId, runTool, tools } from "@/domain/catalog"
 import { cliCommand, NO_COMMAND_HIDDEN, type RangeId, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
+import { tooOld } from "@/platform/command-error"
 import type { RunDetail, RunItem } from "@/platform/runs-schemas"
 import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
@@ -93,8 +94,6 @@ const message = (e: unknown) => {
     return text
   }
 }
-// Every older zm, drive and memo refuses `runs list` with a validation_error whose message starts this way.
-const tooOld = (error: string) => /^unknown command '(runs|list)'/.test(error)
 export const runKey = (run: Pick<Run, "tool" | "run_id">) => `${run.tool}:${run.run_id}`
 const toRun = (tool: string) => {
   const bin = findTool(tool)?.bin ?? tool
@@ -169,8 +168,7 @@ export const useLogs = create<LogsState>((set, get) => {
       const res = await platform.listRuns(id, null, PAGE, page)
       return { state: "ready", runs: res.items.map(toRun(id)), hasMore: res.page.has_more, pages: page, error: null }
     } catch (e) {
-      const error = message(e)
-      return tooOld(error) ? { state: "update", error: null } : { state: "error", error }
+      return tooOld(e) ? { state: "update", error: null } : { state: "error", error: message(e) }
     }
   }
 

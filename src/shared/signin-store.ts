@@ -14,10 +14,14 @@ import { type Gap, gapOf } from "@/domain/needs"
 import type { FailedAt } from "@/domain/signin-failure"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
+import { tooOld as refusedAsOld } from "@/platform/command-error"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
 import { useSandbox } from "@/shared/sandbox-store"
 import { useTools } from "@/shared/tools-store"
 import { errorText } from "./errors"
+
+/** A sign-in command the installed tool lacks is `signin.rs`'s "needs update", whichever way it failed. */
+const failedCode = (e: unknown) => (refusedAsOld(e) ? "needs_update" : null)
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
 export type Qr = Of<"qr">
@@ -333,7 +337,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
         if (reuse && tool && key !== undefined && KEPT.has(e.field)) {
           platform
             .signInAnswer(tool, key)
-            .catch((err) => apply({ event: "failed", message: errorText(err), code: null }))
+            .catch((err) => apply({ event: "failed", message: errorText(err), code: failedCode(err) }))
           return
         }
         const provider = guidedProvider(get())
@@ -343,7 +347,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           typed.sentIn = get().run
           platform
             .signInAnswer(tool, value)
-            .catch((err) => apply({ event: "failed", message: errorText(err), code: null }))
+            .catch((err) => apply({ event: "failed", message: errorText(err), code: failedCode(err) }))
           return
         }
         const page = linkIn(e.hint)
@@ -537,7 +541,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           if (mine() && running(get().phase))
             apply({ event: "failed", message: "The sign-in ended without saying how.", code: ENDED })
         },
-        (e) => mine() && apply({ event: "failed", message: errorText(e), code: null }),
+        (e) => mine() && apply({ event: "failed", message: errorText(e), code: failedCode(e) }),
       )
     },
     begin() {
@@ -608,7 +612,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const { tool, phase, stopping } = get()
       if (!tool || !running(phase) || stopping) return
       set({ stopping: true })
-      platform.signInStop(tool).catch((e) => apply({ event: "failed", message: errorText(e), code: null }))
+      platform.signInStop(tool).catch((e) => apply({ event: "failed", message: errorText(e), code: failedCode(e) }))
     },
     close() {
       const { tool, phase, onFinish } = get()

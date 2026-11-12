@@ -56,7 +56,7 @@ pub fn run_guarded(tool: &'static Tool, prepared: &Prepared, running: &Running, 
         let _ = events.send(e);
     };
     match claim(tool, running) {
-        Err(message) => send(SignInEvent::Failed { message, code: None, reason: None }),
+        Err(message) => send(failed(message)),
         Ok(key) => {
             run(tool, prepared, &|| !running.is_running(&key), &send);
             running.finish(&key);
@@ -407,7 +407,8 @@ fn finish(
 }
 
 fn failed(message: String) -> SignInEvent {
-    SignInEvent::Failed { message, code: None, reason: None }
+    let code = crate::memo_cli::unknown_to_cli(&message).then(|| crate::signin_steps::NEEDS_UPDATE.to_string());
+    SignInEvent::Failed { message, code, reason: None }
 }
 
 #[cfg(test)]
@@ -447,6 +448,13 @@ mod tests {
             finish("wa", Err(RunError::TimedOut), None, false),
             SignInEvent::Failed { code: Some(c), .. } if c == TOOK_TOO_LONG
         ));
+    }
+
+    #[test]
+    fn a_failure_naming_an_option_the_tool_lacks_asks_for_an_update() {
+        let old = failed("error: unknown option '--answer-stdin'".into());
+        assert!(matches!(old, SignInEvent::Failed { code: Some(c), .. } if c == crate::signin_steps::NEEDS_UPDATE));
+        assert!(matches!(failed("cancelled".into()), SignInEvent::Failed { code: None, .. }));
     }
 
     fn words(tool: &str, method: &str, profile: &str) -> Result<Vec<String>, String> {

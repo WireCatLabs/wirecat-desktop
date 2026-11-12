@@ -1,11 +1,11 @@
-import { Check, CheckCheck, LoaderCircle, Sparkles } from "lucide-react"
+import { Check, CheckCheck, Sparkles } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { crmsOf, crmToOpen, mapColumnsOf, mapDropOf, UNMAPPED, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import type { Kind } from "@/domain/clients"
-import { tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { CrmStageMap } from "@/platform/bindings"
+import { tooOld } from "@/platform/command-error"
 import { goAiModel } from "@/shared/go-ai-model"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
@@ -51,21 +51,16 @@ function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
     <>
       <Button
         size="sm"
-        disabled={busy || suggest.isPending}
-        icon={
-          suggest.isPending ? (
-            <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
-          ) : (
-            <Sparkles className="size-4" aria-hidden />
-          )
-        }
+        disabled={busy}
+        busy={suggest.isPending}
+        icon={<Sparkles className="size-4" aria-hidden />}
         onClick={() => suggest.mutate()}
       >
         {suggest.isPending ? s.suggesting : s.suggest}
       </Button>
       <span className="text-[0.85rem] text-ink-dim">{s.suggestHint}</span>
       <Collapse open={done !== undefined || error !== null}>
-        {error && tooOldFor(error) ? (
+        {tooOld(suggest.error) ? (
           <ToolNeeded
             inline
             gap={{ kind: "old", tool: "memo", version, need: null }}

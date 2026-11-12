@@ -1,4 +1,5 @@
 import { findTool } from "@/domain/catalog"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import { delay } from "./mock-delay"
 import { recordOn } from "./mock-settings"
 import type { RunDetail, RunEvent, RunItem } from "./runs-schemas"
@@ -570,7 +571,7 @@ export const runsMock: Pick<Platform, "listRuns" | "showRun"> = {
     if (!findTool(id)?.runs) throw new Error("This tool does not keep run logs yet.")
     if (!PLAN[id]) return { items: [], page: { has_more: false } }
     if (scenario === "fail" && id === "max") throw new Error("max runs list: the program did not finish in time")
-    if (scenario === "old" && OLD[id]) throw new Error(OLD[id])
+    if (scenario === "old" && OLD[id]) throw new CommandError(TOO_OLD, OLD[id])
     // A tool keeps a successful run only when its profile records every run.
     const all = scenario === "none" ? [] : runsOf(id).filter((r) => r.status !== "success" || recordOn(id, r.profile))
     const items = all.slice((page - 1) * limit, page * limit).map(({ events: _, ...run }) => run)

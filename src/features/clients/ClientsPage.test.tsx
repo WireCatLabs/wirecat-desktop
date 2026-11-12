@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useSync } from "@/features/tools"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { CommandError, TOO_OLD } from "@/platform/command-error"
 import { type CrmWriter, clientsMock, NORTHSTAR, SAMPLE_PROMPTED } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
@@ -770,7 +771,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
   })
 
   it("offers the memo update, and leaves the dialog for it, when memo cannot suggest yet", async () => {
-    vi.spyOn(platform, "clientsMapSuggest").mockRejectedValue(new Error("unknown command 'suggest'"))
+    vi.spyOn(platform, "clientsMapSuggest").mockRejectedValue(new CommandError(TOO_OLD, "unknown command 'suggest'"))
     useTools.setState({ install: vi.fn(async () => {}) })
     const { user, column } = await openMap()
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))

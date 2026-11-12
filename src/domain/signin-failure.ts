@@ -105,7 +105,7 @@ export function explainFailure(f: FailureInput): ExplainedFailure {
     primary: "retry",
     fallback,
   })
-  if (f.code === NEEDS_UPDATE || /unknown option/i.test(f.message))
+  if (f.code === NEEDS_UPDATE)
     return { reason: "needsUpdate", primary: "update", fallback: f.terminal ? "terminal" : null }
   if (zoomNeedsClientId(f.tool, f.message, f.reason))
     return { reason: "clientIdMissing", primary: "retry", fallback: null }

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { AiChecked, AiModel, AiModelChoice } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
+import { tooOld } from "@/platform/command-error"
 import { errorText as message } from "./errors"
 import { useReaders } from "./readers-store"
 
@@ -13,6 +14,8 @@ type AiModelState = {
   /** null until memo answers. */
   model: AiModel | null
   error: string | null
+  /** The error is memo refusing a command it lacks: an update fixes it. */
+  old: boolean
   busy: "save" | "off" | "check" | null
   /** memo's refusal of the last save or turn off: a reason the page words, or memo's own words. */
   actionError: string | null
@@ -30,17 +33,18 @@ type AiModelState = {
 export const useAiModel = create<AiModelState>((set, get) => ({
   model: null,
   error: null,
+  old: false,
   busy: null,
   actionError: null,
   failed: null,
   turnedOff: false,
   checked: null,
   async load() {
-    set({ error: null })
+    set({ error: null, old: false })
     try {
       set({ model: await platform.aiModelShow() })
     } catch (e) {
-      set({ error: message(e) })
+      set({ error: message(e), old: tooOld(e) })
     }
   },
   async save(choice) {

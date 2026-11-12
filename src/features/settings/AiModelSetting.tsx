@@ -1,7 +1,7 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { hostOfOrigin, isLocalHost, modelOnThisComputer, providerHost, staysHere } from "@/domain/ai-model"
-import { REFUSED, tooOldFor } from "@/domain/memory-add"
+import { REFUSED } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
@@ -92,6 +92,7 @@ function AiModelBody() {
   const m = useMessages(aiModelMessages)
   const model = useAiModel((s) => s.model)
   const error = useAiModel((s) => s.error)
+  const old = useAiModel((s) => s.old)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
 
   useEffect(() => {
@@ -100,7 +101,7 @@ function AiModelBody() {
   }, [])
 
   return error ? (
-    tooOldFor(error) ? (
+    old ? (
       <ToolNeeded gap={{ kind: "old", tool: "memo", version, need: null }} inline />
     ) : error === REFUSED ? (
       <ErrorNotice inline>{m.refused}</ErrorNotice>

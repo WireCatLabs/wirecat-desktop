@@ -89,9 +89,6 @@ export type Reason = (typeof SOURCE_REASONS)[number] | (typeof READER_REASONS)[n
 export const reasonOf = (error: string): Reason | null =>
   knownReason<Reason>([...SOURCE_REASONS, ...READER_REASONS, REFUSED], error)
 
-/** A memo from before `sources` answers as commander does for any word it does not know. */
-export const tooOldFor = (error: string) => /unknown (command|option)/.test(error)
-
 /** Why a picture would be kept by its name only, from what Settings holds; `null` when the AI model will read it. */
 export function imageReasonBefore(
   model: {

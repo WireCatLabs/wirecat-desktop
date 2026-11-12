@@ -8,7 +8,6 @@ import {
   MAX_TEXT,
   missingOf,
   reasonOf,
-  tooOldFor,
   untickedAtFirst,
 } from "./memory-add"
 
@@ -57,7 +56,6 @@ describe("Add to Memory", () => {
     expect(reasonOf("reader.not-running")).toBe("reader.not-running")
     expect(reasonOf("the store is busy")).toBeNull()
     expect(reasonOf("memo.refused")).toBe("memo.refused")
-    expect(tooOldFor("error: unknown command 'sources'")).toBe(true)
     expect(fileName("C:\\Users\\o\\runner notes.pdf")).toBe("runner notes.pdf")
   })
 

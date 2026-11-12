@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { hostOfOrigin, providerHost, staysHere } from "@/domain/ai-model"
-import { imageReasonBefore, tooOldFor } from "@/domain/memory-add"
+import { imageReasonBefore } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { useAiModel } from "@/shared/ai-model-store"
 import { goAiModel } from "@/shared/go-ai-model"
@@ -25,6 +25,7 @@ export function ImageBefore() {
   const m = useMessages(addMessages)
   const model = useAiModel((s) => s.model)
   const error = useAiModel((s) => s.error)
+  const old = useAiModel((s) => s.old)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function ImageBefore() {
   }, [])
 
   if (model === null && !error) return <Skeleton className="mt-[0.3rem] h-[1.1rem] w-[70%]" />
-  if (error && tooOldFor(error))
+  if (error && old)
     return (
       <div className="mt-[0.3rem]">
         <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need: null }}>
