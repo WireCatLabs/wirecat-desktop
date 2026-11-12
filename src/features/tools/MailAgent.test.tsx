@@ -164,17 +164,27 @@ it("offers no other agent when only the failing one is installed", async () => {
   expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
 })
 
-it("never offers Codex when memo refuses it, even when it is installed", async () => {
-  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"], "claude"))
+it("switches to Codex only through its warning, and asks no more once confirmed", async () => {
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"], "claude"))
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
     ...on,
     last: { ...ran, exitCode: 1 },
     trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
   })
+  const ack = vi
+    .spyOn(platform, "backgroundAgentAcknowledge")
+    .mockResolvedValue(agents(["claude", "codex"], "claude", true, true))
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, agent: "codex", spentTodayUsd: 0 })
+  vi.spyOn(platform, "backgroundAgentChoose").mockResolvedValue(agents(["claude", "codex"], "codex", true, true))
+  const user = userEvent.setup()
   render(<MailAgent tool={email} />)
 
-  expect(await screen.findByText("Claude Code has no credit left, so the run failed.")).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
+  await user.click(await screen.findByRole("button", { name: "Switch to Codex" }))
+  const warning = await screen.findByRole("dialog", { name: "Run background jobs in Codex?" })
+  expect(set).not.toHaveBeenCalled()
+  await user.click(within(warning).getByRole("button", { name: "I understand, use Codex" }))
+  expect(ack).toHaveBeenCalledWith("codex")
+  await vi.waitFor(() => expect(set).toHaveBeenCalledWith("email", true, "30m", "codex"))
 })
 
 it("offers Memo instead of a switch when memo is not installed", async () => {

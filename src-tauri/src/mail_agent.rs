@@ -2,7 +2,7 @@
 //! are memo's `schedule agent` and `schedule remove`; memo writes the systemd timer, launchd agent or scheduled task.
 //! Nothing here writes a timer.
 
-use crate::background_agent::{self, AgentTrouble};
+use crate::background_agent::{self, AgentTrouble, Pick};
 use crate::catalog::{self, Tool};
 use crate::skills::{body, call, failure, too_old};
 use crate::{redact, tools};
@@ -150,9 +150,8 @@ fn skipped(v: &Value) -> Option<Skipped> {
     })
 }
 
-/// `costed`: the agent reports what a run costs. memo refuses the cost caps for one that does not, so its schedule
-/// goes without them.
-fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str, costed: bool) -> Result<Vec<String>, String> {
+/// memo refuses the cost caps for an agent that does not report what a run costs, so its schedule goes without them.
+fn on_args(src: &MailAgentSource, every: Option<&str>, agent: &Pick) -> Result<Vec<String>, String> {
     let every = every.unwrap_or(&src.every);
     if !src.choices.iter().any(|c| c == every) {
         return Err(format!("not an interval the mail agent offers: {every}"));
@@ -160,15 +159,18 @@ fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str, costed: bo
     let mut args = Vec::new();
     let mut words = src.on.iter();
     while let Some(w) = words.next() {
-        if !costed && (w == "--max-cost" || w == "--max-cost-per-day") {
+        if !agent.costed && (w == "--max-cost" || w == "--max-cost-per-day") {
             words.next();
             continue;
         }
         args.push(match w.as_str() {
             "{every}" => every.to_string(),
-            "{harness}" => harness.to_string(),
+            "{harness}" => agent.id.clone(),
             _ => w.clone(),
         });
+    }
+    if agent.ack {
+        args.push(background_agent::ACK_FLAG.into());
     }
     Ok(args)
 }
@@ -177,13 +179,9 @@ fn on_args(src: &MailAgentSource, every: Option<&str>, harness: &str, costed: bo
 /// come back when it refuses, masked. `agent` is the owner's pick for this job, else the agent for background jobs.
 pub fn set(tool: &Tool, on: bool, every: Option<&str>, agent: Option<&str>) -> Result<MailAgent, String> {
     let src = source(tool)?;
-    let harness = match agent {
-        Some(a) => Some(background_agent::check(a)?.0),
-        None if on => Some(background_agent::effective().ok_or("Choose the agent for background jobs first.")?),
-        None => None,
-    };
+    let harness = if on { Some(background_agent::pick(agent)?) } else { None };
     let args = match &harness {
-        Some(h) if on => on_args(src, every, h, background_agent::reports_cost(h))?,
+        Some(h) if on => on_args(src, every, h)?,
         _ => src.off.clone(),
     };
     let via = match gate(src)? {
@@ -197,7 +195,7 @@ pub fn set(tool: &Tool, on: bool, every: Option<&str>, agent: Option<&str>) -> R
         return Err(failure(&out, json.as_ref()));
     }
     // The schedule is memo's and already changed; a lost note only hides which agent runs it.
-    let _ = background_agent::set_mail_triage(if on { harness.as_deref() } else { None });
+    let _ = background_agent::set_mail_triage(if on { harness.as_ref().map(|h| h.id.as_str()) } else { None });
     status(tool)
 }
 
@@ -224,10 +222,11 @@ mod tests {
     #[test]
     fn runs_memos_own_schedule_commands() {
         let s = src();
+        let claude = Pick { id: "claude".into(), costed: true, ack: false };
         assert_eq!(s.via, "memo");
         assert_eq!(s.list.join(" "), "schedule list name:mail-triage --no-record --json");
         assert_eq!(
-            on_args(s, None, "claude", true).unwrap(),
+            on_args(s, None, &claude).unwrap(),
             [
                 "schedule",
                 "agent",
@@ -243,13 +242,21 @@ mod tests {
                 "--json"
             ]
         );
-        assert_eq!(on_args(s, Some("15m"), "claude", true).unwrap()[6], "15m");
-        let codex = on_args(s, None, "codex", false).unwrap();
+        assert_eq!(on_args(s, Some("15m"), &claude).unwrap()[6], "15m");
+        let gemini = on_args(s, None, &Pick { id: "gemini".into(), costed: false, ack: false }).unwrap();
+        assert_eq!(gemini[3], "gemini");
+        assert!(!gemini.contains(&background_agent::ACK_FLAG.to_string()));
+        let codex = on_args(s, None, &Pick { id: "codex".into(), costed: false, ack: true }).unwrap();
         assert_eq!(codex[3], "codex");
+        assert_eq!(
+            codex.last().map(String::as_str),
+            Some(background_agent::ACK_FLAG),
+            "the owner confirmed its warning"
+        );
         assert!(!codex.iter().any(|w| w.starts_with("--max-cost")), "memo refuses a cap for an agent with no cost");
         assert!(!codex.contains(&"1".to_string()), "the cap's value goes with it");
-        assert!(on_args(s, Some("1m"), "claude", true).is_err());
-        assert!(on_args(s, Some("--yes"), "claude", true).is_err());
+        assert!(on_args(s, Some("1m"), &claude).is_err());
+        assert!(on_args(s, Some("--yes"), &claude).is_err());
         assert_eq!(s.off.join(" "), "schedule remove mail-triage --json");
         assert_eq!(s.waiting.join(" "), "review status --no-record --json");
         assert!(source(catalog::tool("tg").unwrap()).is_err());

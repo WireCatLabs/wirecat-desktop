@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
@@ -51,6 +51,8 @@ it("greys an agent memo cannot limit, with memo's reason, and never offers it", 
     signedIn: null,
     reportsCost: false,
     reason: "approves every command in print mode",
+    needsAck: false,
+    acknowledged: false,
   }
   const fixture = agents(["claude"])
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue({ ...fixture, agents: [...fixture.agents, kimi] })
@@ -66,18 +68,36 @@ it("greys an agent memo cannot limit, with memo's reason, and never offers it", 
   )
 })
 
-it("greys Codex with memo's reason when memo refuses it, and never offers it", async () => {
-  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"]))
+it("offers Codex after a warning: Cancel keeps the choice, «I understand» confirms it once and chooses it", async () => {
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"]))
+  const ack = vi
+    .spyOn(platform, "backgroundAgentAcknowledge")
+    .mockResolvedValue(agents(["claude", "codex"], null, true, true))
+  const choose = vi
+    .spyOn(platform, "backgroundAgentChoose")
+    .mockResolvedValue(agents(["claude", "codex"], "codex", true, true))
   const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
 
-  expect(await screen.findByText(/^Codex: cannot be held to read-only commands/)).toBeInTheDocument()
+  expect(await screen.findByText(/^Codex: runs any program and reads your files/)).toBeInTheDocument()
   expect(screen.getByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
   await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
-  expect(screen.getByRole("option", { name: "Codex · Its commands cannot be limited" })).toHaveAttribute(
-    "aria-disabled",
-    "true",
-  )
+  await user.click(screen.getByRole("option", { name: "Codex · Ready after a warning" }))
+  await user.click(screen.getByRole("button", { name: "Use this agent" }))
+  let warning = await screen.findByRole("dialog", { name: "Run background jobs in Codex?" })
+  expect(
+    within(warning).getByText(/can still run any program on this computer and read your files/),
+  ).toBeInTheDocument()
+  expect(within(warning).getByText(/^Memo says: runs any program/)).toBeInTheDocument()
+  await user.click(within(warning).getByRole("button", { name: "Cancel" }))
+  expect(ack).not.toHaveBeenCalled()
+  expect(choose).not.toHaveBeenCalled()
+
+  await user.click(screen.getByRole("button", { name: "Use this agent" }))
+  warning = await screen.findByRole("dialog", { name: "Run background jobs in Codex?" })
+  await user.click(within(warning).getByRole("button", { name: "I understand, use Codex" }))
+  expect(ack).toHaveBeenCalledWith("codex")
+  await vi.waitFor(() => expect(choose).toHaveBeenCalledWith("codex"))
 })
 
 it("on a memo that cannot list its agents, keeps Claude Code, greys Codex and points to the Memo update", async () => {

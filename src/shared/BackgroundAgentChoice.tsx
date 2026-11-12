@@ -4,6 +4,7 @@ import { useMessages } from "@/i18n"
 import type { BackgroundAgent, BackgroundAgents } from "@/platform/background-agent-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { Select } from "@/ui/Select"
@@ -41,7 +42,66 @@ export function useAgentsLoaded(): BackgroundAgents | null {
 }
 
 const stateOf = (m: BackgroundAgentText, a: BackgroundAgent) =>
-  a.state === "ready" && a.signedIn === false ? m.notSignedIn : m.states[a.state]
+  a.state === "ready" && a.signedIn === false
+    ? m.notSignedIn
+    : a.state === "ready" && a.needsAck && !a.acknowledged
+      ? m.warned
+      : m.states[a.state]
+
+/**
+ * Runs `then` for an agent at once, or first asks the owner to confirm the warning of one memo cannot limit. Every way
+ * to an agent goes through it: the choice in Settings, the mail agent's switch and a digest's.
+ */
+export function useAgentWarning() {
+  const m = useMessages(backgroundAgentMessages)
+  const [asking, setAsking] = useState<{ agent: BackgroundAgent; then: () => void } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const ask = (id: string, then: () => void) => {
+    const agent = useBackgroundAgents.getState().agents?.agents.find((a) => a.id === id)
+    if (!agent?.needsAck || agent.acknowledged) return then()
+    setAsking({ agent, then })
+  }
+  const shown = asking?.agent
+  const dialog = (
+    <Dialog
+      open={asking !== null}
+      title={shown ? m.warning.title(shown.name) : ""}
+      onClose={() => setAsking(null)}
+      actions={
+        shown && (
+          <>
+            <Button variant="secondary" onClick={() => setAsking(null)}>
+              {m.warning.cancel}
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                if (!asking) return
+                setBusy(true)
+                const kept = await useBackgroundAgents.getState().acknowledge(asking.agent.id)
+                setBusy(false)
+                setAsking(null)
+                if (kept) asking.then()
+              }}
+            >
+              {m.warning.accept(shown.name)}
+            </Button>
+          </>
+        )
+      }
+    >
+      {shown && (
+        <div className="flex max-w-[60ch] flex-col gap-3 text-[0.92rem] text-ink-soft">
+          <p>{m.warning.why(shown.name)}</p>
+          <p className="text-ink">{m.warning.can(shown.name)}</p>
+          {shown.reason && <p>{m.warning.memo(shown.reason)}</p>}
+          <p>{m.warning.once}</p>
+        </div>
+      )}
+    </Dialog>
+  )
+  return { ask, dialog }
+}
 
 /**
  * The owner's pick among the agents found. Every one is listed: those that cannot run a job are greyed with the
@@ -56,6 +116,7 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
   const name = useId()
   const [picked, setPicked] = useState<string | null>(null)
   const need = useFieldError(`${name}-agent`)
+  const warning = useAgentWarning()
 
   if (error)
     return (
@@ -73,7 +134,9 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
   const ready = agents.agents.filter((a) => a.state === "ready")
   const marked = picked ?? agents.chosen
   const shown = agents.agents.find((a) => a.id === marked)
-  const only = agents.chosen === null && ready.length === 1 ? ready[0] : undefined
+  // An agent waiting for its warning is offered, but never the one that runs by being the only one.
+  const usable = ready.filter((a) => !a.needsAck || a.acknowledged)
+  const only = agents.chosen === null && usable.length === 1 ? usable[0] : undefined
   const greyed = agents.agents.some((a) => a.state !== "ready")
   const runs = shown?.state === "ready" ? shown : only
   return (
@@ -102,7 +165,7 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
       {only && marked === null && <p className="text-[0.9rem] text-ink-soft">{m.onlyOne(only.name)}</p>}
       {runs && !runs.reportsCost && <p className="text-[0.9rem] text-ink-soft">{m.noCost(runs.name)}</p>}
       {agents.agents
-        .filter((a) => a.state === "unrestricted" && a.reason)
+        .filter((a) => (a.state === "unrestricted" || a.needsAck) && a.reason)
         .map((a) => (
           <p key={a.id} className="text-[0.9rem] text-ink-soft">
             {a.name}: {a.reason}
@@ -125,7 +188,7 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
             if (marked === null) return need.fail(m.need)
             if (shown?.state !== "ready") return need.fail(m.notReady)
             if (marked === agents.chosen) return need.fail(m.same)
-            void useBackgroundAgents.getState().choose(marked)
+            warning.ask(marked, () => void useBackgroundAgents.getState().choose(marked))
           }}
           icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
@@ -137,6 +200,7 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
           {m.chooseFailed}
         </ErrorNotice>
       </Collapse>
+      {warning.dialog}
     </div>
   )
 }

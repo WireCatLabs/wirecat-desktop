@@ -5,7 +5,14 @@ import { useLang, useMessages } from "@/i18n"
 import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { agentName, BackgroundAgentChoice, costed, otherAgent, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
+import {
+  agentName,
+  BackgroundAgentChoice,
+  costed,
+  otherAgent,
+  useAgentsLoaded,
+  useAgentWarning,
+} from "@/shared/BackgroundAgentChoice"
 import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { OpenLink } from "@/shared/OpenLink"
@@ -52,6 +59,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   const [failure, setFailure] = useState<Failure>(null)
   const [ask, setAsk] = useState(false)
   const agents = useAgentsLoaded()
+  const warning = useAgentWarning()
   const effective = agents?.effective ?? null
   const ready = agents?.agents.filter((a) => a.state === "ready").map((a) => a.id) ?? []
   const choose = state?.state === "off" && effective === null && ready.length > 1
@@ -199,7 +207,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
             effective={effective}
             agents={agents}
             busy={pending !== null}
-            onRun={(agent) => change(true, shownEvery ?? every, agent)}
+            onRun={(agent) => warning.ask(agent, () => change(true, shownEvery ?? every, agent))}
           />
         )}
       </Collapse>
@@ -218,6 +226,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
       <Collapse open={waiting !== null}>
         <Waiting count={waiting} m={m} />
       </Collapse>
+      {warning.dialog}
     </section>
   )
 }

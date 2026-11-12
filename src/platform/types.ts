@@ -579,6 +579,8 @@ export type Platform = {
   /** Every agent found: whether it can run background jobs, the owner's pick and the one a job starts. */
   backgroundAgents(): Promise<BackgroundAgents>
   backgroundAgentChoose(id: string): Promise<BackgroundAgents>
+  /** The owner confirmed the warning of an agent memo cannot limit; asked once per agent, and chooses nothing. */
+  backgroundAgentAcknowledge(id: string): Promise<BackgroundAgents>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */

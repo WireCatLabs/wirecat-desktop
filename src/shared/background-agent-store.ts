@@ -11,6 +11,8 @@ type State = {
   chooseError: string | null
   load(): Promise<void>
   choose(id: string): Promise<void>
+  /** True once memo's answer says the warning is kept. */
+  acknowledge(id: string): Promise<boolean>
 }
 
 /** The agents for the background jobs; shared by Settings, the mail agent and the digests. */
@@ -36,6 +38,17 @@ export const useBackgroundAgents = create<State>((set, get) => ({
       set({ chooseError: message(e) })
     } finally {
       set({ busy: false })
+    }
+  },
+  async acknowledge(id) {
+    set({ chooseError: null })
+    try {
+      const agents = await platform.backgroundAgentAcknowledge(id)
+      set({ agents })
+      return agents.agents.some((a) => a.id === id && a.acknowledged)
+    } catch (e) {
+      set({ chooseError: message(e) })
+      return false
     }
   },
 }))

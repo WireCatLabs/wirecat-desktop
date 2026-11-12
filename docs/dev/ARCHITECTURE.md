@@ -213,7 +213,10 @@ src-tauri/src/
                 installed, program not found, memo cannot start it, needs a newer Memo, or memo cannot limit its
                 commands: `restricted` is false, so a message it reads could make it run anything; the owner decided
                 those run no background job, and memo's `restricted_reason` says why), never hidden. Desktop names no
-                agent as allowed: only one memo marks restricted is offered or accepted. memo's `installed` and its
+                agent as allowed: only one memo marks restricted is offered or accepted, or one memo marks
+                `allowed_with_ack` (Codex) once the owner confirmed its warning (`acknowledge`, kept per agent in the
+                same file); its schedule and digest saves then carry `ACK_FLAG`. Both names wait for cli-core's final
+                ones. memo's `installed` and its
                 `programs` decide "ready" (Cursor: `cursor-agent` or `agent`, never the `cursor` editor). A memo
                 without the list gets Claude Code, and Codex greyed: that memo cannot say which agent it limits.
                 The owner's pick is kept in the app's data folder, because memo has no default; several ready and

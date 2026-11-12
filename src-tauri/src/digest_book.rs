@@ -7,7 +7,7 @@
 //! (a second digest, several times, weekdays, sources, a run that is not sent) is refused before memo runs.
 //! Titles, briefs and routes are the owner's own words and leave Rust unmasked, like the digest itself; never logged.
 
-use crate::background_agent::{self, AgentTrouble};
+use crate::background_agent::{self, AgentTrouble, Pick};
 use crate::catalog::Tool;
 use crate::digest_schedule::{self, DigestSchedules, OtherSchedule, Route, is_time, route};
 use crate::skills::{call, failure};
@@ -204,12 +204,15 @@ fn spec_options(spec: &DigestSpec, costed: bool) -> Result<Vec<String>, String> 
 
 /// `agent` is already checked against what this memo starts; `None` leaves memo's own: claude on `add`, the
 /// digest's own on `edit`.
-fn save_args(spec: &DigestSpec, create: bool, agent: Option<(&str, bool)>) -> Result<Vec<String>, String> {
-    let options = spec_options(spec, agent.is_none_or(|(_, costed)| costed))?;
+fn save_args(spec: &DigestSpec, create: bool, agent: Option<&Pick>) -> Result<Vec<String>, String> {
+    let options = spec_options(spec, agent.is_none_or(|a| a.costed))?;
     let mut args = words(&["digest", if create { "add" } else { "edit" }, &spec.name]);
     args.extend(options);
-    if let Some((agent, _)) = agent {
-        args.extend(["--agent".to_string(), agent.to_string()]);
+    if let Some(agent) = agent {
+        args.extend(["--agent".to_string(), agent.id.clone()]);
+        if agent.ack {
+            args.push(background_agent::ACK_FLAG.into());
+        }
     }
     // An open digest's brief has its own card and memo verb; an edit that sent it would undo that card's save.
     if create {
@@ -274,13 +277,11 @@ fn memo() -> Result<Result<&'static Tool, DigestBook>, String> {
 
 /// The agent to name: one this memo starts and limits (Claude Code for a memo that cannot list its own), the agent for
 /// background jobs on a new digest, none on an edit that keeps the digest's own.
-fn agent_for(spec: &DigestSpec, create: bool) -> Result<Option<(String, bool)>, String> {
-    let id = match (&spec.agent, create) {
-        (Some(a), _) => a.clone(),
-        (None, true) => background_agent::effective().ok_or("Choose the agent for background jobs first.")?,
-        (None, false) => return Ok(None),
-    };
-    background_agent::check(&id).map(Some)
+fn agent_for(spec: &DigestSpec, create: bool) -> Result<Option<Pick>, String> {
+    if spec.agent.is_none() && !create {
+        return Ok(None);
+    }
+    background_agent::pick(spec.agent.as_deref()).map(Some)
 }
 
 /// A memo from before `digest --agent` writes every digest with claude: asking it for claude is asking for nothing.
@@ -431,7 +432,7 @@ fn write(memo: &Tool, args: &[String], timeout: Duration) -> Result<Option<Value
 /// `create` adds a new digest; otherwise memo replaces the settings of the one named.
 pub fn save(spec: &DigestSpec, create: bool) -> Result<DigestBook, String> {
     let agent = agent_for(spec, create)?;
-    let args = save_args(spec, create, agent.as_ref().map(|(a, costed)| (a.as_str(), *costed)))?;
+    let args = save_args(spec, create, agent.as_ref())?;
     let memo = match memo()? {
         Ok(memo) => memo,
         Err(shown) => return Ok(shown),
@@ -569,13 +570,17 @@ mod tests {
             !args.iter().any(|a| a == "--source=all" || a == "--paused" || a.starts_with("--text")),
             "an edit leaves the brief and the timer to their own verbs"
         );
-        let moved = save_args(&weekly, false, Some(("codex", false))).unwrap();
-        assert!(moved.windows(2).any(|w| w == ["--agent", "codex"]));
+        let pick = |id: &str, costed, ack| Pick { id: id.into(), costed, ack };
+        let moved = save_args(&weekly, false, Some(&pick("gemini", false, false))).unwrap();
+        assert!(moved.windows(2).any(|w| w == ["--agent", "gemini"]));
+        assert!(!moved.contains(&background_agent::ACK_FLAG.to_string()));
+        let warned = save_args(&weekly, false, Some(&pick("codex", false, true))).unwrap();
+        assert!(warned.windows(3).any(|w| w == ["--agent", "codex", background_agent::ACK_FLAG]), "{warned:?}");
         assert!(!moved.iter().any(|a| a.starts_with("--max-cost")), "memo refuses a cap for an agent with no cost");
         assert!(!args.iter().any(|a| a == "--agent"), "an edit without one keeps the digest's own");
-        let claude = save_args(&weekly, true, Some(("claude", true))).unwrap();
+        let claude = save_args(&weekly, true, Some(&pick("claude", true, false))).unwrap();
         assert!(!without_agent(&claude).unwrap().iter().any(|a| a == "--agent" || a == "claude"));
-        assert_eq!(without_agent(&moved), None, "an older memo cannot write it in codex: the owner is told");
+        assert_eq!(without_agent(&moved), None, "an older memo cannot write it in gemini: the owner is told");
         let added = save_args(&weekly, true, None).unwrap();
         assert!(added.contains(&"--paused".to_string()));
         assert!(added.contains(&"--text=-- skip newsletters".to_string()));

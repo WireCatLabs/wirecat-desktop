@@ -18,6 +18,8 @@ export const BackgroundAgentsSchema = v.object({
       signedIn: v.nullable(v.boolean()),
       reportsCost: v.boolean(),
       reason: v.nullable(v.string()),
+      needsAck: v.boolean(),
+      acknowledged: v.boolean(),
     }),
   ),
   chosen: v.nullable(v.string()),

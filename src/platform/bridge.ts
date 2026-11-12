@@ -383,6 +383,7 @@ function createTauri(): Platform {
       invoke("mail_agent_set", { id, on, every: every ?? null, agent: agent ?? null }),
     backgroundAgents: () => call(BackgroundAgentsSchema, "background_agents"),
     backgroundAgentChoose: (id) => call(BackgroundAgentsSchema, "background_agent_choose", { id }),
+    backgroundAgentAcknowledge: (id) => call(BackgroundAgentsSchema, "background_agent_acknowledge", { id }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     enrichmentStatus: (id) => invoke("enrichment_status", { id }),
     enrichmentPreview: (id, provider, model) => invoke("enrichment_preview", { id, provider, model }),

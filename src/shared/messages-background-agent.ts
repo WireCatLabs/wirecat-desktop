@@ -15,6 +15,17 @@ const en = {
     unrestricted: "Its commands cannot be limited",
   } as Record<AgentState, string>,
   notSignedIn: "Ready, not signed in",
+  warned: "Ready after a warning",
+  warning: {
+    title: (name: string) => `Run background jobs in ${name}?`,
+    why: (name: string) =>
+      `Memo cannot limit the commands ${name} runs. A background job reads your mail and messages, and a message can ask the agent to do things.`,
+    can: (name: string) => `${name} can still run any program on this computer and read your files.`,
+    memo: (reason: string) => `Memo says: ${reason}`,
+    once: "You are asked once for this agent.",
+    accept: (name: string) => `I understand, use ${name}`,
+    cancel: "Cancel",
+  },
   greyed:
     "Greyed agents cannot run background jobs. «Its program is not found»: its settings are on this computer, but its command is not, so install it again. «Cannot run on a schedule yet»: Memo cannot start it without you. «Its commands cannot be limited»: a job reads your mail and messages, and a message could make such an agent run anything on this computer, so it does not run background jobs. Memo's reason is under the list.",
   oldMemo: "This Memo knows only Claude Code and Codex. Update Memo to run background jobs in other agents.",
@@ -53,6 +64,17 @@ const ru: typeof en = {
     unrestricted: "Его команды нельзя ограничить",
   },
   notSignedIn: "Готов, вход не выполнен",
+  warned: "Готов после предупреждения",
+  warning: {
+    title: (name) => `Запускать фоновые задачи в ${name}?`,
+    why: (name) =>
+      `Memo не может ограничить команды, которые выполняет ${name}. Фоновая задача читает вашу почту и сообщения, а сообщение может попросить агента что-то сделать.`,
+    can: (name) => `${name} всё равно может запустить любую программу на этом компьютере и прочитать ваши файлы.`,
+    memo: (reason) => `Memo сообщает: ${reason}`,
+    once: "Для этого агента это спрашивается один раз.",
+    accept: (name) => `Понимаю, использовать ${name}`,
+    cancel: "Отмена",
+  },
   greyed:
     "Серые агенты не могут выполнять фоновые задачи. «Не найдена его программа»: его настройки на компьютере есть, а команды нет, поэтому установите его заново. «Пока не умеет работать по расписанию»: Memo не может запустить его без вас. «Его команды нельзя ограничить»: задача читает вашу почту и сообщения, и сообщение может заставить такого агента сделать на компьютере что угодно, поэтому фоновые задачи он не выполняет. Причина от Memo указана под списком.",
   oldMemo: "Эта Memo знает только Claude Code и Codex. Обновите Memo, чтобы запускать фоновые задачи в других агентах.",
@@ -91,6 +113,17 @@ const es: typeof en = {
     unrestricted: "Sus comandos no se pueden limitar",
   },
   notSignedIn: "Listo, sin iniciar sesión",
+  warned: "Listo tras un aviso",
+  warning: {
+    title: (name) => `¿Ejecutar las tareas en segundo plano en ${name}?`,
+    why: (name) =>
+      `Memo no puede limitar los comandos que ejecuta ${name}. Una tarea en segundo plano lee tu correo y tus mensajes, y un mensaje puede pedirle al agente que haga cosas.`,
+    can: (name) => `${name} aún puede ejecutar cualquier programa de este equipo y leer tus archivos.`,
+    memo: (reason) => `Memo dice: ${reason}`,
+    once: "Se pregunta una sola vez para este agente.",
+    accept: (name) => `Entiendo, usar ${name}`,
+    cancel: "Cancelar",
+  },
   greyed:
     "Los agentes en gris no pueden ejecutar tareas en segundo plano. «No se encuentra su programa»: su configuración está en este equipo, pero su comando no, así que vuelve a instalarlo. «Aún no puede ejecutarse con horario»: Memo no puede iniciarlo sin ti. «Sus comandos no se pueden limitar»: una tarea lee tu correo y tus mensajes, y un mensaje podría hacer que ese agente ejecute cualquier cosa en este equipo, así que no ejecuta tareas en segundo plano. El motivo de Memo está debajo de la lista.",
   oldMemo:

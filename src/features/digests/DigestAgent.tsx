@@ -1,6 +1,13 @@
 import { useMessages } from "@/i18n"
 import type { DigestItem } from "@/platform/bindings"
-import { agentName, BackgroundAgentChoice, costed, otherAgent, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
+import {
+  agentName,
+  BackgroundAgentChoice,
+  costed,
+  otherAgent,
+  useAgentsLoaded,
+  useAgentWarning,
+} from "@/shared/BackgroundAgentChoice"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -14,6 +21,7 @@ export function DigestAgent({ item, title }: { item: DigestItem; title: string }
   const m = useMessages(backgroundAgentMessages)
   const agents = useAgentsLoaded()
   const { busy, remembered, save } = useDigestBook()
+  const warning = useAgentWarning()
   if (item.agent === null) return null
   const name = (id: string) => agentName(agents, id)
   const { trouble, last } = item
@@ -23,7 +31,8 @@ export function DigestAgent({ item, title }: { item: DigestItem; title: string }
   const troubled = failing ? (trouble.agent ?? item.agent) : null
   const other = otherAgent(agents, troubled)
   const instead = failing ? other.instead : undefined
-  const moveTo = (agent: string) => void save({ ...specOf(item, title, remembered), agent }, false)
+  const moveTo = (agent: string) =>
+    warning.ask(agent, () => void save({ ...specOf(item, title, remembered), agent }, false))
   return (
     <div className="flex flex-col gap-2 text-[0.92rem] text-ink-soft">
       <p>
@@ -51,6 +60,7 @@ export function DigestAgent({ item, title }: { item: DigestItem; title: string }
         </ErrorNotice>
       )}
       {failing && other.pick && <BackgroundAgentChoice />}
+      {warning.dialog}
     </div>
   )
 }

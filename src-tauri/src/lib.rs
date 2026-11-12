@@ -234,6 +234,7 @@ pub fn run() {
             commands::tools::mail_agent_waiting,
             commands::tools::background_agents,
             commands::tools::background_agent_choose,
+            commands::tools::background_agent_acknowledge,
             commands::tools::cancel_install,
             commands::notes_setup::notes_setup_status,
             commands::notes_setup::notes_pick_folder,

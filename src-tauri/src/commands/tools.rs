@@ -163,6 +163,14 @@ pub async fn background_agent_choose(id: String) -> Result<background_agent::Bac
 }
 
 #[tauri::command]
+pub async fn background_agent_acknowledge(id: String) -> Result<background_agent::BackgroundAgents, AppError> {
+    crate::log::command("background_agent_acknowledge", async move {
+        attempt(move || background_agent::acknowledge(&id)).await
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn mail_agent_waiting(id: String) -> Result<Option<u64>, AppError> {
     crate::log::command("mail_agent_waiting", async move {
         let tool = known_tool(&id)?;
