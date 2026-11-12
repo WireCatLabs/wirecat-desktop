@@ -2,31 +2,38 @@
 
 ## First, look for one
 
-Check [src/ui/](../../../src/ui/) and [reuse.md](reuse.md) before you write a component. `ui/` has Button,
-TextButton, SplitButton, CopyButton, CopyField, Dialog, Disclosure, Collapse, AutoHeight, Crossfade, Callout,
-ErrorNotice (also `tone="warn"` for a warning banner), EmptyState (nothing to show, and why), Checkbox, Select, Combobox, Segmented (its `md` size is a page's Table · Board switch), FilterBar, FilterMenu,
-Calendar, Stepper, Skeleton, Lamp, Pill, Board, ProgressBar, DataTable (a page's table of records: Tasks, Search) and
-Pager, RefreshButton (a page's Read again / Check again). A page's frame and title row are `Page` and
-`PageHeader` in [shared/Page.tsx](../../../src/shared/Page.tsx). Which component does which job, and what still does
-it by hand: [ui-consistency.md](../ui-consistency.md).
+Check [src/ui/](../../../src/ui/) and [reuse.md](reuse.md) before you write a component. `ui/` has Button (with
+`busy` for an action under way), TextButton, LinkButton, BackButton, SplitButton, DecisionButtons, CopyButton (the only
+copy to the clipboard), CopyField, CopyRef, Dialog, Disclosure, Collapse, AutoHeight, Crossfade, Callout, ErrorNotice
+(also `tone="warn"` for a warning banner; the tool's own text under Details with `raw`), EmptyState (nothing to show,
+and why), NoticeChips, Checkbox, Switch, Select, Combobox, NumberField, SecretField, FieldError (a field's error, with
+`useFieldError`), Segmented (its `md` size is a page's Table · Board switch), Tabs, FilterBar, FilterMenu, Calendar,
+Stepper, Skeleton, Lamp, Pill, Board, ProgressBar, DataTable (a page's table of records: Tasks, Search) and Pager,
+RefreshButton (a page's Read again / Check again), Tooltip, InfoTip, ExpandChevron, SectionTitle and Logo. A page's
+frame and title row are `Page` and `PageHeader` in [shared/Page.tsx](../../../src/shared/Page.tsx); an external link
+is `ExtLink` and a page that needs a tool is `ToolNeeded` (both in `shared/`). Which component does which job, and
+what still does it by hand: [ui-consistency.md](../ui-consistency.md).
 
-Missing today and planned: Tabs, Switch, Field, Toast, Tooltip, Popover. Their behaviour library is
-being chosen in [ui-libraries.md](../ui-libraries.md). Until then, do not write a fifth hand-made progress bar or a
-third tab list: add the primitive to `ui/` and use it in your place first.
+Missing today: Toast and Popover. Do not write a hand-made one: add the primitive to `ui/` and use it in your place
+first.
 
 ## ui/ or feature?
 
 - **ui/** when it knows no data: props in, events out, no store, no platform, no feature. It may read `i18n` for
   its own words ([ui/messages.ts](../../../src/ui/messages.ts)). Biome fails the build if it imports more.
 - **feature** when it reads a store, calls the platform or knows a tool. Keep it in `features/<area>/`.
-- **Target: shared/** when it knows data and two features use it (ToolIcon, ReportThis).
+- **shared/** when it knows data and two features use it (ToolIcon, ReportThis, ToolNeeded).
 
 ## Rules
 
 - **Variants by prop, not by copy.** Follow [Button.tsx](../../../src/ui/Button.tsx): a `variant` and a `size`
   map to classes in one place. Do not pass long class strings from callers to restyle a primitive.
 - **Tokens only.** Colours are tokens from [index.css](../../../src/styles/index.css) (`bg-app`, `text-ink`,
-  `border-line`, `text-bad`). No hex values in components. Then dark mode works without extra code.
+  `border-line`, `text-bad`). No hex values in components. Then dark mode works without extra code. Corners are
+  `rounded-rack|pill|control|button|inset|dialog` and a raised panel's shadow is `shadow-panel` (names in
+  [DESIGN.md](../../../DESIGN.md)); Tailwind's stock `shadow-sm…2xl` fail a one-way rule.
+- **Dialogs.** The element that takes the first focus has `data-autofocus`; `Dialog` focuses it after it opens. On a
+  confirm that deletes, that is the safe button.
 - **Both themes.** Capture light and dark: `node scripts/capture.mjs out.png "?state=fresh" --dark`.
 - **Keyboard.** Every action reachable by Tab, Enter and Space. Arrow keys inside lists and tab lists. Visible focus.
   A real `<button>` for an action, never a `div` with `onClick`.

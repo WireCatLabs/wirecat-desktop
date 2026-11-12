@@ -13,8 +13,13 @@ A screen is a page in the sidebar. It is one entry in `src/app/sections.tsx` and
 - **Today.** Add a mock answer in `src/platform/mock-<area>.ts` so `pnpm dev` shows the page with data. Add a
   `?<area>=<state>` scenario when a state is hard to reach by clicks, and list it in [CLAUDE.md](../../../CLAUDE.md).
 - **Today.** Rule 9: nothing jumps, nothing vanishes. A flow of steps stays on one surface.
-- **Target.** The page is lazy: `page: lazy(() => import("@/features/<area>"))`.
-- **Target.** The folder has `index.ts` (exports the page and what others may use) and `api.ts` (query hooks).
+- **Today.** The page is lazy. `features/<area>/page.ts` exports only the page, and `sections.tsx` imports that file:
+  `lazy(() => import("@/features/<area>/page").then((m) => ({ default: m.AreaPage })))`. Importing the feature's
+  `index.ts` instead would pull the whole feature into the first chunk; `pnpm bundle:check` fails when the start chunk
+  grows past its budget.
+- **Today.** The folder has `index.ts`: what other features may import. They import nothing else from it
+  (`no-cycles.test.ts`).
+- **Target.** The folder has `api.ts` with its query hooks (analytics, clients, search and tools have one).
 
 ## Checklist
 

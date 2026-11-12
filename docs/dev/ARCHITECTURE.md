@@ -10,12 +10,12 @@ New here? Read [the architecture report](architecture-report.md) first. Rules pe
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
-  shared/       parts and stores two or more features use: ToolIcon, ReportThis, JsonTree, nav, and the stores of tools, agents, storage, system, signin and onboarding. Imports no feature (Biome rule).
+  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/, people/, groups/, privacy/, about/, fix/).
+  shared/       parts and stores two or more features use: ToolIcon, ToolNeeded, ExtLink, ReportThis, JsonTree, nav, `errorText`, `usePoll`, `safeStorage`, and the stores of tools, agents, storage, system, signin and onboarding (the full list: [guides/reuse.md](guides/reuse.md)). Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
   features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background, the Tailscale, Cloudflare and funnel helper status), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
   shared/query.ts            the one QueryClient (no retries, no refetch on focus unless a query asks: a refetch starts a tool process; the window's focus counts, not only its visibility), the tool query keys (`toolKeys`) and the profiles query several features share. `app/App.tsx` and `testing/render.tsx` provide it; `resetStores` replaces it before each test.
-  ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
+  ui/           presentational parts: Button, Dialog, CopyButton… Props in, events out ([guides/new-component.md](guides/new-component.md)).
   platform/     the only door to Rust. Has a browser mock. `bindings.ts` holds the types generated from the Rust
                 structs (`src-tauri/src/bindings.rs`; `cargo test bindings` rewrites it and fails until it is
                 committed). An answer typed there is trusted as is; valibot stays where the shape comes from a
@@ -30,7 +30,9 @@ src-tauri/src/
                 catalog tool through `install::install` (and `node::set_up` with `--own-node`), one JSON line.
   commands/     Tauri commands, one file per feature: the whole native surface, one function each. A command
                 fails with `error.rs`'s `{ kind, message }` (`unknown_tool`, `invalid_profile`, `not_installed`,
-                `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message.
+                `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message, and the
+                interface words any failure only through `errorText` (`src/shared/errors.ts`). How to add one:
+                [guides/rust-command.md](guides/rust-command.md).
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
                 `autostart_status` / `autostart_set`: WireCat opening at login, through the Tauri autostart plugin in
                 Rust (no plugin permission in the webview); a test copy or a development build refuses to turn it on.
@@ -201,7 +203,7 @@ src-tauri/src/
                 checks the provider (anthropic, openai), the model's name and the address before they become arguments.
                 The Search page's button runs `search all --only notes --harder --no-record` for the shown query (a recorded run keeps the query in memo's run log), first page
                 only; memo's `order` entry under `missing` is the outcome (no entry: the model's order stands). Gated on
-                `searchHarder.minVersion` in the catalog, null until a memo with it is on npm. Keys are enrichment's.
+                `searchHarder.minVersion` in the catalog (memo 0.131.74). Keys are enrichment's.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
@@ -270,6 +272,26 @@ src-tauri/src/
                 tool writes the timer. Its latest run (and `failing_since`) shows under the account, and a failed sync
                 from this window clears once a later run succeeded, timed or listed by `syncLast`.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
+  attachments.rs one file of a stored message by its `msg:` reference: the text the owner's agent read from a picture
+                (`<messenger> images read`), or the saved copy opened.
+  picture_reading.rs Settings "Reading pictures": memo's `models picture-reading show|set`.
+  local_only.rs Settings "Only this computer": memo's `models local-only show|set`, and where each feature sends data.
+  digest_routes.rs what a digest's route form offers: tg's bots and own users, mail's mailboxes; read only.
+  memory_edit.rs the owner's changes to a relationship, and decisions on many relationship proposals at once.
+  memory_preview.rs a source before it is added: a picked file read here, a web page read by memo (never by the app).
+  records_import.rs Storage's import: `memo records templates show`, then `records check` and `records import` of the
+                file chosen in the system's window.
+  config_repair.rs a tool's broken config file mended through its own repair command; values are never printed.
+  store_recover.rs a damaged store: the tool's `store recover` report and its steps, each run as the tool wrote it.
+  permissions.rs the Permissions block: each command's level per profile, from the tool's own config.
+  zoom_app.rs   what zm needs made in the Zoom App Marketplace, from `zm app --json`.
+  cache.rs      what the app remembers about a tool's program while it runs (memory only).
+  window_size.rs the main window's first size, and its saved size and place restored.
+  probe.rs      `WIRECAT_PROBES`: the skipped tests that touch the owner's accounts or this computer run only for what it
+                names ([testing.md](guides/testing.md#probes)).
+  page_loads.rs, install_e2e.rs, own_tool_e2e.rs  tests only: each page's native calls replayed and counted; the real
+                install with npm on a local registry (`bin/install-e2e`); "Add your own tool" end to end
+                (`bin/own-tool-e2e`).
 ```
 
 Biome enforces the arrows (`biome.json`, `noRestrictedImports`): `domain` imports nothing above it, `platform`
@@ -277,7 +299,7 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 
 ## How an install travels
 
-1. `ToolRow` calls `useTools().install("drive")` (`src/features/tools/store.ts`). Installs queue; one runs at a time,
+1. `ToolRow` calls `useTools().install("drive")` (`src/shared/tools-store.ts`). Installs queue; one runs at a time,
    because two global npm installs at once can corrupt each other.
    From the row, and from the setup's Install step, the install first asks `store_preflight` (`preflight.rs`) when its
    turn in the queue comes, so a batch's later tools are checked against the ones installed before them; a warning
@@ -301,7 +323,8 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
    why not, rides on the `done` event; a failure is a warning beside a working update. The Agents page then asks that
    tool again (`useAgents.recheck`).
-7. Every event is parsed by `InstallEventSchema` before the store sees it.
+7. Events reach the store as Rust sent them, typed by `InstallEvent` from the generated bindings; they are not
+   parsed again.
 
 ## Finding tools
 
