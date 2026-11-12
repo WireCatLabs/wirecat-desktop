@@ -23,7 +23,6 @@ const savedPage = () => safeStorage.getItem(PAGE_KEY)
 
 const firstPage = () => {
   if (typeof window === "undefined") return HOME_SECTION
-  if (new URLSearchParams(window.location.search).has("add")) return "memory"
   return savedPage() ?? HOME_SECTION
 }
 

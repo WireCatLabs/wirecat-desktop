@@ -39,7 +39,7 @@ import { useGuideStart } from "./start-store"
 
 const params = new URLSearchParams(window.location.search)
 const scenario = params.get("guides")
-let firstVisit = scenario === "first"
+let firstVisit = false
 
 /** The tour started from the setup ends here, so the page greets the owner once when it opens. */
 export function greetOnArrival() {

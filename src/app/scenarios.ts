@@ -2,6 +2,8 @@ import { useSeen } from "@/app/badges"
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
 import { useClients } from "@/features/clients"
+import { greetOnArrival } from "@/features/guides"
+import { useAddSource } from "@/features/memory"
 import { useNotifications } from "@/features/notifications"
 import { useSearch } from "@/features/search"
 import { useTasks } from "@/features/tasks"
@@ -43,6 +45,9 @@ export async function runMockScenario() {
     useSeen.getState().see("agents")
     useClients.setState({ prompted: SAMPLE_PROMPTED })
   }
+  if (params.has("add")) useNav.setState({ active: "memory" })
+  if (params.get("add") === "open") useAddSource.setState({ open: true })
+  if (params.get("guides") === "first") greetOnArrival()
   const crash = params.get("crash")
   if (crash) useNav.getState().go(crash)
   const onboarding = params.get("onboarding")
