@@ -1,4 +1,4 @@
-// Writes the command list the guides test checks every step against: node scripts/guide-commands.mjs
+// Writes the command list the guides test and the catalog test check against: node scripts/guide-commands.mjs
 // Read from each installed tool's own `--help` and `commands --json`; with D-Bus off, nothing reaches the keyring.
 import { execFileSync } from "node:child_process"
 import { writeFileSync } from "node:fs"
@@ -15,10 +15,15 @@ const fixture = {}
 for (const bin of TOOLS) {
   const doc = JSON.parse(run(bin, ["commands", "--json"]))
   const commands = walk(doc.commands)
-    .filter((c) => !c.commands?.length)
     .map((c) => [...c.path, ...flagsOf(c).sort()].join(" "))
     .sort()
-  fixture[bin] = { version: doc.version, profile: run(bin, ["--help"]).includes(`Usage: ${bin} <profile> `), commands }
+  const global = flagsOf({ options: doc.global_options ?? [] }).sort()
+  fixture[bin] = {
+    version: doc.version,
+    profile: run(bin, ["--help"]).includes(`Usage: ${bin} <profile> `),
+    global,
+    commands,
+  }
 }
 writeFileSync(out, `${JSON.stringify(fixture, null, 2)}\n`)
 console.log(`${out}: ${TOOLS.map((t) => `${t} ${fixture[t].version}`).join(", ")}`)
