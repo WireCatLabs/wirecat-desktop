@@ -279,7 +279,8 @@ function createTauri(): Platform {
     clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
     peopleRead: (kind) => call(PeopleReadSchema, "people_read", { kind: kind ?? null }),
     peopleKinds: () => call(KindCountsSchema, "people_kinds"),
-    peoplePage: (ask) => call(PeoplePageSchema, "people_page", ask),
+    peoplePage: ({ kind, page, size, query, sort }) =>
+      call(PeoplePageSchema, "people_page", { kind, page, size, query, sort }),
     peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
