@@ -20,6 +20,7 @@ import { driveFoldersMock } from "./mock-drive-folders"
 import { enrichmentMock } from "./mock-enrichment"
 import { groupsMock } from "./mock-groups"
 import { npmLines } from "./mock-install"
+import { localOnlyMock } from "./mock-local-only"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
 import { memoState, OLD_MEMO } from "./mock-memo"
@@ -737,6 +738,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...recordsMock(params),
     ...enrichmentMock(params),
     ...searchHarderMock(params),
+    ...localOnlyMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

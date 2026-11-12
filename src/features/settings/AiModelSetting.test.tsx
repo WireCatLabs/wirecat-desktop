@@ -346,6 +346,15 @@ describe("AI model", () => {
     ).toBeInTheDocument()
   })
 
+  it("says a model that answered nothing seems not to read pictures, and what to pick", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
+    vi.spyOn(platform, "aiModelCheck").mockResolvedValue(checked("ai.empty-answer"))
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.click(await screen.findByRole("button", { name: "Check" }))
+    expect(await screen.findByText(/seems not to read pictures.*Choose a model that reads them/)).toBeInTheDocument()
+  })
+
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)

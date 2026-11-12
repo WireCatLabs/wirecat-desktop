@@ -78,6 +78,10 @@ pub struct Tool {
     /// first hits (`search_harder.rs`).
     #[serde(default)]
     pub search_harder: Option<crate::search_harder::SearchHarderSource>,
+    /// Only memo: its own `models local-only`, one switch that keeps every model call on this computer
+    /// (`local_only.rs`).
+    #[serde(default)]
+    pub local_only: Option<crate::local_only::LocalOnlySource>,
     /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
     #[serde(default)]
     pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,

@@ -14,7 +14,7 @@ import type {
   SkillText,
   Target,
 } from "./agents-schemas"
-import type { AiChecked, AiModel, AiModelChoice, AiOff } from "./ai-model-schemas"
+import type { AiChecked, AiModel, AiModelChoice, AiOff, LocalOnly, LocalOnlyStatus } from "./ai-model-schemas"
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackgroundAgents } from "./background-agent-schemas"
@@ -573,6 +573,13 @@ export type Platform = {
   backgroundStatus(id: string, profile: string): Promise<Background>
   /** One of the tool's own `server` commands for one profile; a failure comes back as `fault`, sorted for the page. */
   backgroundRun(id: string, profile: string, action: BackgroundAction): Promise<BackgroundOutcome>
+  /** memo's `models local-only show` (`localOnly` in the catalog): the switch, and where each feature sends data now. */
+  localOnlyStatus(): Promise<LocalOnly>
+  /**
+   * The owner moved the switch in Settings (`set on|off --from-app`); memo answers the whole new state. memo's refusals
+   * come back as `local-only.owner-only` or `local-only.refused`.
+   */
+  localOnlySet(on: boolean): Promise<LocalOnlyStatus>
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
   /** memo's own `schedule agent` at `every` (the catalog's default when left out) or `schedule remove`; rejects

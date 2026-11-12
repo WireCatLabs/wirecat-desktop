@@ -14,6 +14,7 @@ export const CHECK_REASONS = [
   "ai.model-unknown",
   "ai.unreachable",
   "ai.bad-answer",
+  "ai.empty-answer",
   "ai.provider-error",
   "ai.address-refused",
   "ai.failed",
@@ -107,6 +108,8 @@ const en = {
     "ai.unreachable": (s) =>
       s.ollama ? "Ollama is not running. Start it, then check again." : `Cannot reach ${s.host}.`,
     "ai.bad-answer": (s) => `${s.host} answered, but not with text. The model may not support chat.`,
+    "ai.empty-answer": () =>
+      "This model seems not to read pictures: it answered nothing. Choose a model that reads them.",
     "ai.provider-error": (s) => `${s.host} has a problem on its side. Try again later.`,
     "ai.address-refused": () => "This address is not allowed. Use https, or http only for a server on this computer.",
     "ai.failed": (s) => `${s.host} refused the request.`,
@@ -207,6 +210,7 @@ const ru: typeof en = {
     "ai.unreachable": (s) =>
       s.ollama ? "Ollama не запущена. Запустите её и проверьте снова." : `Не удаётся связаться с ${s.host}.`,
     "ai.bad-answer": (s) => `${s.host} ответил, но не текстом. Возможно, модель не умеет вести чат.`,
+    "ai.empty-answer": () => "Эта модель, похоже, не читает картинки. Выберите модель, которая их читает.",
     "ai.provider-error": (s) => `У ${s.host} неполадка на их стороне. Попробуйте позже.`,
     "ai.address-refused": () => "Этот адрес не разрешён. Нужен https, а http только для сервера на этом компьютере.",
     "ai.failed": (s) => `${s.host} отклонил запрос.`,
@@ -308,6 +312,7 @@ const es: typeof en = {
     "ai.unreachable": (s) =>
       s.ollama ? "Ollama no está en marcha. Inícialo y comprueba de nuevo." : `No se puede conectar con ${s.host}.`,
     "ai.bad-answer": (s) => `${s.host} respondió, pero no con texto. Puede que el modelo no admita chat.`,
+    "ai.empty-answer": () => "Este modelo parece no leer imágenes: no respondió nada. Elige un modelo que las lea.",
     "ai.provider-error": (s) => `${s.host} tiene un problema por su parte. Inténtalo más tarde.`,
     "ai.address-refused": () =>
       "Esta dirección no está permitida. Usa https, o http solo para un servidor en este ordenador.",

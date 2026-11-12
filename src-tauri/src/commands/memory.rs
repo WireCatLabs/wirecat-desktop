@@ -237,3 +237,14 @@ pub async fn memory_file_preview(
 pub async fn memory_link_preview(url: String) -> Result<Option<memory_preview::LinkPreview>, AppError> {
     crate::log::command("memory_link_preview", async move { attempt(move || memory_preview::link(&url)).await }).await
 }
+
+#[tauri::command]
+pub async fn local_only_status() -> Result<crate::local_only::LocalOnly, AppError> {
+    crate::log::command("local_only_status", async move { attempt(crate::local_only::status).await }).await
+}
+
+/// Sent only from the Settings switch the owner moved; memo answers with the whole new state.
+#[tauri::command]
+pub async fn local_only_set(on: bool) -> Result<crate::local_only::LocalOnlyStatus, AppError> {
+    crate::log::command("local_only_set", async move { attempt(move || crate::local_only::set(on)).await }).await
+}

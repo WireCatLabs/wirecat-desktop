@@ -666,6 +666,28 @@ export type LastSync = {
 	known: boolean,
 };
 
+export type LocalOnly = 
+/**  The installed memo is older than `need`, or `need` is `None`: no memo with it is released yet. */
+{ state: "old"; version: string | null; need: string | null } | { state: "ready"; status: LocalOnlyStatus };
+
+/**  One feature and where its data goes now: `this-computer`, `elsewhere`, `agent` or `off`. */
+export type LocalOnlyFeature = {
+	id: string,
+	/**  memo's English name, shown only for an id the window has no words for. */
+	title: string,
+	where: string,
+	address: string | null,
+	/**  Local only is on and stops this feature until it uses a model on this computer. */
+	refused: boolean,
+};
+
+export type LocalOnlyStatus = {
+	on: boolean,
+	/**  When the owner turned it on; `None` while off, or when memo could not read the setting (which counts as on). */
+	since: string | null,
+	features: LocalOnlyFeature[],
+};
+
 export type LoginCode = {
 	code: string,
 	expiresAt: string,

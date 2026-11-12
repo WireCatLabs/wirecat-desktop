@@ -35,6 +35,7 @@ mod host_open;
 mod install;
 #[cfg(test)]
 mod install_e2e;
+mod local_only;
 mod log;
 mod mail_agent;
 mod mcp;
@@ -393,6 +394,8 @@ pub fn run() {
             commands::memory::ai_model_off,
             commands::memory::ai_model_check,
             commands::memory::ai_model_list,
+            commands::memory::local_only_status,
+            commands::memory::local_only_set,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

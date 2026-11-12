@@ -1853,7 +1853,7 @@
       },
       "enrichment": {
         "show": ["models", "consents", "show", "--no-record", "--json"],
-        "baseUrl": { "minVersion": null },
+        "baseUrl": { "minVersion": "0.131.85" },
         "preview": [
           "models",
           "consents",
@@ -1901,6 +1901,12 @@
           "--",
           "{query}"
         ]
+      },
+      "localOnly": {
+        "minVersion": "0.131.85",
+        "show": ["models", "local-only", "show", "--no-record", "--json"],
+        "on": ["models", "local-only", "set", "on", "--from-app", "--record", "--json"],
+        "off": ["models", "local-only", "set", "off", "--from-app", "--record", "--json"]
       },
       "sync": {
         "run": ["sync", "--record", "--json"],

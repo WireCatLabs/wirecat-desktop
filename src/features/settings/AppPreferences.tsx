@@ -8,6 +8,7 @@ import { Select } from "@/ui/Select"
 import { AiModelSetting } from "./AiModelSetting"
 import { BackgroundAgentSetting } from "./BackgroundAgentSetting"
 import { CommunitySetting } from "./CommunitySetting"
+import { LocalOnlySetting } from "./LocalOnlySetting"
 import { MachineSetting } from "./MachineSetup"
 import { settingsMessages } from "./messages"
 import { OwnToolsSetting } from "./OwnToolsSetting"
@@ -36,6 +37,7 @@ export function AppPreferences() {
       <div className="mt-6 flex flex-col gap-6">
         <AiModelSetting />
         <BackgroundAgentSetting />
+        <LocalOnlySetting />
         <ReadersSetting />
       </div>
     </section>

@@ -29,6 +29,28 @@ export const AiOffSchema = v.object({ changed: v.boolean(), keyKept: v.boolean()
 
 export const AiModelListSchema = v.array(v.string())
 
+/** `local_only.rs`: where each feature sends data now. `where` stays a string: a newer memo may add a place. */
+export const LocalOnlyStatusSchema = v.object({
+  on: v.boolean(),
+  since: text,
+  features: v.array(
+    v.object({
+      id: v.string(),
+      title: v.string(),
+      where: v.string(),
+      address: text,
+      refused: v.boolean(),
+    }),
+  ),
+})
+
+export const LocalOnlySchema = v.variant("state", [
+  v.object({ state: v.literal("old"), version: text, need: text }),
+  v.object({ state: v.literal("ready"), status: LocalOnlyStatusSchema }),
+])
+
+export type LocalOnlyStatus = v.InferOutput<typeof LocalOnlyStatusSchema>
+export type LocalOnly = v.InferOutput<typeof LocalOnlySchema>
 export type AiModel = v.InferOutput<typeof AiModelSchema>
 export type AiChecked = v.InferOutput<typeof AiCheckedSchema>
 export type AiOff = v.InferOutput<typeof AiOffSchema>

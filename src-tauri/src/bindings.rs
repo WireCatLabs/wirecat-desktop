@@ -48,6 +48,8 @@ fn types() -> Types {
         .register::<crate::search_harder::SearchHarder>()
         .register::<crate::search_harder::HarderStatus>()
         .register::<crate::search_harder::HarderOutcome>()
+        .register::<crate::local_only::LocalOnly>()
+        .register::<crate::local_only::LocalOnlyStatus>()
         .register::<crate::notes_setup::NotesModelUsed>()
         .register::<crate::notes_setup::NotesModelRole>()
         .register::<crate::zoom_app::ZoomAppAnswer>()

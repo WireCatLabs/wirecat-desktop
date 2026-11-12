@@ -510,9 +510,10 @@ mod tests {
             with_choice(&src.on, "openai", "llama3.1:8b", Some("http://localhost:11434/v1")).join(" "),
             "models consents set openai --model llama3.1:8b --base-url http://localhost:11434/v1 --yes --record --json"
         );
-        // memo's first release with `--base-url` is not on npm yet.
-        assert_eq!(src.base_url.min_version, None);
-        assert!(!src.base_url.open(Some("9.0.0")));
+        // memo 0.131.85 (cli-core 0.642.0) is the first with `consents set --base-url`.
+        assert_eq!(src.base_url.min_version.as_deref(), Some("0.131.85"));
+        assert!(!src.base_url.open(Some("0.131.84")));
+        assert!(!Gate { min_version: None }.open(Some("9.0.0")));
         let gate = Gate { min_version: Some("0.132.0".into()) };
         assert!(!gate.open(Some("0.131.84")));
         assert!(gate.open(Some("0.132.0")));

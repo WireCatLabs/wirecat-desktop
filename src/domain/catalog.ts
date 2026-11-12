@@ -173,6 +173,8 @@ const ToolSchema = v.object({
   enrichment: v.optional(v.nullable(v.object({ show: v.array(v.string()) })), null),
   /** Only memo: a hosted model reorders one search's first hits once the owner agrees; null `minVersion`: not released. */
   searchHarder: v.optional(v.nullable(v.object({ minVersion: v.nullable(v.string()) })), null),
+  /** Only memo: one switch that keeps every model call on this computer; null `minVersion`: not released. */
+  localOnly: v.optional(v.nullable(v.object({ minVersion: v.nullable(v.string()) })), null),
   /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
   folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
   /**
