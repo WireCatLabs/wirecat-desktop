@@ -435,7 +435,7 @@ fn after_key(tool: &Tool, src: &EnrichmentSource) -> Result<EnrichmentStatus, St
 }
 
 fn too_old_name(tool: &Tool) -> String {
-    tools::installed_version(tool).map_or("This memo".into(), |v| format!("memo {v}"))
+    tools::installed_version(tool).map_or_else(|| "This memo".into(), |v| format!("memo {v}"))
 }
 
 /// Turns it off and deletes what the model wrote.

@@ -1709,7 +1709,7 @@ mod tests {
             put(
                 "moved",
                 serde_json::to_value(Write::Saved {
-                    task: moved.clone(),
+                    task: moved,
                     label: Some(LabelChange { from: Some("low".into()), to: Some("high".into()) }),
                     renumbered: vec![],
                     moved: vec![],

@@ -344,7 +344,7 @@ fn finding_text(f: &Value) -> Option<String> {
         "link" => Some(format!("{} → {}", text(f, "from")?, text(f, "to")?)),
         "new_contact" => {
             let address = text(f, "address")?;
-            Some(text(f, "name").map_or(address.clone(), |name| format!("{name} <{address}>")))
+            Some(text(f, "name").map_or_else(|| address.clone(), |name| format!("{name} <{address}>")))
         }
         "task_update" => join(&[text(f, "task"), get("due_at", "dueAt").or_else(|| text(f, "detail"))]),
         "invoice" => join(&[

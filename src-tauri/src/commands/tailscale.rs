@@ -103,7 +103,13 @@ pub async fn tailscale_funnel_open(
 #[tauri::command]
 pub async fn tailscale_funnel_close(id: String) -> Result<(), AppError> {
     crate::log::command("tailscale_funnel_close", async move {
-        attempt(move || tailscale::funnel_close(&id).and(funnel_helper::close(&id))).await
+        attempt(move || {
+            // Both close even when the first fails: each holds its own paths.
+            let funnel = tailscale::funnel_close(&id);
+            let helper = funnel_helper::close(&id);
+            funnel.and(helper)
+        })
+        .await
     })
     .await
 }

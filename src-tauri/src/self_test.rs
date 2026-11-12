@@ -170,14 +170,14 @@ fn install_tool(name: &str, own_node: bool) -> Report {
         }
         ready = system::readiness();
         if !ready.node.ok {
-            let problem = ready.node.problem.clone().unwrap_or_default();
+            let problem = ready.node.problem.unwrap_or_default();
             return report.fail("node:setup", None, format!("Node.js {problem} after its setup."), None);
         }
     }
     report.node = Some(NodeReport {
         source: if node::in_use().is_some() { "own" } else { "system" },
         version: ready.node.version.clone(),
-        path: ready.node.path.clone(),
+        path: ready.node.path,
     });
 
     let events = Arc::new(Mutex::new(Vec::new()));

@@ -175,7 +175,7 @@ fn source(kind: &str) -> Result<Source, String> {
             let mut xml = String::new();
             flate2::read::GzDecoder::new(&gz[..]).read_to_string(&mut xml).map_err(net)?;
             let (file, sha256) = from_primary(&xml, arch).ok_or_else(|| net("no package in the list"))?;
-            Ok(Source { url: format!("{base}/{file}"), file: file.clone(), sha256 })
+            Ok(Source { url: format!("{base}/{file}"), file, sha256 })
         }
         _ => Err("WireCat cannot download Tailscale for this system; use the command below.".into()),
     }

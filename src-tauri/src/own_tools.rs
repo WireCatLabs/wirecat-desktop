@@ -1787,7 +1787,7 @@ mod tests {
         let saved = json!({ "version": 1, "tools": [other] }).to_string();
         let second = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
         assert_eq!(second.unwrap().entry["mcpServer"]["port"], FIRST_PORT + 1);
-        let mut kept = first.entry.clone();
+        let mut kept = first.entry;
         kept["mcpServer"]["port"] = json!(8900);
         let saved = json!({ "version": 1, "tools": [kept] }).to_string();
         let update = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
@@ -1854,7 +1854,7 @@ mod tests {
         assert_eq!(change.new_commands, ["deals list"]);
         assert_eq!(change.new_writes, Vec::<String>::new());
 
-        let mut old = r.entry.clone();
+        let mut old = r.entry;
         old["own"]["built"] = json!({ "repo": "https://github.com/example/acme-crm-cli", "workflow": "x" });
         let saved = json!({ "version": 1, "tools": [old] }).to_string();
         let gone = review("@example/acme-crm-cli", None, &fake, catalog(), &saved).unwrap();
@@ -1874,7 +1874,7 @@ mod tests {
     fn an_update_keeps_the_folders_recorded_at_the_first_add() {
         let first = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
         assert!(first.entry["own"]["preexisting"].is_null(), "recorded at add, before the install");
-        let mut saved = first.entry.clone();
+        let mut saved = first.entry;
         saved["own"]["preexisting"] = json!({ "/home/u/.config/example-acme-crm-cli": true });
         let file = json!({ "version": 1, "tools": [saved.clone()] }).to_string();
         let update = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), &file).unwrap();

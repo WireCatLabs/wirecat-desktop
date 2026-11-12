@@ -289,7 +289,9 @@ fn with_outcome(answer: search::Answer, body: Option<&Value>) -> HarderAnswer {
         HarderOutcome {
             applied,
             reason: text("reason_id").filter(|_| !applied),
-            why: order.filter(|_| !applied).map(|w| w.strip_prefix(NOT_REORDERED).map_or(w.clone(), str::to_string)),
+            why: order
+                .filter(|_| !applied)
+                .map(|w| w.strip_prefix(NOT_REORDERED).map_or_else(|| w.clone(), str::to_string)),
             provider: text("provider").unwrap_or_default(),
             model: text("model").unwrap_or_default(),
             cost_usd: r["cost_usd"].as_f64(),

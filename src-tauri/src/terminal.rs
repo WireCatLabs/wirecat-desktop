@@ -187,7 +187,7 @@ fn terminal_app_script(shell: Option<&Path>, line: &str, syntax: Syntax) -> Stri
 
 #[cfg(target_os = "linux")]
 fn launch(shell: Option<&Path>, line: &str, syntax: Syntax) -> std::io::Result<()> {
-    let argv = shell_argv(shell.unwrap_or(Path::new("/bin/sh")), line, syntax);
+    let argv = shell_argv(shell.unwrap_or_else(|| Path::new("/bin/sh")), line, syntax);
     let path = paths::search_path();
     for (term, flag) in terminals(std::env::var("TERMINAL").ok()) {
         let Some(exe) = paths::find(&term) else { continue };

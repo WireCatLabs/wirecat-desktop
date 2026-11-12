@@ -642,7 +642,7 @@ mod tests {
         assert!(!is_live(&serve, &Owned { port: 9000, ..owned("tg", 443, true) }));
         assert!(!is_live(&serve, &owned("max", 443, true)), "max has no paths there");
         assert!(is_live(&serve, &owned("tg", 8443, false)), "a whole-port Funnel from before the shared address");
-        let mut partial = serve.clone();
+        let mut partial = serve;
         partial["Web"]["h.ts.net:443"]["Handlers"]
             .as_object_mut()
             .unwrap()

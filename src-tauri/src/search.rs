@@ -320,7 +320,7 @@ pub(crate) fn read_shaped(shape: SearchShape, paged: bool, out: &run::Output, li
         if let Some(refused) = notes.iter().find_map(|n| refused_note(n)) {
             return refused;
         }
-        if let Some(note) = notes.iter().find(|n| n.contains(" not searched: ")).or(notes.first()) {
+        if let Some(note) = notes.iter().find(|n| n.contains(" not searched: ")).or_else(|| notes.first()) {
             return Answer::Failed { message: note.clone(), candidates: Vec::new() };
         }
     }
@@ -417,7 +417,7 @@ fn candidates_of(v: &Value) -> Vec<Candidate> {
             let username = text("username").map(|u| format!("@{}", u.trim_start_matches('@')));
             let (label, field) = match (text("title"), text("name"), username) {
                 (Some(t), _, _) => (Some(t), Some("chat")),
-                (None, Some(n), u) => (Some(u.map_or(n.clone(), |u| format!("{n} · {u}"))), Some("from")),
+                (None, Some(n), u) => (Some(u.map_or_else(|| n.clone(), |u| format!("{n} · {u}"))), Some("from")),
                 (None, None, Some(u)) => (Some(u), Some("from")),
                 _ => (None, None),
             };
