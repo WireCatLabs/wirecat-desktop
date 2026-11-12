@@ -10,6 +10,7 @@ import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -510,15 +511,18 @@ describe("what the page cannot do", () => {
 })
 
 describe("the agent that writes a digest", () => {
-  // Once the tools are read, so the read does not replace them: Drive and Bitrix24 installed as memo is.
+  beforeEach(() => answerAtOnce())
+
+  // Every tools read reports Drive and Bitrix24 installed as memo is; a write into the store would be undone by the next read.
   const withDriveAndCrm = async () => {
-    await waitFor(() => expect(useTools.getState().installs.memo?.length).toBeGreaterThan(0), { timeout: 4000 })
-    act(() =>
-      useTools.setState((s) => {
-        const copy = s.installs.memo?.[0]
-        return copy ? { installs: { ...s.installs, drive: [copy], bitrix: [copy] } } : s
-      }),
-    )
+    const detect = platform.detectTools.bind(platform)
+    vi.spyOn(platform, "detectTools").mockImplementation(async (fresh) => {
+      const found = await detect(fresh)
+      const memo = found.find((t) => t.id === "memo")?.installs ?? []
+      return found.map((t) => (t.id === "drive" || t.id === "bitrix" ? { ...t, installs: memo } : t))
+    })
+    await act(() => useTools.getState().refresh())
+    await waitFor(() => expect(useTools.getState().installs.bitrix?.length).toBeGreaterThan(0))
   }
 
   it("offers the agents for background jobs, Claude Code chosen on a new digest, greyed ones off, with its model", async () => {
