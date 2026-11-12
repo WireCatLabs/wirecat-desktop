@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { without } from "@/domain/record"
 import type { SkillTarget } from "@/domain/skills"
 import type { Agent, SkillReport } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
@@ -130,8 +131,3 @@ export const useAgents = create<AgentsState>((set, get) => ({
     await Promise.all([agents, skills])
   },
 }))
-
-function without<T>(map: Record<string, T>, key: string): Record<string, T> {
-  const { [key]: _, ...rest } = map
-  return rest
-}

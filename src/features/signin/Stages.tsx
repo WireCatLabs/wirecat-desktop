@@ -1,5 +1,5 @@
 import { CheckCircle2, LoaderCircle } from "lucide-react"
-import { type ReactNode, useEffect, useState } from "react"
+import type { ReactNode } from "react"
 import { findTool } from "@/domain/catalog"
 import { MAIL_PROVIDERS_LIST, readMailNotes } from "@/domain/mail-signin"
 import { checkPhone, formatPhone, phoneTyped } from "@/domain/phone"
@@ -33,6 +33,7 @@ import {
   running,
   useSignIn,
 } from "@/shared/signin-store"
+import { useNow } from "@/shared/use-elapsed"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
@@ -355,16 +356,8 @@ function PairStage({ pairing }: { pairing: Pairing }) {
 
 /** Seconds since `at`, ticking; null before it, or when there is no `at`. */
 function useSecondsSince(at: number | null) {
-  const since = () => (at === null || Date.now() < at ? null : Math.floor((Date.now() - at) / 1000))
-  const [seconds, setSeconds] = useState(since)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new moment restarts the count
-  useEffect(() => {
-    setSeconds(since())
-    if (at === null) return
-    const timer = setInterval(() => setSeconds(since()), 1000)
-    return () => clearInterval(timer)
-  }, [at])
-  return seconds
+  const now = useNow(at !== null)
+  return at === null || now < at ? null : Math.floor((now - at) / 1000)
 }
 
 /** A code that expired with no new one after it was most likely scanned: tg stops renewing once it is. */
@@ -470,14 +463,7 @@ function QrImage({ text, used = false }: { text: string; used?: boolean }) {
 
 function ExpiresIn({ at }: { at: string }) {
   const m = useMessages(signinMessages)
-  const left = () => Math.max(0, Math.round((Date.parse(at) - Date.now()) / 1000))
-  const [seconds, setSeconds] = useState(left)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new code restarts the count
-  useEffect(() => {
-    setSeconds(left())
-    const timer = setInterval(() => setSeconds(left()), 1000)
-    return () => clearInterval(timer)
-  }, [at])
+  const seconds = Math.max(0, Math.round((Date.parse(at) - useNow(true)) / 1000))
   return <p className="text-body text-ink-dim tabular-nums">{seconds > 0 ? m.expiresIn(seconds) : m.expired}</p>
 }
 

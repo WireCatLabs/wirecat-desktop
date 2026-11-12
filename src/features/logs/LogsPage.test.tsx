@@ -458,7 +458,7 @@ describe("Logs live", () => {
     await waitFor(() => expect(calls).toBeGreaterThanOrEqual(perRound * 3), { timeout: 4000 })
     // One read per tool at most at any moment: a second round never starts while one is running.
     expect(most).toBeLessThanOrEqual(tools.size)
-    expect(screen.getByText(/^Updated \d+ sec\. ago$/)).toBeInTheDocument()
+    expect(screen.getByText("Updated just now")).toBeInTheDocument()
 
     let visibility = "hidden"
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => visibility })

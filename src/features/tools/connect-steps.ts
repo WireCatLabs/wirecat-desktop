@@ -1,4 +1,5 @@
 import { currentLang, type Lang, messagesOf } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import type { McpClient, McpServerStatus, PublicCheck } from "@/platform/mcp-server-schemas"
 import type { AppId } from "./connect-apps"
 import { connectMessages } from "./messages-connect"
@@ -58,22 +59,6 @@ export function testState(server: McpServerStatus | null, since: number): TestSt
   const joined = clients.find((c) => after(c.lastLoginAt, since) || after(c.lastRequestAt, since))
   if (joined) return { state: "connected", client: joined, counts: joined.toolCallsToday !== null }
   return { state: "waiting" }
-}
-
-/**
- * "just now", "4 min ago", "3 h ago", "2 days ago". Sync and the Tools row call it too; a caller outside React must
- * read `useLang()` itself, or a language switch does not reach the text.
- */
-export function ago(iso: string, now = Date.now(), lang: Lang = currentLang()): string {
-  const m = messagesOf(connectMessages, lang).activity
-  const seconds = Math.max(0, Math.round((now - Date.parse(iso)) / 1000))
-  if (seconds < 60) return m.justNow
-  const minutes = Math.round(seconds / 60)
-  if (minutes < 60) return m.minutes(minutes)
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return m.hours(hours)
-  const days = Math.round(hours / 24)
-  return days === 1 ? m.yesterday : m.days(days)
 }
 
 /** The app's name as it gave it; anyone may register any name, so the interface always says "calls itself". */

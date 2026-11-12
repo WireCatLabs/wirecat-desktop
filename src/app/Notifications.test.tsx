@@ -40,7 +40,7 @@ describe("App notifications", () => {
     expect(within(panel).getByRole("heading", { name: "Update Telegram now" })).toBeInTheDocument()
     expect(within(panel).getByText("Second paragraph.")).toBeInTheDocument()
     expect(within(panel).getByText("New")).toBeInTheDocument()
-    expect(within(panel).getByText("2 hours ago")).toBeInTheDocument()
+    expect(within(panel).getByText("2 h ago")).toBeInTheDocument()
 
     await user.click(within(panel).getByRole("button", { name: "What changed" }))
     expect(openUrl).toHaveBeenCalledWith("https://wirecat.dev/en/security")

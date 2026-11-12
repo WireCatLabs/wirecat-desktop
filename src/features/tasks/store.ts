@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { without } from "@/domain/record"
 import { boardQuery, type DueChoice, placeKey, type State, setDue } from "@/domain/tasks"
 import { platform } from "@/platform/bridge"
 import type {
@@ -137,11 +138,6 @@ function savedView(): View {
 
 /** A refused move is said on its card, apart from a refused edit, which the dialog and the table say. */
 export const moveSlot = (key: string) => `move:${key}`
-
-const without = <T>(record: Record<string, T>, key: string) => {
-  const { [key]: _, ...rest } = record
-  return rest
-}
 
 const TYPING_MS = 350
 

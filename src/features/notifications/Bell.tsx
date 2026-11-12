@@ -1,6 +1,7 @@
 import { Bell as BellIcon, CircleArrowUp, Megaphone, ShieldAlert, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type Lang, useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import type { Localized, Notification } from "@/platform/notifications-schemas"
 import { ExtLink } from "@/shared/ExtLink"
 import { Collapse } from "@/ui/Collapse"
@@ -16,11 +17,7 @@ const CLOSE_MS = 150
 
 function when(iso: string, lang: Lang, now = Date.now()) {
   const at = Date.parse(iso)
-  const ago = now - at
-  const rel = new Intl.RelativeTimeFormat(lang, { numeric: "auto" })
-  if (ago < 3_600_000) return rel.format(-Math.max(1, Math.round(ago / 60_000)), "minute")
-  if (ago < DAY) return rel.format(-Math.round(ago / 3_600_000), "hour")
-  if (ago < 7 * DAY) return rel.format(-Math.round(ago / DAY), "day")
+  if (now - at < 7 * DAY) return ago(iso, now, lang)
   return new Intl.DateTimeFormat(lang, { day: "numeric", month: "short", year: "numeric" }).format(at)
 }
 

@@ -12,7 +12,8 @@ import {
   weekHours,
 } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
-import { formatDate, formatNumber, formatRelative, useLang, useMessages } from "@/i18n"
+import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import { CoverageSchema } from "@/platform/analytics-schemas"
 import { cx } from "@/ui/cx"
 import { InfoTip } from "@/ui/InfoTip"
@@ -267,13 +268,6 @@ function ChangeList({ title, rows, name }: { title: string; rows: Change[]; name
 
 const DAY = 86_400_000
 
-function ago(at: string, lang: ReturnType<typeof useLang>) {
-  const ms = Date.now() - Date.parse(at)
-  if (ms < 3_600_000) return formatRelative(-Math.max(1, Math.round(ms / 60_000)), "minute", lang)
-  if (ms < DAY) return formatRelative(-Math.round(ms / 3_600_000), "hour", lang)
-  return formatRelative(-Math.round(ms / DAY), "day", lang)
-}
-
 /** When each tool and profile last brought data in; older than three days is amber, never is a hollow lamp. */
 export function Health() {
   const m = useMessages(analyticsMessages)
@@ -319,7 +313,7 @@ function HealthRow({ sync: s }: { sync: Sync }) {
   const parsed = part?.kind === "ready" ? v.safeParse(CoverageSchema, part.body) : null
   const old = s.at !== null && Date.now() - Date.parse(s.at) > 3 * DAY
   const tone = s.at === null ? "idle" : old ? "warn" : "ok"
-  const text = s.at !== null ? m.syncedAgo(ago(s.at, lang)) : s.known ? m.never : m.unknownSync
+  const text = s.at !== null ? m.syncedAgo(ago(s.at, Date.now(), lang)) : s.known ? m.never : m.unknownSync
   return (
     <tr className="border-line border-t">
       <td className="py-[0.45rem] pr-3">{findTool(s.id)?.name ?? s.id}</td>

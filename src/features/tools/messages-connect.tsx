@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { type Messages, plural } from "@/i18n"
+import type { Messages } from "@/i18n"
 
 // Quoted words in the app steps are the labels ChatGPT and Claude show, in English: their translated menus are not
 // known here, and “Allow” is what WireCat's own login page prints.
@@ -259,11 +259,6 @@ const en = {
   },
 
   activity: {
-    justNow: "just now",
-    minutes: (n: number) => `${n} min ago`,
-    hours: (n: number) => `${n} h ago`,
-    yesterday: "yesterday",
-    days: (n: number) => plural("en", n, { one: "# day ago", other: "# days ago" }),
     lastCall: (ago: string, tool: string, today: number | null) =>
       `last call ${ago} · ${tool}${today ? ` · ${today} today` : ""}`,
     connected: (ago: string) => `connected ${ago}, no calls yet`,
@@ -528,12 +523,6 @@ const ru: typeof en = {
   },
 
   activity: {
-    justNow: "только что",
-    minutes: (n) => `${n} мин назад`,
-    hours: (n) => `${n} ч назад`,
-    yesterday: "вчера",
-    days: (n) =>
-      plural("ru", n, { one: "# день назад", few: "# дня назад", many: "# дней назад", other: "# дня назад" }),
     lastCall: (ago, tool, today) => `последний вызов ${ago} · ${tool}${today ? ` · сегодня: ${today}` : ""}`,
     connected: (ago) => `подключение ${ago}, вызовов пока нет`,
     loggedIn: (ago) => `вход ${ago}`,
@@ -801,11 +790,6 @@ const es: typeof en = {
   },
 
   activity: {
-    justNow: "ahora mismo",
-    minutes: (n) => `hace ${n} min`,
-    hours: (n) => `hace ${n} h`,
-    yesterday: "ayer",
-    days: (n) => plural("es", n, { one: "hace # día", other: "hace # días" }),
     lastCall: (ago, tool, today) => `última llamada ${ago} · ${tool}${today ? ` · hoy: ${today}` : ""}`,
     connected: (ago) => `conectada ${ago}, aún sin llamadas`,
     loggedIn: (ago) => `inició sesión ${ago}`,

@@ -5,6 +5,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import { errorText } from "@/shared/errors"
+import { useNow } from "@/shared/use-elapsed"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -33,7 +34,7 @@ export function ReachStep(props: {
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
   const firstMissing = useRef<number | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const now = useNow(reach.state === "publishing")
   const host = new URL(server.connectorUrl).host
   // Tailscale publishes a Funnel name itself, slowly; on a tunnel of the owner's the record already exists.
   const funnel = isFunnelHost(host)
@@ -59,11 +60,7 @@ export function ReachStep(props: {
   useEffect(() => {
     if (reach.state !== "publishing") return
     const again = setInterval(check, RECHECK_MS)
-    const clock = setInterval(() => setNow(Date.now()), 1000)
-    return () => {
-      clearInterval(again)
-      clearInterval(clock)
-    }
+    return () => clearInterval(again)
   }, [reach.state, check])
 
   const waited = firstMissing.current === null ? 0 : now - firstMissing.current

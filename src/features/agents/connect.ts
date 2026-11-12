@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { findTool } from "@/domain/catalog"
+import { without } from "@/domain/record"
 import type { Claim, Registrations } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
@@ -182,8 +183,3 @@ export const useConnect = create<ConnectState>((set, get) => {
       ),
   }
 })
-
-function without<T>(map: Record<string, T>, key: string): Record<string, T> {
-  const { [key]: _, ...rest } = map
-  return rest
-}

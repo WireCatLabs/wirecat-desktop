@@ -13,6 +13,7 @@ import {
   waitingOf,
   withCleanNames,
 } from "@/domain/memory"
+import { without } from "@/domain/record"
 import { useTasks } from "@/features/tasks"
 import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -174,10 +175,6 @@ const NO_ROLES: Role[] = []
 /** The owner's role lists, empty before a memo that has them. */
 export const ownerRoles = (s: { read: MemoryRead | null }) =>
   (s.read?.kind === "ready" ? s.read.roles : undefined) ?? NO_ROLES
-const without = <T>(record: Record<string, T>, key: string) => {
-  const { [key]: _, ...rest } = record
-  return rest
-}
 
 export const LEAVE_MS = 320
 

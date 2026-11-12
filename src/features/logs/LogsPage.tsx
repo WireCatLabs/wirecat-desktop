@@ -24,8 +24,10 @@ import {
   withZeros,
 } from "@/domain/runs"
 import { QueryBar } from "@/features/query"
-import { type Lang, useLang, useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
+import { ago } from "@/i18n/ago"
 import { Page, PageHeader } from "@/shared/Page"
+import { useNow } from "@/shared/use-elapsed"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -466,26 +468,12 @@ const scrolledPast = (el: HTMLElement | null) => {
   return Boolean(el && main && el.getBoundingClientRect().top < main.getBoundingClientRect().top)
 }
 
-// The short style, because this line ticks every second beside the buttons and must not grow and push them.
-function ago(ms: number, lang: Lang) {
-  const format = new Intl.RelativeTimeFormat(lang, { style: "short" })
-  const s = Math.max(0, Math.round(ms / 1000))
-  if (s < 60) return format.format(-s, "second")
-  const min = Math.round(s / 60)
-  return min < 60 ? format.format(-min, "minute") : format.format(-Math.round(min / 60), "hour")
-}
-
 // Its own one-second clock, so only this line renders again as the time passes.
 function Freshness({ at, reading, asked }: { at: number | null; reading: number; asked: number }) {
   const m = useMessages(logsMessages)
   const lang = useLang()
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setTick((n) => n + 1), 1000)
-    return () => clearInterval(t)
-  }, [])
-  const text =
-    at === null ? "" : reading ? m.readingTools(asked - reading, asked) : m.updated(ago(Date.now() - at, lang))
+  const now = useNow(true)
+  const text = at === null ? "" : reading ? m.readingTools(asked - reading, asked) : m.updated(ago(at, now, lang))
   return <span className="min-w-[10.5rem] text-right text-[0.9rem] text-ink-dim tabular-nums">{text}</span>
 }
 

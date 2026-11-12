@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
+import { without } from "@/domain/record"
 import { tasksQuery } from "@/domain/tasks"
 import { platform } from "@/platform/bridge"
 import type {
@@ -187,11 +188,6 @@ type PeopleState = {
   unmerge(ref: string, merge: string): Promise<boolean>
   askSplit(ref: string | null, preset?: string[]): void
   askUndo(undo: { ref: string; merge: string } | null): void
-}
-
-const without = <T>(record: Record<string, T>, key: string) => {
-  const { [key]: _, ...rest } = record
-  return rest
 }
 
 /** memo's command server keeps two processes; more calls at once would each start memo anew. */

@@ -83,6 +83,3 @@ export const formatList = (items: readonly string[], lang: Lang = currentLang())
 
 export const formatDate = (at: Date | number | string, options: Intl.DateTimeFormatOptions, lang = currentLang()) =>
   new Date(at).toLocaleString(lang, options)
-
-export const formatRelative = (value: number, unit: Intl.RelativeTimeFormatUnit, lang: Lang = currentLang()) =>
-  new Intl.RelativeTimeFormat(lang, { numeric: "auto" }).format(value, unit)
