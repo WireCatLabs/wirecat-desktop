@@ -26,6 +26,7 @@ it("copies the prompt and opens the agent with the same prompt in a terminal", a
   expect(prompt).toMatch(/memo people review .*--json/)
   expect(prompt).toMatch(/Never pass --as-owner/)
   expect(prompt).toContain("Sorting the owner's matches for him")
+  expect(prompt).toContain('--name "<company>"')
   await user.click(screen.getByRole("button", { name: "Run in a terminal" }))
   expect(run).toHaveBeenCalledWith("claude", prompt)
   expect(await screen.findByText(/Claude Code opened in a terminal/)).toBeInTheDocument()

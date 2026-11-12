@@ -27,7 +27,7 @@ const en = {
 6. At the end, give me at most three commands to run myself:
    memo people confirm <ids> --reason "<why>" for the ones that are one person
    memo people reject <ids> --reason "<why>" for the different people
-   memo people resolve <id> organization for each company, all in one line joined with &&
+   memo people resolve <id> organization for each company, all in one line joined with &&. Add --name "<company>" when the mail domain does not name the company, such as a free mail service.
    Then list the unsure ones, each with its id and a short why.`,
 }
 
@@ -52,7 +52,7 @@ const ru: typeof en = {
 6. В конце дай мне не больше трех команд, которые я выполню сам:
    memo people confirm <ids> --reason "<почему>" для тех, кто один человек
    memo people reject <ids> --reason "<почему>" для разных людей
-   memo people resolve <id> organization для каждой компании, все в одной строке через &&
+   memo people resolve <id> organization для каждой компании, все в одной строке через &&. Добавь --name "<компания>", если домен почты не называет компанию, например у бесплатной почты.
    Затем перечисли те, в которых ты не уверен: номер и коротко почему.`,
 }
 
@@ -77,7 +77,7 @@ const es: typeof en = {
 6. Al final, dame como mucho tres comandos para ejecutar yo:
    memo people confirm <ids> --reason "<por qué>" para las que son una persona
    memo people reject <ids> --reason "<por qué>" para las personas distintas
-   memo people resolve <id> organization para cada empresa, todo en una línea unido con &&
+   memo people resolve <id> organization para cada empresa, todo en una línea unido con &&. Añade --name "<empresa>" cuando el dominio del correo no nombra a la empresa, como en un correo gratuito.
    Después lista las dudosas, cada una con su id y un breve por qué.`,
 }
 
