@@ -33,7 +33,7 @@ const en = {
   storedBody: "It may be deleted, or not synced to this computer yet. A sync of its account brings it here.",
   threadTitle: "WireCat can't list this mail thread yet",
   threadBody:
-    "Memo opens a mail thread from a link to one of its emails, and this link names the thread only. Copy the reference to give it to your AI agent.",
+    "WireCat opens a mail thread from a link to one of its emails, and this link names the thread only. Copy the reference to give it to your AI agent.",
   failedTitle: "WireCat could not read this conversation",
 }
 
@@ -71,7 +71,7 @@ const ru: typeof en = {
     "Возможно, его удалили или ещё не синхронизировали сюда. Синхронизация аккаунта перенесёт его на этот компьютер.",
   threadTitle: "WireCat пока не может показать эту цепочку писем",
   threadBody:
-    "Memo открывает цепочку писем по ссылке на одно из её писем, а эта ссылка называет только цепочку. Скопируйте ссылку на объект, чтобы передать её AI-агенту.",
+    "WireCat открывает цепочку писем по ссылке на одно из её писем, а эта ссылка называет только цепочку. Скопируйте ссылку на объект, чтобы передать её AI-агенту.",
   failedTitle: "WireCat не смог прочитать эту переписку",
 }
 
@@ -109,7 +109,7 @@ const es: typeof en = {
     "Puede que se haya borrado o que aún no se haya sincronizado aquí. Sincronizar su cuenta lo trae a este ordenador.",
   threadTitle: "WireCat aún no puede mostrar este hilo de correo",
   threadBody:
-    "Memo abre un hilo de correo desde un enlace a uno de sus correos, y este enlace solo nombra el hilo. Copia la referencia para dársela a tu agente de IA.",
+    "WireCat abre un hilo de correo desde un enlace a uno de sus correos, y este enlace solo nombra el hilo. Copia la referencia para dársela a tu agente de IA.",
   failedTitle: "WireCat no pudo leer esta conversación",
 }
 

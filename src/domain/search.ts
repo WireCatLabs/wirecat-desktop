@@ -200,17 +200,26 @@ export const quoteValue = (value: string) =>
 
 // These take * and ? in every cli-core the app runs with; a pattern elsewhere needs a newer one.
 const ALWAYS_PATTERNS = new Set(["text", "exact", "body", "filename", "mime"])
+const TEXT_FIELDS = new Set(["text", "exact"])
 
 /**
  * A written query as a tool on an older cli-core reads it: a part-of-name or part-of-value pattern (`from:*Мила*`,
  * `subject:отчет*`) becomes the plain value (`from:Мила`; such a tool reads it as part of a name only when nobody is
- * named exactly that). A word's start (`аренд*`) stays. Null when nothing changes, so the caller does not ask twice.
+ * named exactly that). A part inside a word of the text (`*аренд*`), which a cli-core before 0.641.0 reads through the
+ * whole word list and refuses on a large store, becomes the word's start (`аренд*`); a word's start stays. Null when
+ * nothing changes, so the caller does not ask twice.
  */
 export function withoutPatterns(query: string): string | null {
   const term = /(^|[\s(])(-?)(?:([\p{L}_][\p{L}\p{N}_]*):)?((?:\\.|[^\s()"\\:])*[*?](?:\\.|[^\s()"\\])*)/gu
   let changed = false
   const out = query.replace(term, (whole, lead: string, minus: string, field: string | undefined, value: string) => {
-    if (!field || ALWAYS_PATTERNS.has(field)) return whole
+    if (!field || TEXT_FIELDS.has(field)) {
+      const start = value.replace(/^[*?]+/u, "")
+      if (start === value || !start) return whole
+      changed = true
+      return `${lead}${minus}${field ? `${field}:` : ""}${start}`
+    }
+    if (ALWAYS_PATTERNS.has(field)) return whole
     const plain = value.replace(/\\(.)|[*?]/gu, (_, kept: string | undefined) => kept ?? "")
     changed = true
     if (!plain) return lead

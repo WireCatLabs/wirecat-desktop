@@ -101,7 +101,7 @@ const en = {
       "The AI model setting is not valid, so the picture is kept by its name only. Fix it in Settings.",
   } as Record<string, string>,
   imageNeedsUpdate:
-    "Memo on this computer cannot read pictures with an AI model yet, so this picture will be kept by its name only. Update it on the Tools page.",
+    "Pictures cannot be read with an AI model yet, so this picture will be kept by its name only. Update Memo on the Tools page.",
   imageUnknown:
     "WireCat could not look at the AI model, so it cannot say whether this picture will be read. Check it in Settings.",
   goAiModel: "Open AI model settings",
@@ -128,9 +128,9 @@ const en = {
   another: "Add another",
   done: "Done",
   failed: "Could not do it.",
-  tooOldReaders: "Memo on this computer cannot read sources for facts yet. Update it on the Tools page to get facts.",
+  tooOldReaders: "Sources cannot be read for facts yet. Update Memo on the Tools page to get facts.",
   reasons: {
-    "memo.refused": "Memo refused it and gave no reason WireCat can show. Try again, or add it from a file.",
+    "memo.refused": "It was refused with no reason WireCat can show. Try again, or add it from a file.",
     "source.unsupported":
       "WireCat cannot read this kind of file or page. Save it as PDF, Word or plain text and add that.",
     "source.no-text": "There is no text in it. Add a file that holds text, or paste the text.",
@@ -260,7 +260,7 @@ const ru: typeof en = {
       "Настройка модели ИИ неверна, поэтому картинка сохранена только по названию. Исправьте её в Настройках.",
   },
   imageNeedsUpdate:
-    "Memo на этом компьютере пока не умеет читать картинки с помощью модели ИИ, поэтому картинка сохранится только по названию. Обновите его на странице Инструменты.",
+    "Картинки пока нельзя читать моделью ИИ, поэтому картинка сохранится только по названию. Обновите Memo на странице «Инструменты».",
   imageUnknown:
     "WireCat не смог посмотреть модель ИИ, поэтому не может сказать, прочитают ли эту картинку. Проверьте её в Настройках.",
   goAiModel: "Открыть настройки модели ИИ",
@@ -289,11 +289,10 @@ const ru: typeof en = {
   another: "Добавить ещё",
   done: "Готово",
   failed: "Не получилось.",
-  tooOldReaders:
-    "Memo на этом компьютере пока не умеет искать факты в источниках. Обновите его на странице Инструменты.",
+  tooOldReaders: "Факты в источниках пока нельзя искать. Обновите Memo на странице «Инструменты».",
   reasons: {
     "memo.refused":
-      "Memo отказал и не назвал причину, которую WireCat может показать. Попробуйте снова или добавьте файлом.",
+      "Добавить не вышло, и причины, которую WireCat может показать, нет. Попробуйте снова или добавьте файлом.",
     "source.unsupported":
       "WireCat не читает такой файл или страницу. Сохраните как PDF, Word или текст и добавьте его.",
     "source.no-text": "В нём нет текста. Добавьте файл с текстом или вставьте текст.",
@@ -425,7 +424,7 @@ const es: typeof en = {
       "El ajuste del modelo de IA no es válido, así que la imagen se guarda solo por su nombre. Corrígelo en Ajustes.",
   },
   imageNeedsUpdate:
-    "Memo en este ordenador aún no puede leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualízalo en la página Herramientas.",
+    "Aún no se pueden leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualiza Memo en la página Herramientas.",
   imageUnknown:
     "WireCat no pudo mirar el modelo de IA, así que no puede decir si esta imagen se leerá. Revísalo en Ajustes.",
   goAiModel: "Abrir los ajustes del modelo de IA",
@@ -452,11 +451,9 @@ const es: typeof en = {
   another: "Añadir otra",
   done: "Listo",
   failed: "No se pudo hacer.",
-  tooOldReaders:
-    "Memo en este ordenador aún no puede sacar hechos de las fuentes. Actualízalo en la página Herramientas.",
+  tooOldReaders: "Aún no se pueden sacar hechos de las fuentes. Actualiza Memo en la página Herramientas.",
   reasons: {
-    "memo.refused":
-      "Memo lo rechazó sin una razón que WireCat pueda mostrar. Prueba de nuevo o añádelo desde un archivo.",
+    "memo.refused": "Se rechazó sin una razón que WireCat pueda mostrar. Prueba de nuevo o añádelo desde un archivo.",
     "source.unsupported": "WireCat no lee este tipo de archivo o página. Guárdalo como PDF, Word o texto y añade ese.",
     "source.no-text": "No tiene texto. Añade un archivo con texto o pega el texto.",
     "source.unreadable": "No se pudo leer: puede estar dañado o bloqueado. Guárdalo de nuevo, o como PDF o texto.",

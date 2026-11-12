@@ -328,6 +328,12 @@ export type CrmStageMap = {
 	confirmed: boolean,
 };
 
+/**  What `stages suggest` recorded: stages that now hold a suggestion, and those the model gave none. */
+export type CrmSuggested = {
+	suggested: number,
+	left: number,
+};
+
 /**  What no column holds yet: open rows whose stage is unmapped or only suggested, and those stages. */
 export type CrmUnsorted = {
 	open: number,

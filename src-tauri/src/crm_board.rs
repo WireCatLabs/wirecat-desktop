@@ -29,6 +29,8 @@ const LIMIT: &str = "500";
 const CLOSED: &str = "20";
 const READ: Duration = Duration::from_mins(1);
 const WRITE: Duration = Duration::from_secs(30);
+/// The model answers up to 80 stages at a time.
+const SUGGEST: Duration = Duration::from_mins(3);
 const MAX_STAGE: usize = 200;
 
 #[derive(Deserialize, Serialize, Type, Debug, Clone, Copy, PartialEq)]
@@ -434,6 +436,28 @@ pub fn confirm(kind: CrmKind, pipeline: Option<&str>) -> Result<(), String> {
     with_memo(WRITE, |call| confirm_with(call, kind, pipeline))
 }
 
+/// What `stages suggest` recorded: stages that now hold a suggestion, and those the model gave none.
+#[derive(Serialize, Type, Debug, PartialEq)]
+pub struct CrmSuggested {
+    pub suggested: u32,
+    pub left: u32,
+}
+
+/// memo's message can quote what the model answered, so a reason the dialog words goes on alone; anything else is
+/// masked before it reaches the dialog's details.
+fn suggest_with(call: &Call, kind: CrmKind) -> Result<CrmSuggested, Failure> {
+    let v = call(&base::suggest_args(kind)).map_err(|f| match f.reason.as_deref() {
+        Some(r) if r.starts_with("ai.") || r.starts_with("stage.") => Failure::plain(r),
+        _ => Failure::plain(crate::redact::text(&f.message)),
+    })?;
+    let v = body(&v);
+    Ok(CrmSuggested { suggested: count(v, "suggested"), left: count(v, "left") })
+}
+
+pub fn suggest(kind: CrmKind) -> Result<CrmSuggested, String> {
+    with_memo(SUGGEST, |call| suggest_with(call, kind))
+}
+
 fn edit_with(call: &Call, kind: CrmKind, edit: &CrmBaseEdit) -> Result<(), Failure> {
     let args = match edit {
         CrmBaseEdit::Add { name, outcome } => base::add_args(
@@ -709,6 +733,26 @@ mod tests {
                 "stages remove lead stage:3 --json --no-record",
             ]
         );
+    }
+
+    #[test]
+    fn a_suggestion_asks_the_model_for_one_kind_and_passes_on_only_a_worded_reason() {
+        let seen = Mutex::new(vec![]);
+        let call = |a: &[String]| {
+            seen.lock().unwrap().push(a.join(" "));
+            Ok(json!({"item":{"by":"anthropic","suggested":3,"left":1,"skipped":[]}}))
+        };
+        assert_eq!(suggest_with(&call, CrmKind::Lead).unwrap(), CrmSuggested { suggested: 3, left: 1 });
+        assert_eq!(*seen.lock().unwrap(), ["stages suggest --kind lead --json --no-record"]);
+        let refused = |reason: Option<&str>, message: &str| {
+            let fail = |_: &[String]| {
+                Err(Failure { reason: reason.map(str::to_string), details: Value::Null, message: message.into() })
+            };
+            suggest_with(&fail, CrmKind::Deal).unwrap_err().message
+        };
+        assert_eq!(refused(Some("ai.not-set"), "no AI model is chosen: sk-ant-123"), "ai.not-set");
+        assert_eq!(refused(Some("stage.model-answer-invalid"), "the answer was …"), "stage.model-answer-invalid");
+        assert_eq!(refused(None, "failed for owner@example.com"), "failed for [email]");
     }
 
     #[test]

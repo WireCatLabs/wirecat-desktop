@@ -7,10 +7,10 @@ const en = {
     "its profiles in each tool. Drag a card to move it to another group; hold Alt or Ctrl while you drop to copy it. " +
     "An account may be in several groups.",
   all: "All",
-  allNote: "Every account, always. Memo reads it when no group is named.",
+  allNote: "Every account, always. It is used when no group is named.",
   column: (name: string, n: number) => `${name}, ${n} accounts`,
   empty: "No accounts yet. Drop one here.",
-  newEmpty: "Drop an account here: Memo saves the group with its first account.",
+  newEmpty: "Drop an account here: the group is saved with its first account.",
   alsoIn: (groups: string) => `Also in ${groups}`,
   inGroups: (groups: string) => `In ${groups}`,
   noProfile: "No profile name",
@@ -29,7 +29,7 @@ const en = {
   newName: "Group name",
   create: "Create",
   nameEmpty: "Type a name.",
-  nameReserved: "All and bots already mean something to Memo.",
+  nameReserved: "All and bots already mean something else.",
   nameChars: "Letters, digits, - and _ only, starting with a letter or a digit.",
   nameTaken: "There is a group with this name.",
   moved: (account: string, group: string) => `${account} moved to ${group}`,
@@ -38,7 +38,7 @@ const en = {
   putBack: (account: string) => `${account} put back`,
   putBackWhy: (account: string, why: string) => `${account} put back: ${why}`,
   allHoldsEvery: "All always holds every account",
-  refused: (message: string) => `Memo did not change the groups: ${message}`,
+  refused: (message: string) => `The groups did not change: ${message}`,
   unresolved: (entries: string) => `Saved entries that name no account any more: ${entries}`,
   readFailed: "Could not list the groups.",
   retry: "Try again",
@@ -49,8 +49,8 @@ const en = {
   scopeOf: (account: string) => `Personal or work: ${account}`,
   scopeNote:
     "Personal or Work on each account: work views, work agents and the work mark on contacts read only work accounts.",
-  scopeBusy: "Memo is still saving the last change. Try again in a moment.",
-  scopeOld: "This Memo cannot set personal or work yet. Update Memo on the Tools page.",
+  scopeBusy: "The last change is still being saved. Try again in a moment.",
+  scopeOld: "Personal or work cannot be set yet. Update Memo on the Tools page.",
 }
 
 const ru: typeof en = {
@@ -60,10 +60,10 @@ const ru: typeof en = {
     "профилями в каждом инструменте. Перетащите карточку, чтобы перенести её в другую группу; удерживайте Alt или " +
     "Ctrl, когда отпускаете, чтобы скопировать. Аккаунт может быть в нескольких группах.",
   all: "Все",
-  allNote: "Всегда все аккаунты. Memo читает её, когда группа не названа.",
+  allNote: "Всегда все аккаунты. Она действует, когда группа не названа.",
   column: (name: string, n: number) => `${name}, аккаунтов: ${n}`,
   empty: "Аккаунтов пока нет. Перетащите сюда.",
-  newEmpty: "Перетащите сюда аккаунт: Memo сохранит группу с первым аккаунтом.",
+  newEmpty: "Перетащите сюда аккаунт: группа сохранится с первым аккаунтом.",
   alsoIn: (groups: string) => `Также в ${groups}`,
   inGroups: (groups: string) => `В группах ${groups}`,
   noProfile: "Без имени профиля",
@@ -84,7 +84,7 @@ const ru: typeof en = {
   newName: "Название группы",
   create: "Создать",
   nameEmpty: "Введите название.",
-  nameReserved: "all и bots уже значат другое для Memo.",
+  nameReserved: "all и bots уже значат другое.",
   nameChars: "Только латинские буквы, цифры, - и _, в начале буква или цифра.",
   nameTaken: "Группа с таким названием уже есть.",
   moved: (account: string, group: string) => `${account} перенесён в ${group}`,
@@ -93,7 +93,7 @@ const ru: typeof en = {
   putBack: (account: string) => `${account} возвращён на место`,
   putBackWhy: (account: string, why: string) => `${account} возвращён на место: ${why}`,
   allHoldsEvery: "в «Все» всегда есть каждый аккаунт",
-  refused: (message: string) => `Memo не изменил группы: ${message}`,
+  refused: (message: string) => `Группы не изменились: ${message}`,
   unresolved: (entries: string) => `Сохранённые записи, которые больше не называют аккаунт: ${entries}`,
   readFailed: "Не удалось показать группы.",
   retry: "Повторить",
@@ -104,8 +104,8 @@ const ru: typeof en = {
   scopeOf: (account: string) => `Личный или рабочий: ${account}`,
   scopeNote:
     "Личный или Работа у каждого аккаунта: рабочие виды, рабочие агенты и метка «работа» у контактов читают только рабочие аккаунты.",
-  scopeBusy: "Memo еще сохраняет прошлое изменение. Попробуйте через минуту.",
-  scopeOld: "Эта версия Memo пока не умеет ставить личный или рабочий. Обновите Memo на странице Инструменты.",
+  scopeBusy: "Прошлое изменение еще сохраняется. Попробуйте через минуту.",
+  scopeOld: "Личный или рабочий пока нельзя поставить. Обновите Memo на странице «Инструменты».",
 }
 
 const es: typeof en = {
@@ -115,10 +115,10 @@ const es: typeof en = {
     "perfiles en cada herramienta. Arrastra una tarjeta para moverla a otro grupo; mantén Alt o Ctrl al soltarla " +
     "para copiarla. Una cuenta puede estar en varios grupos.",
   all: "Todas",
-  allNote: "Siempre todas las cuentas. Memo lo lee cuando no se nombra ningún grupo.",
+  allNote: "Siempre todas las cuentas. Se usa cuando no se nombra ningún grupo.",
   column: (name: string, n: number) => `${name}, ${n} cuentas`,
   empty: "Aún no hay cuentas. Suelta una aquí.",
-  newEmpty: "Suelta aquí una cuenta: Memo guarda el grupo con su primera cuenta.",
+  newEmpty: "Suelta aquí una cuenta: el grupo se guarda con su primera cuenta.",
   alsoIn: (groups: string) => `También en ${groups}`,
   inGroups: (groups: string) => `En ${groups}`,
   noProfile: "Sin nombre de perfil",
@@ -137,7 +137,7 @@ const es: typeof en = {
   newName: "Nombre del grupo",
   create: "Crear",
   nameEmpty: "Escribe un nombre.",
-  nameReserved: "all y bots ya significan otra cosa para Memo.",
+  nameReserved: "all y bots ya significan otra cosa.",
   nameChars: "Solo letras, dígitos, - y _, empezando por una letra o un dígito.",
   nameTaken: "Ya hay un grupo con este nombre.",
   moved: (account: string, group: string) => `${account} movida a ${group}`,
@@ -146,7 +146,7 @@ const es: typeof en = {
   putBack: (account: string) => `${account} vuelve a su sitio`,
   putBackWhy: (account: string, why: string) => `${account} vuelve a su sitio: ${why}`,
   allHoldsEvery: "Todas siempre tiene cada cuenta",
-  refused: (message: string) => `Memo no cambió los grupos: ${message}`,
+  refused: (message: string) => `Los grupos no cambiaron: ${message}`,
   unresolved: (entries: string) => `Entradas guardadas que ya no nombran ninguna cuenta: ${entries}`,
   readFailed: "No se pudieron listar los grupos.",
   retry: "Reintentar",
@@ -157,8 +157,8 @@ const es: typeof en = {
   scopeOf: (account: string) => `Personal o trabajo: ${account}`,
   scopeNote:
     "Personal o Trabajo en cada cuenta: las vistas de trabajo, los agentes de trabajo y la marca de trabajo en los contactos leen solo las cuentas de trabajo.",
-  scopeBusy: "Memo aún guarda el último cambio. Inténtalo de nuevo en un momento.",
-  scopeOld: "Esta versión de Memo aún no puede marcar personal o trabajo. Actualiza Memo en la página Herramientas.",
+  scopeBusy: "El último cambio aún se está guardando. Inténtalo de nuevo en un momento.",
+  scopeOld: "Aún no se puede marcar personal o trabajo. Actualiza Memo en la página Herramientas.",
 }
 
 export const groupsMessages: Messages<typeof en> = { en, ru, es }

@@ -54,7 +54,7 @@ const en = {
   confirmRun: (price: string | null) => (price ? `Run for about ${price}` : "Run"),
   cancel: "Cancel",
   others: "Other schedules",
-  othersHint: "Other jobs memo runs on a schedule. They are shown here only; each is changed where it was set up.",
+  othersHint: "Other jobs WireCat runs on a schedule. They are shown here only; each is changed where it was set up.",
   changeMailAgent: (tool: string) => `Change in Tools → ${tool} → Mail agent`,
   othersCol: { name: "Name", when: "How often", last: "Last run", spent: "Spent today", change: "Changed in" },
   every: (minutes: number) => {
@@ -77,7 +77,7 @@ const en = {
   history: {
     fill: "Build past days",
     needsUpdate: "Needs a Memo update",
-    needsUpdateHint: "This Memo cannot build past digests yet. Update Memo to fill the history.",
+    needsUpdateHint: "Past digests cannot be built yet. Update Memo on the Tools page to fill the history.",
     builtLater: "built later",
     title: "Build the digests of past days",
     body: "You get the digest each past day would have had, to read and compare in this list. They are not sent to Telegram or mail, so your chats do not fill with old news.",
@@ -96,7 +96,7 @@ const en = {
       `Built ${plural("en", built, { one: "# day", other: "# days" })}${cost ? ` for ${cost}` : ""}. They are in the list, marked “built later”.`,
     failed: (message: string) => `The build stopped: ${message}. The days built before it stopped are kept.`,
     priceFailed: (message: string) => `Could not get the price: ${message}`,
-    unsupported: "This Memo cannot build past digests yet. Update Memo, then try again.",
+    unsupported: "Past digests cannot be built yet. Update Memo on the Tools page, then try again.",
     close: "Close",
     back: "Back",
   },
@@ -158,7 +158,7 @@ const ru: typeof en = {
   cancel: "Отмена",
   others: "Другие расписания",
   othersHint:
-    "Другие задания, которые memo запускает по расписанию. Здесь они только видны, а меняются там, где их настроили.",
+    "Другие задания, которые WireCat запускает по расписанию. Здесь они только видны, а меняются там, где их настроили.",
   changeMailAgent: (tool) => `Изменить: Инструменты → ${tool} → Почтовый агент`,
   othersCol: {
     name: "Название",
@@ -192,7 +192,8 @@ const ru: typeof en = {
   history: {
     fill: "Собрать прошлые дни",
     needsUpdate: "Нужно обновить Memo",
-    needsUpdateHint: "Эта версия Memo пока не умеет собирать прошлые сводки. Обновите Memo, чтобы заполнить историю.",
+    needsUpdateHint:
+      "Прошлые сводки пока нельзя собрать. Обновите Memo на странице «Инструменты», чтобы заполнить историю.",
     builtLater: "собрана позже",
     title: "Собрать сводки за прошлые дни",
     body: "Вы получите сводку, какой она была бы в каждый прошлый день, чтобы прочитать и сравнить их в этом списке. В Telegram и почту они не уходят, чтобы старые новости не засыпали ваши чаты.",
@@ -211,7 +212,7 @@ const ru: typeof en = {
       `Собрано: ${plural("ru", built, { one: "# день", few: "# дня", many: "# дней", other: "# дня" })}${cost ? ` за ${cost}` : ""}. Они в списке с пометкой «собрана позже».`,
     failed: (message) => `Сборка остановилась: ${message}. Дни, собранные до остановки, сохранены.`,
     priceFailed: (message) => `Не удалось узнать цену: ${message}`,
-    unsupported: "Эта версия Memo пока не умеет собирать прошлые сводки. Обновите Memo и попробуйте снова.",
+    unsupported: "Прошлые сводки пока нельзя собрать. Обновите Memo на странице «Инструменты» и попробуйте снова.",
     close: "Закрыть",
     back: "Назад",
   },
@@ -268,7 +269,7 @@ const es: typeof en = {
   cancel: "Cancelar",
   others: "Otros horarios",
   othersHint:
-    "Otras tareas que memo ejecuta según un horario. Aquí solo se ven; cada una se cambia donde se configuró.",
+    "Otras tareas que WireCat ejecuta según un horario. Aquí solo se ven; cada una se cambia donde se configuró.",
   changeMailAgent: (tool) => `Cambiar en Herramientas → ${tool} → Agente de correo`,
   othersCol: {
     name: "Nombre",
@@ -298,7 +299,8 @@ const es: typeof en = {
   history: {
     fill: "Crear días pasados",
     needsUpdate: "Hay que actualizar Memo",
-    needsUpdateHint: "Esta versión de Memo aún no crea resúmenes pasados. Actualiza Memo para completar el historial.",
+    needsUpdateHint:
+      "Aún no se pueden crear resúmenes pasados. Actualiza Memo en la página Herramientas para completar el historial.",
     builtLater: "creado después",
     title: "Crear los resúmenes de días pasados",
     body: "Recibes el resumen que habría tenido cada día pasado, para leerlos y compararlos en esta lista. No se envían a Telegram ni al correo, para que tus chats no se llenen de noticias viejas.",
@@ -317,7 +319,8 @@ const es: typeof en = {
       `Creados ${plural("es", built, { one: "# día", other: "# días" })}${cost ? ` por ${cost}` : ""}. Están en la lista, marcados “creado después”.`,
     failed: (message) => `La creación se detuvo: ${message}. Se conservan los días creados antes.`,
     priceFailed: (message) => `No se pudo obtener el precio: ${message}`,
-    unsupported: "Esta versión de Memo aún no crea resúmenes pasados. Actualiza Memo y vuelve a intentarlo.",
+    unsupported:
+      "Aún no se pueden crear resúmenes pasados. Actualiza Memo en la página Herramientas y vuelve a intentarlo.",
     close: "Cerrar",
     back: "Atrás",
   },

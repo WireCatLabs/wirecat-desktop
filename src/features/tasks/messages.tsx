@@ -227,7 +227,7 @@ const en: Words = {
   waitsFor: (keys) => `waits for ${formatList(keys, "en")}`,
   onIt: (agent) => `${agent} is on it`,
   forAgent: (agent) => `for ${agent}`,
-  fromMessages: "Memo found this task in your messages.",
+  fromMessages: "WireCat found this task in your messages.",
   foundTitle: {
     question: "Untitled question",
     request: "Untitled request",
@@ -249,11 +249,11 @@ const en: Words = {
   notSaved: "Not saved.",
   notMoved: "Not moved, the card is back.",
   failure: {
-    account: "Memo could not tell which account the task belongs to. Read the tasks again, then retry.",
-    busy: "Memo is busy, most likely with a sync. Try again in a minute.",
-    timeout: "Memo took too long to answer. Try again, and report it if it happens again.",
+    account: "WireCat could not tell which account the task belongs to. Read the tasks again, then retry.",
+    busy: "WireCat is busy, most likely with a sync. Try again in a minute.",
+    timeout: "WireCat took too long to answer. Try again, and report it if it happens again.",
     missing: "Memo is not installed. Install it on the Tools page.",
-    other: "Memo refused the change. The details say why.",
+    other: "The change was refused. The details say why.",
   },
   failureDetails: "Details",
   changed: (key, who, what, at) =>
@@ -284,8 +284,8 @@ const en: Words = {
   agentTip:
     "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
   moveToProject: "Move to project",
-  sourceUnknown: "Memo did not keep the message it found this task in.",
-  sourceNotMessage: "Memo found this task in a note or a document, not in a chat.",
+  sourceUnknown: "The message this task was found in was not kept.",
+  sourceNotMessage: "WireCat found this task in a note or a document, not in a chat.",
   sourceReading: "Reading the message…",
   sourceFailed: "Could not read the message.",
   sourceNoAccount:
@@ -441,7 +441,7 @@ const ru: Words = {
   waitsFor: (keys) => `ждёт ${formatList(keys, "ru")}`,
   onIt: (agent) => `${agent} работает над ней`,
   forAgent: (agent) => `для ${agent}`,
-  fromMessages: "Memo нашел эту задачу в ваших сообщениях.",
+  fromMessages: "WireCat нашел эту задачу в ваших сообщениях.",
   foundTitle: {
     question: "Вопрос без названия",
     request: "Просьба без названия",
@@ -463,11 +463,11 @@ const ru: Words = {
   notSaved: "Не сохранено.",
   notMoved: "Не перенесено, карточка на месте.",
   failure: {
-    account: "Memo не понял, к какому аккаунту относится задача. Обновите список и попробуйте снова.",
-    busy: "Memo занят, скорее всего синхронизацией. Попробуйте через минуту.",
-    timeout: "Memo слишком долго не отвечал. Попробуйте еще раз, а если повторится, сообщите об ошибке.",
+    account: "WireCat не понял, к какому аккаунту относится задача. Обновите список и попробуйте снова.",
+    busy: "WireCat занят, скорее всего синхронизацией. Попробуйте через минуту.",
+    timeout: "WireCat слишком долго не отвечал. Попробуйте еще раз, а если повторится, сообщите об ошибке.",
     missing: "Memo не установлен. Установите его на странице Инструменты.",
-    other: "Memo не принял изменение. Причина в подробностях.",
+    other: "Изменение не принято. Причина в подробностях.",
   },
   failureDetails: "Подробнее",
   changed: (key, who, what, at) =>
@@ -505,8 +505,8 @@ const ru: Words = {
   agentTip:
     "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
   moveToProject: "Перенести в проект",
-  sourceUnknown: "Memo не сохранил, в каком сообщении нашел эту задачу.",
-  sourceNotMessage: "Memo нашел эту задачу в заметке или документе, а не в чате.",
+  sourceUnknown: "Сообщение, в котором нашлась эта задача, не сохранилось.",
+  sourceNotMessage: "WireCat нашел эту задачу в заметке или документе, а не в чате.",
   sourceReading: "Читаю сообщение…",
   sourceFailed: "Не удалось прочитать сообщение.",
   sourceNoAccount:
@@ -670,7 +670,7 @@ const es: Words = {
   waitsFor: (keys) => `espera a ${formatList(keys, "es")}`,
   onIt: (agent) => `${agent} está en ello`,
   forAgent: (agent) => `para ${agent}`,
-  fromMessages: "Memo encontró esta tarea en tus mensajes.",
+  fromMessages: "WireCat encontró esta tarea en tus mensajes.",
   foundTitle: {
     question: "Pregunta sin título",
     request: "Petición sin título",
@@ -692,11 +692,11 @@ const es: Words = {
   notSaved: "No se guardó.",
   notMoved: "No se movió, la tarjeta volvió a su sitio.",
   failure: {
-    account: "Memo no supo a qué cuenta pertenece la tarea. Vuelve a leer las tareas e inténtalo de nuevo.",
-    busy: "Memo está ocupado, seguramente con una sincronización. Inténtalo dentro de un minuto.",
-    timeout: "Memo tardó demasiado en responder. Inténtalo de nuevo y, si se repite, avísanos.",
+    account: "WireCat no supo a qué cuenta pertenece la tarea. Vuelve a leer las tareas e inténtalo de nuevo.",
+    busy: "WireCat está ocupado, seguramente con una sincronización. Inténtalo dentro de un minuto.",
+    timeout: "WireCat tardó demasiado en responder. Inténtalo de nuevo y, si se repite, avísanos.",
     missing: "Memo no está instalado. Instálalo en la página Herramientas.",
-    other: "Memo rechazó el cambio. Los detalles dicen por qué.",
+    other: "El cambio fue rechazado. Los detalles dicen por qué.",
   },
   failureDetails: "Detalles",
   changed: (key, who, what, at) =>
@@ -727,8 +727,8 @@ const es: Words = {
   agentTip:
     "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
   moveToProject: "Mover a un proyecto",
-  sourceUnknown: "Memo no guardó el mensaje en el que encontró esta tarea.",
-  sourceNotMessage: "Memo encontró esta tarea en una nota o un documento, no en un chat.",
+  sourceUnknown: "No se guardó el mensaje en el que se encontró esta tarea.",
+  sourceNotMessage: "WireCat encontró esta tarea en una nota o un documento, no en un chat.",
   sourceReading: "Leyendo el mensaje…",
   sourceFailed: "No se pudo leer el mensaje.",
   sourceNoAccount:

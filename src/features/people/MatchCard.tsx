@@ -197,7 +197,7 @@ export function Proposer({ by }: { by: Match["proposer"] }) {
         ? [by.name, by.kind === "agent" ? m.agentTip(by.name) : m.personTip]
         : [m.personTip, m.personTip]
   return (
-    <InfoTip label={tip} align="end" trigger={<Pill tone={by.kind === "rule" ? "brand" : "neutral"}>{label}</Pill>}>
+    <InfoTip label={tip} align="end" trigger={<Pill>{label}</Pill>}>
       {tip}
     </InfoTip>
   )

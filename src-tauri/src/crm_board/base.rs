@@ -1,5 +1,5 @@
 //! The one place that knows memo's base-stage commands and their JSON (cli-core #2720, store version 60): the argv of
-//! `stages show|list|set|confirm|create|rename|move|remove` and the field names of their answers.
+//! `stages show|list|set|confirm|suggest|create|rename|move|remove` and the field names of their answers.
 
 use super::{CrmBaseRef, CrmBaseStage, CrmKind, CrmStageMap, CrmUnsorted, count, text};
 use crate::skills::body;
@@ -44,6 +44,11 @@ pub fn confirm_args(kind: CrmKind, pipeline: Option<&str>) -> Vec<String> {
         Some(p) => words(&["stages", "confirm", "--pipeline", p]),
         None => words(&["stages", "confirm", "--all", "--kind", kind.noun()]),
     }
+}
+
+/// The AI model chosen in Settings proposes a place for each unconfirmed stage; the owner confirms them after.
+pub fn suggest_args(kind: CrmKind) -> Vec<String> {
+    words(&["stages", "suggest", "--kind", kind.noun()])
 }
 
 pub fn add_args(kind: CrmKind, name: &str, outcome: &str) -> Vec<String> {

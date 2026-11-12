@@ -224,7 +224,7 @@ describe("AI model", () => {
     )
     await user.type(screen.getByLabelText("API key"), "sk-ant-test")
     await user.click(screen.getByRole("button", { name: "Save" }))
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/memo refused the request/))
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/The request was refused/))
     expect(set).toHaveBeenCalledTimes(1)
     expect(screen.getByRole("alert")).not.toHaveTextContent("memo.refused")
   })

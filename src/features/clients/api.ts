@@ -202,6 +202,16 @@ export function useConfirm(kind: Kind) {
   })
 }
 
+/** Only on the owner's click: the AI model's places land as suggestions, which the owner then confirms or moves. */
+export function useSuggest(kind: Kind) {
+  return useMutation({
+    mutationKey: [MAP_WRITES.id],
+    scope: MAP_WRITES,
+    mutationFn: () => platform.clientsMapSuggest(kind),
+    onSettled: refreshAfterMapWrite,
+  })
+}
+
 /** Confirming runs from the dialog and from the page's notice: either one makes the other wait. */
 export const useConfirming = () => useIsMutating({ mutationKey: [MAP_WRITES.id, MAP_CONFIRM] }) > 0
 

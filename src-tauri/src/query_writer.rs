@@ -360,9 +360,9 @@ const EXAMPLES: &[Example] = &[
         needs: &["from"], words: "как купить велосипед у Милы", query: "куп* велосипед* from:*Мила*"
     },
     Example {
-        needs: &["from", "has"],
+        needs: &["from", "has", "transcript"],
         words: "голосовые от Сергея Иванова про договор аренды",
-        query: r#"договор* аренд* from:"Сергей Иванов" has:voice"#,
+        query: r#"transcript:договор* transcript:аренд* from:"Сергей Иванов" has:voice"#,
     },
     Example {
         needs: &["chat", "has", "date"],
@@ -422,7 +422,7 @@ const EXAMPLES: &[Example] = &[
     },
 ];
 
-fn rules(names: &[&str]) -> Vec<&'static str> {
+fn rules(what: &str, names: &[&str]) -> Vec<&'static str> {
     let has_names = ["from", "chat", "author"].iter().any(|k| names.contains(k));
     let mut rules = vec![
         "Keep topic words in the language and alphabet the person used. Never translate them.",
@@ -452,13 +452,21 @@ fn rules(names: &[&str]) -> Vec<&'static str> {
         );
     }
     if !names.is_empty() {
-        rules.push(
+        rules.push(if what == "messages" {
+            "A topic word in the message text, written without a key or under text:, is the part of the word that \
+             keeps through its forms, at least three letters, between two *: \"договора аренды\" is *договор* \
+             *аренд*, \"invoices\" is *invoice*. In a key that holds other words (subject:, content:, transcript:, \
+             title:) it is the start of the word followed by *, never with * before it: subject:отчет*. Words said in \
+             a voice message are only under transcript:, as transcript:договор*. Words the person put in quotes \
+             stay an exact \"phrase\". Keys with listed values take those values only, and an id, a date, an address \
+             or a link goes exactly."
+        } else {
             "A topic word, in the text or in a key that holds words (subject:, content:, transcript:, title:), is the \
              start of the word that keeps through its forms, followed by *: \"договора аренды\" is договор* аренд*, \
              \"invoices\" is invoice*, a mail's subject \"отчет\" is subject:отчет*. Never put * before a word. \
              Words the person put in quotes stay an exact \"phrase\". Keys with listed values take those values \
-             only, and an id, a date, an address or a link goes exactly.",
-        );
+             only, and an id, a date, an address or a link goes exactly."
+        });
         rules.push(
             "Use only the keys listed above and only their listed values. When the description needs a key that is \
              not listed, write those words as plain words or leave them out.",
@@ -472,6 +480,23 @@ fn rules(names: &[&str]) -> Vec<&'static str> {
 }
 
 /// The rules, the tool's keys and examples; the same for every request, so no owner data is in it.
+/// The examples are written for mail and notes, which match a word's start; chat-message text matches a part inside a
+/// word through cli-core's trigram index (0.641.0), so there a bare `аренд*` is `*аренд*`.
+fn inside_words(query: &str) -> String {
+    query
+        .split(' ')
+        .map(|token| {
+            let word = token.trim_start_matches('(').trim_end_matches(')');
+            if word.ends_with('*') && !word.starts_with('*') && !word.contains(':') && !word.contains('"') {
+                token.replacen(word, &format!("*{word}"), 1)
+            } else {
+                token.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 pub fn system_prompt(tool: &Tool) -> Result<String, String> {
     let src = tool.search.as_ref().ok_or("This tool cannot search its local data.")?;
     let what = src.what.as_str();
@@ -497,7 +522,10 @@ pub fn system_prompt(tool: &Tool) -> Result<String, String> {
         // Keyless tools take no patterns, so their examples are the only ones with plain topic words.
         .filter(|e| e.needs.is_empty() == names.is_empty() && e.needs.iter().all(|n| names.contains(n)))
         .take(8)
-        .map(|e| format!("Description: {}\nQuery: {}", e.words, e.query))
+        .map(|e| {
+            let query = if what == "messages" { inside_words(e.query) } else { e.query.to_owned() };
+            format!("Description: {}\nQuery: {query}", e.words)
+        })
         .collect();
     Ok(format!(
         "You turn a person's description of what they want to find into one search query for {name}, which searches \
@@ -513,7 +541,12 @@ Rules:
 Examples (in these, today is 2026-03-16, Monday):
 {examples}",
         name = tool.name,
-        rules = rules(&names).iter().enumerate().map(|(i, r)| format!("{}. {r}", i + 1)).collect::<Vec<_>>().join("\n"),
+        rules = rules(what, &names)
+            .iter()
+            .enumerate()
+            .map(|(i, r)| format!("{}. {r}", i + 1))
+            .collect::<Vec<_>>()
+            .join("\n"),
         examples = examples.join("\n\n"),
     ))
 }
@@ -601,7 +634,11 @@ mod tests {
         assert!(tg.contains("- has: what it holds besides text. Example: has:photo. Only these values: photo, file"));
         assert!(tg.contains("date:[YYYY-MM-DD TO YYYY-MM-DD]"));
         assert!(tg.contains("from:*Мила*") && tg.contains("filename:*договор*"));
-        assert!(tg.contains("договор* аренд*") && tg.contains("subject:отчет*") && !tg.contains(" *аренд"));
+        assert!(
+            tg.contains("*договор* *аренд*") && tg.contains("subject:отчет*") && tg.contains("transcript:договор*")
+        );
+        assert!(tg.contains("Query: *куп* *велосипед* from:*Мила*") && tg.contains("(*rent* OR *deposit*)"));
+        assert!(!tg.contains("Never put * before a word"));
         assert!(!tg.contains("Query: бюджет"), "plain topic words are for keyless tools only");
         assert_eq!(tg.matches("\nQuery: ").count(), 8);
         assert!(!tg.contains("chats, contacts"), "a store list's name is not a value");
@@ -610,6 +647,9 @@ mod tests {
         assert!(!zm.contains('*'), "a meeting search takes no patterns");
         let notes = system_prompt(catalog::tool("memo").unwrap()).unwrap();
         assert!(notes.contains("author:*Ana*") && notes.contains("launch* date:today") && !notes.contains("has:"));
+        assert!(notes.contains("Never put * before a word") && !notes.contains("*launch*"));
+        let mail = system_prompt(catalog::tool("email").unwrap()).unwrap();
+        assert!(mail.contains("договор* аренд*") && !mail.contains("*возврат*"));
     }
 
     #[test]

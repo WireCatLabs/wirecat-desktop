@@ -108,11 +108,10 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
           )
         let query = draft.query
         let answer = await tried(query)
-        // A tool on an older cli-core refuses part-of-name patterns; its plain values still match part of a name.
-        const plain =
-          answer.kind === "queryError" && queryReason(answer.reason) === "unsupported-operator"
-            ? withoutPatterns(query)
-            : null
+        // A tool on an older cli-core refuses part-of-name patterns, and a part inside a word on a large store; its
+        // plain values still match part of a name, and a word's start every form of the word.
+        const reason = answer.kind === "queryError" ? queryReason(answer.reason) : null
+        const plain = reason === "unsupported-operator" || reason === "too-large" ? withoutPatterns(query) : null
         if (plain) {
           query = plain
           answer = await tried(query)

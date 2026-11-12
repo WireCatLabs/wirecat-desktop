@@ -56,6 +56,11 @@ pub async fn clients_map_confirm(kind: CrmKind, pipeline: Option<String>) -> Res
 }
 
 #[tauri::command]
+pub async fn clients_map_suggest(kind: CrmKind) -> Result<crm_board::CrmSuggested, AppError> {
+    crate::log::command("clients_map_suggest", async move { attempt(move || crm_board::suggest(kind)).await }).await
+}
+
+#[tauri::command]
 pub async fn clients_base_edit(kind: CrmKind, edit: crm_board::CrmBaseEdit) -> Result<(), AppError> {
     crate::log::command("clients_base_edit", async move { attempt(move || crm_board::edit_base(kind, &edit)).await })
         .await

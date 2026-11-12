@@ -25,6 +25,15 @@ type Words = {
   mapIntro: Record<Kind, string>
   unmappedHint: string
   acceptAll: (n: number) => string
+  suggest: string
+  suggesting: string
+  suggestHint: string
+  suggestDone: (suggested: number, left: number) => string
+  suggestNone: string
+  suggestWhy: Record<string, string>
+  suggestOld: string
+  suggestFailed: string
+  goAiModel: string
   suggested: string
   chooseOther: (stage: string) => string
   confirmTo: (base: string) => string
@@ -87,6 +96,24 @@ const en: Words = {
   },
   unmappedHint: "Accept a suggestion or drag the stage to its column.",
   acceptAll: (n) => `Accept suggestions (${n})`,
+  suggest: "Suggest with AI",
+  suggesting: "Asking the AI model…",
+  suggestHint:
+    "Sends the names of waiting stages from every CRM, and of your stages, to the AI model from Settings. Answers replace suggestions and wait for you.",
+  suggestDone: (suggested, left) =>
+    `${suggested === 1 ? "1 suggestion" : `${suggested} suggestions`} to check, across all your CRMs.${left > 0 ? ` The model left ${left} without one: drag ${left === 1 ? "it" : "them"} yourself.` : ""}`,
+  suggestNone: "Nothing to ask: each waiting stage has only one place it can go.",
+  suggestWhy: {
+    "ai.not-set": "No AI model is chosen. Choose one in Settings, AI model, then try again.",
+    "ai.key-missing": "The AI model has no API key saved. Add it in Settings, AI model, then try again.",
+    "stage.model-answer-invalid":
+      "The AI model answered in a form WireCat cannot read. Try again, or choose another model.",
+    "stage.model-agent":
+      "WireCat was started from an AI agent's terminal, so the model is not asked. Start WireCat from the app menu and try again.",
+  },
+  suggestOld: "Suggestions need a newer Memo. Update it on the Tools page.",
+  suggestFailed: "The suggestions did not come. Try again; the details say why.",
+  goAiModel: "Open AI model settings",
   suggested: "Suggested",
   chooseOther: (stage) => `Another stage for ${stage}`,
   confirmTo: (base) => `Confirm: ${base}`,
@@ -170,6 +197,24 @@ const ru: Words = {
   },
   unmappedHint: "Примите предложение или перетащите этап в нужную колонку.",
   acceptAll: (n) => `Принять предложения (${n})`,
+  suggest: "Предложить с помощью ИИ",
+  suggesting: "Спрашиваем модель ИИ…",
+  suggestHint:
+    "Отправит модели ИИ из настроек названия ждущих этапов всех CRM и ваших этапов. Ответы заменят предложения и ждут вас.",
+  suggestDone: (suggested, left) =>
+    `К проверке во всех CRM: ${suggested}.${left > 0 ? ` Без предложения модель оставила: ${left}, перетащите их сами.` : ""}`,
+  suggestNone: "Спрашивать нечего: каждому ждущему этапу подходит только одно место.",
+  suggestWhy: {
+    "ai.not-set": "Модель ИИ не выбрана. Выберите её в настройках, раздел «Модель ИИ», и повторите.",
+    "ai.key-missing": "Для модели ИИ не сохранён ключ API. Добавьте его в настройках, раздел «Модель ИИ», и повторите.",
+    "stage.model-answer-invalid":
+      "Модель ИИ ответила в виде, который WireCat не может прочитать. Повторите или выберите другую модель.",
+    "stage.model-agent":
+      "WireCat запущен из терминала ИИ-агента, поэтому модель не спрашивают. Запустите WireCat из меню приложений и повторите.",
+  },
+  suggestOld: "Для предложений нужна более новая версия Memo. Обновите её на странице «Инструменты».",
+  suggestFailed: "Предложения не пришли. Повторите; причина в подробностях.",
+  goAiModel: "Открыть настройки модели ИИ",
   suggested: "Предложение",
   chooseOther: (stage) => `Другой этап для «${stage}»`,
   confirmTo: (base) => `Подтвердить: ${base}`,
@@ -256,6 +301,25 @@ const es: Words = {
   },
   unmappedHint: "Acepta una sugerencia o arrastra la etapa a su columna.",
   acceptAll: (n) => `Aceptar sugerencias (${n})`,
+  suggest: "Sugerir con IA",
+  suggesting: "Preguntando al modelo de IA…",
+  suggestHint:
+    "Envía al modelo de IA de Ajustes los nombres de las etapas en espera de todos tus CRM y de tus etapas. Las respuestas sustituyen las sugerencias y te esperan.",
+  suggestDone: (suggested, left) =>
+    `Sugerencias por revisar en todos tus CRM: ${suggested}.${left > 0 ? ` El modelo dejó ${left} sin sugerencia: arrástralas tú.` : ""}`,
+  suggestNone: "No hay nada que preguntar: cada etapa en espera tiene un solo sitio posible.",
+  suggestWhy: {
+    "ai.not-set": "No hay ningún modelo de IA elegido. Elige uno en Ajustes, Modelo de IA, y vuelve a intentarlo.",
+    "ai.key-missing":
+      "El modelo de IA no tiene clave de API guardada. Añádela en Ajustes, Modelo de IA, y vuelve a intentarlo.",
+    "stage.model-answer-invalid":
+      "El modelo de IA respondió de una forma que WireCat no puede leer. Vuelve a intentarlo o elige otro modelo.",
+    "stage.model-agent":
+      "WireCat se abrió desde la terminal de un agente de IA, así que no se pregunta al modelo. Ábrelo desde el menú de aplicaciones y vuelve a intentarlo.",
+  },
+  suggestOld: "Las sugerencias necesitan un Memo más nuevo. Actualízalo en la página Herramientas.",
+  suggestFailed: "Las sugerencias no llegaron. Vuelve a intentarlo; los detalles dicen por qué.",
+  goAiModel: "Abrir los ajustes del modelo de IA",
   suggested: "Sugerencia",
   chooseOther: (stage) => `Otra etapa para ${stage}`,
   confirmTo: (base) => `Confirmar: ${base}`,

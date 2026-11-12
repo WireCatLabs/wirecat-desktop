@@ -356,7 +356,7 @@ describe("Tasks", () => {
     await user.click(within(row("OPS-3")).getByRole("combobox", { name: "Status of OPS-3" }))
     await user.click(screen.getByRole("option", { name: "Done" }))
     const alert = await within(row("OPS-3")).findByRole("alert")
-    expect(alert).toHaveTextContent("Not saved. Memo is busy, most likely with a sync. Try again in a minute.")
+    expect(alert).toHaveTextContent("Not saved. WireCat is busy, most likely with a sync. Try again in a minute.")
     expect(alert).not.toHaveTextContent("database is locked")
     await user.click(within(alert).getByRole("button", { name: "Details" }))
     expect(alert).toHaveTextContent("database is locked")
