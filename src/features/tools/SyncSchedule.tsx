@@ -140,7 +140,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
         </p>
       )}
       <Collapse open={open}>
-        <div className="flex flex-col gap-2 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5">
+        <div className="flex flex-col gap-2 rounded-pill border border-line bg-app-2 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor={selectId} className="text-[0.9rem] font-medium">
               {m.every}

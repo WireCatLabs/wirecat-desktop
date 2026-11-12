@@ -254,7 +254,7 @@ export function TaskLink({ taskKey }: { taskKey: string }) {
         e.stopPropagation()
         void useTasks.getState().openTask(taskKey)
       }}
-      className="cursor-pointer rounded-[0.2rem] font-mono underline decoration-dotted underline-offset-[3px] hover:text-brand hover:decoration-solid focus-visible:outline-2 focus-visible:outline-brand"
+      className="cursor-pointer rounded-rack font-mono underline decoration-dotted underline-offset-[3px] hover:text-brand hover:decoration-solid focus-visible:outline-2 focus-visible:outline-brand"
     >
       {taskKey}
     </button>

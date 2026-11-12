@@ -84,6 +84,10 @@ describe("one component per job (docs/dev/ui-consistency.md)", () => {
     ).toEqual([])
   })
 
+  it("draws a shadow only with shadow-panel, which follows the theme", () => {
+    expect(using(/(?<![\w-])shadow-(?:sm|md|lg|xl|2xl)\b/, [])).toEqual([])
+  })
+
   it("repeats the page frame only in Page and in the first-run setup", () => {
     expect(using(/px-\[2\.1rem\]/, ["shared/Page.tsx", "features/onboarding/Onboarding.tsx"])).toEqual([])
   })

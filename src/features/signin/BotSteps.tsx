@@ -22,7 +22,7 @@ export const NAME_FORM = "bot-name-form"
 export const TOKEN_FORM = "bot-token-form"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 const toolKey = (id: string): BotTool => (id === "max" || id === "wa" ? id : "tg")
 

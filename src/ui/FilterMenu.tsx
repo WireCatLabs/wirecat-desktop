@@ -131,7 +131,7 @@ export function FilterMenu({
       <span
         ref={chip}
         className={cx(
-          "inline-flex h-8 max-w-[20rem] min-w-0 items-stretch rounded-[0.35rem] border text-[0.875rem] transition-colors duration-(--motion-fast)",
+          "inline-flex h-8 max-w-[20rem] min-w-0 items-stretch rounded-control border text-[0.875rem] transition-colors duration-(--motion-fast)",
           on ? "border-brand/50 bg-brand-soft" : "border-line-strong bg-app",
         )}
       >
@@ -150,7 +150,7 @@ export function FilterMenu({
             }
           }}
           className={cx(
-            "flex min-w-0 cursor-pointer items-center gap-[0.35rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.6rem] transition-colors duration-(--motion-fast)",
+            "flex min-w-0 cursor-pointer items-center gap-[0.35rem] rounded-pill pr-[0.4rem] pl-[0.6rem] transition-colors duration-(--motion-fast)",
             on
               ? "text-ink-soft hover:bg-brand/10 active:bg-brand/15"
               : "text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",
@@ -178,7 +178,7 @@ export function FilterMenu({
               onChange([])
               button.current?.focus()
             }}
-            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-[0.3rem] border-brand/30 border-l text-ink-dim transition-colors duration-(--motion-fast) hover:bg-brand/10 hover:text-ink active:bg-brand/15"
+            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-pill border-brand/30 border-l text-ink-dim transition-colors duration-(--motion-fast) hover:bg-brand/10 hover:text-ink active:bg-brand/15"
           >
             <X className="size-[0.9rem]" aria-hidden />
           </button>
@@ -188,7 +188,7 @@ export function FilterMenu({
         ref={list}
         hidden={!open}
         style={place}
-        className="fixed z-50 w-[17rem] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-[0.3rem] font-sans text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
+        className="fixed z-50 w-[17rem] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-inset border border-line bg-app p-[0.3rem] font-sans text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
       >
         {searchable && (
           <input
@@ -206,7 +206,7 @@ export function FilterMenu({
             }}
             onKeyDown={onKey}
             placeholder={m.find(label)}
-            className="selectable inner-field mb-[0.3rem] h-8 w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+            className="selectable inner-field mb-[0.3rem] h-8 w-full rounded-control border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
           />
         )}
         <div
@@ -233,7 +233,7 @@ export function FilterMenu({
                 onMouseUp={() => toggle(o.value)}
                 onMouseMove={() => i !== active && setActive(i)}
                 className={cx(
-                  "flex min-h-[2.1rem] cursor-pointer items-center gap-[0.55rem] rounded-[0.3rem] px-[0.5rem] text-[0.9rem]",
+                  "flex min-h-[2.1rem] cursor-pointer items-center gap-[0.55rem] rounded-pill px-[0.5rem] text-[0.9rem]",
                   i === active && "bg-app-3",
                 )}
               >

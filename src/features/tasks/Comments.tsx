@@ -57,7 +57,7 @@ export function Comments({ taskKey, onDirty }: { taskKey: string; onDirty?: (dir
         <MessageSquare className="size-[0.95rem]" aria-hidden /> {m.comments}
       </h3>
       {!comments || comments.state === "loading" ? (
-        <Skeleton className="h-[3.2rem] w-full rounded-[0.45rem]" label={m.comments} />
+        <Skeleton className="h-[3.2rem] w-full rounded-inset" label={m.comments} />
       ) : comments.state === "failed" ? (
         <TaskError
           reading
@@ -78,7 +78,7 @@ export function Comments({ taskKey, onDirty }: { taskKey: string; onDirty?: (dir
               key={c.local ?? c.ref ?? `${c.at}|${c.text}`}
               aria-busy={c.saving}
               className={cx(
-                "reveal rounded-[0.45rem] border border-line bg-app-2 px-[0.8rem] pt-[0.45rem] pb-[0.6rem] transition-opacity duration-(--motion-fast)",
+                "reveal rounded-inset border border-line bg-app-2 px-[0.8rem] pt-[0.45rem] pb-[0.6rem] transition-opacity duration-(--motion-fast)",
                 c.saving && "opacity-70",
               )}
             >
@@ -124,7 +124,7 @@ export function Comments({ taskKey, onDirty }: { taskKey: string; onDirty?: (dir
             }
           }}
           placeholder={`${m.addComment}. ${m.commentHint}`}
-          className={`selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim aria-[invalid=true]:border-bad ${fieldFocus}`}
+          className={`selectable rounded-control border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim aria-[invalid=true]:border-bad ${fieldFocus}`}
         />
         {empty.hint}
         <div className="flex gap-2">

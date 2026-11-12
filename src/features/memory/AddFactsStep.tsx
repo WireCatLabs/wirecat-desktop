@@ -45,7 +45,7 @@ export function FactsStep() {
               </Button>
             </div>
           </div>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {findings.map((f) => (
               <li key={f.id} className="border-line not-first:border-t">
                 <label className="flex cursor-pointer items-start gap-[0.8rem] px-[0.9rem] py-[0.7rem]">

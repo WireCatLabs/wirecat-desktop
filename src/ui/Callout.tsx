@@ -102,7 +102,7 @@ export function Callout(props: Props) {
     <>
       <div
         aria-hidden
-        className="pointer-events-none fixed z-40 rounded-[0.45rem] transition-[top,left,width,height] duration-(--motion-slow) ease-out-quart"
+        className="pointer-events-none fixed z-40 rounded-inset transition-[top,left,width,height] duration-(--motion-slow) ease-out-quart"
         style={
           target
             ? {
@@ -124,7 +124,7 @@ export function Callout(props: Props) {
           if (e.key === "ArrowRight" && !last) onNext()
           if (e.key === "ArrowLeft" && index > 0) onBack()
         }}
-        className="fixed z-50 flex w-[min(23rem,calc(100vw-2rem))] flex-col gap-2 rounded-[0.6rem] border border-line bg-app p-[1.1rem] text-ink shadow-panel transition-[top,left] duration-(--motion-slow) ease-out-quart"
+        className="fixed z-50 flex w-[min(23rem,calc(100vw-2rem))] flex-col gap-2 rounded-dialog border border-line bg-app p-[1.1rem] text-ink shadow-panel transition-[top,left] duration-(--motion-slow) ease-out-quart"
         style={{ top: pos.top, left: pos.left, visibility: size ? "visible" : "hidden" }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -135,7 +135,7 @@ export function Callout(props: Props) {
             type="button"
             onClick={onClose}
             aria-label={m.closeTour}
-            className="-mt-1 -mr-1 grid size-7 shrink-0 place-items-center rounded-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+            className="-mt-1 -mr-1 grid size-7 shrink-0 place-items-center rounded-control text-ink-dim hover:bg-app-3 hover:text-ink"
           >
             <X className="size-4" aria-hidden />
           </button>

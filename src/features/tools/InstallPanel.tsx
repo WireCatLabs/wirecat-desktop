@@ -251,7 +251,7 @@ function Log({ lines, m }: { lines: string[]; m: Words }) {
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
       tabIndex={0}
       aria-label={m.log}
-      className="selectable mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-[0.4rem] [overflow-wrap:anywhere] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft"
+      className="selectable mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-button [overflow-wrap:anywhere] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft"
     >
       {lines.length ? lines.join("\n") : m.waitingOutput}
     </pre>

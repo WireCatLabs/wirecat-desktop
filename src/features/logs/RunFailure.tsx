@@ -70,7 +70,7 @@ function Stack({ frames }: { frames: string[] }) {
   const m = useMessages(logsMessages)
   return (
     <Disclosure summary={m.whereInTool(frames.length)}>
-      <ol className="selectable overflow-x-auto rounded-[0.45rem] border border-line bg-app px-[0.8rem] py-[0.5rem] font-mono text-[0.85rem] text-ink-soft">
+      <ol className="selectable overflow-x-auto rounded-inset border border-line bg-app px-[0.8rem] py-[0.5rem] font-mono text-[0.85rem] text-ink-soft">
         {frames.map((f, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: frames repeat in recursion and never reorder
           <li key={i} className="whitespace-pre">

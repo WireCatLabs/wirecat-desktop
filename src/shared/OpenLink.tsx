@@ -47,7 +47,7 @@ export function OpenLink({ url, children, variant = "secondary", size = "sm", ma
         // Framed like the button beside it: a bare icon next to a framed button goes unnoticed.
         className={cx(
           variant !== "ghost" && "border border-line-strong text-ink-soft",
-          size === "md" && "size-[2.4rem] rounded-[0.4rem]",
+          size === "md" && "size-[2.4rem] rounded-button",
         )}
       />
     </div>

@@ -60,7 +60,7 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
       {entry && (
         <div className="flex flex-col gap-3 text-[0.95rem] text-ink-soft">
           <p>{m.forgetLead}</p>
-          <ul className="flex list-disc flex-col gap-1 rounded-[0.45rem] border border-line bg-app-2 py-3 pr-4 pl-8">
+          <ul className="flex list-disc flex-col gap-1 rounded-inset border border-line bg-app-2 py-3 pr-4 pl-8">
             <li className="text-ink">
               {m.forgetRecord(type)} <span className="font-mono text-[0.85rem]">{entry.ref}</span>:{" "}
               <span className="selectable">“{firstWords(entry.text)}”</span>

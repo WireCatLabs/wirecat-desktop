@@ -22,7 +22,7 @@ import { type AgentsMessages, agentsMessages } from "./messages"
 import { PathFixButton, PathFixResult } from "./PathFixResult"
 import { type AgentView, otherFixes } from "./view"
 
-const box = "rounded-[0.45rem] border border-line bg-app"
+const box = "rounded-inset border border-line bg-app"
 
 const foundWords = (a: Agent, m: AgentsMessages) => (a.foundBy === "program" ? m.foundProgram : m.foundFolder)
 

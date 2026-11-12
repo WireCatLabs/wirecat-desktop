@@ -18,7 +18,7 @@ import { memoryMessages } from "./messages"
 import { useMemory } from "./store"
 
 /** One list frame and one item inset for a record's sources and a batch's findings, so the two read as one kind. */
-export const ITEM_LIST = "flex flex-col rounded-[0.45rem] border border-line bg-app"
+export const ITEM_LIST = "flex flex-col rounded-inset border border-line bg-app"
 export const ITEM_PAD = "px-[1rem] py-[0.8rem]"
 
 const SOURCE_ICONS = { meeting: Video, mail: Mail, message: MessagesSquare, note: FileText }
@@ -116,7 +116,7 @@ function ContextBody({ reference }: { reference: string }) {
   if (!ctx || ctx.state === "loading")
     return (
       <div className={box}>
-        <Skeleton className="h-[3rem] w-full rounded-[0.35rem]" label={m.readingContext} />
+        <Skeleton className="h-[3rem] w-full rounded-control" label={m.readingContext} />
       </div>
     )
   if (ctx.state === "failed")
@@ -165,7 +165,7 @@ function ContextBody({ reference }: { reference: string }) {
         <li
           key={msg.ref ?? i}
           className={cx(
-            "rounded-[0.35rem] px-[0.6rem] py-[0.35rem]",
+            "rounded-control px-[0.6rem] py-[0.35rem]",
             msg.anchor ? "bg-brand-soft/60 text-ink" : "text-ink-soft",
           )}
         >
@@ -189,7 +189,7 @@ export function Sources({ entry }: { entry: MemoryEntry }) {
     return (
       <div className="flex flex-col gap-[0.6rem]">
         <Skeleton className="h-[1rem] w-[14rem]" />
-        <Skeleton className="h-[4.2rem] w-full rounded-[0.45rem]" />
+        <Skeleton className="h-[4.2rem] w-full rounded-inset" />
       </div>
     )
   if (sources.state === "failed")

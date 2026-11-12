@@ -201,7 +201,7 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
         {data ? <Totals summaries={summaries} m={m} /> : !error && !defaultsView && <Skeleton chars={44} />}
 
         {!data && !error ? (
-          <ul className="divide-y divide-line rounded-[0.45rem] border border-line bg-app">
+          <ul className="divide-y divide-line rounded-inset border border-line bg-app">
             {groups.map((g, n) => (
               <li key={g.key} className={ROW}>
                 <div className={ROW_GRID}>
@@ -215,7 +215,7 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
           <ul
             aria-label={m.list(tool.name)}
             className={cx(
-              "divide-y divide-line rounded-[0.45rem] border border-line bg-app transition-opacity duration-(--motion-fast)",
+              "divide-y divide-line rounded-inset border border-line bg-app transition-opacity duration-(--motion-fast)",
               loading && "opacity-60",
             )}
           >

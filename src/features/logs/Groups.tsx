@@ -43,7 +43,7 @@ export function Groups({ field, groups, now, onPick }: Props) {
                   type="button"
                   onClick={() => onPick(g.value)}
                   title={m.showOnly(valueTitle(m, field, g.value))}
-                  className="flex w-full min-w-0 items-center rounded-[0.3rem] px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
+                  className="flex w-full min-w-0 items-center rounded-pill px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
                 >
                   <ValueLabel field={field} value={g.value} />
                 </button>

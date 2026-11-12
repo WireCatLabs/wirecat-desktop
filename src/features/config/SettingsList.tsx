@@ -167,7 +167,7 @@ function ResetCell({ children }: { children?: ReactNode }) {
 
 const shown = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v))
 
-const field = `h-8 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim disabled:opacity-45 ${fieldFocus}`
+const field = `h-8 w-full min-w-0 rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim disabled:opacity-45 ${fieldFocus}`
 
 function Control({
   id,
@@ -242,7 +242,7 @@ function ListControl(props: { id: string; items: string[]; disabled: boolean; on
       {items.map((item) => (
         <span
           key={item}
-          className="inline-flex h-6 items-center gap-1 rounded-[0.3rem] bg-app-3 pr-0.5 pl-2 font-mono text-[0.85rem] text-ink"
+          className="inline-flex h-6 items-center gap-1 rounded-pill bg-app-3 pr-0.5 pl-2 font-mono text-[0.85rem] text-ink"
         >
           {item}
           <button
@@ -271,7 +271,7 @@ function ListControl(props: { id: string; items: string[]; disabled: boolean; on
           disabled={disabled}
           onClick={add}
           aria-label={m.addToList}
-          className="grid size-6 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+          className="grid size-6 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
         >
           <Plus className="size-3.5" aria-hidden />
         </button>

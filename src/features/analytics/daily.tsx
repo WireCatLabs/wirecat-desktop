@@ -16,7 +16,7 @@ import { type AggState, useAggregate, useAnalytics } from "./store"
 const toolName = (id: string) => findTool(id)?.name ?? id
 
 const CardSkeleton = ({ label }: { label: string }) => (
-  <Skeleton className="h-[8.5rem] w-full rounded-[0.2rem]" label={label} />
+  <Skeleton className="h-[8.5rem] w-full rounded-rack" label={label} />
 )
 
 const BUCKETS = ["under_5m", "under_1h", "under_1d", "over_1d"] as const

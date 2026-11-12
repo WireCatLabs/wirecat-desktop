@@ -234,7 +234,7 @@ export function Details({
                 setTitle(e.target.value)
                 noTitle.clear()
               }}
-              className={`selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink aria-[invalid=true]:border-bad ${fieldFocus}`}
+              className={`selectable h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink aria-[invalid=true]:border-bad ${fieldFocus}`}
             />
             {noTitle.hint}
           </div>
@@ -257,12 +257,12 @@ export function Details({
                   }
                 }}
                 placeholder={m.notesHint}
-                className={`selectable reveal rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+                className={`selectable reveal rounded-control border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
               />
             ) : (
               <article
                 aria-labelledby={`${id}-notes`}
-                className="reveal rounded-[0.45rem] border border-line bg-app-2 px-[0.8rem] pt-[0.5rem] pb-[0.7rem]"
+                className="reveal rounded-inset border border-line bg-app-2 px-[0.8rem] pt-[0.5rem] pb-[0.7rem]"
               >
                 <header className="flex items-center gap-[0.45rem] text-[0.85rem] text-ink-dim">
                   {wrote && <Who by={wrote.by} />}

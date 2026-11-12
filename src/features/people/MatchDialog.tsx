@@ -195,7 +195,7 @@ function SharedSignal({ match, value }: { match: Match; value: string | null }) 
     <p
       data-autofocus
       tabIndex={-1}
-      className="flex items-center gap-[0.6rem] rounded-[0.45rem] bg-brand-soft px-[0.9rem] py-[0.65rem] font-medium text-ink step-heading"
+      className="flex items-center gap-[0.6rem] rounded-inset bg-brand-soft px-[0.9rem] py-[0.65rem] font-medium text-ink step-heading"
     >
       <Icon className="size-[1.1rem] shrink-0 text-brand" aria-hidden />
       <span className="selectable min-w-0">{words}</span>
@@ -403,7 +403,7 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
 function Recent({ items }: { items: PersonProfile["recent"] }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
-  const row = "flex min-w-0 flex-col gap-[0.1rem] rounded-[0.35rem] px-[0.45rem] py-[0.35rem]"
+  const row = "flex min-w-0 flex-col gap-[0.1rem] rounded-control px-[0.45rem] py-[0.35rem]"
   return (
     <ul className="-mx-[0.45rem] flex flex-col">
       {items.map((r) => {

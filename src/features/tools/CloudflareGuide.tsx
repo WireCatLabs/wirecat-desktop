@@ -149,7 +149,7 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
         <span className="text-[0.9rem] font-medium text-ink-dim">{m.nameLabel}</span>
         <input
           id={id}
-          className="h-8 w-full max-w-[24rem] rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
+          className="h-8 w-full max-w-[24rem] rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && create()}
@@ -194,7 +194,7 @@ export function CloudflareGuide({ cloudflare }: { cloudflare: ReturnType<typeof 
   }
 
   return (
-    <ol className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line" aria-label={m.list}>
+    <ol className="flex flex-col divide-y divide-line rounded-inset border border-line" aria-label={m.list}>
       {steps.map((step, i) => {
         const open = step.id === current
         return (

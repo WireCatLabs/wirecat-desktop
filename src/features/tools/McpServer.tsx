@@ -220,7 +220,7 @@ export function McpServer({ tool }: { tool: CatalogTool }) {
         {row.state !== "loading" && (
           <Disclosure summary={m.details}>
             <ul
-              className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line bg-app"
+              className="flex flex-col divide-y divide-line rounded-inset border border-line bg-app"
               aria-label={m.list(tool.name)}
             >
               <McpServerRow
@@ -245,7 +245,7 @@ function Connected(props: { data: McpServerStatus; m: Words; lang: Lang; onConne
   const { data, m, lang, onConnect } = props
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line bg-app">
+      <ul className="flex flex-col divide-y divide-line rounded-inset border border-line bg-app">
         {data.clients.map((c) => (
           <li
             key={`${c.claimedName}-${c.lastLoginAt}`}

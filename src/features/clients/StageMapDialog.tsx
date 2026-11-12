@@ -314,7 +314,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               {refs.length === 0 && b && (
                 <li
                   className={cx(
-                    "rounded-[0.45rem] border border-dashed px-[0.75rem] py-[1.1rem] text-center text-[0.9rem] transition-colors duration-(--motion-fast)",
+                    "rounded-inset border border-dashed px-[0.75rem] py-[1.1rem] text-center text-[0.9rem] transition-colors duration-(--motion-fast)",
                     drag?.to === id ? "border-brand/60 bg-brand-soft/50 text-ink" : "border-line-strong text-ink-dim",
                   )}
                 >
@@ -336,7 +336,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                           key={x.ref}
                           data-slide={x.ref}
                           className={cx(
-                            "rounded-[0.45rem] border bg-app transition-[border-color,box-shadow] duration-(--motion-fast)",
+                            "rounded-inset border bg-app transition-[border-color,box-shadow] duration-(--motion-fast)",
                             drag?.key === x.ref
                               ? "border-line-strong border-dashed bg-app-3 [&>*]:invisible"
                               : "border-line hover:border-line-strong",
@@ -356,7 +356,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                             onPointerDown={(e) => onPointerDown(e, x.ref)}
                             onKeyDown={(e) => onKeyDown(e, x.ref)}
                             onClick={() => onClick(x.ref)}
-                            className="flex cursor-grab touch-none items-baseline gap-[0.45rem] rounded-[0.45rem] px-[0.7rem] py-[0.5rem] text-[0.95rem] leading-snug text-ink select-none [-webkit-user-select:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+                            className="flex cursor-grab touch-none items-baseline gap-[0.45rem] rounded-inset px-[0.7rem] py-[0.5rem] text-[0.95rem] leading-snug text-ink select-none [-webkit-user-select:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
                           >
                             <StageBadge stage={x} kind={kind} />
                           </span>
@@ -370,7 +370,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                                 data-suggest={x.ref}
                                 disabled={busy}
                                 onClick={() => mapTo(x.ref, to.ref, nextAfter(x.ref))}
-                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
+                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-pill bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
                               >
                                 <Check className="size-[0.9rem] shrink-0" strokeWidth={2.4} aria-hidden />
                                 <span className="truncate">{names.stage(to.name)}</span>

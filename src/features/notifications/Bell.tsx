@@ -86,7 +86,7 @@ export function Bell() {
         aria-controls={open ? panelId : undefined}
         onClick={() => useNotifications.getState().toggle()}
         className={cx(
-          "relative grid size-[2.2rem] place-items-center rounded-[0.4rem] text-ink-soft hover:bg-app-3 hover:text-ink",
+          "relative grid size-[2.2rem] place-items-center rounded-button text-ink-soft hover:bg-app-3 hover:text-ink",
           open && "bg-app-3 text-ink",
         )}
       >
@@ -129,7 +129,7 @@ function Panel({ id, leaving }: { id: string; leaving: boolean }) {
       aria-hidden={leaving || undefined}
       inert={leaving || undefined}
       className={cx(
-        "absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-[0.6rem] border border-line bg-app shadow-panel",
+        "absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-dialog border border-line bg-app shadow-panel",
         leaving
           ? "pointer-events-none animate-[dialog-out_var(--motion-exit)_var(--ease-out-quart)_forwards]"
           : "motion-safe:animate-[select-in_160ms_var(--ease-out-quart)]",
@@ -230,7 +230,7 @@ function Item({
         aria-label={m.dismiss(title)}
         title={m.dismiss(title)}
         onClick={onDismiss}
-        className="grid size-[1.9rem] shrink-0 place-items-center self-start rounded-[0.35rem] text-ink-dim opacity-60 hover:bg-app-3 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+        className="grid size-[1.9rem] shrink-0 place-items-center self-start rounded-control text-ink-dim opacity-60 hover:bg-app-3 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
       >
         <X className="size-[1rem]" strokeWidth={1.8} aria-hidden />
       </button>

@@ -342,7 +342,7 @@ function ChoiceButton(props: { title: string; note: string; onClick: () => void;
       onClick={onClick}
       data-autofocus={first || undefined}
       className={cx(
-        "flex flex-col gap-1 rounded-[0.45rem] border border-line bg-app px-3 py-2.5 text-left transition-colors duration-(--motion-fast)",
+        "flex flex-col gap-1 rounded-inset border border-line bg-app px-3 py-2.5 text-left transition-colors duration-(--motion-fast)",
         "hover:border-brand/50 hover:bg-brand-soft/40 focus-visible:border-brand",
         danger && "hover:border-bad/50 hover:bg-bad/5 focus-visible:border-bad",
       )}
@@ -562,7 +562,7 @@ function Refusal(props: { tool: CatalogTool; profile: string; answer: Refused; m
       <>
         <p>{using ? `${m.busyUsing(using)} ${m.busyTool}` : m.busyTool}</p>
         <p className="text-[0.75rem] text-ink-dim">{m.details}</p>
-        <p className="selectable rounded-[0.35rem] bg-app-2 px-2.5 py-1.5 font-mono text-[0.82rem] break-words text-ink">
+        <p className="selectable rounded-control bg-app-2 px-2.5 py-1.5 font-mono text-[0.82rem] break-words text-ink">
           {message}
         </p>
       </>
@@ -625,7 +625,7 @@ function Choice({ title, on, children }: { title: string; on: boolean; children:
     <fieldset
       disabled={!on}
       className={cx(
-        "rounded-[0.45rem] border px-3 py-2.5",
+        "rounded-inset border px-3 py-2.5",
         on ? "border-brand/50 bg-brand-soft/40" : "border-line bg-app-2/60 text-ink-soft",
       )}
     >

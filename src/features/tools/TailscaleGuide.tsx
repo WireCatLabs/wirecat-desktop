@@ -203,7 +203,7 @@ function InstallStep({ s, m }: { s: TailscaleStatus; m: Words }) {
         />
       )}
       {done && (
-        <div className="rounded-[0.4rem] border border-line bg-app-2 px-3 py-2 text-[0.9rem]">
+        <div className="rounded-button border border-line bg-app-2 px-3 py-2 text-[0.9rem]">
           <p>{m.saved(<span className="selectable font-mono text-ink">{done.path}</span>)}</p>
           <p>{done.opened ? (s.os === "macos" ? m.openedMacos : m.openedWindows) : m.shown}</p>
         </div>
@@ -400,7 +400,7 @@ export function TailscaleGuide({ tailscale }: { tailscale: ReturnType<typeof use
   }
 
   return (
-    <ol className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line" aria-label={m.list}>
+    <ol className="flex flex-col divide-y divide-line rounded-inset border border-line" aria-label={m.list}>
       {steps.map((step, i) => {
         const open = step.id === current
         return (

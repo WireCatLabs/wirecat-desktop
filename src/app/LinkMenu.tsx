@@ -114,14 +114,14 @@ export function LinkMenu() {
       ref={root}
       // Measured off screen first, not hidden: a hidden menu item takes no focus.
       style={at ?? { left: -9999, top: -9999 }}
-      className="fixed z-50 flex w-max max-w-[min(26rem,calc(100vw-1rem))] flex-col rounded-[0.6rem] border border-line bg-app p-[0.3rem] shadow-panel origin-top-left motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
+      className="fixed z-50 flex w-max max-w-[min(26rem,calc(100vw-1rem))] flex-col rounded-dialog border border-line bg-app p-[0.3rem] shadow-panel origin-top-left motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
     >
       <div role="menu" aria-label={m.menu} className="flex flex-col">
         <button
           type="button"
           role="menuitem"
           onClick={copy}
-          className="flex h-[2.4rem] w-full items-center gap-[0.7rem] rounded-[0.35rem] px-[0.7rem] pr-[1rem] text-left text-[0.95rem] whitespace-nowrap text-ink hover:bg-app-3 focus-visible:bg-app-3"
+          className="flex h-[2.4rem] w-full items-center gap-[0.7rem] rounded-control px-[0.7rem] pr-[1rem] text-left text-[0.95rem] whitespace-nowrap text-ink hover:bg-app-3 focus-visible:bg-app-3"
         >
           {state === "copied" ? (
             <Check className="size-[1.1rem] text-ok" strokeWidth={1.8} aria-hidden />

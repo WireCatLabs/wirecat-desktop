@@ -115,7 +115,7 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
   return (
     <section
       aria-label={m.title(tool.name)}
-      className="flex w-full flex-col gap-3 rounded-[0.2rem] border border-line-strong bg-app px-[1.1rem] py-[1rem]"
+      className="flex w-full flex-col gap-3 rounded-rack border border-line-strong bg-app px-[1.1rem] py-[1rem]"
     >
       <h3 className="text-[1.02rem] font-semibold leading-tight">{m.title(tool.name)}</h3>
       <SkillBenefits tool={tool.name} />

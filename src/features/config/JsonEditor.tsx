@@ -179,7 +179,7 @@ export function JsonEditor({ id, errors, label, value, onChange, onSave, marks, 
           aria-label={m.findPrevious}
           disabled={found.length === 0}
           onClick={() => step(-1)}
-          className="grid size-8 place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink disabled:opacity-40"
+          className="grid size-8 place-items-center rounded-control text-ink-soft hover:bg-app-3 hover:text-ink disabled:opacity-40"
         >
           <ChevronUp className="size-4" aria-hidden />
         </button>
@@ -188,7 +188,7 @@ export function JsonEditor({ id, errors, label, value, onChange, onSave, marks, 
           aria-label={m.findNext}
           disabled={found.length === 0}
           onClick={() => step(1)}
-          className="grid size-8 place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink disabled:opacity-40"
+          className="grid size-8 place-items-center rounded-control text-ink-soft hover:bg-app-3 hover:text-ink disabled:opacity-40"
         >
           <ChevronDown className="size-4" aria-hidden />
         </button>

@@ -115,7 +115,7 @@ function NewTaskForm({ id }: { id: string }) {
           aria-invalid={missing === "title" || undefined}
           placeholder={m.newTitleHint}
           className={cx(
-            "selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
+            "selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-control border bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
             fieldFocus,
             missing === "title" ? "border-bad" : "border-line-strong",
           )}

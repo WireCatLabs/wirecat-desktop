@@ -62,7 +62,7 @@ export function OwnAgentCheck({ review, onRun }: { review: OwnReview; onRun(run:
         </Collapse>
       </div>
       <Disclosure summary={r.check.show}>
-        <pre className="selectable max-h-56 overflow-auto whitespace-pre-wrap rounded-[0.35rem] bg-app-2 p-3 font-mono text-[0.85rem]">
+        <pre className="selectable max-h-56 overflow-auto whitespace-pre-wrap rounded-control bg-app-2 p-3 font-mono text-[0.85rem]">
           {prompt}
         </pre>
       </Disclosure>

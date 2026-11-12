@@ -108,7 +108,7 @@ export function MachineChoicesList({ applied }: { applied: boolean }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
+      <ul className="divide-y divide-line overflow-hidden rounded-inset border border-line bg-app">
         <Row
           id={ids.atLogin}
           label={m.atLogin}

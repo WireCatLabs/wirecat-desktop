@@ -218,7 +218,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
                 onClick={onHead}
                 aria-expanded={open}
                 aria-controls={panel}
-                className="group flex min-w-0 flex-1 cursor-pointer items-start gap-[0.6rem] rounded-[0.3rem] text-left"
+                className="group flex min-w-0 flex-1 cursor-pointer items-start gap-[0.6rem] rounded-pill text-left"
               >
                 <span className="block min-w-0 flex-1">
                   <span className="flex items-center gap-[0.4rem]">{label}</span>
@@ -230,7 +230,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
                         "selectable min-w-0 text-[1rem] leading-snug font-medium",
                         open ? "whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
                         editable &&
-                          "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
+                          "-mx-[0.3rem] cursor-text rounded-pill px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
                       )}
                     >
                       {textOf(entry, m, roles, x)}

@@ -60,7 +60,7 @@ export function NumberField({ id, value, onChange, min, max, step = 1, prefix, c
   return (
     <span
       className={cx(
-        "inline-flex h-8 items-stretch overflow-hidden rounded-[0.3rem] border border-line-strong bg-app text-[0.9rem]",
+        "inline-flex h-8 items-stretch overflow-hidden rounded-pill border border-line-strong bg-app text-[0.9rem]",
         "focus-within:border-brand",
         className,
       )}

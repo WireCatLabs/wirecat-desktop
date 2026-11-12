@@ -69,7 +69,7 @@ export function WhenYouTalk() {
         </InfoTip>
       </div>
       {hours.loading && Object.keys(hours.bySource).length === 0 ? (
-        <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.whenTitle} />
+        <Skeleton className="h-[13.5rem] w-full rounded-rack" label={m.whenTitle} />
       ) : empty ? (
         // A profile that did not answer is said as such: its silence is not "no messages".
         hours.problems.length ? (
@@ -212,7 +212,7 @@ export function WhatChanged() {
     )
   const loading = [peopleNow, peopleBefore, chatsNow, chatsBefore, active].some((x) => x.loading)
   const stale = [peopleNow, peopleBefore, chatsNow, chatsBefore, active].some((x) => x.stale)
-  if (loading) return <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.changesTitle} />
+  if (loading) return <Skeleton className="h-[13.5rem] w-full rounded-rack" label={m.changesTitle} />
   const people = changes(byProvider(peopleNow.bySource), byProvider(peopleBefore.bySource))
   const chats = changes(
     onlyActive(byProvider(chatsNow.bySource), active),
@@ -272,7 +272,7 @@ const DAY = 86_400_000
 export function Health() {
   const m = useMessages(analyticsMessages)
   const syncs = useAnalytics((s) => s.syncs)
-  if (syncs.state === "loading") return <Skeleton className="h-[9rem] w-full rounded-[0.2rem]" label={m.health} />
+  if (syncs.state === "loading") return <Skeleton className="h-[9rem] w-full rounded-rack" label={m.health} />
   if (syncs.state === "error") return <p className="text-[0.9rem] text-ink-soft">{syncs.error}</p>
   return (
     <table className="w-full text-[0.95rem]">

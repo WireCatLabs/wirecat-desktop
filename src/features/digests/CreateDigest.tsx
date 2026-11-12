@@ -77,7 +77,7 @@ export function Starter(props: { can: Can; onPick: (t: Template) => void; compac
   const m = b.starter
   const update = <span className="text-[0.85rem] text-ink-dim">{m.needsUpdate}</span>
   return (
-    <section aria-labelledby="digest-starter" className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-labelledby="digest-starter" className="rounded-rack border border-line-strong bg-app">
       <div
         className={cx(
           "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-line border-b",

@@ -62,7 +62,7 @@ function Tile({
   const change = now !== null && last !== null && last > 0 ? Math.round(((now - last) / last) * 100) : null
   const Arrow = change === null || change === 0 ? null : change > 0 ? ArrowUp : ArrowDown
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-[0.2rem] border border-line-strong bg-app px-[1.1rem] py-[0.9rem]">
+    <div className="flex min-w-0 flex-col gap-1 rounded-rack border border-line-strong bg-app px-[1.1rem] py-[0.9rem]">
       <span className="text-[0.9rem] text-ink-dim">{label}</span>
       <span className="flex items-baseline gap-2">
         <span className="text-[1.75rem] font-semibold leading-tight">

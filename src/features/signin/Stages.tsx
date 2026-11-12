@@ -437,7 +437,7 @@ function QrImage({ text, used = false }: { text: string; used?: boolean }) {
       <pre
         role="img"
         aria-label={m.qrLabel}
-        className="rounded-[0.35rem] bg-black p-2 font-mono text-[0.5rem] leading-none text-white"
+        className="rounded-control bg-black p-2 font-mono text-[0.5rem] leading-none text-white"
       >
         {text}
       </pre>
@@ -451,7 +451,7 @@ function QrImage({ text, used = false }: { text: string; used?: boolean }) {
       viewBox={`0 0 ${size} ${size}`}
       shapeRendering="crispEdges"
       className={cx(
-        "size-[17rem] shrink-0 rounded-[0.35rem] border border-line transition-opacity duration-(--motion-slow) ease-out-quart",
+        "size-[17rem] shrink-0 rounded-control border border-line transition-opacity duration-(--motion-slow) ease-out-quart",
         used && "opacity-30",
       )}
     >

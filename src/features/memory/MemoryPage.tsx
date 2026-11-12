@@ -397,7 +397,7 @@ function SubjectRack({
   const here = new Set(slots.map((s) => s.group.key))
   const onPage = new Set(slots.flatMap((s) => (s.entry ? [s.entry.ref] : [])))
   return (
-    <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-label={m.rows} className="rounded-rack border border-line-strong bg-app">
       {groups.flatMap((whole) => {
         if (!here.has(whole.key)) return []
         const g = { ...whole, entries: whole.entries.filter((e) => onPage.has(e.ref)) }
@@ -473,11 +473,11 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
 
 function RackSkeleton() {
   return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app">
+    <div className="rounded-rack border border-line-strong bg-app">
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className="flex h-[4.5rem] items-center gap-[0.9rem] border-line px-[1.3rem] not-first:border-t">
           <Skeleton className="size-[1.4rem] rounded-full" />
-          <Skeleton className="size-[1.6rem] rounded-[0.3rem]" />
+          <Skeleton className="size-[1.6rem] rounded-pill" />
           <Skeleton className="h-[1rem] w-[60%]" />
         </div>
       ))}

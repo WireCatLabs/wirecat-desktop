@@ -67,7 +67,7 @@ export function SplitCard({ split }: { split: Split }) {
   return (
     <article
       aria-labelledby={head}
-      className="flex min-w-0 flex-col gap-[0.75rem] rounded-[0.45rem] border border-line bg-app px-[1.1rem] py-[0.95rem]"
+      className="flex min-w-0 flex-col gap-[0.75rem] rounded-inset border border-line bg-app px-[1.1rem] py-[0.95rem]"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 id={head} className="min-w-0 font-medium">
@@ -76,14 +76,14 @@ export function SplitCard({ split }: { split: Split }) {
             type="button"
             aria-haspopup="dialog"
             onClick={() => reveal(split.person)}
-            className="rounded-[0.2rem] text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
+            className="rounded-rack text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
           >
             {name(split.person)}
           </button>
         </h3>
         <Proposer by={split.proposer} />
       </div>
-      <section className="flex flex-col gap-[0.4rem] rounded-[0.35rem] border border-line px-[0.85rem] py-[0.7rem]">
+      <section className="flex flex-col gap-[0.4rem] rounded-control border border-line px-[0.85rem] py-[0.7rem]">
         <p className="text-[0.9rem] text-ink-soft">
           {split.op !== "unmerge" ? m.becomeNew : from && name(from) !== m.noName ? m.goBackTo(name(from)) : m.goBack}
         </p>
@@ -149,7 +149,7 @@ export function SplitCard({ split }: { split: Split }) {
                 setAsking(false)
               }}
               className={cx(
-                "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+                "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 text-[1rem]",
                 invalidBorder,
               )}
             />

@@ -317,7 +317,7 @@ export function LogsPage() {
                     </Button>
                   )}
                 </div>
-                <div ref={tableRef} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+                <div ref={tableRef} className="overflow-hidden rounded-rack border border-line-strong bg-app">
                   {matched.length === 0 ? (
                     <p className="flex flex-wrap items-center gap-3 px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft">
                       {all.length === 0 ? m.nothingRecorded : m.noMatch}
@@ -413,7 +413,7 @@ function Loading(props: { reading: string[]; total: number; facetsOpen: boolean;
           <ProgressBar label={m.toolsRead} value={done} max={total} size="line" minShare={8} className="w-[8rem]" />
           <span className="tabular-nums">{m.toolsDone(done, total, reading.map(toolName))}</span>
         </p>
-        <div className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+        <div className="overflow-hidden rounded-rack border border-line-strong bg-app">
           <RunsTable
             runs={[]}
             placeholders={PLACEHOLDER_ROWS}

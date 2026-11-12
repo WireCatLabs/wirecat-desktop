@@ -179,7 +179,7 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
           autoComplete="off"
           aria-invalid={state.kind === "empty"}
           aria-describedby={`${id}-line`}
-          className={`h-[2.8rem] min-w-0 flex-1 basis-[26rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.9rem] text-[1.02rem] text-ink placeholder:text-ink-dim aria-[invalid=true]:border-bad ${fieldFocus}`}
+          className={`h-[2.8rem] min-w-0 flex-1 basis-[26rem] rounded-button border border-line-strong bg-app px-[0.9rem] text-[1.02rem] text-ink placeholder:text-ink-dim aria-[invalid=true]:border-bad ${fieldFocus}`}
         />
         <Button
           type="submit"
@@ -229,7 +229,7 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
         <p className="text-[0.9rem] text-warn-ink">{m.draft.codexWarning}</p>
       </Collapse>
       <Collapse open={state.kind === "none"}>
-        <div className="rounded-[0.45rem] border border-line bg-app px-[1rem] py-[0.8rem] text-[0.92rem]">
+        <div className="rounded-inset border border-line bg-app px-[1rem] py-[0.8rem] text-[0.92rem]">
           <p className="font-medium text-ink">{m.draft.noneTitle}</p>
           <ol className="mt-[0.4rem] flex list-decimal flex-col gap-[0.25rem] pl-[1.2rem] text-ink-soft">
             {m.draft.ways.map((w) => (

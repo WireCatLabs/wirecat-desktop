@@ -248,7 +248,7 @@ function Name({ person: p }: { person: Listed }) {
         e.stopPropagation()
         usePeople.getState().reveal(p.ref)
       }}
-      className="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-[0.2rem] text-left focus-visible:outline-2 focus-visible:outline-brand"
+      className="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-rack text-left focus-visible:outline-2 focus-visible:outline-brand"
     >
       <span
         className={

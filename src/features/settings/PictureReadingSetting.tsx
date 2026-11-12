@@ -132,7 +132,7 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
         )}
       </div>
       <Collapse open={mode === "request"}>
-        <div className="flex flex-col gap-3 rounded-[0.35rem] border border-line px-3 py-3">
+        <div className="flex flex-col gap-3 rounded-control border border-line px-3 py-3">
           <div id={agentId} className="flex flex-col gap-[0.3rem]">
             <span className="text-[0.9rem] text-ink-dim">{m.agent}</span>
             <Segmented<PictureAgent | "">

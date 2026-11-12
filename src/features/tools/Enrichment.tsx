@@ -288,7 +288,7 @@ function Consent(props: {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-[0.35rem] border border-line bg-app px-4 py-3.5"
+      className="flex flex-col gap-3 rounded-control border border-line bg-app px-4 py-3.5"
     >
       <h5 id={titleId} className="font-semibold text-ink">
         {m.consentTitle}
@@ -307,7 +307,7 @@ function Consent(props: {
                   onChange={() => onChoose({ provider: o.provider, model: o.model, baseUrl: null })}
                   className="peer sr-only"
                 />
-                <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+                <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                   <span className="text-[0.9rem] font-medium text-ink">
                     {m.offer(providerName(o.provider), o.model)}
                     {o.default && <span className="font-normal text-ink-dim"> · {m.memoDefault}</span>}
@@ -328,7 +328,7 @@ function Consent(props: {
                   onChange={() => chooseOwn(own)}
                   className="peer sr-only"
                 />
-                <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+                <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                   <span className="text-[0.9rem] font-medium text-ink">{m.ownOffer}</span>
                   <span className="text-[0.8rem] text-ink-soft">{m.ownOfferNote}</span>
                 </span>

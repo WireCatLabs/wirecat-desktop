@@ -477,7 +477,7 @@ function ModelStepView(props: {
         {models.map((model) => (
           <li
             key={model.id}
-            className={`flex flex-col gap-2 rounded-[0.35rem] border px-3 py-2.5 transition-colors duration-(--motion-slow) ${model.inUse ? "border-brand bg-brand-soft" : "border-line-strong"}`}
+            className={`flex flex-col gap-2 rounded-control border px-3 py-2.5 transition-colors duration-(--motion-slow) ${model.inUse ? "border-brand bg-brand-soft" : "border-line-strong"}`}
           >
             <div className="flex flex-col gap-0.5">
               <span className="text-[0.95rem] font-medium text-ink">

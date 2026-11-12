@@ -68,7 +68,7 @@ export function StoragePage() {
 
       {/* Room for the one-line warning box, so it arriving after the page does not push everything down. */}
       <div className="flex min-h-[2.75rem] flex-col justify-center">
-        {compatAsked ? <StorageSummary /> : <Skeleton className="h-[2.75rem] w-full rounded-[0.2rem]" />}
+        {compatAsked ? <StorageSummary /> : <Skeleton className="h-[2.75rem] w-full rounded-rack" />}
       </div>
 
       <ArchiveSummary />
@@ -77,7 +77,7 @@ export function StoragePage() {
 
       <ImportPanel />
 
-      <ul aria-label={m.areasLabel} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+      <ul aria-label={m.areasLabel} className="overflow-hidden rounded-rack border border-line-strong bg-app">
         {areas === null
           ? areaIds().map((id, i) => <RowSkeleton key={id} id={id} first={i === 0} />)
           : areas.map((a) => <Row key={a.id} area={a} busy={clearing === a.id} onDelete={() => setConfirm(a)} />)}
@@ -130,7 +130,7 @@ function Row({ area, busy, onDelete }: { area: StorageArea; busy: boolean; onDel
                   onClick={() => open(area.id, f.kind)}
                   aria-label={m.openFolder(f.kind, f.path)}
                   title={m.openInFiles}
-                  className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+                  className="grid size-6 shrink-0 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
                 >
                   <FolderOpen className="size-3.5" aria-hidden />
                 </button>
@@ -231,7 +231,7 @@ function Entries({ area }: { area: StorageArea }) {
                 onClick={() => open(area.id, e.kind, e.name)}
                 aria-label={m.openEntry(e.name)}
                 title={e.dir ? m.openInFiles : m.showInFiles}
-                className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+                className="grid size-6 shrink-0 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
               >
                 <FolderOpen className="size-3.5" aria-hidden />
               </button>

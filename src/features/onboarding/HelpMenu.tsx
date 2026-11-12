@@ -78,7 +78,7 @@ export function HelpMenu(actions: HelpActions) {
           toggle(e)
         }}
         className={cx(
-          "relative grid size-[2.2rem] place-items-center rounded-[0.4rem] text-ink-soft hover:bg-app-3 hover:text-ink",
+          "relative grid size-[2.2rem] place-items-center rounded-button text-ink-soft hover:bg-app-3 hover:text-ink",
           open && "bg-app-3 text-ink",
         )}
       >
@@ -160,14 +160,14 @@ export function HelpPanel({
   }
 
   const item =
-    "flex h-[2.4rem] w-full items-center gap-[0.7rem] rounded-[0.35rem] px-[0.7rem] pr-[1rem] text-left text-[0.95rem] whitespace-nowrap text-ink hover:bg-app-3 focus-visible:bg-app-3"
+    "flex h-[2.4rem] w-full items-center gap-[0.7rem] rounded-control px-[0.7rem] pr-[1rem] text-left text-[0.95rem] whitespace-nowrap text-ink hover:bg-app-3 focus-visible:bg-app-3"
   const icon = "size-[1.1rem] text-ink-soft"
 
   return (
     <div
       ref={root}
       className={cx(
-        "absolute z-30 flex w-max min-w-[15rem] flex-col rounded-[0.6rem] border border-line bg-app p-[0.3rem] shadow-panel",
+        "absolute z-30 flex w-max min-w-[15rem] flex-col rounded-dialog border border-line bg-app p-[0.3rem] shadow-panel",
         PLACES[place],
       )}
     >

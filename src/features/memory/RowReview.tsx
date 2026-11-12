@@ -48,7 +48,7 @@ export function ReviewPanel({ entry }: { entry: MemoryEntry }) {
   return (
     <section
       aria-labelledby={`${entry.ref}-review`}
-      className="flex min-w-0 flex-col gap-[0.9rem] rounded-[0.45rem] border border-warn/40 bg-app px-[1rem] py-[0.9rem]"
+      className="flex min-w-0 flex-col gap-[0.9rem] rounded-inset border border-warn/40 bg-app px-[1rem] py-[0.9rem]"
     >
       <div>
         <h3 id={`${entry.ref}-review`} className="flex items-center gap-2 font-semibold">
@@ -59,7 +59,7 @@ export function ReviewPanel({ entry }: { entry: MemoryEntry }) {
       </div>
       <AutoHeight swap={review?.state ?? "loading"}>
         {!review || review.state === "loading" ? (
-          <Skeleton className="h-[5rem] w-full rounded-[0.35rem]" label={m.reading} />
+          <Skeleton className="h-[5rem] w-full rounded-control" label={m.reading} />
         ) : review.state === "failed" ? (
           <ErrorNotice raw={review.error} inline>
             {m.readFailed}
@@ -132,7 +132,7 @@ function ReviewBody({ entry, review }: { entry: MemoryEntry; review: SourceRevie
 
 function Version({ label, text, empty }: { label: string; text: string | null; empty: string }) {
   return (
-    <div className="min-w-0 rounded-[0.35rem] border border-line bg-app-2/70 px-[0.8rem] py-[0.6rem]">
+    <div className="min-w-0 rounded-control border border-line bg-app-2/70 px-[0.8rem] py-[0.6rem]">
       <p className="text-[0.85rem] font-medium text-ink-dim">{label}</p>
       {text ? (
         <p className="selectable mt-[0.2rem] max-h-[12rem] overflow-y-auto whitespace-pre-line text-[0.95rem]">
@@ -194,7 +194,7 @@ function Answers({ entry }: { entry: MemoryEntry }) {
             }}
             onKeyDown={(e) => e.key === "Escape" && setAsking(false)}
             className={cx(
-              "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+              "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 text-[1rem]",
               invalidBorder,
             )}
           />

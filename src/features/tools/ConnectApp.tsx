@@ -25,7 +25,7 @@ export function ChooseStep({ tool, onChoose }: { tool: CatalogTool; onChoose(app
             key={id}
             type="button"
             onClick={() => onChoose(id)}
-            className="flex flex-col items-start gap-0.5 rounded-[0.45rem] border border-line-strong bg-app px-3.5 py-3 text-left transition-colors duration-(--motion-fast) hover:border-brand hover:bg-brand-soft/40"
+            className="flex flex-col items-start gap-0.5 rounded-inset border border-line-strong bg-app px-3.5 py-3 text-left transition-colors duration-(--motion-fast) hover:border-brand hover:bg-brand-soft/40"
           >
             <span className="text-[0.98rem] font-semibold text-ink">{m.apps[id].name}</span>
             <span className="text-[0.9rem] text-ink-soft">{m.apps[id].hint}</span>

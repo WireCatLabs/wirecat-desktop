@@ -96,7 +96,7 @@ export function Combobox({ value, onChange, options, notes, placeholder, id, cla
     <div
       ref={wrap}
       className={cx(
-        "relative flex h-[2.4rem] min-w-0 items-center rounded-[0.35rem] border border-line-strong bg-app",
+        "relative flex h-[2.4rem] min-w-0 items-center rounded-control border border-line-strong bg-app",
         "hover:border-ink-dim/60 focus-within:border-brand",
         "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
         className,
@@ -137,7 +137,7 @@ export function Combobox({ value, onChange, options, notes, placeholder, id, cla
           field.current?.focus()
         }}
         className={cx(
-          "mr-1 grid size-7 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink",
+          "mr-1 grid size-7 shrink-0 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink",
           value === "" && "invisible",
         )}
       >
@@ -152,7 +152,7 @@ export function Combobox({ value, onChange, options, notes, placeholder, id, cla
         style={place}
         onMouseDown={(e) => e.preventDefault()}
         className={cx(
-          "fixed z-50 max-w-[min(24rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 font-sans text-ink shadow-panel",
+          "fixed z-50 max-w-[min(24rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-inset border border-line bg-app p-1 font-sans text-ink shadow-panel",
           "motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]",
         )}
       >
@@ -166,7 +166,7 @@ export function Combobox({ value, onChange, options, notes, placeholder, id, cla
             onMouseMove={() => i !== active && setActive(i)}
             onMouseUp={() => pick(i)}
             className={cx(
-              "flex min-h-[2.1rem] cursor-pointer items-center rounded-[0.3rem] px-1.5 py-1 text-[0.95rem] text-ink",
+              "flex min-h-[2.1rem] cursor-pointer items-center rounded-pill px-1.5 py-1 text-[0.95rem] text-ink",
               i === active && "bg-app-3",
               o === value && "font-medium",
             )}

@@ -65,7 +65,7 @@ export function SkillPreview() {
         ))}
       </dl>
       {differs && <p className="mt-3 text-[0.9rem] text-ink-soft">{m.differs}</p>}
-      <div className="mt-4 mb-2 rounded-[0.45rem] border border-line bg-app-2">
+      <div className="mt-4 mb-2 rounded-inset border border-line bg-app-2">
         {text.state === "loading" && (
           <div className="flex flex-col gap-2 p-4">
             <Skeleton className="h-4 w-1/2" label={m.readingSkill} />

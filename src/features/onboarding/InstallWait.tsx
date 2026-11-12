@@ -163,7 +163,7 @@ export function InstallTips({ chosen }: { chosen: readonly string[] }) {
     <Collapse open={busy}>
       <section
         aria-label={w.hints}
-        className="rounded-[0.45rem] bg-app-2/60 px-[1.3rem] pt-[1.1rem] pb-[0.7rem]"
+        className="rounded-inset bg-app-2/60 px-[1.3rem] pt-[1.1rem] pb-[0.7rem]"
         onPointerEnter={() => setPaused(true)}
         onPointerLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
@@ -205,7 +205,7 @@ function TurnButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="inline-flex size-8 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+      className="inline-flex size-8 items-center justify-center rounded-control text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
     >
       {children}
     </button>

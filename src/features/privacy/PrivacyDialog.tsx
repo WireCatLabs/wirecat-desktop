@@ -30,7 +30,7 @@ export function PrivacyDialog({ open, onClose }: { open: boolean; onClose: () =>
         </Part>
 
         <Part icon={ArrowUpFromLine} title={m.sends.title}>
-          <dl className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line bg-app-2">
+          <dl className="flex flex-col divide-y divide-line rounded-inset border border-line bg-app-2">
             {sent.map((s) => (
               <div key={s.name} className="flex flex-col gap-0.5 px-4 py-2.5">
                 <dt className="flex flex-wrap items-baseline justify-between gap-x-3">

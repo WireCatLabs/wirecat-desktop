@@ -88,7 +88,7 @@ export function EmailCard({ message, now }: { message: ChatMessage; now: Date })
       data-anchor={message.anchor || undefined}
       aria-current={message.anchor || undefined}
       className={cx(
-        "rounded-[0.35rem] border px-[1.1rem] py-[0.9rem]",
+        "rounded-control border px-[1.1rem] py-[0.9rem]",
         message.anchor ? "border-brand bg-brand-soft" : "border-line bg-app",
       )}
     >

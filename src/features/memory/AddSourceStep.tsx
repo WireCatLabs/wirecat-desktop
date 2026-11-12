@@ -17,7 +17,7 @@ const WAYS: { way: Way; Icon: typeof FileText }[] = [
   { way: "file", Icon: Paperclip },
 ]
 
-const field = `selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
+const field = `selectable w-full rounded-control border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
 
 /** Step 1: Text, Link or File, each with its own input; Save keeps it and moves on. */
 export function SourceStep() {
@@ -59,7 +59,7 @@ export function SourceStep() {
                 onChange={() => setWay(way)}
                 className="peer sr-only"
               />
-              <span className="flex w-full cursor-pointer items-start gap-[0.7rem] rounded-[0.45rem] border border-line-strong px-[0.8rem] py-[0.65rem] transition-colors duration-(--motion-fast) hover:bg-app-2 peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+              <span className="flex w-full cursor-pointer items-start gap-[0.7rem] rounded-inset border border-line-strong px-[0.8rem] py-[0.65rem] transition-colors duration-(--motion-fast) hover:bg-app-2 peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
                 <Icon className="mt-[0.15rem] size-[1.1rem] shrink-0 text-ink-soft" aria-hidden />
                 <span>
                   <span className="block font-medium">{m.ways[way].name}</span>
@@ -181,7 +181,7 @@ function FileInput({ problem }: { problem: string | undefined }) {
   const { pickFile } = useAddSource.getState()
   const shown = !!path && preview?.of === path && preview.state !== "none"
   return (
-    <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-[0.45rem] border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
+    <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-inset border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
       {path &&
         (shown ? (
           <div className="w-full">

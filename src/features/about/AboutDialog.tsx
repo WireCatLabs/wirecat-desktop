@@ -63,7 +63,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           </div>
         </div>
 
-        <section aria-label={m.version} className="rounded-[0.45rem] border border-line bg-app-2 px-4 py-3">
+        <section aria-label={m.version} className="rounded-inset border border-line bg-app-2 px-4 py-3">
           <div className="flex items-start gap-3">
             <dl className="grid min-w-0 flex-1 grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[0.875rem]">
               <Fact term={m.version}>{__APP_VERSION__}</Fact>

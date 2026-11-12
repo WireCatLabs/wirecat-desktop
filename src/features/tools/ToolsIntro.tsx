@@ -27,7 +27,7 @@ export function ToolsIntro() {
   return (
     <section
       aria-label={m.label}
-      className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 rounded-[0.45rem] border border-line bg-app-2/60 px-[1.3rem] py-[1rem]"
+      className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 rounded-inset border border-line bg-app-2/60 px-[1.3rem] py-[1rem]"
     >
       <div className="min-w-0 max-w-[80ch] flex-1">
         <p className="text-[0.95rem] leading-relaxed text-ink">{m.text}</p>

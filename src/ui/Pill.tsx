@@ -14,7 +14,7 @@ export function Pill({
   return (
     <span
       className={cx(
-        "inline-flex items-center rounded-[0.3rem] font-medium",
+        "inline-flex items-center rounded-pill font-medium",
         size === "md" && "px-[0.45rem] py-[0.1rem] text-[0.85rem]",
         size === "sm" && "min-w-0 max-w-full px-[0.35rem] text-[0.78rem] leading-[1.35rem]",
         tone === "neutral" && "bg-app-3 text-ink-soft",

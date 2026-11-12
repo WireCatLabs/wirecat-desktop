@@ -67,7 +67,7 @@ export function PersonTasks({ reference }: { reference: string }) {
         <ToolNeeded inline gap={gap} onGo={leave} />
       ) : read?.kind === "ready" ? (
         <>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {read.tasks.slice(0, SHOWN).map((t) => (
               <li key={t.key} className="border-line not-first:border-t">
                 <button

@@ -32,7 +32,7 @@ export function BackupPassword({ password, repeat, onPassword, onRepeat, disable
   }, [tried])
   const level = strength(password)
   const field =
-    "selectable h-9 w-full rounded-[0.35rem] border border-line-strong bg-app px-2 pr-9 font-mono text-[0.95rem] text-ink"
+    "selectable h-9 w-full rounded-control border border-line-strong bg-app px-2 pr-9 font-mono text-[0.95rem] text-ink"
 
   return (
     <div className="flex flex-col gap-2">
@@ -59,7 +59,7 @@ export function BackupPassword({ password, repeat, onPassword, onRepeat, disable
               aria-pressed={shown}
               aria-label={m.showPassword}
               title={shown ? m.hidePassword : m.showPassword}
-              className="absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-[0.35rem] text-ink-dim hover:text-ink"
+              className="absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-control text-ink-dim hover:text-ink"
             >
               {shown ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
             </button>

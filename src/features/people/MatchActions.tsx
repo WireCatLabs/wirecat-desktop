@@ -151,7 +151,7 @@ export function MatchActions({
                 setAsking(false)
               }}
               className={cx(
-                "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+                "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 text-[1rem]",
                 invalidBorder,
               )}
             />

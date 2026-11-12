@@ -81,7 +81,7 @@ export function FoundSource({ task, dirty }: { task: Task; dirty: boolean }) {
               : m.sourceNotHere}
         </p>
       ) : (
-        <article className="rounded-[0.45rem] border border-line bg-app-2 px-[0.8rem] pt-[0.5rem] pb-[0.7rem]">
+        <article className="rounded-inset border border-line bg-app-2 px-[0.8rem] pt-[0.5rem] pb-[0.7rem]">
           <header className="flex flex-wrap items-baseline gap-x-[0.45rem] text-[0.85rem] text-ink-dim">
             {chat && <span className="font-medium text-ink-soft">{chat}</span>}
             {message.sender && <span>{message.fromMe ? m.you : message.sender}</span>}

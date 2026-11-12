@@ -65,7 +65,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
   return (
     <section
       aria-labelledby={heading}
-      className="reveal flex flex-col gap-3 rounded-[0.45rem] border border-line bg-app-2/60 p-3"
+      className="reveal flex flex-col gap-3 rounded-inset border border-line bg-app-2/60 p-3"
     >
       <div className="flex items-start gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -102,7 +102,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         ) : chosen.folders.length === 0 ? (
           <p className="text-[0.9rem] font-medium text-ink">{m.none}</p>
         ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-[0.4rem] border border-line bg-app">
+          <ul className="divide-y divide-line overflow-hidden rounded-button border border-line bg-app">
             {chosen.folders.map((f) => (
               <li key={f.id} className="flex items-center gap-3 px-3 py-1.5">
                 <FolderClosed className="size-4 shrink-0 text-ink-dim" aria-hidden />
@@ -133,7 +133,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
       </p>
 
       <Collapse open={changed && sync.run?.phase !== "running"}>
-        <div className="flex flex-wrap items-center gap-3 rounded-[0.35rem] bg-brand-soft/60 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-3 rounded-control bg-brand-soft/60 px-3 py-2">
           <p role="status" className="min-w-0 flex-1 text-[0.9rem] text-ink">
             {m.changed}
           </p>

@@ -62,7 +62,7 @@ export function ImportPanel() {
   }
 
   return (
-    <section aria-labelledby="import-title" className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-labelledby="import-title" className="rounded-rack border border-line-strong bg-app">
       <div className="border-line border-b px-[1.3rem] py-[0.9rem]">
         <SectionTitle id="import-title">{m.title}</SectionTitle>
         <p className="mt-0.5 max-w-[80ch] text-[0.9rem] text-ink-dim">{m.intro}</p>

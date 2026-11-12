@@ -29,7 +29,7 @@ function ActionFacts({ entry, m }: { entry: MemoryEntry; m: M }) {
       {entry.text && (
         <>
           <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldSend}</h3>
-          <p className="selectable rounded-[0.45rem] border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem] whitespace-pre-wrap">
+          <p className="selectable rounded-inset border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem] whitespace-pre-wrap">
             {entry.text}
           </p>
         </>
@@ -68,7 +68,7 @@ function FilterLink({ label, onClick, mono }: { label: string; onClick: () => vo
       title={m.filterBy(label)}
       aria-label={m.filterBy(label)}
       className={cx(
-        "cursor-pointer rounded-[0.2rem] text-left text-ink underline decoration-ink-dim/50 decoration-dotted underline-offset-[0.2em] transition-colors duration-(--motion-fast) hover:text-brand hover:decoration-brand",
+        "cursor-pointer rounded-rack text-left text-ink underline decoration-ink-dim/50 decoration-dotted underline-offset-[0.2em] transition-colors duration-(--motion-fast) hover:text-brand hover:decoration-brand",
         mono && "font-mono text-[0.9rem]",
       )}
     >

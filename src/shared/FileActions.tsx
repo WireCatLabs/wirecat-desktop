@@ -122,7 +122,7 @@ export function FileActions({ messageRef, file }: { messageRef: string; file: Fi
               {m.readBy(readerOf(shown.read.extractor) ?? "")}
             </figcaption>
           )}
-          <p className="selectable max-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line bg-app-2/60 px-[0.8rem] py-[0.5rem] text-[0.9rem] break-words whitespace-pre-wrap text-ink">
+          <p className="selectable max-h-[16rem] overflow-y-auto rounded-control border border-line bg-app-2/60 px-[0.8rem] py-[0.5rem] text-[0.9rem] break-words whitespace-pre-wrap text-ink">
             {shown.read.text || <span className="text-ink-dim">{m.empty}</span>}
           </p>
         </figure>

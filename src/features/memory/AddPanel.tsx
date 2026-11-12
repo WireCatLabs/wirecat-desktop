@@ -35,7 +35,7 @@ export function AddPanel() {
     <Collapse open={open}>
       <section
         aria-labelledby={PANEL_TITLE}
-        className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] pt-[1.1rem] pb-[1.3rem]"
+        className="rounded-rack border border-line-strong bg-app px-[1.3rem] pt-[1.1rem] pb-[1.3rem]"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -71,7 +71,7 @@ export function AddPanel() {
               aria-label={m.close}
               title={m.close}
               onClick={() => useAddSource.getState().close()}
-              className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+              className="grid size-8 cursor-pointer place-items-center rounded-control text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
             >
               <X className="size-4" aria-hidden />
             </button>

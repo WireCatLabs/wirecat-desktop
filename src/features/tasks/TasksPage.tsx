@@ -166,7 +166,7 @@ function Rack() {
 function Loading() {
   const m = useMessages(taskMessages)
   return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app">
+    <div className="rounded-rack border border-line-strong bg-app">
       <div className="h-[2.6rem] border-line border-b" />
       {[0, 1, 2, 3, 4].map((i) => (
         <div key={i} className="flex h-[3.6rem] items-center gap-[0.9rem] border-line px-[1.3rem] not-first:border-t">

@@ -99,7 +99,7 @@ export function CopyButton({
         aria-label={said ?? label}
         title={said ?? title ?? label}
         className={cx(
-          "grid size-8 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim transition-colors hover:bg-app-3 hover:text-ink",
+          "grid size-8 shrink-0 place-items-center rounded-pill text-ink-dim transition-colors hover:bg-app-3 hover:text-ink",
           className,
         )}
       >

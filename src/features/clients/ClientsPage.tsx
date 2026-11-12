@@ -343,7 +343,7 @@ function Loading() {
       </div>
       <div className="grid min-h-[22rem] flex-1 grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-hidden xl:gap-[1rem]">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex min-h-[22rem] flex-col rounded-[0.2rem] border border-line-strong bg-app">
+          <div key={i} className="flex min-h-[22rem] flex-col rounded-rack border border-line-strong bg-app">
             <div className="flex min-h-[3rem] items-center border-line border-b px-[0.9rem]">
               <Skeleton className="h-[1rem] w-[60%]" />
             </div>

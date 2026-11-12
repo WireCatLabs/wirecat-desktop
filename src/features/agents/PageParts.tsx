@@ -23,7 +23,7 @@ import type { AgentsView } from "./view"
 
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/agents`
 
-const box = "rounded-[0.45rem] border border-line bg-app"
+const box = "rounded-inset border border-line bg-app"
 
 export function PageHead({ view }: { view: AgentsView }) {
   const m = useMessages(agentsMessages)

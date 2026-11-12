@@ -13,9 +13,9 @@ const variants: Record<ButtonVariant, string> = {
 }
 
 const sizes: Record<ButtonSize, string> = {
-  lg: "h-[2.9rem] px-[1.6rem] text-[1.02rem] rounded-[0.45rem]",
-  md: "h-[2.4rem] px-[1.1rem] text-[0.95rem] rounded-[0.4rem]",
-  sm: "h-8 px-3 text-[0.875rem] rounded-[0.35rem]",
+  lg: "h-[2.9rem] px-[1.6rem] text-[1.02rem] rounded-inset",
+  md: "h-[2.4rem] px-[1.1rem] text-[0.95rem] rounded-button",
+  sm: "h-8 px-3 text-[0.875rem] rounded-control",
 }
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

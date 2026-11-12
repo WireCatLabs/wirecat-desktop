@@ -130,7 +130,7 @@ export function ColumnChart({
             onPointerLeave={() => setActive(null)}
             onKeyDown={keys}
             onBlur={() => setActive(null)}
-            className="relative flex h-[11rem] items-end rounded-[0.2rem] outline-offset-4"
+            className="relative flex h-[11rem] items-end rounded-rack outline-offset-4"
           >
             {buckets.map((b, i) => (
               <div key={b.key} className="flex h-full min-w-0 flex-1 items-end justify-center">
@@ -203,7 +203,7 @@ function Tip({ at, children }: { at: number; children: ReactNode }) {
     <div
       aria-hidden
       className={cx(
-        "pointer-events-none absolute top-0 z-10 min-w-[9rem] rounded-[0.45rem] border border-line bg-app px-3 py-2 shadow-panel",
+        "pointer-events-none absolute top-0 z-10 min-w-[9rem] rounded-inset border border-line bg-app px-3 py-2 shadow-panel",
         side === "middle" && "-translate-x-1/2",
         side === "right" && "-translate-x-full",
       )}
@@ -251,7 +251,7 @@ export function Legend({
                 type="button"
                 aria-pressed={!off}
                 onClick={() => onToggle(s.id)}
-                className="flex cursor-pointer items-center gap-[0.45rem] rounded-[0.3rem] px-1 -mx-1 hover:bg-app-2 hover:text-ink"
+                className="flex cursor-pointer items-center gap-[0.45rem] rounded-pill px-1 -mx-1 hover:bg-app-2 hover:text-ink"
               >
                 {body}
               </button>
@@ -378,13 +378,13 @@ export function NumbersTable({
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        className="flex cursor-pointer items-center gap-1 rounded-[0.35rem] text-[0.9rem] text-brand hover:text-brand-hover"
+        className="flex cursor-pointer items-center gap-1 rounded-control text-[0.9rem] text-brand hover:text-brand-hover"
       >
         {open ? m.hideNumbers : m.showNumbers}
         <ExpandChevron open={open} />
       </button>
       <Collapse open={open} id={id}>
-        <div className="mt-2 max-h-[16rem] overflow-auto rounded-[0.45rem] border border-line">
+        <div className="mt-2 max-h-[16rem] overflow-auto rounded-inset border border-line">
           <table className="w-full text-[0.9rem]">
             <caption className="sr-only">{caption}</caption>
             <thead className="sticky top-0 bg-app-2 text-left text-ink-dim">

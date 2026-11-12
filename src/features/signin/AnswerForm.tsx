@@ -8,7 +8,7 @@ import { cx } from "@/ui/cx"
 import { signinMessages } from "./messages"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 pr-12 font-mono text-[1.1rem] text-ink"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 pr-12 font-mono text-[1.1rem] text-ink"
 
 const INPUT: Record<string, { mode?: "tel" | "numeric" | "email"; complete: string }> = {
   phone: { mode: "tel", complete: "tel" },
@@ -162,7 +162,7 @@ export function AnswerForm({
         {line}
       </p>
       {note && (
-        <p className="flex items-start gap-2.5 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-body leading-snug text-ink">
+        <p className="flex items-start gap-2.5 rounded-pill border border-line bg-app-2 px-3 py-2.5 text-body leading-snug text-ink">
           <ShieldCheck className="mt-[0.1rem] size-[1.1rem] shrink-0 text-ok" aria-hidden />
           <span>{note}</span>
         </p>

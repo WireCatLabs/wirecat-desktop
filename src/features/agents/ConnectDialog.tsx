@@ -194,7 +194,7 @@ export function ConnectDialog({
                 <label
                   key={s.tool.id}
                   htmlFor={id}
-                  className="flex min-h-9 items-center gap-3 rounded-[0.35rem] px-2 hover:bg-app-3/60"
+                  className="flex min-h-9 items-center gap-3 rounded-control px-2 hover:bg-app-3/60"
                 >
                   <Checkbox
                     id={id}
@@ -253,7 +253,7 @@ export function ConnectDialog({
           {commands.length > 0 && (
             <div>
               <span className="text-[0.9rem] font-medium text-ink-dim">{m.appRuns}</span>
-              <code className="selectable mt-1 block max-h-[10rem] overflow-y-auto rounded-[0.4rem] border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] break-all whitespace-pre-wrap text-ink">
+              <code className="selectable mt-1 block max-h-[10rem] overflow-y-auto rounded-button border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] break-all whitespace-pre-wrap text-ink">
                 {commands.join("\n")}
               </code>
             </div>
@@ -295,7 +295,7 @@ function Steps({ agent }: { agent: { id: string; name: string } }) {
     <ol
       ref={list}
       tabIndex={-1}
-      className="flex flex-col divide-y divide-line rounded-[0.45rem] border border-line outline-none"
+      className="flex flex-col divide-y divide-line rounded-inset border border-line outline-none"
       aria-label={m.steps}
     >
       {steps.map((step) => {

@@ -274,7 +274,7 @@ export function UpdateDialog() {
             {intro} <ExtLink href={updatesSection(lang)}>{m.howUpdates}</ExtLink>
           </p>
           {update.notes && (
-            <div className="selectable max-h-[12rem] overflow-y-auto whitespace-pre-line rounded-[0.2rem] border border-line bg-app-2 px-4 py-3 text-[0.9rem]">
+            <div className="selectable max-h-[12rem] overflow-y-auto whitespace-pre-line rounded-rack border border-line bg-app-2 px-4 py-3 text-[0.9rem]">
               {update.notes}
             </div>
           )}

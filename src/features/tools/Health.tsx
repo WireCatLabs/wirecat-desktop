@@ -131,7 +131,7 @@ function ProfileList(props: {
   )
 }
 
-const ACCOUNT_LIST = "divide-y divide-line rounded-[0.45rem] border border-line bg-app"
+const ACCOUNT_LIST = "divide-y divide-line rounded-inset border border-line bg-app"
 
 /** The account list while the tool is asked: `count` rows in the list's own box. */
 export function AccountListPlaceholder(props: { tool: CatalogTool; count: number; label: string; sync?: boolean }) {
@@ -229,7 +229,7 @@ export function TerminalStatus({
     )
   }
   return (
-    <div className="reveal flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[0.35rem] bg-brand-soft/60 px-3 py-2">
+    <div className="reveal flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control bg-brand-soft/60 px-3 py-2">
       <p role="status" className="min-w-0 flex-1 text-[0.9rem] leading-snug text-ink">
         {opened.state === "preview" ? m.terminalPreview(code) : m.finishInTerminal(code)}
       </p>
@@ -312,7 +312,7 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
           autoComplete="off"
           {...need.field}
           aria-describedby={need.field["aria-describedby"] ?? `${id}-hint`}
-          className="h-8 min-w-[9rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.875rem] text-ink aria-[invalid=true]:border-bad"
+          className="h-8 min-w-[9rem] flex-1 rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.875rem] text-ink aria-[invalid=true]:border-bad"
         />
         {here && (
           <Button size="sm" variant="primary" type="submit" icon={<QrCode className="size-4" aria-hidden />}>

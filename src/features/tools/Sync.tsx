@@ -300,7 +300,7 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
   return (
     <div
       className={cx(
-        "reveal flex items-start gap-2 rounded-[0.35rem] px-3 py-2 text-[0.875rem] text-ink-soft",
+        "reveal flex items-start gap-2 rounded-control px-3 py-2 text-[0.875rem] text-ink-soft",
         run.phase === "failed" ? "bg-warn/10" : "bg-app",
       )}
     >
@@ -401,7 +401,7 @@ export function RowSyncButton({
   return (
     <button
       type="button"
-      className="inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
+      className="inline-flex size-9 items-center justify-center rounded-control text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
       aria-label={running ? m.stopSyncing(name) : m.syncNamed(name)}
       title={running ? m.stopTitle : m.syncNow}
       disabled={running && info.run?.stopping}

@@ -295,7 +295,7 @@ function Days({ name }: { name: string }) {
               aria-current={d.date === date ? "page" : undefined}
               onClick={() => useDigestDay.setState({ date: d.date })}
               className={cx(
-                "flex shrink-0 cursor-pointer flex-wrap items-baseline gap-x-3 rounded-[0.3rem] px-[0.7rem] py-[0.45rem] text-left transition-colors hover:bg-app-3 @2xl:flex-col",
+                "flex shrink-0 cursor-pointer flex-wrap items-baseline gap-x-3 rounded-pill px-[0.7rem] py-[0.45rem] text-left transition-colors hover:bg-app-3 @2xl:flex-col",
                 d.date === date && "bg-app-3",
               )}
             >
@@ -322,7 +322,7 @@ function Day({ date }: { date: string }) {
     void useDigests.getState().show(date)
   }, [date])
 
-  const box = "min-w-0 rounded-[0.2rem] border border-line-strong bg-app px-[1.4rem] py-[1.3rem]"
+  const box = "min-w-0 rounded-rack border border-line-strong bg-app px-[1.4rem] py-[1.3rem]"
   if (!shown || shown.state === "loading") return <Skeleton className={cx(box, "h-[24rem]")} label={m.reading} />
   if (shown.state === "failed")
     return (

@@ -123,7 +123,7 @@ export function RunDetail({ run, detail, onFilter, onGroup }: Props) {
             <CopyValue value={json} label={m.copyRunJson} />
           </span>
         </div>
-        <div className="overflow-x-auto rounded-[0.45rem] border border-line bg-app py-[0.6rem] pr-[0.6rem] pl-[1.5rem]">
+        <div className="overflow-x-auto rounded-inset border border-line bg-app py-[0.6rem] pr-[0.6rem] pl-[1.5rem]">
           <JsonTree value={record} fieldOf={runField} onFilter={onFilter} onGroup={onGroup} label={m.runRecord} />
         </div>
       </section>
@@ -209,7 +209,7 @@ function Events(props: { events: RunEvent[]; onFilter: Filter; onGroup: (field: 
   const m = useMessages(logsMessages)
   const [open, setOpen] = useState<number | null>(null)
   return (
-    <div className="overflow-x-auto rounded-[0.45rem] border border-line bg-app">
+    <div className="overflow-x-auto rounded-inset border border-line bg-app">
       <table className="w-full min-w-[34rem] table-fixed border-collapse text-[0.95rem]">
         <colgroup>
           <col className="w-[1.8rem]" />
@@ -249,7 +249,7 @@ function Events(props: { events: RunEvent[]; onFilter: Filter; onGroup: (field: 
                         ev.stopPropagation()
                         setOpen(isOpen ? null : i)
                       }}
-                      className="grid size-[1.3rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+                      className="grid size-[1.3rem] place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
                     >
                       <ChevronRight
                         aria-hidden

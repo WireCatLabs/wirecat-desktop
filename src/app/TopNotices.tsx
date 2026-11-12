@@ -52,7 +52,7 @@ function Notice({ notice: n }: { notice: TopNotice }) {
         aria-label={m.hideNotice}
         title={m.hideNotice}
         onClick={() => dismiss(n)}
-        className="grid size-[1.8rem] shrink-0 place-items-center rounded-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+        className="grid size-[1.8rem] shrink-0 place-items-center rounded-control text-ink-dim hover:bg-app-3 hover:text-ink"
       >
         <X className="size-[1rem]" strokeWidth={1.8} aria-hidden />
       </button>

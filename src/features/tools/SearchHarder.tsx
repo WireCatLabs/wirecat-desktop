@@ -190,7 +190,7 @@ function Consent(props: {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-[0.35rem] border border-line bg-app px-4 py-3.5"
+      className="flex flex-col gap-3 rounded-control border border-line bg-app px-4 py-3.5"
     >
       <h5 id={titleId} className="font-semibold text-ink">
         {m.consentTitle}
@@ -209,7 +209,7 @@ function Consent(props: {
                 onChange={() => setDraft({ provider: p, model: null, baseUrl: "" })}
                 className="peer sr-only"
               />
-              <span className="flex h-full items-center rounded-[0.35rem] border border-line-strong px-3 py-2 text-[0.9rem] font-medium text-ink transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+              <span className="flex h-full items-center rounded-control border border-line-strong px-3 py-2 text-[0.9rem] font-medium text-ink transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                 {providerName(p)}
               </span>
             </label>

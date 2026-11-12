@@ -178,7 +178,7 @@ function Preview({ preview }: { preview: TemplatePreview }) {
         </div>
       )}
       {/* The channel's own markup, shown as text: the preview is never rendered as HTML in the app. */}
-      <pre className="selectable max-h-[24rem] overflow-auto rounded-[0.3rem] bg-app-3 px-3 py-2 font-mono text-[0.82rem] whitespace-pre-wrap text-ink-soft">
+      <pre className="selectable max-h-[24rem] overflow-auto rounded-pill bg-app-3 px-3 py-2 font-mono text-[0.82rem] whitespace-pre-wrap text-ink-soft">
         {preview.text}
       </pre>
     </section>
@@ -212,7 +212,7 @@ function TemplateHelp() {
           </dl>
           <p>{m.safety}</p>
           <h3 className="mt-1 font-semibold text-ink">{m.exampleTitle}</h3>
-          <pre className="selectable overflow-auto rounded-[0.3rem] bg-app-3 px-3 py-2 font-mono text-[0.82rem] whitespace-pre text-ink-soft">
+          <pre className="selectable overflow-auto rounded-pill bg-app-3 px-3 py-2 font-mono text-[0.82rem] whitespace-pre text-ink-soft">
             {TEMPLATE_EXAMPLE}
           </pre>
         </div>

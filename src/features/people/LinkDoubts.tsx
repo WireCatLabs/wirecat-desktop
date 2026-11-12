@@ -52,7 +52,7 @@ export function LinkDoubts() {
     <section
       ref={box}
       aria-labelledby={head}
-      className="flex flex-col rounded-[0.45rem] border border-line px-[1.1rem] py-[0.85rem]"
+      className="flex flex-col rounded-inset border border-line px-[1.1rem] py-[0.85rem]"
     >
       <div className="flex items-start justify-between gap-4">
         <h2 id={head} className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 font-semibold">
@@ -157,13 +157,13 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
   const realToo = !!person && person.identities.some((i) => !testIds.includes(i.identity))
   const canSeparate = realToo && !!movable && movable.length === testIds.length
   return (
-    <li className="flex flex-col gap-[0.55rem] rounded-[0.45rem] border border-line bg-app px-[1rem] py-[0.8rem]">
+    <li className="flex flex-col gap-[0.55rem] rounded-inset border border-line bg-app px-[1rem] py-[0.8rem]">
       <div className="min-w-0">
         <button
           type="button"
           aria-haspopup="dialog"
           onClick={() => reveal(doubt.person)}
-          className="rounded-[0.2rem] text-left font-medium text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
+          className="rounded-rack text-left font-medium text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
         >
           {name}
         </button>

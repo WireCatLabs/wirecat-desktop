@@ -72,14 +72,14 @@ function ShotButton({ shot }: { shot: Shot }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={tm.enlarge(shot.caption)}
-        className="group flex w-[10.5rem] shrink-0 flex-col gap-1 rounded-[0.3rem] text-left"
+        className="group flex w-[10.5rem] shrink-0 flex-col gap-1 rounded-pill text-left"
       >
         <img
           src={shot.src}
           alt={shot.alt}
           width={shot.width}
           height={shot.height}
-          className="h-auto max-h-[8.5rem] w-full rounded-[0.3rem] border border-line object-cover object-top transition-[border-color] duration-(--motion-fast) group-hover:border-line-strong"
+          className="h-auto max-h-[8.5rem] w-full rounded-pill border border-line object-cover object-top transition-[border-color] duration-(--motion-fast) group-hover:border-line-strong"
         />
         <span className="text-[0.85rem] leading-tight text-ink-dim group-hover:text-ink-soft">{shot.caption}</span>
       </button>
@@ -89,7 +89,7 @@ function ShotButton({ shot }: { shot: Shot }) {
           alt={shot.alt}
           width={shot.width}
           height={shot.height}
-          className="mx-auto h-auto max-h-[70vh] w-auto max-w-full rounded-[0.35rem]"
+          className="mx-auto h-auto max-h-[70vh] w-auto max-w-full rounded-control"
         />
       </Dialog>
     </>
@@ -147,7 +147,7 @@ export function TelegramScanSteps() {
 export function KeyringNotice({ fallback }: { fallback: KeyringFallback }) {
   const tm = useMessages(telegramMessages)
   return (
-    <div role="note" className="flex gap-3 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-body">
+    <div role="note" className="flex gap-3 rounded-pill border border-line bg-app-2 px-3 py-2.5 text-body">
       <Info className="mt-[0.15rem] size-[1.1rem] shrink-0 text-brand" aria-hidden />
       <div className="flex min-w-0 flex-col gap-1.5">
         <p className="font-medium text-ink">{tm.keyring.title}</p>

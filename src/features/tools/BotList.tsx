@@ -86,7 +86,7 @@ export function BotList({ tool }: { tool: CatalogTool }) {
   )
 }
 
-const BOT_LIST = "divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app"
+const BOT_LIST = "divide-y divide-line overflow-hidden rounded-inset border border-line bg-app"
 
 function BotRow(props: {
   tool: CatalogTool

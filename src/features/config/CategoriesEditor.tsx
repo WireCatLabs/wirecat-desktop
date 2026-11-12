@@ -313,7 +313,7 @@ function IconButton(props: {
       disabled={disabled}
       onClick={onClick}
       className={cx(
-        "grid size-8 place-items-center rounded-[0.35rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 disabled:opacity-45",
+        "grid size-8 place-items-center rounded-control text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 disabled:opacity-45",
         danger ? "hover:text-bad" : "hover:text-ink",
       )}
     >

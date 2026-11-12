@@ -96,7 +96,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
                   setQuery(e.target.value)
                   setPages({ main: 1, search: 1 })
                 }}
-                className="selectable h-8 w-full rounded-[0.35rem] border border-line-strong bg-app pr-2 pl-[2rem] font-mono text-[0.875rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
+                className="selectable h-8 w-full rounded-control border border-line-strong bg-app pr-2 pl-[2rem] font-mono text-[0.875rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
               />
             </label>
             <MeasureSizes measured={tables.measured} />
@@ -170,7 +170,7 @@ export function TablesSkeleton() {
           <span className="text-[0.9rem] text-ink-dim">{m.measureHint}</span>
         </div>
       </div>
-      <Skeleton className="h-[26rem] w-full rounded-[0.45rem]" />
+      <Skeleton className="h-[26rem] w-full rounded-inset" />
       <DisclosureSkeleton chars={24} />
     </Frame>
   )
@@ -268,7 +268,7 @@ function TableOf(props: {
   const at = Math.min(page, Math.max(1, Math.ceil(tables.length / size)))
   return (
     <>
-      <div className="max-h-[26rem] overflow-auto rounded-[0.45rem] border border-line">
+      <div className="max-h-[26rem] overflow-auto rounded-inset border border-line">
         <table aria-label={label} className="w-full text-[0.9rem]">
           <thead className="sticky top-0 bg-app-2">
             <tr className="border-line border-b text-left text-[0.9rem] text-ink-dim">
@@ -282,7 +282,7 @@ function TableOf(props: {
                   <button
                     type="button"
                     onClick={() => onSort(c.key)}
-                    className="inline-flex items-center gap-1 rounded-[0.3rem] hover:text-ink"
+                    className="inline-flex items-center gap-1 rounded-pill hover:text-ink"
                   >
                     {m.column[c.key]}
                     {sort.key === c.key &&

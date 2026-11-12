@@ -106,7 +106,7 @@ function Details({ item, now, m }: { item: ReportItem; now: number; m: M }) {
     .join(" · ")
   const targets = targetsOfRefs(item.refs)
   return (
-    <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-[0.3rem] bg-app-2 px-3 py-2 text-[0.88rem]">
+    <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-pill bg-app-2 px-3 py-2 text-[0.88rem]">
       {item.quote && (
         <>
           <dt className="text-ink-dim">{m.quote}</dt>

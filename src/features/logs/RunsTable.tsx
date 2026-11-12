@@ -81,7 +81,7 @@ function AgentCell({ run, onFilter }: { run: Run; onFilter: Props["onFilter"] })
           onFilter(field, value, false)
         }}
         title={agent.session ? m.onlySession(agent.session) : m.onlyStartedBy(shown)}
-        className="flex max-w-full min-w-0 flex-wrap items-baseline gap-x-[0.4rem] rounded-[0.3rem] text-left hover:text-brand"
+        className="flex max-w-full min-w-0 flex-wrap items-baseline gap-x-[0.4rem] rounded-pill text-left hover:text-brand"
       >
         <span className="min-w-0 wrap-break-word">{shown}</span>
         {agent.session && (
@@ -243,7 +243,7 @@ export function RunsTable({
                 e.stopPropagation()
                 onToggle(key, run)
               }}
-              className="grid size-[1.5rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+              className="grid size-[1.5rem] place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
             >
               <ExpandChevron open={open} />
             </button>
@@ -282,7 +282,7 @@ export function RunsTable({
               <button
                 type="button"
                 onClick={onSort}
-                className="inline-flex items-center gap-1 rounded-[0.3rem] hover:text-ink"
+                className="inline-flex items-center gap-1 rounded-pill hover:text-ink"
                 title={newest ? m.newestFirst : m.oldestFirst}
               >
                 {m.time}

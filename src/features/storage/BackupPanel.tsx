@@ -64,7 +64,7 @@ export function BackupPanel() {
             : null
 
   return (
-    <section aria-labelledby="backups-title" className="rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-labelledby="backups-title" className="rounded-rack border border-line-strong bg-app">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-line border-b px-[1.3rem] py-[0.9rem]">
         <div>
           <SectionTitle id="backups-title">{m.backups}</SectionTitle>
@@ -175,7 +175,7 @@ export function BackupPanel() {
                   onClick={() => open(f.name)}
                   aria-label={m.showFile(f.name)}
                   title={showInFiles}
-                  className="grid size-6 shrink-0 place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+                  className="grid size-6 shrink-0 place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
                 >
                   <FolderOpen className="size-3.5" aria-hidden />
                 </button>

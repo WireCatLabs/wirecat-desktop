@@ -173,7 +173,7 @@ export function TipPanel({
       {...(interactive ? hover : {})}
       className={cx(
         interactive && shown ? "pointer-events-auto" : "pointer-events-none",
-        "fixed z-50 block rounded-[0.5rem] border border-line-strong bg-app-2 p-3 text-[0.9rem] font-normal text-ink-soft shadow-lg transition-[opacity,translate,visibility] duration-(--motion-fast) ease-out-quart",
+        "fixed z-50 block rounded-[0.5rem] border border-line-strong bg-app-2 p-3 text-[0.9rem] font-normal text-ink-soft shadow-panel transition-[opacity,translate,visibility] duration-(--motion-fast) ease-out-quart",
         side === "beside" ? "w-[min(22rem,80vw)]" : "w-[min(24rem,80vw)]",
         shown ? "visible translate-y-0 opacity-100" : "invisible translate-y-[0.25rem] opacity-0",
         className,

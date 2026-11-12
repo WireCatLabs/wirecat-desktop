@@ -96,7 +96,7 @@ function Reference({ target }: { target: ConversationTarget }) {
   return (
     <div className="mt-3 flex min-w-0 items-center gap-2">
       <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
-      <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
+      <code className="min-w-0 truncate rounded-rack bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
         {reference}
       </code>
       <CopyButton value={reference} label={m.copyReference} />

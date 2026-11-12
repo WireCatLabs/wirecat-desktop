@@ -107,7 +107,7 @@ function LocalOnlyForm({ status }: { status: LocalOnlyStatus }) {
       </Collapse>
       <div className="flex flex-col gap-1.5">
         <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.listTitle}</h4>
-        <ul className="flex flex-col divide-y divide-line rounded-[0.35rem] border border-line">
+        <ul className="flex flex-col divide-y divide-line rounded-control border border-line">
           {status.features.map((f) => {
             const place = isPlace(f.where) ? m.places[f.where] : m.placeUnknown
             const host = f.address && f.where !== "agent" ? hostOfOrigin(f.address) : null

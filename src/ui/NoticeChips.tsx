@@ -61,7 +61,7 @@ export function NoticeChips({ notices, label }: { notices: readonly Notice[]; la
             <div
               className={cx(
                 "px-[1.1rem] py-[0.9rem] text-[0.95rem]",
-                open.tone === "warn" ? noticeFrame("warn") : "rounded-[0.2rem] border border-line-strong bg-app",
+                open.tone === "warn" ? noticeFrame("warn") : "rounded-rack border border-line-strong bg-app",
               )}
             >
               {open.body}

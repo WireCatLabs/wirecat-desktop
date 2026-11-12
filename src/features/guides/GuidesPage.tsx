@@ -164,7 +164,7 @@ export function GuidesPage() {
             }}
             placeholder={m.searchHint}
             spellCheck={false}
-            className={`selectable h-[2.8rem] w-full rounded-[0.35rem] border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+            className={`selectable h-[2.8rem] w-full rounded-control border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
           />
         </label>
         <nav aria-label={m.jumpTo} className="flex flex-wrap gap-x-[0.3rem] gap-y-[0.3rem]">
@@ -177,7 +177,7 @@ export function GuidesPage() {
                 key={goal}
                 type="button"
                 onClick={() => jump(goal)}
-                className="flex h-[2rem] items-center gap-[0.4rem] rounded-[0.35rem] px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+                className="flex h-[2rem] items-center gap-[0.4rem] rounded-control px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
               >
                 {m.goals[goal].name}
                 <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">{count}</span>
@@ -302,7 +302,7 @@ function Entry({ guide: g, ctx, open, onToggle }: { guide: Guide; ctx: Ctx; open
           onToggle()
         }}
         className={cx(
-          "group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[0.8rem] rounded-[0.4rem] px-[0.75rem] py-[0.55rem] text-left",
+          "group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[0.8rem] rounded-button px-[0.75rem] py-[0.55rem] text-left",
           "transition-colors duration-(--motion-fast) ease-out-quart",
           open ? "bg-app" : "hover:bg-app-3/70",
         )}
@@ -395,7 +395,7 @@ function GuideBody(props: {
       ref={box}
       aria-label={textOf(g.title, lang)}
       onKeyDown={onKeyDown}
-      className="@container flex flex-col gap-[1.1rem] rounded-[0.45rem] border border-line-strong bg-app p-[1.3rem]"
+      className="@container flex flex-col gap-[1.1rem] rounded-inset border border-line-strong bg-app p-[1.3rem]"
     >
       <div className="grid gap-x-[2.2rem] gap-y-[1.2rem] @min-[46rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <section className="@container/prompt flex min-w-0 flex-col gap-[0.7rem]">
@@ -426,7 +426,7 @@ function GuideBody(props: {
           )}
           <AutoHeight swap={messenger}>
             <Crossfade swap={variant}>
-              <div className="rounded-[0.8rem] rounded-br-[0.2rem] bg-brand-soft/70 px-[1rem] py-[0.75rem] focus-within:outline-2 focus-within:outline-brand focus-within:outline-offset-2">
+              <div className="rounded-[0.8rem] rounded-br-rack bg-brand-soft/70 px-[1rem] py-[0.75rem] focus-within:outline-2 focus-within:outline-brand focus-within:outline-offset-2">
                 <textarea
                   id={promptId}
                   value={prompt}
@@ -490,7 +490,7 @@ function GuideBody(props: {
           </section>
           <section className="flex flex-col gap-[0.6rem]">
             <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.answers}</h4>
-            <p className="rounded-[0.8rem] rounded-bl-[0.2rem] border border-line bg-app-2 px-[1rem] py-[0.7rem] text-[0.95rem] leading-relaxed text-ink">
+            <p className="rounded-[0.8rem] rounded-bl-rack border border-line bg-app-2 px-[1rem] py-[0.7rem] text-[0.95rem] leading-relaxed text-ink">
               {textOf(g.result, lang)}
             </p>
             <p className="text-[0.9rem] text-ink-dim">{m.account}</p>

@@ -27,7 +27,7 @@ import { needFor, wizardMessages } from "./messages-wizard"
 import { routeOf } from "./wizard"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 /** Before anything runs: the steps the sign-in will take, how long, and what happens to what the owner shares. */
 export function Plan() {
@@ -89,7 +89,7 @@ export function Plan() {
                   </span>
                   <span className="text-body leading-snug text-ink">
                     {step.once && (
-                      <span className="mr-2 inline-block rounded-[0.2rem] bg-app-3 px-1.5 py-px align-[0.08em] text-[0.8rem] font-medium text-ink-soft">
+                      <span className="mr-2 inline-block rounded-rack bg-app-3 px-1.5 py-px align-[0.08em] text-[0.8rem] font-medium text-ink-soft">
                         {tm.firstTime}
                       </span>
                     )}
@@ -165,7 +165,7 @@ function Providers() {
                 onChange={() => useSignIn.setState({ method: option.id, planMissing: null })}
                 className="peer sr-only"
               />
-              <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+              <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
                 <span className="text-[0.95rem] font-medium text-ink">{text?.name ?? option.label}</span>
                 {text && <span className="text-[0.8rem] leading-snug text-ink-soft">{text.detail}</span>}
               </span>
@@ -288,7 +288,7 @@ function WayOption({ option, name, children }: { option: MailWay; name: string; 
   const { way } = useSignIn(useShallow((s) => ({ way: s.way })))
   const text = useMessages(mailMessages).ways[option]
   return (
-    <div className="rounded-[0.35rem] border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
+    <div className="rounded-control border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
       <label className="relative block cursor-pointer">
         <input
           type="radio"
@@ -302,11 +302,11 @@ function WayOption({ option, name, children }: { option: MailWay; name: string; 
           }}
           className="peer sr-only"
         />
-        <span className="flex h-full flex-col gap-1 rounded-[0.35rem] px-3 py-2.5 peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+        <span className="flex h-full flex-col gap-1 rounded-control px-3 py-2.5 peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
             {text.badge && (
-              <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
+              <span className="rounded-rack bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
                 {text.badge}
               </span>
             )}

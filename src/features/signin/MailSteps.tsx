@@ -17,7 +17,7 @@ import { mailMessages } from "./messages-mail"
 import { telegramMessages } from "./messages-telegram"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 export function Numbered({ i }: { i: number }) {
   return (
@@ -78,7 +78,7 @@ export function AppPasswordStep({ provider }: { provider: AppPasswordProvider })
       )}
       <section className="flex flex-col gap-2.5">
         <h3 className="text-[1.15rem] font-semibold text-ink">{guide.title}</h3>
-        <p className="flex items-start gap-2.5 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-body leading-snug font-medium text-ink">
+        <p className="flex items-start gap-2.5 rounded-pill border border-line bg-app-2 px-3 py-2.5 text-body leading-snug font-medium text-ink">
           <KeyRound className="mt-[0.1rem] size-[1.1rem] shrink-0 text-brand" aria-hidden />
           <span>{guide.notYours}</span>
         </p>

@@ -631,7 +631,7 @@ function Grouped({ hits, field, now, m }: { hits: SearchHit[]; field: string; no
   const groups = useMemo(() => groupHits(hits, field), [hits, field])
   const max = groups[0]?.count ?? 1
   return (
-    <div className="reveal overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+    <div className="reveal overflow-hidden rounded-rack border border-line-strong bg-app">
       <div className="flex items-center justify-between gap-3 border-line border-b px-[1.3rem] py-[0.5rem] text-[0.9rem]">
         <span className="text-ink-soft">{m.groupedBy(field, hits.length)}</span>
         <Button
@@ -671,7 +671,7 @@ function Grouped({ hits, field, now, m }: { hits: SearchHit[]; field: string; no
                     type="button"
                     onClick={() => filterBy(field, g.value, false)}
                     title={m.showOnly(`${field}:${quoteValue(g.value)}`)}
-                    className="flex w-full min-w-0 items-center rounded-[0.3rem] px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
+                    className="flex w-full min-w-0 items-center rounded-pill px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
                   >
                     <span className="truncate">{g.value}</span>
                   </button>

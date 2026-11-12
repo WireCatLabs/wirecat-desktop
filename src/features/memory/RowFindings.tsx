@@ -204,7 +204,7 @@ function FindingItem({
 
       {x.evidence.map((ref) => (
         <Collapse key={ref} open={shown === ref && !editing} frameClassName="md:col-span-2">
-          <div className="overflow-hidden rounded-[0.35rem] border border-line">
+          <div className="overflow-hidden rounded-control border border-line">
             <SourceContextView reference={ref} withRef />
           </div>
         </Collapse>
@@ -318,7 +318,7 @@ function FindingEdit({ entry, finding: x, onClose }: { entry: MemoryEntry; findi
                 aria-describedby={invalid ? need.field["aria-describedby"] : optional ? `${id}-hint` : undefined}
                 onChange={(ev) => set(e.name === "body" ? ev.target.value : ev.target.value.replace(/\n/g, " "))}
                 className={cx(
-                  "selectable w-full min-w-0 resize-y rounded-[0.35rem] border border-line-strong bg-app px-2.5 py-[0.35rem] text-[0.95rem] leading-snug text-ink aria-[invalid=true]:border-bad",
+                  "selectable w-full min-w-0 resize-y rounded-control border border-line-strong bg-app px-2.5 py-[0.35rem] text-[0.95rem] leading-snug text-ink aria-[invalid=true]:border-bad",
                   fieldFocus,
                 )}
               />

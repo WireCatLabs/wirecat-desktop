@@ -36,7 +36,7 @@ export function LogSettings({ id }: { id: string }) {
     <section id={id} aria-label={m.settings} className="flex max-w-[64rem] flex-col gap-[0.7rem]">
       <ul
         aria-label={m.sources}
-        className="divide-y divide-line overflow-hidden rounded-[0.2rem] border border-line-strong bg-app"
+        className="divide-y divide-line overflow-hidden rounded-rack border border-line-strong bg-app"
       >
         {ids.map((tool) => (
           <Row

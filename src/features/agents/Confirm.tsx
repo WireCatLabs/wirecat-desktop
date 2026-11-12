@@ -81,7 +81,7 @@ export function ConfirmCommand() {
         {text?.body}
         <div>
           <span className="text-[0.9rem] font-medium text-ink-dim">{m.appRuns}</span>
-          <code className="selectable mt-1 block rounded-[0.4rem] border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] break-all text-ink">
+          <code className="selectable mt-1 block rounded-button border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] break-all text-ink">
             {pending?.command}
           </code>
         </div>

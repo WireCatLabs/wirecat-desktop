@@ -23,7 +23,7 @@ import { Numbered } from "./MailSteps"
 import { type BitrixText, bitrixMessages } from "./messages-bitrix"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 /**
  * Bitrix24's sign-in before b24 runs: the portal and the way in, then how to make the webhook there and the field to
@@ -122,7 +122,7 @@ function Ways() {
               }}
               className="peer sr-only"
             />
-            <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+            <span className="flex h-full flex-col gap-0.5 rounded-control border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
               <span className="text-[0.95rem] font-medium text-ink">{m.ways[way].name}</span>
               <span className="text-[0.8rem] leading-snug text-ink-soft">{m.ways[way].detail}</span>
             </span>
@@ -187,7 +187,7 @@ function MakeWebhook() {
 /** Each right by Bitrix24's own name and its code, which the rights list's search finds. */
 function Scopes({ m }: { m: BitrixText["webhook"] }) {
   return (
-    <ul className="flex flex-col divide-y divide-line rounded-[0.35rem] border border-line bg-app-2">
+    <ul className="flex flex-col divide-y divide-line rounded-control border border-line bg-app-2">
       {WEBHOOK_SCOPES.map((code) => (
         <li key={code} className="flex items-center gap-3 py-1 pr-1 pl-3">
           <span className="min-w-0 flex-1 text-[0.95rem] text-ink">{m.scopes[code]}</span>
@@ -318,7 +318,7 @@ function LocalApp() {
 /** The handler path, to copy into the application's form: Bitrix24 sends the browser there, and it returns to b24. */
 function Handler({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-[0.35rem] border border-line bg-app-2 py-1 pr-1 pl-3">
+    <div className="flex items-center gap-2 rounded-control border border-line bg-app-2 py-1 pr-1 pl-3">
       <code className="selectable min-w-0 flex-1 break-all font-mono text-[0.875rem] text-ink">{APP_HANDLER}</code>
       <CopyButton value={APP_HANDLER} label={label} />
     </div>

@@ -91,7 +91,7 @@ export function AddPerson() {
       <Collapse open={shown.length > 0}>
         <div className="flex flex-col gap-[0.35rem] pt-1">
           <p className="text-[0.9rem] text-ink-soft">{m.addSimilar}</p>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {shown.map((x) => {
               const who = name(x.ref, x.displayName ?? x.name)
               const contact = x.phone ?? x.email ?? (x.username ? `@${x.username}` : null)

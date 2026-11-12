@@ -206,8 +206,8 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
             {m.defaults}
           </Choice>
         )}
-        <Skeleton className="h-8 w-[5.5rem] rounded-[0.35rem]" label={m.readingProfiles} />
-        <Skeleton className="h-8 w-[4.5rem] rounded-[0.35rem]" />
+        <Skeleton className="h-8 w-[5.5rem] rounded-control" label={m.readingProfiles} />
+        <Skeleton className="h-8 w-[4.5rem] rounded-control" />
       </Choices>
     )
   }
@@ -341,7 +341,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
   ]
 
   return (
-    <section aria-label={label} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+    <section aria-label={label} className="overflow-hidden rounded-rack border border-line-strong bg-app">
       <Tabs selectedKey={st.tab} onSelectionChange={(k) => st.setTab(k as Tab)}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-[1.3rem]">
           <TabList aria-label={m.tabs} className="flex gap-5">
@@ -385,7 +385,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
                 value={st.query}
                 onChange={(e) => st.setQuery(e.target.value)}
                 placeholder={m.search}
-                className={`h-8 w-[15rem] rounded-[0.35rem] border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+                className={`h-8 w-[15rem] rounded-control border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
               />
             </label>
           ) : (

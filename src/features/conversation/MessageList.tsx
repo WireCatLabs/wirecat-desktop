@@ -83,7 +83,7 @@ export function MessageList(props: { messages: ChatMessage[]; email: boolean; ol
     <div
       ref={box}
       onScroll={onScroll}
-      className="selectable relative max-h-[calc(100vh-15rem)] min-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line-strong bg-app"
+      className="selectable relative max-h-[calc(100vh-15rem)] min-h-[16rem] overflow-y-auto rounded-control border border-line-strong bg-app"
     >
       <Edge side="older" more={older} />
       <ol

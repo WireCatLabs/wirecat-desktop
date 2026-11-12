@@ -54,7 +54,7 @@ function Node({ name, value, path, depth, fieldOf, onFilter, onGroup }: NodeProp
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="-ml-[1.1rem] inline-flex items-center gap-[0.15rem] rounded-[0.3rem] pr-1 text-left hover:bg-app-3"
+          className="-ml-[1.1rem] inline-flex items-center gap-[0.15rem] rounded-pill pr-1 text-left hover:bg-app-3"
         >
           <ChevronRight
             aria-hidden
@@ -83,7 +83,7 @@ function Node({ name, value, path, depth, fieldOf, onFilter, onGroup }: NodeProp
   const term = String(scalar)
 
   return (
-    <li className="group flex min-w-0 items-baseline gap-2 rounded-[0.3rem] hover:bg-app-3/60">
+    <li className="group flex min-w-0 items-baseline gap-2 rounded-pill hover:bg-app-3/60">
       <span className="shrink-0 text-ink-soft">{name}</span>
       <span
         className={cx(
@@ -126,7 +126,7 @@ function LeafAction({ label, onClick, children }: { label: string; onClick: () =
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="grid size-[1.35rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app hover:text-ink"
+      className="grid size-[1.35rem] place-items-center rounded-pill text-ink-dim hover:bg-app hover:text-ink"
     >
       {children}
     </button>

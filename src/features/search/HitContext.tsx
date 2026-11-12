@@ -83,7 +83,7 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
             </ErrorNotice>
           ) : (
             // The list's own cap: 11 messages or a transcript fill it; only a short thread or a chat's start is shorter.
-            <Skeleton className="h-[20rem] w-full rounded-[0.45rem]" label={m.readingContext} />
+            <Skeleton className="h-[20rem] w-full rounded-inset" label={m.readingContext} />
           )}
         </AutoHeight>
       </Collapse>
@@ -106,7 +106,7 @@ function Lines({ lines, meeting, now }: { lines: ContextLine[]; meeting: boolean
     <ol
       ref={box}
       aria-label={meeting ? m.contextLabel.meetings : m.contextLabel.messages}
-      className="selectable relative max-h-[20rem] overflow-y-auto rounded-[0.45rem] border border-line bg-app py-1"
+      className="selectable relative max-h-[20rem] overflow-y-auto rounded-inset border border-line bg-app py-1"
     >
       {lines.map((l) => (
         <li

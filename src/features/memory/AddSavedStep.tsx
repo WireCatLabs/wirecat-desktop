@@ -97,7 +97,7 @@ function SourceCard({ added }: { added: AddedSource }) {
   ].filter((n): n is string => !!n)
 
   return (
-    <div className="rounded-[0.45rem] border border-line bg-app-2/60 px-[1rem] py-[0.8rem]">
+    <div className="rounded-inset border border-line bg-app-2/60 px-[1rem] py-[0.8rem]">
       <p className="flex items-center gap-2 font-medium">
         <Check className="size-4 text-ok" aria-hidden />
         {added.title ? m.savedAs(added.title) : m.savedUntitled}
@@ -129,14 +129,14 @@ function SourceCard({ added }: { added: AddedSource }) {
       )}
       <Collapse open={open} id={text}>
         {!stored || stored.state === "loading" ? (
-          <Skeleton className="h-[4rem] w-full rounded-[0.35rem]" label={m.readingText} />
+          <Skeleton className="h-[4rem] w-full rounded-control" label={m.readingText} />
         ) : stored.state === "failed" ? (
           <ErrorNotice raw={stored.error} inline>
             {m.failed}
           </ErrorNotice>
         ) : (
           <>
-            <p className="selectable max-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line bg-app px-[0.8rem] py-[0.6rem] text-[0.95rem] whitespace-pre-line">
+            <p className="selectable max-h-[16rem] overflow-y-auto rounded-control border border-line bg-app px-[0.8rem] py-[0.6rem] text-[0.95rem] whitespace-pre-line">
               {stored.source.text}
             </p>
             {stored.source.textTruncated && <p className="mt-[0.3rem] text-[0.9rem] text-ink-dim">{m.shortened}</p>}

@@ -109,7 +109,7 @@ function TaskList({
         <p className="text-[0.9rem] text-ink-dim">{none}</p>
       ) : got?.kind === "ready" ? (
         <>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {got.tasks.slice(0, SHOWN).map((t) => (
               <li key={t.key} className="flex items-center gap-1 border-line pr-[0.4rem] not-first:border-t">
                 <button

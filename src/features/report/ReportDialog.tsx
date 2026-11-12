@@ -19,7 +19,7 @@ import { Select, type SelectGroup } from "@/ui/Select"
 import { reportMessages } from "./messages"
 
 const SECURITY_POLICY = "https://github.com/WireCatLabs/.github/blob/main/SECURITY.md"
-const control = `w-full rounded-[0.35rem] border border-line-strong bg-app px-2.5 py-1.5 text-[0.95rem] leading-normal text-ink placeholder:text-ink-dim disabled:opacity-60 aria-[invalid=true]:border-bad ${fieldFocus}`
+const control = `w-full rounded-control border border-line-strong bg-app px-2.5 py-1.5 text-[0.95rem] leading-normal text-ink placeholder:text-ink-dim disabled:opacity-60 aria-[invalid=true]:border-bad ${fieldFocus}`
 const empty: ReportFields = { summary: "", about: "", steps: "", happened: "", expected: "" }
 
 type FieldId = keyof ReportFields
@@ -265,12 +265,12 @@ function WhatIsSent({ fields }: { fields: ReportFields }) {
   const runs = (context?.attachments?.runs as { tool: string; runs: unknown[] }[] | undefined) ?? []
   const runCount = runs.reduce((n, r) => n + (Array.isArray(r.runs) ? r.runs.length : 0), 0)
   const pre =
-    "selectable max-h-56 overflow-auto whitespace-pre-wrap rounded-[0.3rem] border border-line bg-app p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink"
+    "selectable max-h-56 overflow-auto whitespace-pre-wrap rounded-pill border border-line bg-app p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink"
 
   return (
     <section
       aria-label={m.whatIsSent}
-      className="flex flex-col gap-3 rounded-[0.45rem] bg-app-2 px-4 py-3.5 text-[0.875rem]"
+      className="flex flex-col gap-3 rounded-inset bg-app-2 px-4 py-3.5 text-[0.875rem]"
     >
       <p className="flex gap-2.5">
         <LockKeyhole className="mt-[0.2rem] size-4 shrink-0 text-ink-dim" aria-hidden />

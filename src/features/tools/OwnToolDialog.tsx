@@ -39,7 +39,7 @@ type Step =
   | { kind: "installing"; review: OwnReview; session: InstallSession }
   | { kind: "uninstalling"; review: OwnReview; done: boolean }
 
-const field = `h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.95rem] text-ink placeholder:font-sans placeholder:text-ink-dim ${fieldFocus}`
+const field = `h-9 w-full min-w-0 rounded-control border border-line-strong bg-app px-2.5 font-mono text-[0.95rem] text-ink placeholder:font-sans placeholder:text-ink-dim ${fieldFocus}`
 
 const NAME_FIELD = "own-tool-name"
 const PASTE_FIELD = "own-tool-paste"

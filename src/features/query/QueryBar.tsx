@@ -116,7 +116,7 @@ export function QueryBar(props: Props) {
     <div className="relative min-w-0 flex-1 basis-[26rem]">
       <div
         className={cx(
-          "relative flex h-[2.8rem] items-center rounded-[0.4rem] border bg-app transition-colors duration-(--motion-fast)",
+          "relative flex h-[2.8rem] items-center rounded-button border bg-app transition-colors duration-(--motion-fast)",
           "focus-within:border-brand",
           problem ? "border-bad/70" : "border-line-strong",
         )}
@@ -178,7 +178,7 @@ export function QueryBar(props: Props) {
             }}
             aria-label={m.clearSearch}
             title={m.clear}
-            className="absolute right-[0.45rem] grid size-[1.9rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+            className="absolute right-[0.45rem] grid size-[1.9rem] place-items-center rounded-pill text-ink-dim hover:bg-app-3 hover:text-ink"
           >
             <X className="size-[0.95rem]" aria-hidden />
           </button>
@@ -189,7 +189,7 @@ export function QueryBar(props: Props) {
           id={`${id}-list`}
           role="listbox"
           aria-label={m.suggestions}
-          className="absolute top-[calc(100%+0.3rem)] left-0 z-20 max-h-[22rem] w-[min(40rem,100%)] overflow-y-auto rounded-[0.45rem] border border-line bg-app p-1 shadow-panel"
+          className="absolute top-[calc(100%+0.3rem)] left-0 z-20 max-h-[22rem] w-[min(40rem,100%)] overflow-y-auto rounded-inset border border-line bg-app p-1 shadow-panel"
         >
           {suggestions.items.map((s, i) => {
             const heading = s.group && s.group !== suggestions.items[i - 1]?.group ? s.group : null
@@ -214,7 +214,7 @@ export function QueryBar(props: Props) {
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={cx(
-                    "flex cursor-pointer items-baseline gap-3 rounded-[0.35rem] px-[0.6rem] py-[0.3rem]",
+                    "flex cursor-pointer items-baseline gap-3 rounded-control px-[0.6rem] py-[0.3rem]",
                     i === active && "bg-app-3",
                     s.more && "mt-1 border-line border-t pt-[0.45rem] text-brand",
                   )}

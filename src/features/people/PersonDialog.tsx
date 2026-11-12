@@ -42,7 +42,7 @@ function Details({ reference }: { reference: string }) {
   if (!detail || detail.state === "loading")
     return (
       <div className={box}>
-        <Skeleton className="h-[5rem] w-full rounded-[0.35rem]" label={m.loadingPerson} />
+        <Skeleton className="h-[5rem] w-full rounded-control" label={m.loadingPerson} />
       </div>
     )
   if (detail.state === "failed")

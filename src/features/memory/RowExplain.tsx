@@ -42,7 +42,7 @@ export function Outcome({ entry }: { entry: MemoryEntry }) {
   const state = stateOf(entry.status)
   const what = entry.type === "relationship" ? relationSentence(entry, m, x, roles) : textOf(entry, m, roles, x)
   return (
-    <section className="flex flex-col gap-[0.5rem] rounded-[0.45rem] border border-line bg-app px-[0.95rem] py-[0.8rem]">
+    <section className="flex flex-col gap-[0.5rem] rounded-inset border border-line bg-app px-[0.95rem] py-[0.8rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.whatWouldBeSaved}</h3>
       <p className="selectable text-[1rem] leading-snug font-medium">{what}</p>
       {state === "review" ? (
@@ -78,7 +78,7 @@ export function RelationSource({ entry }: { entry: MemoryEntry }) {
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.whereFrom}</h3>
       {from ? (
-        <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
+        <ul className="flex flex-col rounded-inset border border-line bg-app">
           <SourceItem
             source={{
               ref: from,
@@ -178,7 +178,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
               maxLength={80}
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand"
+              className="inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand"
             />
           )}
         </div>
@@ -284,7 +284,7 @@ function AddRole({ list, taken, onAdded }: { list: string; taken: readonly strin
               }}
               {...need.field}
               className={cx(
-                "inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
+                "inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
                 invalidBorder,
               )}
             />

@@ -87,7 +87,7 @@ export function ClearStorageDialog({ open, onClose }: { open: boolean; onClose: 
             )}
           </p>
           <table aria-label={m.tablesEmptied} className="mt-1 w-full text-[0.9rem]">
-            <tbody className="block max-h-[9.5rem] overflow-y-auto rounded-[0.2rem] border border-line">
+            <tbody className="block max-h-[9.5rem] overflow-y-auto rounded-rack border border-line">
               {tables.map((t) => (
                 <tr
                   key={t.name}
@@ -139,7 +139,7 @@ export function ClearStorageDialog({ open, onClose }: { open: boolean; onClose: 
             onKeyDown={(e) => {
               if (e.key === "Enter" && ready) go()
             }}
-            className="selectable mt-1 h-9 w-[12rem] rounded-[0.35rem] border border-line-strong bg-app px-2 font-mono text-[0.95rem] text-ink"
+            className="selectable mt-1 h-9 w-[12rem] rounded-control border border-line-strong bg-app px-2 font-mono text-[0.95rem] text-ink"
           />
 
           <div className="mt-3 min-h-[2rem]">

@@ -23,7 +23,7 @@ import { wizardMessages } from "./messages-wizard"
 import { ZOOM_APP } from "./wizard"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 type AppValues = {
   marketplace: string
@@ -161,7 +161,7 @@ function Scopes({ scopes }: { scopes: ZoomScope[] }) {
   const all = sm.zoom.copyRequired(required.length)
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-1 rounded-[0.4rem] border border-line bg-app-2 py-1 pr-1 pl-3">
+      <div className="flex flex-col gap-1 rounded-button border border-line bg-app-2 py-1 pr-1 pl-3">
         {required.map(({ scope, purpose }) => (
           <div key={scope} className="flex items-center gap-2" title={purpose || undefined}>
             <code className="selectable min-w-0 flex-1 truncate font-mono text-[0.875rem] text-ink">{scope}</code>

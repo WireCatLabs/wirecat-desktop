@@ -207,7 +207,7 @@ export function AgentCell({ task }: { task: Task }) {
         }
       }}
       placeholder={m.agentNone}
-      className={`selectable -ml-[0.45rem] h-[1.9rem] w-full rounded-[0.35rem] border border-transparent bg-transparent px-[0.45rem] font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim hover:bg-app-3 focus-visible:bg-app ${fieldFocus}`}
+      className={`selectable -ml-[0.45rem] h-[1.9rem] w-full rounded-control border border-transparent bg-transparent px-[0.45rem] font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim hover:bg-app-3 focus-visible:bg-app ${fieldFocus}`}
     />
   )
 }

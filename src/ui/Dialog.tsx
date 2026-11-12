@@ -109,7 +109,7 @@ export function Dialog({
       onClick={requestClose}
       // A dialog with nothing to choose starts on its way out; a field or a choice marked data-autofocus comes first.
       data-autofocus={shown.actions ? undefined : true}
-      className="absolute top-[1.1rem] right-[1.1rem] grid size-[2.1rem] place-items-center rounded-[0.4rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+      className="absolute top-[1.1rem] right-[1.1rem] grid size-[2.1rem] place-items-center rounded-button text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
     >
       <X className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />
     </button>
@@ -144,7 +144,7 @@ export function Dialog({
         if (pressedOutside.current && e.target === e.currentTarget) requestClose()
         pressedOutside.current = false
       }}
-      className={`m-auto ${wide === "full" ? "w-[min(112rem,calc(100vw-2rem))]" : wide === "xl" ? "w-[min(62rem,calc(100vw-2rem))]" : wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)] overflow-hidden" : ""} rounded-[0.6rem] border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}
+      className={`m-auto ${wide === "full" ? "w-[min(112rem,calc(100vw-2rem))]" : wide === "xl" ? "w-[min(62rem,calc(100vw-2rem))]" : wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)] overflow-hidden" : ""} rounded-dialog border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}
     >
       {(open || closing) &&
         (scroll ? (

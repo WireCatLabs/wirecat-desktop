@@ -44,7 +44,7 @@ export function IdentityList({
             <SourceIcon provider={group.provider} />
             {sourceOf(group.provider).name}
           </h4>
-          <ul className="flex flex-col rounded-[0.45rem] border border-line">
+          <ul className="flex flex-col rounded-inset border border-line">
             {group.identities.map((i) => {
               const label = accountLabel(i)
               const profiles = profilesOf(i, members)

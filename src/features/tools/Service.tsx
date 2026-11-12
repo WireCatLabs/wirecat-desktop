@@ -43,7 +43,7 @@ export function Service({ tool }: { tool: CatalogTool }) {
       {profiles === undefined && <Skeleton className="h-[2.25rem] w-full max-w-[28rem]" label={m.loading} />}
       {profiles?.length === 0 && <p className="text-[0.9rem] text-ink-soft">{m.noProfile}</p>}
       {profiles && profiles.length > 0 && (
-        <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
+        <ul className="divide-y divide-line overflow-hidden rounded-inset border border-line bg-app">
           {profiles.map((p) => (
             <ServiceRow key={p.name} tool={tool} profile={p.name} signedIn={p.signedIn} onSignedIn={reload} />
           ))}

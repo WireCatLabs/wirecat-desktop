@@ -171,7 +171,7 @@ export function DriveFolderPicker(props: {
                   id={listId}
                   {...none.field}
                   onKeyDown={keys}
-                  className="flex max-h-[18rem] flex-col overflow-y-auto rounded-[0.4rem] border border-line"
+                  className="flex max-h-[18rem] flex-col overflow-y-auto rounded-button border border-line"
                 >
                   {level.level.folders.map((folder) => (
                     <Row

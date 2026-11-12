@@ -119,7 +119,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
             save()
           }
         }}
-        className="selectable inner-field -mx-[0.4rem] resize-none overflow-hidden rounded-[0.35rem] border border-line-strong bg-app px-[0.35rem] py-[0.2rem] text-[1rem] leading-snug font-medium text-ink focus:border-brand focus:ring-1 focus:ring-brand aria-[invalid=true]:border-bad"
+        className="selectable inner-field -mx-[0.4rem] resize-none overflow-hidden rounded-control border border-line-strong bg-app px-[0.35rem] py-[0.2rem] text-[1rem] leading-snug font-medium text-ink focus:border-brand focus:ring-1 focus:ring-brand aria-[invalid=true]:border-bad"
       />
       {need.hint}
       <div className="flex flex-wrap gap-3">

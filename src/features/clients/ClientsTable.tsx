@@ -58,7 +58,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
           type="button"
           aria-haspopup="dialog"
           onClick={() => useClients.getState().setOpen(c.ref)}
-          className="block w-full min-w-0 cursor-pointer truncate rounded-[0.2rem] text-left font-medium group-hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+          className="block w-full min-w-0 cursor-pointer truncate rounded-rack text-left font-medium group-hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
         >
           {c.title}
         </button>

@@ -43,7 +43,7 @@ export function NodeNotice() {
     // Once it is on PATH there is nothing left to ask; the readiness strip still opens it.
     if (path && !path.added) {
       notice = (
-        <section aria-label={m.nodeForTools} className="rounded-[0.2rem] border border-line-strong bg-app px-5 py-4">
+        <section aria-label={m.nodeForTools} className="rounded-rack border border-line-strong bg-app px-5 py-4">
           <p className="font-semibold">{m.managedTitle(r.managed?.version ?? "")}</p>
           <p className="mt-0.5 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.managedBody}</p>
           <div className="mt-4">
@@ -152,7 +152,7 @@ function Progress() {
   const barLabel = step === "download" ? m.downloading : step === "unpack" ? m.unpacking : step ? m.steps[step] : ""
 
   return (
-    <div className="flex flex-col gap-4 rounded-[0.45rem] border border-line bg-app px-5 py-4">
+    <div className="flex flex-col gap-4 rounded-inset border border-line bg-app px-5 py-4">
       <Stepper steps={steps} />
       {/* One bar for the whole setup, so the box keeps its height from step to step; checks and PATH say no share. */}
       {running && !failure && (

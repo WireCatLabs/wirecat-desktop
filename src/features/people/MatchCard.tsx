@@ -88,7 +88,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   return (
     <article
       aria-labelledby={head}
-      className="flex min-w-0 flex-col gap-[0.75rem] rounded-[0.45rem] border border-line bg-app px-[1.1rem] py-[0.95rem]"
+      className="flex min-w-0 flex-col gap-[0.75rem] rounded-inset border border-line bg-app px-[1.1rem] py-[0.95rem]"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 id={head} className="min-w-0 font-medium">
@@ -96,7 +96,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
             type="button"
             aria-haspopup="dialog"
             onClick={() => openMatch(group.key)}
-            className="rounded-[0.2rem] text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
+            className="rounded-rack text-left text-ink underline decoration-line-strong underline-offset-[0.2em] hover:decoration-brand"
           >
             {titleOf(names, m.everyone)}
           </button>
@@ -177,7 +177,7 @@ export function MatchFacts({ facts }: { facts: MatchFact[] }) {
         {facts.map((f) => (
           <div
             key={f.kind}
-            className="inline-flex min-w-0 items-baseline gap-[0.4rem] rounded-[0.3rem] bg-app-3 px-[0.5rem] py-[0.1rem]"
+            className="inline-flex min-w-0 items-baseline gap-[0.4rem] rounded-pill bg-app-3 px-[0.5rem] py-[0.1rem]"
           >
             <dt className="text-[0.85rem] text-ink-soft">{m.factNames[f.kind]}</dt>
             {f.value && <dd className="selectable min-w-0 break-words font-medium text-ink">{f.value}</dd>}
@@ -332,7 +332,7 @@ function Side({
     <section
       aria-label={name(reference)}
       className={cx(
-        "flex min-w-0 flex-col gap-[0.5rem] rounded-[0.35rem] border border-line px-[0.85rem] py-[0.7rem] transition-opacity duration-(--motion-fast)",
+        "flex min-w-0 flex-col gap-[0.5rem] rounded-control border border-line px-[0.85rem] py-[0.7rem] transition-opacity duration-(--motion-fast)",
         pick && !pick.on && "opacity-60",
       )}
     >

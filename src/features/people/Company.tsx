@@ -179,7 +179,7 @@ function CompanyChoice({
               setName(e.target.value)
             }}
             className={cx(
-              "selectable h-9 min-w-0 flex-1 basis-[14rem] rounded-[0.35rem] border border-line-strong bg-app px-3 text-[0.95rem]",
+              "selectable h-9 min-w-0 flex-1 basis-[14rem] rounded-control border border-line-strong bg-app px-3 text-[0.95rem]",
               invalidBorder,
             )}
           />

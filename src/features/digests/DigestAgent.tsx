@@ -112,7 +112,7 @@ export const draftAgent = (spec: DigestSpec, agents: BackgroundAgents | null) =>
   spec.agent ?? agents?.effective ?? PREFERRED
 
 const input =
-  "h-8 w-[14rem] rounded-[0.3rem] border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand"
+  "h-8 w-[14rem] rounded-pill border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand"
 
 /**
  * The agent that writes the digest and its model, for a memo that takes them. The agents are the ones found for

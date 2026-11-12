@@ -212,7 +212,7 @@ export function ConnectGuide(props: {
       <AutoHeight swap={current} className="min-w-0">
         <div
           key={current}
-          className="step-in flex min-w-0 flex-col gap-3.5 rounded-[0.45rem] border border-line bg-app px-5 py-4"
+          className="step-in flex min-w-0 flex-col gap-3.5 rounded-inset border border-line bg-app px-5 py-4"
           aria-live="polite"
         >
           <h5 ref={heading} tabIndex={-1} className="step-heading scroll-mt-3 text-[1.05rem] font-semibold text-ink">

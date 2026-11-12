@@ -126,7 +126,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
           <>
             <p>{m.removes(path, target.version ?? "?", target.manager)}</p>
             <p className="text-ink-soft">{m.runs}</p>
-            <code className="selectable block break-all rounded-[0.4rem] border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] text-ink">
+            <code className="selectable block break-all rounded-button border border-line bg-app-2 px-3 py-2 font-mono text-[0.9rem] text-ink">
               {command}
             </code>
           </>
@@ -138,7 +138,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
               // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (WCAG 2.1.1)
               tabIndex={0}
               aria-label={m.log}
-              className="selectable max-h-48 overflow-auto whitespace-pre-wrap rounded-[0.4rem] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft [overflow-wrap:anywhere]"
+              className="selectable max-h-48 overflow-auto whitespace-pre-wrap rounded-button border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft [overflow-wrap:anywhere]"
             >
               {result.log.join("\n")}
             </pre>

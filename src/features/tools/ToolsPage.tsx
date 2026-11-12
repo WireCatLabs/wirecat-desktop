@@ -78,7 +78,7 @@ export function ToolsPage() {
       {storageSlot ? (
         <div ref={keepBelow} className="flex min-h-[3.4rem] flex-col justify-center">
           {compat === undefined ? (
-            <Skeleton className="h-[3.4rem] w-full rounded-[0.2rem]" label={m.checkingStorage} />
+            <Skeleton className="h-[3.4rem] w-full rounded-rack" label={m.checkingStorage} />
           ) : (
             <StorageSummary />
           )}
@@ -88,7 +88,7 @@ export function ToolsPage() {
       )}
 
       <OwnRemoved />
-      <ul aria-label={m.list} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+      <ul aria-label={m.list} className="overflow-hidden rounded-rack border border-line-strong bg-app">
         {tools.map((t) => (
           <ToolRow key={t.id} tool={t} />
         ))}
