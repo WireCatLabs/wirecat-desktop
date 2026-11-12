@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { storageMessages } from "@/features/storage/messages"
+import { ownReviewMessages } from "@/features/tools/messages-own-review"
+import { syncScheduleMessages } from "@/features/tools/messages-sync-schedule"
 import { LANGS, type Messages, plural, pluralRu, systemLang } from "."
 
 const modules = import.meta.glob<Record<string, Messages<unknown>>>("/src/**/messages*.{ts,tsx}", { eager: true })
@@ -89,6 +92,17 @@ describe("message catalogs", () => {
       "21 версия",
       "1,5 версии",
     ])
+  })
+
+  it("counts in Russian where a bare number used to stand", () => {
+    const signals = ownReviewMessages.ru.signals
+    expect(signals.fewVersions(5)[0]).toBe("В npm только 5 версий")
+    expect(signals.newPackage(5)[0]).toBe("Впервые опубликован в npm 5 дней назад")
+    expect(syncScheduleMessages.ru.failingSince("вчера", 2)).toContain("2 раза подряд")
+  })
+
+  it("names the Settings page by its name", () => {
+    expect(storageMessages.en.entry.config).toContain("the Settings page")
   })
 
   it("counts in each language's own plural forms", () => {

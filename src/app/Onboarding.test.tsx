@@ -52,7 +52,7 @@ describe("First start", () => {
     expect(fix.mock.calls[0]?.[0]).toBe("claude")
     expect(fix.mock.calls[0]?.[1]).toMatch(/failed while installing Google Drive/)
     expect(await within(panel).findByText("Could not start Claude Code.")).toBeInTheDocument()
-    expect(fix.mock.calls[0]?.[1]).toMatch(/Error: There is not enough free space/)
+    expect(fix.mock.calls[0]?.[1]).toMatch(/Error:\n```\nThere is not enough free space/)
     expect(within(panel).getByText(/Paste this into any AI agent/)).toBeInTheDocument()
     vi.restoreAllMocks()
     useTools.setState({ sessions: {} })
