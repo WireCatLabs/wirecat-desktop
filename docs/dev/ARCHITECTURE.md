@@ -4,6 +4,7 @@ WireCat Desktop is a thin window onto the WireCat CLIs. The interface is React i
 the machine and runs the tools. Nothing here duplicates what a CLI already does.
 
 New here? Read [the architecture report](architecture-report.md) first. Rules per kind of change are in [guides/](guides/).
+What is not built yet: [BACKLOG.md](BACKLOG.md).
 
 ## Contracts with other programs
 
