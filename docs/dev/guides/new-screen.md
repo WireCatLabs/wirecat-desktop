@@ -12,6 +12,9 @@ A screen is a page in the sidebar. It is one entry in `src/app/sections.tsx` and
   shift" in [ARCHITECTURE.md](../ARCHITECTURE.md#loading-without-layout-shift)).
 - **Today.** Add a mock answer in `src/platform/mock-<area>.ts` so `pnpm dev` shows the page with data. Add a
   `?<area>=<state>` scenario when a state is hard to reach by clicks, and list it in [CLAUDE.md](../../../CLAUDE.md).
+  A scenario is read in `src/platform/mock-<area>.ts`, or in [app/scenarios.ts](../../../src/app/scenarios.ts) when
+  it opens a store's state; only a switch that opens a component's own state stays in the component.
+  [scenarios-docs.test.ts](../../../src/app/scenarios-docs.test.ts) fails when CLAUDE.md and the mocks disagree.
 - **Today.** Rule 9: nothing jumps, nothing vanishes. A flow of steps stays on one surface.
 - **Today.** The page is lazy. `features/<area>/page.ts` exports only the page, and `sections.tsx` imports that file:
   `lazy(() => import("@/features/<area>/page").then((m) => ({ default: m.AreaPage })))`. Importing the feature's
