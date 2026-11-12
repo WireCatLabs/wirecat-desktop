@@ -13,7 +13,7 @@ type State = {
   choose(id: string): Promise<void>
 }
 
-/** Claude Code and Codex for the background jobs; shared by Settings and the mail agent. */
+/** The agents for the background jobs; shared by Settings, the mail agent and the digests. */
 export const useBackgroundAgents = create<State>((set, get) => ({
   agents: null,
   error: null,

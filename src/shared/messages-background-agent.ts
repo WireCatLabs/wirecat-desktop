@@ -27,7 +27,7 @@ const en = {
   chooseFailed: "Your choice was not saved.",
   failed: "Could not list the agents.",
   looking: "Looking for agents on this computer…",
-  none: "No agent on this computer can run background jobs. Install Claude Code or Codex, then come back.",
+  none: "No agent on this computer can run background jobs. The list says why for each.",
   digests: "Digests are written by Claude Code until you update Memo.",
   noCost: (name: string) => `${name} does not report what a run costs, so the cost limits do not stop its runs.`,
   trouble: {
@@ -65,7 +65,7 @@ const ru: typeof en = {
   chooseFailed: "Выбор не сохранился.",
   failed: "Не удалось получить список агентов.",
   looking: "Ищем агентов на этом компьютере…",
-  none: "Ни один агент на этом компьютере не может выполнять фоновые задачи. Установите Claude Code или Codex и вернитесь сюда.",
+  none: "Ни один агент на этом компьютере не может выполнять фоновые задачи. В списке сказано, почему для каждого.",
   digests: "Сводки пишет Claude Code, пока вы не обновите Memo.",
   noCost: (name) => `${name} не сообщает, сколько стоит запуск, поэтому лимиты расходов его запуски не останавливают.`,
   trouble: {
@@ -104,7 +104,7 @@ const es: typeof en = {
   chooseFailed: "No se guardó tu elección.",
   failed: "No se pudo obtener la lista de agentes.",
   looking: "Buscando agentes en este equipo…",
-  none: "Ningún agente de este equipo puede ejecutar tareas en segundo plano. Instala Claude Code o Codex y vuelve aquí.",
+  none: "Ningún agente de este equipo puede ejecutar tareas en segundo plano. La lista dice por qué para cada uno.",
   digests: "Los resúmenes los escribe Claude Code hasta que actualices Memo.",
   noCost: (name) =>
     `${name} no informa de cuánto cuesta una ejecución, así que los límites de gasto no detienen sus ejecuciones.`,

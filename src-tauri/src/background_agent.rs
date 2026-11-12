@@ -14,8 +14,8 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const SUPPORTED: [&str; 4] = ["schedule", "agents", "list", "--json"];
-/// What a memo from before `schedule agents list` can start; only claude reports a run's cost. Both hold the agent to
-/// the CLIs' commands (claude) or folders (codex).
+/// What a memo from before `schedule agents list` can start, and whether it reports a run's cost. That memo cannot say
+/// which it holds to the CLIs' commands, so only claude runs a job: cli-core #2882 refuses codex too.
 const FALLBACK: [(&str, bool); 2] = [("claude", true), ("codex", false)];
 const FILE: &str = "background-agent.json";
 /// An agent prints its refusal last; the head of a long stderr is never needed for it.
@@ -63,7 +63,8 @@ pub struct BackgroundAgents {
     pub chosen: Option<String>,
     /// The agent a new job starts: the chosen one when ready, or the only one ready. `None` asks the owner.
     pub effective: Option<String>,
-    /// False when this memo cannot list its agents: only Claude Code and Codex, and digests stay on Claude Code.
+    /// False when this memo cannot list its agents: only Claude Code and Codex (greyed), and digests stay on
+    /// Claude Code.
     pub listed: bool,
 }
 
@@ -149,7 +150,7 @@ fn fallback() -> Vec<Runnable> {
             name: None,
             programs: vec![(*id).into()],
             reports_cost: *cost,
-            restricted: true,
+            restricted: *id == "claude",
             reason: None,
             installed: None,
         })
@@ -407,7 +408,7 @@ mod tests {
             name: None,
             programs: vec![id.into()],
             reports_cost: cost,
-            restricted: id == "claude" || id == "codex",
+            restricted: ["claude", "gemini", "opencode"].contains(&id),
             reason: None,
             installed: None,
         }
@@ -462,15 +463,21 @@ mod tests {
         );
         assert_eq!(a.agents.len(), 5);
         assert_eq!(a.effective.as_deref(), Some("claude"), "the only one ready: Grok is found but not offered");
-        let both = join(&registry, &supported, true, &readers, |p| p == "codex" || p == "claude", None);
+        let both = join(&registry, &supported, true, &readers, |p| p == "gemini" || p == "claude", None);
         assert_eq!(both.effective, None, "two ready, none chosen");
+        let codex = join(&registry, &supported, true, &readers, |p| p == "codex" || p == "claude", None);
+        assert_eq!(codex.effective.as_deref(), Some("claude"), "memo refuses codex, so it is never offered");
+        assert_eq!(codex.agents.iter().find(|x| x.id == "codex").unwrap().state, AgentState::Unrestricted);
         assert_eq!(a.agents[0].signed_in, Some(true));
         assert_eq!(a.agents[1].signed_in, None, "only a ready agent says whether it is signed in");
 
         let old = join(&registry, &fallback(), false, &[], |p| p == "claude", Some("claude".into()));
         assert_eq!(old.agents.iter().find(|x| x.id == "cursor").unwrap().state, AgentState::NeedsNewerMemo);
         assert_eq!(old.effective.as_deref(), Some("claude"));
-        assert!(!old.agents.iter().find(|x| x.id == "codex").unwrap().reports_cost);
+        let old_codex = old.agents.iter().find(|x| x.id == "codex").unwrap();
+        assert!(!old_codex.reports_cost);
+        let codex_too = join(&registry, &fallback(), false, &[], |p| p == "claude" || p == "codex", None);
+        assert_eq!(codex_too.effective.as_deref(), Some("claude"), "an old memo cannot say codex is held: claude only");
 
         // The `cursor` editor is on PATH, the agent memo starts (`cursor-agent`) is not: memo's answer decides.
         let cursor = Runnable { installed: Some(false), ..runnable("cursor", false) };
@@ -481,10 +488,11 @@ mod tests {
         let c = join(&registry, &[cursor], true, &[], |p| p == "cursor", None);
         let state = |c: &BackgroundAgents| c.agents.iter().find(|x| x.id == "cursor").unwrap().state;
         assert_eq!(state(&c), AgentState::ProgramMissing, "memo's programs, never the registry's `cursor`");
-        let mut held = runnable("cursor", true);
-        held.restricted = false;
-        let c = join(&registry, &[held], true, &[], |_| true, None);
-        assert_eq!(state(&c), AgentState::Unrestricted, "memo's `restricted` decides, for any agent");
+        let refused = Runnable { restricted: false, ..runnable("claude", true) };
+        let c = join(&registry, &[refused], true, &[], |_| true, None);
+        let claude = c.agents.iter().find(|x| x.id == "claude").unwrap();
+        assert_eq!(claude.state, AgentState::Unrestricted, "memo's `restricted` decides, even for claude");
+        assert_eq!(c.effective, None);
     }
 
     #[test]

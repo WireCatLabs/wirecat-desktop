@@ -408,22 +408,22 @@ describe("getting a digest now", () => {
 
 describe("the agent that writes it", () => {
   it("names the agent with no credit, keeps its words under Details and moves the digest only on a click", async () => {
-    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "codex"], "codex"))
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "gemini"], "gemini"))
     const failed: DigestItem = {
       ...morning,
       last: { ...(morning.last as NonNullable<DigestItem["last"]>), ok: false },
       trouble: { agent: "claude", kind: "noCredit", line: "Credit balance is too low" },
     }
-    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([{ ...failed, agent: "codex" }]))
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([{ ...failed, agent: "gemini" }]))
     const user = await openMorning(ready([failed]))
 
     expect(await screen.findByText("Claude Code has no credit left, so the run failed.")).toBeInTheDocument()
     expect(screen.getByText(/Written by Claude Code\./)).toBeInTheDocument()
     expect(save).not.toHaveBeenCalled()
-    await user.click(screen.getByRole("button", { name: "Switch to Codex" }))
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "morning-digest", agent: "codex" }), false)
-    // The failed run was Claude Code's: once Codex writes it, that refusal is history, and Codex reports no cost.
-    expect(await screen.findByText(/Written by Codex\. Codex does not report/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Switch to Gemini CLI" }))
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "morning-digest", agent: "gemini" }), false)
+    // The failed run was Claude Code's: once Gemini CLI writes it, that refusal is history, and Gemini CLI reports no cost.
+    expect(await screen.findByText(/Written by Gemini CLI\. Gemini CLI does not report/)).toBeInTheDocument()
     expect(screen.queryByText(/has no credit left/)).not.toBeInTheDocument()
   }, 15000)
 })

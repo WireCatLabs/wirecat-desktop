@@ -4,7 +4,7 @@ import { BackgroundAgentChoice, useAgentsLoaded } from "@/shared/BackgroundAgent
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
 import { SectionTitle } from "@/ui/SectionTitle"
 
-/** Settings, "Agent for background jobs": Claude Code or Codex for the jobs that run on a timer. */
+/** Settings, "Agent for background jobs": the agent the jobs on a timer run in. */
 export function BackgroundAgentSetting() {
   const m = useMessages(backgroundAgentMessages)
   const agents = useAgentsLoaded()

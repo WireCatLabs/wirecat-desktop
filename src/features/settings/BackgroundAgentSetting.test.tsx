@@ -14,7 +14,7 @@ beforeEach(() => {
 })
 
 it("lists both agents, chooses none for the owner and says why the button did nothing", async () => {
-  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"]))
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "gemini"]))
   const choose = vi.spyOn(platform, "backgroundAgentChoose")
   const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
@@ -28,12 +28,12 @@ it("lists both agents, chooses none for the owner and says why the button did no
 })
 
 it("says the only ready agent runs the jobs, and greys the others with the reason instead of hiding them", async () => {
-  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["codex"]))
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["gemini"]))
   const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
 
-  expect(await screen.findByText("Only Codex is ready, so background jobs run in it.")).toBeInTheDocument()
-  expect(screen.getByText(/Codex does not report what a run costs/)).toBeInTheDocument()
+  expect(await screen.findByText("Only Gemini CLI is ready, so background jobs run in it.")).toBeInTheDocument()
+  expect(screen.getByText(/Gemini CLI does not report what a run costs/)).toBeInTheDocument()
   await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
   expect(screen.getByRole("option", { name: "Claude Code · Not installed" })).toHaveAttribute("aria-disabled", "true")
   expect(screen.getByRole("option", { name: "Cursor · Cannot run on a schedule yet" })).toHaveAttribute(
@@ -66,8 +66,22 @@ it("greys an agent memo cannot limit, with memo's reason, and never offers it", 
   )
 })
 
-it("on a memo that cannot list its agents, keeps Claude Code and Codex and points to the Memo update", async () => {
-  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"], "codex", false))
+it("greys Codex with memo's reason when memo refuses it, and never offers it", async () => {
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"]))
+  const user = userEvent.setup()
+  render(<BackgroundAgentSetting />)
+
+  expect(await screen.findByText(/^Codex: cannot be held to read-only commands/)).toBeInTheDocument()
+  expect(screen.getByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
+  await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
+  expect(screen.getByRole("option", { name: "Codex · Its commands cannot be limited" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  )
+})
+
+it("on a memo that cannot list its agents, keeps Claude Code, greys Codex and points to the Memo update", async () => {
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"], "claude", false))
   render(<BackgroundAgentSetting />)
 
   expect(await screen.findByText(/This Memo knows only Claude Code and Codex/)).toBeInTheDocument()

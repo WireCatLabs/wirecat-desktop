@@ -272,7 +272,7 @@ fn memo() -> Result<Result<&'static Tool, DigestBook>, String> {
     }))
 }
 
-/// The agent to name: one this memo starts (Claude Code and Codex for a memo that cannot list its own), the agent for
+/// The agent to name: one this memo starts and limits (Claude Code for a memo that cannot list its own), the agent for
 /// background jobs on a new digest, none on an edit that keeps the digest's own.
 fn agent_for(spec: &DigestSpec, create: bool) -> Result<Option<(String, bool)>, String> {
     let id = match (&spec.agent, create) {

@@ -576,7 +576,7 @@ export type Platform = {
    * with memo's words, masked. On again with another interval replaces the schedule. `agent` is the owner's pick for
    * this job; without it the agent for background jobs runs it. */
   mailAgentSet(id: string, on: boolean, every?: string, agent?: string): Promise<MailAgent>
-  /** Claude Code and Codex: installed, signed in, the owner's pick for background jobs and the one a job starts. */
+  /** Every agent found: whether it can run background jobs, the owner's pick and the one a job starts. */
   backgroundAgents(): Promise<BackgroundAgents>
   backgroundAgentChoose(id: string): Promise<BackgroundAgents>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */

@@ -210,10 +210,12 @@ src-tauri/src/
   background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents page
                 finds (`skills::agents`) and every one memo starts (`schedule agents list`: id, name, programs,
                 `reports_cost`, `restricted`, `installed`) is listed; one that cannot run a job carries why (not
-                installed, program not found, memo cannot start it, needs a newer Memo, or it runs every command without
-                asking: memo's `restricted` is false, so a message it reads could make it run anything; the owner
-                decided those run no background job), never hidden. Only a restricted agent is offered or accepted. memo's own PATH
-                check decides "ready", by the program it starts. A memo without the list gets Claude Code and Codex.
+                installed, program not found, memo cannot start it, needs a newer Memo, or memo cannot limit its
+                commands: `restricted` is false, so a message it reads could make it run anything; the owner decided
+                those run no background job, and memo's `restricted_reason` says why), never hidden. Desktop names no
+                agent as allowed: only one memo marks restricted is offered or accepted. memo's `installed` and its
+                `programs` decide "ready" (Cursor: `cursor-agent` or `agent`, never the `cursor` editor). A memo
+                without the list gets Claude Code, and Codex greyed: that memo cannot say which agent it limits.
                 The owner's pick is kept in the app's data folder, because memo has no default; several ready and
                 none chosen is a question, never a guess, and a chosen agent that went away asks again. A failed run's
                 stderr, and its report while it is one short answer, are matched against the agents' documented

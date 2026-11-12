@@ -15,7 +15,7 @@ const en = {
   openMemo: "Open Memo",
   old: (version: string | null, need: string) =>
     `${version ? `Memo ${version}` : "This Memo"} is too old for the mail agent. Update it to ${need} or later.`,
-  noHarness: "No agent on this computer can run it. Install Claude Code or Codex, then turn this on.",
+  noHarness: "No agent on this computer can run it. Settings, «Agent for background jobs», says why for each.",
   needAgent: "Choose the agent it runs in first.",
   pickOther: "Choose another agent for background jobs, then switch the mail agent to it.",
   otherChosen: (chosen: string, running: string) =>
@@ -58,7 +58,7 @@ const ru: typeof en = {
   old: (version, need) =>
     `${version ? `Memo ${version}` : "Эта версия Memo"} слишком старая для почтового агента. Обновите её до ${need} или новее.`,
   noHarness:
-    "Ни один агент на этом компьютере не может его запускать. Установите Claude Code или Codex, затем включите.",
+    "Ни один агент на этом компьютере не может его запускать. В настройках, «Агент для фоновых задач», сказано, почему для каждого.",
   needAgent: "Сначала выберите, в каком агенте он работает.",
   pickOther: "Выберите другого агента для фоновых задач, затем переведите на него почтового агента.",
   otherChosen: (chosen, running) =>
@@ -113,7 +113,8 @@ const es: typeof en = {
   openMemo: "Abrir Memo",
   old: (version, need) =>
     `${version ? `Memo ${version}` : "Esta versión de Memo"} es demasiado antigua para el agente de correo. Actualízala a ${need} o posterior.`,
-  noHarness: "Ningún agente de este equipo puede ejecutarlo. Instala Claude Code o Codex y luego actívalo.",
+  noHarness:
+    "Ningún agente de este equipo puede ejecutarlo. Ajustes, «Agente para tareas en segundo plano», dice por qué para cada uno.",
   needAgent: "Elige primero en qué agente se ejecuta.",
   pickOther: "Elige otro agente para las tareas en segundo plano y luego cambia el agente de correo a él.",
   otherChosen: (chosen, running) =>

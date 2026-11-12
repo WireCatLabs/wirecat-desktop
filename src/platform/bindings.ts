@@ -668,7 +668,7 @@ export type LoginCode = {
 };
 
 export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
-/**  `harness`: whether Claude Code or Codex is on PATH, so turning it on can work. */
+/**  `harness`: whether an agent memo may run a job in is ready, so turning it on can work. */
 { state: "off"; harness: boolean } | 
 /**
  *  `spent_today_usd` is `None` where memo does not report it; the caps are `None` from a memo built on cli-core older than 0.584, and

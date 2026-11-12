@@ -14,13 +14,14 @@ const AGENTS: Omit<BackgroundAgent, "state" | "signedIn" | "reason">[] = [
 ]
 // cli-core #2882: memo starts each of these and marks which it cannot limit (`restricted: false`); the real list comes
 // from memo, so this set is only the mock's.
-const UNHELD = ["openclaw", "hermes", "kimi"]
+const UNHELD = ["codex", "cursor", "openclaw", "hermes", "kimi"]
+const REASON = "cannot be held to read-only commands in its one-shot mode"
 
-// The agent for background jobs: Claude Code and Codex ready, Kimi CLI installed but greyed (it runs every command
-// without asking), Cursor's settings found but not its `cursor-agent`, the rest not installed, none chosen.
-// `?agents=claude` or `?agents=codex` has only that one ready, `?agents=none` none; `?agent=<id>` starts with it
-// chosen; `?codex=signedout`; `?agents-memo=old` is a memo before `schedule agents list`: Claude Code and Codex only,
-// the rest wait for a newer Memo.
+// The agent for background jobs: Claude Code and Gemini CLI ready, Codex and Kimi CLI installed but greyed (memo cannot
+// limit their commands), Cursor's settings found but not its `cursor-agent`, the rest not installed, none chosen.
+// `?agents=claude` or `?agents=gemini` has only that one ready, `?agents=none` none; `?agent=<id>` starts with it
+// chosen; `?gemini=signedout`; `?agents-memo=old` is a memo before `schedule agents list`: Claude Code, and Codex
+// greyed, the rest wait for a newer Memo.
 export function backgroundAgentMock(
   params: URLSearchParams,
 ): Pick<Platform, "backgroundAgents" | "backgroundAgentChoose"> {
@@ -28,7 +29,8 @@ export function backgroundAgentMock(
   const listed = params.get("agents-memo") !== "old"
   let chosen = params.get("agent")
   const installed = (id: string) =>
-    (id === "kimi" && have === "both") || ((id === "claude" || id === "codex") && (have === "both" || have === id))
+    ((id === "kimi" || id === "codex") && have === "both") ||
+    ((id === "claude" || id === "gemini") && (have === "both" || have === id))
   const answer = (): BackgroundAgents => {
     const agents = AGENTS.map((a): BackgroundAgent => {
       const starts = listed || a.id === "claude" || a.id === "codex"
@@ -41,8 +43,8 @@ export function backgroundAgentMock(
           : UNHELD.includes(a.id)
             ? "unrestricted"
             : "ready"
-      const signedIn = state === "ready" ? !(a.id === "codex" && params.get("codex") === "signedout") : null
-      const reason = state === "unrestricted" ? "approves every command in its one-shot mode" : null
+      const signedIn = state === "ready" ? !(a.id === "gemini" && params.get("gemini") === "signedout") : null
+      const reason = state === "unrestricted" && listed ? REASON : null
       return { ...a, state, signedIn, reportsCost: starts && a.reportsCost, reason }
     })
     const ready = agents.filter((a) => a.state === "ready").map((a) => a.id)
@@ -62,17 +64,28 @@ export function backgroundAgentMock(
   }
 }
 
-/** For tests: Claude Code and Codex, ready as `ready` lists, and Cursor found but not one memo starts. */
+/**
+ * For tests: Claude Code and Gemini CLI, ready as `ready` lists; Codex installed but refused by memo; Cursor found but
+ * not one memo starts.
+ */
 export function agentsFixture(ready: string[], chosen: string | null = null, listed = true): BackgroundAgents {
   const agents: BackgroundAgent[] = [
-    ...["claude", "codex"].map((id) => ({
+    ...["claude", "gemini"].map((id) => ({
       id,
-      name: id === "claude" ? "Claude Code" : "Codex",
+      name: id === "claude" ? "Claude Code" : "Gemini CLI",
       state: ready.includes(id) ? ("ready" as const) : ("notInstalled" as const),
       signedIn: null,
       reportsCost: id === "claude",
       reason: null,
     })),
+    {
+      id: "codex",
+      name: "Codex",
+      state: "unrestricted",
+      signedIn: null,
+      reportsCost: false,
+      reason: listed ? REASON : null,
+    },
     {
       id: "cursor",
       name: "Cursor",

@@ -36,7 +36,7 @@ pub enum MailAgent {
         version: Option<String>,
         need: String,
     },
-    /// `harness`: whether Claude Code or Codex is on PATH, so turning it on can work.
+    /// `harness`: whether an agent memo may run a job in is ready, so turning it on can work.
     #[serde(rename_all = "camelCase")]
     Off {
         harness: bool,
