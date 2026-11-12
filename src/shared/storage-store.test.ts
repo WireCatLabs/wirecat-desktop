@@ -24,3 +24,13 @@ it("keeps the last folders, facts and tables on screen while it asks again", asy
   await vi.waitFor(() => expect(useStorage.getState().areas).toEqual(fresh))
   expect(useStorage.getState().info).toBe(info)
 })
+
+it("keeps a failed delete on screen after the reload that follows it", async () => {
+  vi.spyOn(platform, "clearStorage").mockRejectedValue(new Error("permission denied (os error 13)"))
+  vi.spyOn(platform, "storage").mockResolvedValue([])
+
+  await useStorage.getState().clear("tg")
+
+  expect(useStorage.getState().actionError).toBe("permission denied (os error 13)")
+  expect(useStorage.getState().error).toBeNull()
+})

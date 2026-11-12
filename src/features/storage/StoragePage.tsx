@@ -10,11 +10,13 @@ import { useCompat } from "@/shared/compat-store"
 import { KeptFolders } from "@/shared/KeptFolders"
 import { Page, PageHeader } from "@/shared/Page"
 import { PageError } from "@/shared/PageError"
+import { ReportThis } from "@/shared/ReportThis"
 import { areaBytes, useStorage } from "@/shared/storage-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { ArchiveSummary } from "./ArchiveSummary"
 import { BackupPanel } from "./BackupPanel"
@@ -32,7 +34,7 @@ const toolNames = (ids: string[]) => formatList(ids.map((id) => findTool(id)?.na
 
 export function StoragePage() {
   const m = useMessages(storageMessages)
-  const { areas, error, clearing, revalidating, refresh, clear, clearAll } = useStorage()
+  const { areas, error, actionError, clearing, revalidating, refresh, clear, clearAll } = useStorage()
   const [confirm, setConfirm] = useState<StorageArea | "all" | null>(null)
   const compatAsked = useCompat((s) => s.compat !== undefined)
 
@@ -68,6 +70,14 @@ export function StoragePage() {
         >
           {m.readFailed}
         </PageError>
+      )}
+      {actionError && (
+        <ErrorNotice
+          raw={actionError}
+          action={<ReportThis what="Working with data on this computer" error={actionError} />}
+        >
+          {m.actionFailed}
+        </ErrorNotice>
       )}
 
       {/* Room for the one-line warning box, so it arriving after the page does not push everything down. */}

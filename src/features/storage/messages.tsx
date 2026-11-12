@@ -60,6 +60,7 @@ const en = {
   title: "Storage",
   checking: "Checking…",
   readFailed: "Could not read the folders on this computer.",
+  actionFailed: "That did not work. The folder is as it was.",
   intro:
     "What WireCat tools keep on this computer: settings, sessions, shared storage and caches. Uninstalling a tool keeps its data; once no installed tool uses it, you can delete it here. Sign-in tokens in your system keyring are not touched.",
   deleteAll: "Delete all leftover data",
@@ -334,6 +335,7 @@ const ru: typeof en = {
   title: "Хранилище",
   checking: "Проверяем…",
   readFailed: "Не получилось прочитать папки на этом компьютере.",
+  actionFailed: "Не получилось. Папка осталась как была.",
   intro:
     "Что инструменты WireCat хранят на этом компьютере: настройки, сеансы, общее хранилище и кеш. После удаления инструмента его данные остаются; когда их не использует ни один установленный инструмент, их можно удалить здесь. Токены входа в системном хранилище ключей не затрагиваются.",
   deleteAll: "Удалить все оставшиеся данные",
@@ -607,6 +609,7 @@ const es: typeof en = {
   title: "Almacenamiento",
   checking: "Comprobando…",
   readFailed: "No se pudieron leer las carpetas de este equipo.",
+  actionFailed: "No funcionó. La carpeta sigue como estaba.",
   intro:
     "Lo que las herramientas de WireCat guardan en este ordenador: ajustes, sesiones, almacenamiento compartido y cachés. Al desinstalar una herramienta, sus datos se conservan; cuando ninguna herramienta instalada los usa, puedes borrarlos aquí. Los tokens de inicio de sesión del llavero del sistema no se tocan.",
   deleteAll: "Borrar todos los datos sobrantes",

@@ -27,6 +27,8 @@ type StorageState = {
   checkError: string | null
   runCheck(): Promise<void>
   clearing: string | null
+  /** A delete or an open that failed; kept apart from `error` so the reload after a delete does not wipe it. */
+  actionError: string | null
   /** Asking again while the last answers stay on screen. */
   revalidating: boolean
   /** Folders, storage facts and tables together, as the page asks on every visit. */
@@ -42,6 +44,7 @@ export const useStorage = create<StorageState>((set, get) => ({
   areas: null,
   error: null,
   clearing: null,
+  actionError: null,
   revalidating: false,
   info: undefined,
   infoError: null,
@@ -116,11 +119,11 @@ export const useStorage = create<StorageState>((set, get) => ({
   },
 
   async clear(id) {
-    set({ clearing: id, error: null })
+    set({ clearing: id, actionError: null })
     try {
       await platform.clearStorage(id)
     } catch (e) {
-      set({ error: errorText(e) })
+      set({ actionError: errorText(e) })
     } finally {
       set({ clearing: null })
       await get().load()
@@ -139,7 +142,7 @@ export const useStorage = create<StorageState>((set, get) => ({
     try {
       await platform.openFolder(id, kind, entry)
     } catch (e) {
-      set({ error: errorText(e) })
+      set({ actionError: errorText(e) })
     }
   },
 }))
