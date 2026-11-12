@@ -1,7 +1,7 @@
 import { type ReactNode, useId } from "react"
 import { cx } from "./cx"
 
-/** `count` is said after the label, in mono, as a tab's number of rows ("Waiting for you 10"). */
+/** `count` is said after the label, in mono: a tab's number of rows ("Waiting for you 10"), a named profile's id. */
 type Option<T extends string> = { value: T; label: string; icon?: ReactNode; count?: string | number | undefined }
 
 /**

@@ -38,11 +38,12 @@ describe("Config", () => {
     render(<ConfigPage />)
     await screen.findByRole("radio", { name: "work" })
     const group = screen.getByRole("group", { name: "Profile" })
-    expect(
-      within(group)
-        .getAllByRole("radio")
-        .map((r) => r.closest("label")?.textContent),
-    ).toEqual(["Defaults (all profiles)", "personal", "work"])
+    const radio = (name: string) => within(group).getByRole("radio", { name })
+    expect(within(group).getAllByRole("radio")).toEqual([
+      radio("Defaults (all profiles)"),
+      radio("personal"),
+      radio("work"),
+    ])
   })
 
   it("asks for the defaults without waiting for the profile list", async () => {
@@ -65,7 +66,7 @@ describe("Config", () => {
     const user = userEvent.setup()
     render(<ConfigPage />)
 
-    await user.click(screen.getByRole("radio", { name: /Telegram/ }))
+    await user.click(within(screen.getByRole("group", { name: "Tool" })).getByRole("radio", { name: "Telegram" }))
     expect(screen.getByRole("tab", { name: "Settings" })).toBeInTheDocument()
     await user.click(await screen.findByRole("radio", { name: "work" }))
     expect(await screen.findByRole("switch", { name: /^record/ }, { timeout: 3000 })).toBeInTheDocument()
@@ -232,7 +233,7 @@ describe("Config", () => {
 })
 
 describe("Config with no tool installed", () => {
-  it("says to install a tool, links to Tools, and marks each chip Not installed", async () => {
+  it("says to install a tool, links to Tools, and names the tools left out in the tip", async () => {
     const { useNav } = await import("@/shared/nav")
     const none = { tg: [], max: [], wa: [], zm: [], drive: [], gcal: [], memo: [], email: [] }
     useTools.setState({ installs: none })
@@ -241,7 +242,10 @@ describe("Config with no tool installed", () => {
     render(<ConfigPage />)
 
     expect(await screen.findByText("Install a tool to change its settings.")).toBeInTheDocument()
-    expect(screen.getByRole("radio", { name: "Telegram" }).closest("label")).toHaveAttribute("title", "Not installed")
+    expect(screen.queryByRole("radio", { name: "Telegram" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Tools not shown" }))
+    expect(await screen.findByText(/^Not installed: Telegram, MAX, WhatsApp/)).toBeInTheDocument()
+    expect(screen.getByText("Install Telegram, MAX or WhatsApp to change shared settings")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Open Tools" }))
     expect(useNav.getState().active).toBe("tools")
   })
