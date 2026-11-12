@@ -45,7 +45,7 @@ describe("Privacy", () => {
     await user.click(await screen.findByRole("button", { name: "Ayuda" }))
     await user.click(screen.getByRole("menuitem", { name: "Privacidad" }))
     const dialog = await screen.findByRole("dialog", { name: "Privacidad" })
-    await user.click(within(dialog).getByRole("button", { name: /Política de privacidad completa/ }))
+    await user.click(within(dialog).getByRole("link", { name: /Política de privacidad completa/ }))
 
     expect(open).toHaveBeenCalledWith("https://wirecat.dev/es/privacy")
   })

@@ -42,7 +42,7 @@ describe("App notifications", () => {
     expect(within(panel).getByText("New")).toBeInTheDocument()
     expect(within(panel).getByText("2 h ago")).toBeInTheDocument()
 
-    await user.click(within(panel).getByRole("button", { name: "What changed" }))
+    await user.click(within(panel).getByRole("link", { name: "What changed" }))
     expect(openUrl).toHaveBeenCalledWith("https://wirecat.dev/en/security")
 
     await user.keyboard("{Escape}")
