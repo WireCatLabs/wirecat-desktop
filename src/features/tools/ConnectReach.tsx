@@ -6,6 +6,7 @@ import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import { errorText } from "@/shared/errors"
 import { useNow } from "@/shared/use-elapsed"
+import { usePoll } from "@/shared/use-poll"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -57,11 +58,7 @@ export function ReachStep(props: {
   }, [check])
 
   // While Tailscale publishes the name, look again on its own and show how long it has been.
-  useEffect(() => {
-    if (reach.state !== "publishing") return
-    const again = setInterval(check, RECHECK_MS)
-    return () => clearInterval(again)
-  }, [reach.state, check])
+  usePoll(check, RECHECK_MS, reach.state === "publishing")
 
   const waited = firstMissing.current === null ? 0 : now - firstMissing.current
   const { share, minutes } = publishWait(waited)

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@/testing/render"
-import { useProfiles } from "./api"
+import { useProfiles, useTailscale } from "./api"
 import { Health } from "./Health"
 import { Permissions } from "./Permissions"
 
@@ -83,5 +83,39 @@ describe("a tool's permissions", () => {
     expect(await screen.findByRole("list", { name: "Telegram permissions" })).toBeInTheDocument()
     expect(screen.queryByText(/Could not read permissions/)).not.toBeInTheDocument()
     expect(show).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("a tunnel guide's status", () => {
+  afterEach(() => vi.useRealTimers())
+
+  type Status = Awaited<ReturnType<typeof platform.tailscaleStatus>>
+  const status = { installed: true } as Status
+
+  it("is read again when the window regains focus, which does not hide it", async () => {
+    const read = vi.spyOn(platform, "tailscaleStatus").mockResolvedValue(status)
+    renderHook(() => useTailscale(true))
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1))
+    act(() => void window.dispatchEvent(new Event("focus")))
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2))
+  })
+
+  it("polls without starting a second read before the first ends, and not while the window is hidden", async () => {
+    vi.useFakeTimers()
+    const answer = held<Status>()
+    const read = vi.spyOn(platform, "tailscaleStatus").mockReturnValue(answer.promise)
+    const { result } = renderHook(() => useTailscale(true, 2500))
+    await vi.advanceTimersByTimeAsync(10_000)
+    act(() => void result.current.check())
+    expect(read).toHaveBeenCalledTimes(1)
+
+    answer.resolve(status)
+    read.mockResolvedValue(status)
+    await vi.advanceTimersByTimeAsync(2500)
+    expect(read).toHaveBeenCalledTimes(2)
+
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden")
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(read).toHaveBeenCalledTimes(2)
   })
 })

@@ -16,10 +16,11 @@ import type { TunnelRoute } from "@/platform/cloudflare-schemas"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
 import { errorText } from "@/shared/errors"
+import { usePoll } from "@/shared/use-poll"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { focusInPlace } from "@/ui/motion"
-import { useCloudflare } from "./CloudflareGuide"
+import { useCloudflare, useFunnelHelper, useTailscale } from "./api"
 import { AddressStep, DEFAULT_PORT } from "./ConnectAddress"
 import { ChooseStep, ConnectStep } from "./ConnectApp"
 import { Rail } from "./ConnectRail"
@@ -30,10 +31,8 @@ import type { AppId } from "./connect-apps"
 import { Progress } from "./connect-parts"
 import { scenarioOf } from "./connect-scenario"
 import { type ConnectStepId, currentStep, type ReachState, serving, testState } from "./connect-steps"
-import { useFunnelHelper } from "./FunnelHelperGuide"
 import { useKept } from "./kept"
 import { connectMessages } from "./messages-connect"
-import { useTailscale } from "./TailscaleGuide"
 
 const POLL_MS = 4000
 
@@ -102,11 +101,7 @@ export function ConnectGuide(props: {
   }, [current, test.state, setAdded])
 
   const watching = (current === "connect" || current === "test") && test.state !== "called"
-  useEffect(() => {
-    if (!watching) return
-    const t = setInterval(reload, POLL_MS)
-    return () => clearInterval(t)
-  }, [watching, reload])
+  usePoll(reload, POLL_MS, watching)
 
   // Strict mode runs effects twice; the server must start once per press.
   const start = useCallback(async () => {

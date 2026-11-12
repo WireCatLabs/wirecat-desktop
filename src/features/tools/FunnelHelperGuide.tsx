@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { FUNNEL_HELPER } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -10,32 +10,9 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
+import { type Helper, useFunnelHelper } from "./api"
 import { InstallProgress } from "./InstallProgress"
 import { helperMessages } from "./messages-helper"
-
-/** WireCat's own Tailscale connection, read again on focus: the owner signs in or approves in the browser. */
-export function useFunnelHelper(active: boolean) {
-  const [status, setStatus] = useState<FunnelHelperStatus | null>(null)
-  const call = useRef(0)
-  const check = useCallback(async () => {
-    const mine = ++call.current
-    try {
-      const s = await platform.funnelHelperStatus()
-      if (call.current === mine) setStatus(s)
-    } catch {
-      if (call.current === mine) setStatus(null)
-    }
-  }, [])
-  useEffect(() => {
-    if (!active) return
-    check()
-    window.addEventListener("focus", check)
-    return () => window.removeEventListener("focus", check)
-  }, [active, check])
-  return { status, check, setStatus }
-}
-
-export type Helper = ReturnType<typeof useFunnelHelper>
 
 export const helperReady = (s: FunnelHelperStatus | null) => s?.installed === true && s.state === "running"
 
@@ -58,11 +35,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
     if (outcome?.event === "done") check()
   }, [outcome, check])
 
-  useEffect(() => {
-    if (!busy) return
-    const t = setInterval(check, 2000)
-    return () => clearInterval(t)
-  }, [busy, check])
+  useFunnelHelper(busy, 2000)
 
   // Leaving the guide while it waits for the browser ends the wait; whatever was done there stays done.
   const live = useRef(false)

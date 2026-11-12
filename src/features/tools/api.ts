@@ -1,8 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
 import type { Enrichment, SearchHarder } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { Background, BackgroundAction } from "@/platform/sync-schemas"
+import type { FunnelHelperStatus } from "@/platform/tailscale-schemas"
 import type { EnrichmentChoice, HarderChoice } from "@/platform/types"
+import { errorText } from "@/shared/errors"
 
 export type { EnrichmentChoice }
 
@@ -148,3 +151,55 @@ export function useSetSearchHarder(id: string) {
       client.setQueryData(toolKeys.searchHarder(id), { state: "ready", status } satisfies SearchHarder),
   })
 }
+
+const statusKeys = {
+  tailscale: ["status", "tailscale"] as const,
+  cloudflare: ["status", "cloudflare"] as const,
+  funnelHelper: ["status", "funnelHelper"] as const,
+}
+
+/**
+ * A guide's view of a program on this computer, read while `active`, again when the window regains focus (the owner
+ * installs, logs in or approves in another window), and every `every` ms while given. A read still running is shared,
+ * so a Check or a poll never starts a second run of the program.
+ */
+function useStatus<T>(queryKey: readonly string[], read: () => Promise<T>, active: boolean, every: number | false) {
+  const q = useQuery({
+    queryKey,
+    queryFn: read,
+    enabled: active,
+    refetchOnWindowFocus: true,
+    refetchInterval: every,
+    // A poll that starts reads at once only when the last answer is older than one round; a read started now could
+    // land after the answer the owner's own action just set.
+    staleTime: every || 0,
+  })
+  const { refetch } = q
+  const check = useCallback(async () => {
+    await refetch({ cancelRefetch: false })
+  }, [refetch])
+  return { q, check }
+}
+
+export function useTailscale(active: boolean, every: number | false = false) {
+  const { q, check } = useStatus(statusKeys.tailscale, () => platform.tailscaleStatus(), active, every)
+  return { status: q.data ?? null, error: q.error ? errorText(q.error) : null, checking: q.isFetching, check }
+}
+
+export function useCloudflare(active: boolean, every: number | false = false) {
+  const { q, check } = useStatus(statusKeys.cloudflare, () => platform.cloudflareStatus(), active, every)
+  return { status: q.data ?? null, error: q.error ? errorText(q.error) : null, checking: q.isFetching, check }
+}
+
+/** WireCat's own Tailscale connection; a failed read shows as not known rather than as an error. */
+export function useFunnelHelper(active: boolean, every: number | false = false) {
+  const client = useQueryClient()
+  const { q, check } = useStatus(statusKeys.funnelHelper, () => platform.funnelHelperStatus(), active, every)
+  return {
+    status: q.isError ? null : (q.data ?? null),
+    check,
+    setStatus: (s: FunnelHelperStatus) => client.setQueryData(statusKeys.funnelHelper, s),
+  }
+}
+
+export type Helper = ReturnType<typeof useFunnelHelper>

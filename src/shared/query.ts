@@ -1,5 +1,17 @@
-import { QueryClient, queryOptions } from "@tanstack/react-query"
+import { focusManager, QueryClient, queryOptions } from "@tanstack/react-query"
 import { platform } from "@/platform/bridge"
+
+// react-query watches only whether the page is visible. The desktop window stays visible while the owner works in a
+// browser, so coming back to it is a focus event; only a query that sets refetchOnWindowFocus reads again then.
+focusManager.setEventListener((onFocus) => {
+  const back = () => onFocus()
+  window.addEventListener("focus", back)
+  document.addEventListener("visibilitychange", back)
+  return () => {
+    window.removeEventListener("focus", back)
+    document.removeEventListener("visibilitychange", back)
+  }
+})
 
 // A failed call is a tool's own answer (not installed, refused), not a dropped packet: asking again at once gives the
 // same answer later. Focus and reconnect would start tool processes the owner did not ask for.
