@@ -206,6 +206,10 @@ function seed(): Held[] {
         bot: true,
       },
     ]),
+    // A Telegram bot memo has no bot flag for: only its username says so.
+    person("person:50", "Бездушная Машина", [
+      account("telegram:7750", "Бездушная Машина", [["1001", "personal"]], "initial", 5, "vas3k_club_bot"),
+    ]),
     ...crowd(),
   ]
 }
@@ -382,6 +386,8 @@ export function peopleMock(): Pick<
   | "peopleResolve"
   | "peopleMerge"
   | "peopleUnlink"
+  | "peopleCheck"
+  | "peopleAdd"
   | "peopleUnmerge"
   | "peopleSplitDecide"
   | "peopleDoubts"
@@ -691,7 +697,8 @@ export function peopleMock(): Pick<
     async peopleUnlink(ref, identities) {
       await write()
       const p = find(ref)
-      const moved = p.identities.filter((i) => identities.includes(i.identity))
+      // In the order given, as memo: the first account names the new person.
+      const moved = identities.flatMap((id) => p.identities.filter((i) => i.identity === id))
       const to = `person:${next++}`
       people = [
         ...people.map((x) =>
@@ -700,6 +707,22 @@ export function peopleMock(): Pick<
         { ref: to, name: moved[0]?.name ?? null, mergedInto: null, identities: moved, merges: [] },
       ]
       return { person: shown(ref), movedTo: to }
+    },
+    async peopleCheck(name) {
+      await delay(250)
+      const typed = name.trim().toLocaleLowerCase()
+      const words = (p: Held) => (display(p) ?? "").toLocaleLowerCase()
+      return people
+        .filter((p) => p.ref !== "person:1" && !hidden.has(p.ref) && typed && words(p).startsWith(typed))
+        .map((p) => ({ ...listed(p), sameName: words(p) === typed }))
+        .sort((a, b) => Number(b.sameName) - Number(a.sameName))
+        .slice(0, 8)
+    },
+    async peopleAdd(name) {
+      await write()
+      const ref = `person:${next++}`
+      people = [{ ref, name: name.trim(), mergedInto: null, identities: [], merges: [] }, ...people]
+      return ref
     },
     async peopleSplitDecide(ref, id, answer, reason) {
       await write()

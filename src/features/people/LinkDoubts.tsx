@@ -13,7 +13,7 @@ import { keepRoom, revealIfHidden } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
 import { looksLikeEmail } from "./contacts"
-import { useKnownName } from "./labels"
+import { useIdentifier, useKnownName } from "./labels"
 import { peopleMessages } from "./messages"
 import { Refusal } from "./Refusal"
 import { SourceIcon, sourceOf } from "./sources"
@@ -127,6 +127,7 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
   const m = useMessages(peopleMessages)
   const { reveal, need, askSplit, askUndo, keep, markTest } = usePeople.getState()
   const known = useKnownName()
+  const identifier = useIdentifier()
   const busy = usePeople((s) => s.busy[doubt.person])
   const failed = usePeople((s) => s.failed[doubt.person])
   const detail = usePeople((s) => s.details[doubt.person])
@@ -140,6 +141,7 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
       doubt.identities.map((i) => i.name),
     ) ??
     labels.find(Boolean) ??
+    identifier(doubt.person) ??
     (doubt.reason === "test-data" ? m.doubtTestTitle : m.noName)
   const test = doubt.reason === "test-data"
   // memo lists only the test accounts: the person may hold real ones too, and those stay when the test ones leave.

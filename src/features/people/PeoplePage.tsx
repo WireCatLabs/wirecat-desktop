@@ -8,6 +8,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
+import { AddPerson } from "./AddPerson"
 import { LinkDoubts } from "./LinkDoubts"
 import { MatchDialog } from "./MatchDialog"
 import { Matches, MatchesWaiting } from "./Matches"
@@ -75,6 +76,7 @@ export function PeoplePage() {
             <div className="flex flex-col gap-[1.2rem]">
               <MatchesWaiting />
               <LinkDoubts />
+              <AddPerson />
               <PeopleTable />
             </div>
           )}

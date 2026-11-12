@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   accountLabel,
+  allBots,
   bySource,
   canSplit,
   cleanName,
@@ -31,6 +32,15 @@ describe("people", () => {
       ["telegram", 2],
       ["email", 1],
     ])
+  })
+
+  it("calls a person a bot only when every account is one, a Telegram username ending in bot included", () => {
+    const tg = (username: string | null, bot = false) => ({ provider: "telegram", bot, username })
+    expect(allBots([tg("vas3k_club_bot")])).toBe(true)
+    expect(allBots([tg("Kumar_and_Solo_Bot"), { provider: "max", bot: true, username: null }])).toBe(true)
+    expect(allBots([tg("sirgris_bot"), tg("dvolkov")])).toBe(false)
+    expect(allBots([{ provider: "max", bot: false, username: "robot" }])).toBe(false)
+    expect(allBots([])).toBe(false)
   })
 
   it("marks an account a work account saw, never the default personal one", () => {

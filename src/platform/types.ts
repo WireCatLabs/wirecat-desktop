@@ -101,6 +101,7 @@ import type {
   PersonDetail,
   PersonKind,
   Resolved,
+  Similar,
   TestPeople,
   Unlinked,
 } from "./people-schemas"
@@ -424,6 +425,10 @@ export type Platform = {
   peopleMerge(refs: string[]): Promise<Merged>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */
   peopleUnlink(ref: string, identities: string[]): Promise<Unlinked>
+  /** People whose names start like the one being typed into Add a person, the same name first. */
+  peopleCheck(name: string): Promise<Similar[]>
+  /** A new person known by name only; answers their ref. */
+  peopleAdd(name: string): Promise<string>
   /** The person who has exactly this account (`<messenger>:<id>`, a username or an email address); `null` if no one. */
   peopleFind(account: string): Promise<PersonDetail | null>
   /** Gives a merge's accounts back to the person they came from. */

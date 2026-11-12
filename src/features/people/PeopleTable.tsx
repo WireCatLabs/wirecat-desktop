@@ -1,6 +1,6 @@
-import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
-import { type ReactNode, useEffect } from "react"
-import { cleanName, contactOf, filterPeople, isFragment, looksLikeAccount } from "@/domain/people"
+import { AtSign, Bot, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
+import { type ReactNode, useEffect, useId, useRef } from "react"
+import { allBots, cleanName, contactOf, filterPeople, isFragment, looksLikeAccount } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
@@ -10,10 +10,10 @@ import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
-import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { TipPanel, useTip } from "@/ui/Tooltip"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
 import { SourceIcon, sourceOf } from "./sources"
@@ -54,9 +54,18 @@ export function PeopleTable() {
   const at = kinded ? page : Math.min(page, pages)
   const rows = kinded ? people : found.slice((at - 1) * size, at * size)
   // memo's row carries no source: a row with no phone, address or handle reads the person's accounts to show one, and
-  // so does a row named by a fragment, whose accounts may have the full name.
+  // so does a row named by a fragment, whose accounts may have the full name. A possible bot reads them too: it is
+  // marked only when every account is a bot, which the row cannot tell.
   const onScreen = (
-    kinded ? rows.filter((p) => (!p.phone && !p.email && !p.username) || isFragment(p.displayName ?? p.name)) : rows
+    kinded
+      ? rows.filter(
+          (p) =>
+            (!p.phone && !p.email && !p.username) ||
+            isFragment(p.displayName ?? p.name) ||
+            p.bot ||
+            /bot$/i.test(p.username ?? ""),
+        )
+      : rows
   )
     .map((p) => p.ref)
     .join(" ")
@@ -224,10 +233,11 @@ function useColumns(kinded: boolean): Column<Listed>[] {
 }
 
 function Name({ person: p }: { person: Listed }) {
-  const m = useMessages(peopleMessages)
   const name = usePersonName()
   const shown = name(p.ref, p.displayName ?? p.name)
   const raw = p.name?.trim()
+  const detail = usePeople((s) => s.details[p.ref])
+  const bot = detail?.state === "ready" && allBots(detail.person.identities)
   return (
     <button
       type="button"
@@ -249,14 +259,33 @@ function Name({ person: p }: { person: Listed }) {
       >
         {shown}
       </span>
-      {p.bot && <Pill>{m.bot}</Pill>}
+      {bot && <BotMark />}
     </button>
   )
 }
 
+/** At the end of a bot's name: the word for screen readers, and on hover. */
+function BotMark() {
+  const m = useMessages(peopleMessages)
+  const tip = useTip({ delay: 300 })
+  const anchor = useRef<HTMLSpanElement>(null)
+  const id = useId()
+  return (
+    <span ref={anchor} className="inline-flex shrink-0" {...tip.hover}>
+      <Bot className="size-4 text-ink-dim" aria-hidden />
+      <span className="sr-only">{m.botMark}</span>
+      {tip.open && (
+        <TipPanel id={id} anchor={anchor} open className="w-auto px-2 py-1">
+          {m.botMark}
+        </TipPanel>
+      )}
+    </span>
+  )
+}
+
 /**
- * One line, so every row keeps one height: the phone, else the email, else the messenger handle, and `+1` for the rest,
- * named on hover; the person's card lists them all. With none of them, the person's first account and its source.
+ * The phone and the email one under the other, else the messenger handle; with none of them, the person's first account
+ * and its source. Every contact cell holds two lines, so rows keep one height whatever arrives.
  */
 function Contact({ person: p }: { person: Listed }) {
   const m = useMessages(peopleMessages)
@@ -276,46 +305,58 @@ function Contact({ person: p }: { person: Listed }) {
           }
         : { icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) },
     )
-  const [first, ...rest] = lines
-  if (!first) return <ContactFromAccounts reference={p.ref} />
+  if (lines.length === 0) return <ContactFromAccounts reference={p.ref} />
   return (
-    <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft" title={first.label}>
-      {first.icon}
-      <span className="selectable truncate font-mono text-[0.88rem]">{first.value}</span>
-      {rest.length > 0 && (
-        <span className="shrink-0 font-mono text-[0.8rem] text-ink-dim" title={rest.map((l) => l.value).join(", ")}>
-          {m.moreContacts(rest.length)}
-          <span className="sr-only">: {rest.map((l) => l.value).join(", ")}</span>
+    <span className={TWO_LINES}>
+      {lines.map((l) => (
+        <span key={l.value} className="flex min-w-0 items-center gap-[0.45rem]" title={l.label}>
+          {l.icon}
+          <span className="selectable truncate font-mono text-[0.88rem]">{l.value}</span>
         </span>
-      )}
+      ))}
     </span>
   )
 }
 
 const ICON = "size-4 shrink-0 text-ink-dim"
+const TWO_LINES = "flex min-h-[2.6rem] min-w-0 flex-col justify-center gap-[0.15rem] text-[0.92rem] text-ink-soft"
 
 /** For an older memo, which gives no contact: the person's phone, else email, else handle, with its source's icon. */
 function ContactFromAccounts({ reference }: { reference: string }) {
   const m = useMessages(peopleMessages)
   const detail = usePeople((s) => s.details[reference])
-  if (!detail || detail.state === "loading") return <Skeleton className="h-[0.9rem] w-[7rem]" />
-  if (detail.state === "failed") return <span className="text-ink-dim">—</span>
+  if (!detail || detail.state === "loading")
+    return (
+      <span className={TWO_LINES}>
+        <Skeleton className="h-[0.9rem] w-[7rem]" />
+      </span>
+    )
+  if (detail.state === "failed")
+    return (
+      <span className={TWO_LINES}>
+        <span className="text-ink-dim">—</span>
+      </span>
+    )
   const found = contactOf(detail.person.identities)
   if (!found)
     return (
-      <span className="text-ink-dim" title={m.noContact}>
-        <span aria-hidden>—</span>
+      <span className={TWO_LINES} title={m.noContact}>
+        <span className="text-ink-dim" aria-hidden>
+          —
+        </span>
         <span className="sr-only">{m.noContact}</span>
       </span>
     )
   return (
-    <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft">
-      <SourceIcon provider={found.provider} className="text-ink-dim" labelled={found.value !== null} />
-      {found.value ? (
-        <span className="selectable truncate font-mono text-[0.88rem]">{found.value}</span>
-      ) : (
-        <span className="truncate">{sourceOf(found.provider).name}</span>
-      )}
+    <span className={TWO_LINES}>
+      <span className="flex min-w-0 items-center gap-[0.45rem]">
+        <SourceIcon provider={found.provider} className="text-ink-dim" labelled={found.value !== null} />
+        {found.value ? (
+          <span className="selectable truncate font-mono text-[0.88rem]">{found.value}</span>
+        ) : (
+          <span className="truncate">{sourceOf(found.provider).name}</span>
+        )}
+      </span>
     </span>
   )
 }

@@ -370,6 +370,8 @@ pub fn run() {
             commands::people::people_merge,
             commands::people::people_unlink,
             commands::people::people_unmerge,
+            commands::people::people_check,
+            commands::people::people_add,
             commands::people::people_find,
             commands::person_profile::people_profile,
             commands::memory::memory_review_show,

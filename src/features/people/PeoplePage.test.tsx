@@ -127,10 +127,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 130/)
+    expect(pages).toHaveTextContent(/^1–50 of 131/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 130/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 131/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -143,16 +143,26 @@ describe("People", () => {
     expect(page.mock.calls.filter(([a]) => a.query.startsWith("L")).length).toBeLessThan(4)
   })
 
-  it("keeps each contact on one line, the rest as +1, and names the messenger of an account with no number", async () => {
+  it("shows the phone and the email one under the other, and names the messenger of an account with no number", async () => {
     render(<PeoplePage />)
     const rows = within(await table()).getAllByRole("row")
     const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
-    expect(row("Marta Gil")).toHaveTextContent(/\+34600111222\+1: marta@studio\.example/)
+    expect(within(row("Marta Gil")).getByText("+34600111222")).toBeVisible()
+    expect(within(row("Marta Gil")).getByText("marta@studio.example")).toBeVisible()
     expect(row("Kai Moreno")).toHaveTextContent("Telegram@kai_m")
     expect(within(row("Kai Moreno")).getByText("Telegram")).toHaveClass("sr-only")
     await waitFor(() => expect(row("Kai M.")).toHaveTextContent(/Kai M\.MAX/))
     await waitFor(() => expect(row("Eky")).toHaveTextContent(/EkyWhatsApp/))
     expect(row("Eky")).not.toHaveTextContent(/@lid/)
+  })
+
+  it("marks a bot at the end of its name only when every account is a bot", async () => {
+    render(<PeoplePage />)
+    const rows = within(await table()).getAllByRole("row")
+    const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
+    expect(await within(row("Бездушная Машина")).findByText("Bot", {}, { timeout: 4000 })).toHaveClass("sr-only")
+    await waitFor(() => expect(row("Dmitry Volkov")).toHaveTextContent("@dvolkov"))
+    expect(within(row("Dmitry Volkov")).queryByText("Bot")).not.toBeInTheDocument()
   })
 
   it("opens a person in a dialog with their accounts by source, marking only work ones", async () => {
@@ -183,7 +193,7 @@ describe("People", () => {
     const confirm = await screen.findByRole("dialog", { name: "Move accounts to a new person" })
     await waitFor(() => expect(within(confirm).getByRole("checkbox", { name: /Sirgris Personal Bot/ })).toBeChecked())
     expect(within(confirm).getByRole("checkbox", { name: /Dmitry/ })).not.toBeChecked()
-    expect(confirm).toHaveTextContent("Another name cannot be chosen yet")
+    expect(confirm).toHaveTextContent("The new person will be called Sirgris Personal Bot.")
   })
 
   it("lists the tasks assigned to a person in their card", async () => {
@@ -424,6 +434,23 @@ describe("People", () => {
     expect(card).toHaveTextContent("are now one person")
   })
 
+  it("names the new person after the account the owner picks", async () => {
+    const unlink = vi.spyOn(platform, "peopleUnlink").mockRejectedValue(new Error("held"))
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const lena = await openPerson(user, "Lena Ortiz")
+    await user.click(await within(lena).findByRole("button", { name: "Move accounts to a new person" }))
+    const dialog = screen.getByRole("dialog", { name: "Move accounts to a new person" })
+    const boxes = within(dialog).getAllByRole("checkbox")
+    await user.click(boxes[0] as HTMLElement)
+    await user.click(boxes[2] as HTMLElement)
+    const names = within(dialog).getByRole("group", { name: "Name of the new person" })
+    expect(within(names).getByRole("radio", { name: "Lena" })).toBeChecked()
+    await user.click(within(names).getByRole("radio", { name: "Lena O." }))
+    await user.click(within(dialog).getByRole("button", { name: "Move 2 accounts" }))
+    expect(unlink).toHaveBeenCalledWith("person:7", ["crm:acct/88", "telegram:4411"])
+  })
+
   it("moves ticked accounts to a new person, never all of them, with nothing ticked at first", async () => {
     const unlink = vi.spyOn(platform, "peopleUnlink")
     const user = userEvent.setup()
@@ -477,7 +504,7 @@ describe("People", () => {
       screen.getByRole("searchbox", { name: "Find by name, phone or address" }),
       "nobody@example.org{Enter}",
     )
-    expect(await screen.findByText("No one in Memo has nobody@example.org.")).toBeInTheDocument()
+    expect(await screen.findByText("No one has nobody@example.org.")).toBeInTheDocument()
   })
 
   it("says when memo has more people and matches than the page read", async () => {
@@ -491,7 +518,7 @@ describe("People", () => {
       kinded: false,
     })
     render(<PeoplePage />)
-    expect(await screen.findByText(/Memo knows more people than this page read/)).toBeInTheDocument()
+    expect(await screen.findByText(/There are more people than this page read/)).toBeInTheDocument()
   })
 
   it("offers memo's update when it is too old", async () => {
@@ -602,5 +629,28 @@ describe("People", () => {
     await user.click(await within(chen).findByRole("button", { name: "Separate test accounts" }))
     expect(unlink).toHaveBeenCalledWith("person:102", ["email:chen.abad@example.org"])
     expect(await within(panel).findByText(/The test accounts left Chen Abad/)).toBeInTheDocument()
+  })
+
+  it("adds a person, asking once more when someone has the very same name", async () => {
+    const add = vi.spyOn(platform, "peopleAdd")
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await table()
+    const form = screen.getByRole("region", { name: "Add a person" })
+    await user.click(within(form).getByRole("button", { name: "Add" }))
+    expect(within(form).getByRole("alert")).toHaveTextContent("Type the person's name.")
+    await user.type(within(form).getByRole("textbox"), "Lena Ortiz")
+    expect(
+      (await within(form).findAllByRole("button", { name: "Open Lena Ortiz" }, { timeout: 4000 }))[0],
+    ).toBeVisible()
+    expect(within(form).getAllByText("same name")[0]).toBeInTheDocument()
+    await user.click(within(form).getByRole("button", { name: "Add" }))
+    expect(within(form).getByRole("alert")).toHaveTextContent("Lena Ortiz is already in Contacts.")
+    expect(add).not.toHaveBeenCalled()
+    await user.click(within(form).getByRole("button", { name: "Add anyway" }))
+    expect(add).toHaveBeenCalledWith("Lena Ortiz")
+    expect(await within(form).findByRole("status", {}, { timeout: 4000 })).toHaveTextContent(
+      "Added to Contacts: Lena Ortiz.",
+    )
   })
 })
