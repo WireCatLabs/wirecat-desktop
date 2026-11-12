@@ -192,6 +192,13 @@ describe("the motion tokens", () => {
     const { hold: _pacing, ...durations } = MOTION
     expect(inCss).toEqual(durations)
   })
+
+  it("play an endless animation once under reduced motion, so it does not restart every frame", () => {
+    const css = readFileSync("src/styles/index.css", "utf8")
+    const global = css.match(/@media \(prefers-reduced-motion: reduce\) \{\s*\*,[^}]*\}/)?.[0] ?? ""
+    expect(global).toContain("animation-duration: 0.01ms !important")
+    expect(global).toContain("animation-iteration-count: 1 !important")
+  })
 })
 
 describe("pacing a list of row states", () => {

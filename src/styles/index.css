@@ -284,6 +284,8 @@ body {
   *::after {
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every component transition */
     animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: an endless animation of 0.01ms restarts every frame and shakes */
+    animation-iteration-count: 1 !important;
     /* biome-ignore lint/complexity/noImportantStyles: same */
     transition-duration: 0.01ms !important;
   }
