@@ -36,12 +36,7 @@ export function SignInLost(props: {
       inline={inline}
       action={
         tool.setup && go ? (
-          <Button
-            size="sm"
-            variant={cause === "ended" ? "primary" : "secondary"}
-            onClick={go}
-            icon={<LogIn className="size-4" aria-hidden />}
-          >
+          <Button size="sm" onClick={go} icon={<LogIn className="size-4" aria-hidden />}>
             {m.reconnect}
           </Button>
         ) : undefined

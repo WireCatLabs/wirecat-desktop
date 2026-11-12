@@ -124,7 +124,7 @@ function RowLine(props: {
     </>
   )
   const signIn = p.signedIn === false && tool.setup && (
-    <Button size="sm" variant="primary" onClick={onSignIn} icon={<LogIn className="size-4" aria-hidden />}>
+    <Button size="sm" onClick={onSignIn} icon={<LogIn className="size-4" aria-hidden />}>
       {m.signInAgain}
     </Button>
   )

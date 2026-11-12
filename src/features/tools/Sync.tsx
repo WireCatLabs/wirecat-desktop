@@ -113,7 +113,6 @@ export function SyncButton({ c, name }: { c: Control; name?: string }) {
   return (
     <Button
       size="sm"
-      variant={run ? "secondary" : "primary"}
       onClick={() => (blocked ? c.refuse() : start(tool.id, profile))}
       title={blocked ? m.anotherRunning : undefined}
       aria-label={name ? m.syncNamed(name) : undefined}

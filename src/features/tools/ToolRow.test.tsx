@@ -214,3 +214,16 @@ it("installs without asking when the check finds nothing", async () => {
   await waitFor(() => expect(install).toHaveBeenCalledWith("drive", expect.any(Function)))
   expect(within(row).queryByRole("alert")).toBeNull()
 })
+
+it("gives an open tool's panel one purple button, with an account to sync and one to reconnect", async () => {
+  render(<App />)
+  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const header = within(list).getByRole("button", { name: /^Telegram/ })
+  const row = header.closest("li") as HTMLElement
+  await within(row).findByRole("button", { name: "Manage" })
+  fireEvent.click(header)
+  await within(row).findByRole("button", { name: /^Sync .* now$/ })
+  await within(row).findByRole("button", { name: "Reconnect" })
+  const primary = row.querySelectorAll('[data-variant="primary"]')
+  expect([...primary].map((b) => b.textContent)).toEqual(["Sign in here"])
+})
