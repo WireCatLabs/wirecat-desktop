@@ -7,7 +7,7 @@ import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import { useAiModel } from "@/shared/ai-model-store"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -319,14 +319,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
                   {docs && (
                     <>
                       {" "}
-                      <button
-                        type="button"
-                        className="text-brand underline hover:text-brand-hover"
-                        onClick={() => platform.openUrl(docs.url)}
-                        {...externalHref(docs.url)}
-                      >
-                        {m.listDocs(docs.company)}
-                      </button>
+                      <ExtLink href={docs.url}>{m.listDocs(docs.company)}</ExtLink>
                     </>
                   )}
                 </p>

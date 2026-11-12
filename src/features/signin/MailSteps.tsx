@@ -3,8 +3,7 @@ import { useEffect, useId, useRef, useState } from "react"
 import { linkParts } from "@/domain/format"
 import type { AppPasswordProvider, MailNotes } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { OpenLink } from "@/shared/OpenLink"
 import { setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -301,14 +300,9 @@ function Linked({ text }: { text: string }) {
         const url = new URL(part.text)
         return (
           <span key={part.at} className="inline-flex items-center gap-0.5 align-middle">
-            <button
-              type="button"
-              onClick={() => platform.openUrl(part.text)}
-              {...externalHref(part.text)}
-              className="rounded font-medium text-brand underline underline-offset-2 hover:text-brand-hover"
-            >
+            <ExtLink href={part.text} className="font-medium">
               {`${url.host}${url.pathname === "/" ? "" : url.pathname}`}
-            </button>
+            </ExtLink>
             <CopyButton value={part.text} label={tm.copyLink(url.host)} />
           </span>
         )

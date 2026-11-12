@@ -10,8 +10,8 @@ import {
   usesProfiles,
 } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { ExtLink } from "@/shared/ExtLink"
 import { terminalMessages } from "@/shared/messages-terminal"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
@@ -249,16 +249,9 @@ export function ManualSetup(props: { tool: CatalogTool; onCheck: () => void; che
       <p className="text-[0.9rem] leading-snug text-ink-soft">
         {m.manual}{" "}
         {signIn.guide && (
-          <a
-            href={signIn.guide}
-            onClick={(e) => {
-              e.preventDefault()
-              if (signIn.guide) platform.openUrl(signIn.guide)
-            }}
-            className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-          >
+          <ExtLink href={signIn.guide} className="font-medium">
             {m.howToSetUp}
-          </a>
+          </ExtLink>
         )}
       </p>
       <div className="flex flex-wrap items-center gap-2">

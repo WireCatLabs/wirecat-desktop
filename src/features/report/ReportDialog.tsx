@@ -3,8 +3,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState 
 import { tools } from "@/domain/catalog"
 import { issueBody, LIMITS, newIssueUrl, type ReportFields, type ReportProblem, validateReport } from "@/domain/report"
 import { formatList, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { OpenLink } from "@/shared/OpenLink"
 import { attachmentsOf, useReport } from "@/shared/report-store"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -103,14 +102,9 @@ export function ReportDialog() {
         >
           <p className="max-w-[70ch] text-[0.875rem]">
             {m.intro(
-              <button
-                type="button"
-                className="font-medium text-brand hover:text-brand-hover"
-                onClick={() => platform.openUrl(SECURITY_POLICY)}
-                {...externalHref(SECURITY_POLICY)}
-              >
+              <ExtLink href={SECURITY_POLICY} className="font-medium">
                 {m.policy}
-              </button>,
+              </ExtLink>,
             )}
           </p>
 

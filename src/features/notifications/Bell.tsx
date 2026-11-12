@@ -1,9 +1,8 @@
-import { Bell as BellIcon, CircleArrowUp, ExternalLink, Megaphone, ShieldAlert, X } from "lucide-react"
+import { Bell as BellIcon, CircleArrowUp, Megaphone, ShieldAlert, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { Localized, Notification } from "@/platform/notifications-schemas"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { focusInPlace, reducedMotion } from "@/ui/motion"
@@ -224,16 +223,9 @@ function Item({
             </p>
           ))}
         {n.link && (
-          <button
-            type="button"
-            title={n.link.url}
-            onClick={() => n.link && platform.openUrl(n.link.url)}
-            {...externalHref(n.link.url)}
-            className="mt-[0.55rem] inline-flex items-center gap-1 font-medium text-[0.95rem] text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-          >
+          <ExtLink href={n.link.url} className="mt-[0.55rem] text-[0.95rem] font-medium">
             {text(n.link.label, lang) || n.link.url}
-            <ExternalLink className="size-[0.85em] shrink-0" strokeWidth={1.8} aria-hidden />
-          </button>
+          </ExtLink>
         )}
       </div>
       <button

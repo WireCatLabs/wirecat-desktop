@@ -69,6 +69,21 @@ describe("one component per job (docs/dev/ui-consistency.md)", () => {
     ).toEqual([])
   })
 
+  it("opens a web page only through ExtLink or OpenLink, which show the address and offer it to copy", () => {
+    expect(
+      using(/platform\.openUrl/, [
+        "shared/ExtLink.tsx",
+        "shared/OpenLink.tsx",
+        // The Help menu's Documentation and the keyboard shortcut: an action, not a link on the page.
+        "app/App.tsx",
+        // A row of the "next steps" menu, beside rows that open pages inside the app.
+        "features/onboarding/ToolNext.tsx",
+        // Someone else's message text: an https address stays a button, never an <a href> that could navigate.
+        "features/conversation/LinkedText.tsx",
+      ]),
+    ).toEqual([])
+  })
+
   it("repeats the page frame only in Page and in the first-run setup", () => {
     expect(using(/px-\[2\.1rem\]/, ["shared/Page.tsx", "features/onboarding/Onboarding.tsx"])).toEqual([])
   })

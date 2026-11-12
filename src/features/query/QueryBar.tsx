@@ -1,10 +1,9 @@
-import { ExternalLink, Search, X } from "lucide-react"
+import { Search, X } from "lucide-react"
 import { Fragment, type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { Parsed } from "@/domain/runs"
 import type { QueryOption, QueryOptions } from "@/domain/search"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { cx } from "@/ui/cx"
 import { queryMessages } from "./messages"
 
@@ -255,15 +254,9 @@ export function QueryBar(props: Props) {
         <p id={`${id}-hint`} role={problem ? "alert" : undefined} className={problem ? "text-bad" : "text-ink-dim"}>
           {problem ?? words.hint}
         </p>
-        <button
-          type="button"
-          onClick={() => platform.openUrl(docs)}
-          {...externalHref(docs)}
-          className="inline-flex shrink-0 items-center gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
-        >
+        <ExtLink href={docs} className="shrink-0 font-medium">
           {m.searchSyntax}
-          <ExternalLink className="size-[0.8rem]" aria-hidden />
-        </button>
+        </ExtLink>
       </div>
     </div>
   )

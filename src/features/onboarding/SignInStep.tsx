@@ -13,8 +13,8 @@ import {
   useProfiles,
 } from "@/features/tools"
 import { formatList, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import { useBotSignIn } from "@/shared/bot-signin-store"
+import { ExtLink } from "@/shared/ExtLink"
 import { botMessages } from "@/shared/messages-bot"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
@@ -171,16 +171,9 @@ function SignInRow({
                     {tool.signIn.guide && !manual && (
                       <>
                         {" "}
-                        <a
-                          href={tool.signIn.guide}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            if (tool.signIn?.guide) platform.openUrl(tool.signIn.guide)
-                          }}
-                          className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-                        >
+                        <ExtLink href={tool.signIn.guide} className="font-medium">
                           {m.guide}
-                        </a>
+                        </ExtLink>
                       </>
                     )}
                   </p>

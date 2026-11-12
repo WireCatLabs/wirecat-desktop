@@ -2,9 +2,8 @@ import { Download, SquareTerminal } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
 import { formatBytes } from "@/domain/format"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { UpdateFailure } from "@/platform/types"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { terminalMessages } from "@/shared/messages-terminal"
 import { OpenLink } from "@/shared/OpenLink"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -34,19 +33,6 @@ export function UpdateButton() {
     >
       {phase === "downloading" ? m.updating : m.updateTo(update.version)}
     </Button>
-  )
-}
-
-function Link({ href, children, quiet = false }: { href: string; children: ReactNode; quiet?: boolean }) {
-  return (
-    <button
-      type="button"
-      className={quiet ? "text-ink-dim underline hover:text-ink" : "text-brand underline hover:text-brand-hover"}
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-    >
-      {children}
-    </button>
   )
 }
 
@@ -150,12 +136,12 @@ function Failed({ action, check = false }: { action: ReactNode; check?: boolean 
 function releaseLinks(m: UpdateMessages, version: string) {
   return (
     <p className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-[0.8rem]">
-      <Link quiet href={`${RELEASES}/tag/v${version}`}>
+      <ExtLink quiet href={`${RELEASES}/tag/v${version}`}>
         {m.whatsNew(version)}
-      </Link>
-      <Link quiet href={RELEASES}>
+      </ExtLink>
+      <ExtLink quiet href={RELEASES}>
         {m.allReleases}
-      </Link>
+      </ExtLink>
     </p>
   )
 }
@@ -189,7 +175,7 @@ function checkStep(m: UpdateMessages, asked: Asked, lang: Lang, pageButton: Reac
       )}
       {asked === "latest" && (
         <p className="text-ink-soft">
-          {m.latest(__APP_VERSION__)} <Link href={updatesSection(lang)}>{m.howUpdates}</Link>
+          {m.latest(__APP_VERSION__)} <ExtLink href={updatesSection(lang)}>{m.howUpdates}</ExtLink>
         </p>
       )}
       {asked === "failed" && <Failed check action={pageButton} />}
@@ -285,7 +271,7 @@ export function UpdateDialog() {
       <AutoHeight swap={step}>
         <div key={step} className="step-in flex flex-col gap-4">
           <p className="text-ink-soft">
-            {intro} <Link href={updatesSection(lang)}>{m.howUpdates}</Link>
+            {intro} <ExtLink href={updatesSection(lang)}>{m.howUpdates}</ExtLink>
           </p>
           {update.notes && (
             <div className="selectable max-h-[12rem] overflow-y-auto whitespace-pre-line rounded-[0.2rem] border border-line bg-app-2 px-4 py-3 text-[0.9rem]">

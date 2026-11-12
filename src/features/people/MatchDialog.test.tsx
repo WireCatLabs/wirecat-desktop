@@ -54,7 +54,7 @@ describe("Match details", () => {
     const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     const { user, dialog } = await openSergey()
     const side = within(dialog).getAllByRole("region", { name: "Сергей" })[1] as HTMLElement
-    await user.click(await within(side).findByRole("button", { name: "Open in Bitrix24" }, { timeout: 4000 }))
+    await user.click(await within(side).findByRole("link", { name: "Open in Bitrix24" }, { timeout: 4000 }))
     expect(open).toHaveBeenCalledWith("https://northstar.example/crm/contact/details/7733/")
   })
 
