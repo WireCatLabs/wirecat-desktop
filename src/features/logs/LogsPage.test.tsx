@@ -390,7 +390,7 @@ describe("Logs snapshot", () => {
   }, 15000)
 
   it("stops waiting for a slow tool, says so, and takes its answer in the next round without asking twice", async () => {
-    timing.answer = 2000
+    timing.answer = 1000
     const user = userEvent.setup()
     const listRuns = platform.listRuns.bind(platform)
     let answerTg = () => {}
@@ -407,10 +407,10 @@ describe("Logs snapshot", () => {
     expect(rows().length).toBeGreaterThan(0)
     expect(screen.getByRole("img", { name: /could not be read; open Log settings/ })).toBeInTheDocument()
     const sources = await openSettings(user)
-    expect(within(sources).getByText("did not answer in 2 s")).toBeInTheDocument()
+    expect(within(sources).getByText("did not answer in 1 s")).toBeInTheDocument()
 
-    answerTg()
     await user.click(screen.getByRole("button", { name: "Read again" }))
+    answerTg()
     await loaded()
     expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
     expect(spy.mock.calls.filter(([id]) => id === "tg")).toHaveLength(1)

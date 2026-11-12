@@ -7,6 +7,7 @@ import { platform } from "@/platform/bridge"
 import { useCompat } from "@/shared/compat-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { ToolRow } from "./ToolRow"
 
@@ -36,6 +37,7 @@ it("opens a row on a click and on Enter, but not when a drag over its text ends 
 })
 
 it("opens a row while the tool check is still running (BUG-24)", async () => {
+  answerAtOnce(false)
   render(<App />)
   const list = await screen.findByRole("list", { name: "WireCat tools" })
   const header = within(list).getByRole("button", { name: /^Telegram/ })

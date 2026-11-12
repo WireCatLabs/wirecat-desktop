@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup, configure } from "@testing-library/react"
 import { afterEach, beforeEach, vi } from "vitest"
 import { initPlatform } from "@/platform/bridge"
-import { answerAtOnce } from "./mock-speed"
+import { answerAtOnce, settleMock } from "./mock-speed"
 import { resetStores } from "./stores"
 
 // The mock is imported here, before any test file runs, so a `vi.mock` of it inside a test file comes too late.
@@ -31,10 +31,11 @@ beforeEach(async () => {
   useOnboarding.setState({ resuming: false })
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
+  await settleMock()
   resetStores()
-  answerAtOnce(false)
+  answerAtOnce()
 })
 
 // jsdom has no matchMedia; the theme follows it.

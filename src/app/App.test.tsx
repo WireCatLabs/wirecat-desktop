@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { fireEvent, render, screen, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -44,6 +45,7 @@ describe("WireCat Desktop", () => {
   }, 15000)
 
   it("says what it is checking while it loads", async () => {
+    answerAtOnce(false)
     render(<App />)
     expect(await screen.findByText("Looking for WireCat tools on this computer…")).toBeInTheDocument()
     expect(await screen.findByText("Checking npm for newer versions…")).toBeInTheDocument()

@@ -1,5 +1,6 @@
 import type { Preflight, StoreCompat, ToolView } from "@/domain/compat"
 import { isNewer } from "@/domain/status"
+import { delay } from "./mock-delay"
 
 // Tools on mixed store support, for a store at schema 33 that needs at least 32. Telegram and MAX read it; WhatsApp
 // 0.6 is too old; Memo 0.93 and Zoom predate `store info`, and only Memo is in the store's list of clients. WhatsApp
@@ -50,7 +51,7 @@ const viewOf = (id: string, version: string): ToolView => {
 }
 
 export async function storeCompatMock(installed: ReadonlyMap<string, string>): Promise<StoreCompat> {
-  await new Promise((r) => setTimeout(r, 300))
+  await delay(300)
   return {
     tools: [...installed].map(([id, version]) => viewOf(id, version)),
     clients: [
@@ -80,7 +81,7 @@ export async function storePreflightMock(
   latest: Readonly<Record<string, string>>,
   scenario: string | null,
 ): Promise<Preflight> {
-  await new Promise((r) => setTimeout(r, 300))
+  await delay(300)
   const version = latest[id] ?? null
   const none = { version, known: scenario !== null, cannotOpen: null, alsoUpdate: [], stops: [] }
   if (scenario === "cannot-open") return { ...none, cannotOpen: { speaks: 31, needs: FILE.minCompatible } }

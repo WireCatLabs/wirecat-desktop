@@ -6,6 +6,7 @@ import { platform } from "@/platform/bridge"
 import { CommandError, TOO_OLD } from "@/platform/command-error"
 import { type CrmWriter, clientsMock, NORTHSTAR, SAMPLE_PROMPTED } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import type { Based } from "./api"
 import { COLUMN_PAGE } from "./BaseBoard"
@@ -611,6 +612,7 @@ describe("Accepting every CRM's suggestions from the notice", () => {
   })
 
   it("makes the stage dialog wait while the notice's Accept all runs", async () => {
+    answerAtOnce(false)
     memoWith((r) => r)
     await acceptAll()
     await userEvent.setup().click(screen.getByRole("button", { name: "Confirm stages" }))

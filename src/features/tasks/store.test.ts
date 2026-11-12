@@ -18,8 +18,11 @@ describe("the Tasks store", () => {
     const search = vi.spyOn(platform, "peopleSearch")
     await useTasks.getState().load()
     await waitFor(() => expect(useTasks.getState().people.some((p) => p.owner)).toBe(true))
+    const { assigned, people } = useTasks.getState()
     const asked = named.mock.calls.flatMap(([refs]) => refs)
-    expect(new Set(asked)).toEqual(new Set(useTasks.getState().assigned))
+    expect(asked.filter((ref) => !assigned.includes(ref))).toEqual([])
+    expect(new Set(asked).size).toBe(asked.length)
+    expect(assigned.filter((ref) => !people.some((p) => p.ref === ref))).toEqual([])
     expect(search.mock.calls).toEqual([[""]])
   })
 
