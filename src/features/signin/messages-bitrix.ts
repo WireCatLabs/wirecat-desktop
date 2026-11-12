@@ -16,8 +16,7 @@ const en = {
       webhook: { name: "Incoming webhook", detail: "Quickest. Acts as the employee who makes it." },
       app: { name: "Local application", detail: "Acts as the employee who signs in, in the browser." },
     },
-    tooOld: (version: string, need: string) =>
-      `Bitrix24's tool here is ${version}. A local application needs ${need} or newer: update it on the Tools page, or use the webhook.`,
+    tooOld: "A local application works after the update; the webhook works now.",
   },
   webhook: {
     title: "Make an incoming webhook",
@@ -158,8 +157,7 @@ const ru: BitrixText = {
       webhook: { name: "Входящий вебхук", detail: "Быстрее всего. Действует от имени сотрудника, создавшего его." },
       app: { name: "Локальное приложение", detail: "Действует от имени сотрудника, который входит в браузере." },
     },
-    tooOld: (version, need) =>
-      `Здесь установлена версия Битрикс24 ${version}. Для локального приложения нужна ${need} или новее: обновите ее на странице «Инструменты» или войдите через вебхук.`,
+    tooOld: "Локальное приложение заработает после обновления, вебхук работает уже сейчас.",
   },
   webhook: {
     title: "Создайте входящий вебхук",
@@ -298,8 +296,7 @@ const es: BitrixText = {
       webhook: { name: "Webhook entrante", detail: "Lo más rápido. Actúa como el empleado que lo crea." },
       app: { name: "Aplicación local", detail: "Actúa como el empleado que inicia sesión en el navegador." },
     },
-    tooOld: (version, need) =>
-      `La herramienta de Bitrix24 aquí es ${version}. Una aplicación local necesita ${need} o posterior: actualízala en la página Herramientas o usa el webhook.`,
+    tooOld: "La aplicación local funcionará tras actualizar; el webhook funciona ya.",
   },
   webhook: {
     title: "Crea un webhook entrante",

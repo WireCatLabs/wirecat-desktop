@@ -171,6 +171,24 @@ describe("Search", () => {
     expect(within(around).getByText("invoice-2026-10.pdf")).toBeInTheDocument()
   }, 15000)
 
+  it("offers the tool's update when it is too old to read what surrounds a result", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchContext").mockResolvedValue({ kind: "old", message: "unknown command 'context'" })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "invoice{Enter}")
+    const show = await screen.findAllByRole(
+      "button",
+      { name: "Show the whole result: Harbour flat" },
+      { timeout: 3000 },
+    )
+    await user.click(show[0] as HTMLElement)
+    await user.click(screen.getByRole("button", { name: "Show messages around it" }))
+    expect(await screen.findByText(/This needs a newer Telegram than/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update Telegram" })).toBeInTheDocument()
+  }, 15000)
+
   it("writes a query from plain words into the box once one search with a limit of 1 found it works", async () => {
     const user = userEvent.setup()
     const search = vi.spyOn(platform, "searchStore")

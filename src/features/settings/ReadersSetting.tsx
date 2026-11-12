@@ -2,8 +2,7 @@ import { LoaderCircle, TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { readerOff, tooOldFor } from "@/domain/memory-add"
-import type { Gap } from "@/domain/needs"
-import { isNewer } from "@/domain/status"
+import { type Gap, gapOf } from "@/domain/needs"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { goAiModel } from "@/shared/go-ai-model"
@@ -45,7 +44,8 @@ function Readers({ gap }: { gap: Gap | null }) {
   const chooseError = useReaders((s) => s.chooseError)
   const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
   const need = findTool("memo")?.memory?.minVersion
-  const old = version !== null && need !== undefined && isNewer(need, version)
+  const fit = need ? gapOf({ anyOf: ["memo"], minVersion: need }, () => ({ version })) : null
+  const old = fit !== "unknown" && fit?.kind === "old"
   const head = useId()
   const help = useId()
 

@@ -304,6 +304,8 @@ describe("Add to memory", () => {
     await user.click(within(panel).getByRole("radio", { name: /File/ }))
     await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
     expect(await within(panel).findByText(/Pictures cannot be read with an AI model yet/)).toBeInTheDocument()
+    expect(within(panel).getByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(within(panel).queryByText(/No AI model is set/)).not.toBeInTheDocument()
   })
 
@@ -374,7 +376,9 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    expect(await within(panel).findByText(/Sources cannot be read for facts yet/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(within(panel).getByText("Sources can be read for facts after the update.")).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeEnabled()
   })
 

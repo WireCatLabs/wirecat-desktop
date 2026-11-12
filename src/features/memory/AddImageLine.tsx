@@ -4,6 +4,8 @@ import { imageReasonBefore, tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { useAiModel } from "@/shared/ai-model-store"
 import { goAiModel } from "@/shared/go-ai-model"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Skeleton } from "@/ui/Skeleton"
 import { addMessages } from "./messages-add"
@@ -23,13 +25,21 @@ export function ImageBefore() {
   const m = useMessages(addMessages)
   const model = useAiModel((s) => s.model)
   const error = useAiModel((s) => s.error)
+  const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
 
   useEffect(() => {
     void useAiModel.getState().load()
   }, [])
 
   if (model === null && !error) return <Skeleton className="mt-[0.3rem] h-[1.1rem] w-[70%]" />
-  if (error && tooOldFor(error)) return <p className="mt-[0.3rem] text-[0.9rem] text-ink-soft">{m.imageNeedsUpdate}</p>
+  if (error && tooOldFor(error))
+    return (
+      <div className="mt-[0.3rem]">
+        <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need: null }}>
+          <p>{m.imageNeedsUpdate}</p>
+        </ToolNeeded>
+      </div>
+    )
   if (error)
     return (
       <div className="mt-[0.3rem] text-[0.9rem] text-ink-soft">

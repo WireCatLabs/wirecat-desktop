@@ -358,7 +358,7 @@ describe("AI model", () => {
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)
-    expect(await screen.findByText("This page needs a newer Memo than 0.131.86.")).toBeInTheDocument()
+    expect(await screen.findByText("This needs a newer Memo than 0.131.86.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })

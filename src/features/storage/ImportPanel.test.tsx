@@ -91,6 +91,7 @@ describe("Importing records from a file", () => {
   it("asks for an update when memo cannot import files", async () => {
     vi.spyOn(platform, "recordTypes").mockRejectedValue(new Error(RECORDS_TOO_OLD))
     render(<ImportPanel />)
-    expect(await screen.findByText(/cannot import files/)).toBeInTheDocument()
+    expect(await screen.findByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
   })
 })

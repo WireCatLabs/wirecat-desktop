@@ -10,8 +10,8 @@ import {
 } from "@/domain/bitrix-signin"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
+import { type Gap, gapOf } from "@/domain/needs"
 import type { FailedAt } from "@/domain/signin-failure"
-import { isNewer } from "@/domain/status"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
@@ -246,19 +246,21 @@ export const methodOf = (tool: string, method: string | null) => {
   return entry ? signInMethods(entry).find((m) => m.id === method) : undefined
 }
 
-/** The installed version and the one needed, when it predates the method's sign-in with the tool's own app. */
-export const oauthTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
-  const need = tool ? methodOf(tool, method)?.oauthMinVersion : undefined
-  const version = tool ? installs[tool]?.[0]?.version : null
-  return need && version && isNewer(need, version) ? { version, need } : null
+type Installs = ReturnType<typeof useTools.getState>["installs"]
+
+function tooOld(tool: string | null, need: string | null | undefined, installs: Installs): Gap | null {
+  if (!tool || !need) return null
+  const gap = gapOf({ anyOf: [tool], minVersion: need }, (id) => ({ version: installs[id]?.[0]?.version }))
+  return gap !== "unknown" && gap?.kind === "old" ? gap : null
 }
 
-/** The installed version and the one needed, when it predates the method itself. */
-export const methodTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
-  const need = tool ? methodOf(tool, method)?.minVersion : undefined
-  const version = tool ? installs[tool]?.[0]?.version : null
-  return need && version && isNewer(need, version) ? { version, need } : null
-}
+/** The installed tool, when it predates the method's sign-in with the tool's own app. */
+export const oauthTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) =>
+  tooOld(tool, tool ? methodOf(tool, method)?.oauthMinVersion : undefined, installs)
+
+/** The installed tool, when it predates the method itself. */
+export const methodTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) =>
+  tooOld(tool, tool ? methodOf(tool, method)?.minVersion : undefined, installs)
 
 function inputsFor(
   tool: string,

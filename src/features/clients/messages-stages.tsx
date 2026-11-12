@@ -31,7 +31,6 @@ type Words = {
   suggestDone: (suggested: number, left: number) => string
   suggestNone: string
   suggestWhy: Record<string, string>
-  suggestOld: string
   suggestFailed: string
   goAiModel: string
   suggested: string
@@ -111,7 +110,6 @@ const en: Words = {
     "stage.model-agent":
       "WireCat was started from an AI agent's terminal, so the model is not asked. Start WireCat from the app menu and try again.",
   },
-  suggestOld: "Suggestions need a newer Memo. Update it on the Tools page.",
   suggestFailed: "The suggestions did not come. Try again; the details say why.",
   goAiModel: "Open AI model settings",
   suggested: "Suggested",
@@ -212,7 +210,6 @@ const ru: Words = {
     "stage.model-agent":
       "WireCat запущен из терминала ИИ-агента, поэтому модель не спрашивают. Запустите WireCat из меню приложений и повторите.",
   },
-  suggestOld: "Для предложений нужна более новая версия Memo. Обновите её на странице «Инструменты».",
   suggestFailed: "Предложения не пришли. Повторите; причина в подробностях.",
   goAiModel: "Открыть настройки модели ИИ",
   suggested: "Предложение",
@@ -317,7 +314,6 @@ const es: Words = {
     "stage.model-agent":
       "WireCat se abrió desde la terminal de un agente de IA, así que no se pregunta al modelo. Ábrelo desde el menú de aplicaciones y vuelve a intentarlo.",
   },
-  suggestOld: "Las sugerencias necesitan un Memo más nuevo. Actualízalo en la página Herramientas.",
   suggestFailed: "Las sugerencias no llegaron. Vuelve a intentarlo; los detalles dicen por qué.",
   goAiModel: "Abrir los ajustes del modelo de IA",
   suggested: "Sugerencia",

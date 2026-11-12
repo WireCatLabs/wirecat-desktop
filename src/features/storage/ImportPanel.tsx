@@ -2,6 +2,8 @@ import { CircleCheck, Download, FileUp, ListChecks, LoaderCircle, Upload } from 
 import { useEffect, useId } from "react"
 import { useMessages } from "@/i18n"
 import type { Receipt, ReceiptLine, RecordColumn } from "@/platform/records-schemas"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
@@ -22,6 +24,7 @@ const SHOWN = 50
 export function ImportPanel() {
   const m = useMessages(importMessages)
   const s = useImport()
+  const version = useTools((t) => t.installs.memo?.[0]?.version ?? null)
   const { load, choose, saveTemplate, pick, check, run } = useImport.getState()
   const sourceId = useId()
   const sourceHelpId = useId()
@@ -64,7 +67,9 @@ export function ImportPanel() {
           <Skeleton className="h-[2.4rem] w-full" label={m.readingTypes} />
         </div>
       ) : s.types === null ? (
-        <p className="px-[1.3rem] py-[0.9rem] text-[0.95rem] text-ink-soft">{m.tooOld}</p>
+        <div className="px-[1.3rem] py-[0.9rem]">
+          <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need: null }} />
+        </div>
       ) : (
         <>
           <div className="flex flex-col gap-3 border-line border-b px-[1.3rem] py-[0.9rem]">

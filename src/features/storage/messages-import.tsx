@@ -10,7 +10,6 @@ const en = {
     "Records from a spreadsheet or another system: invoices, payments, organizations and the rest. Choose a type, " +
     "download its template, fill it in, then check the file before it goes in.",
   readingTypes: "Asking memo which records it takes",
-  tooOld: "The installed memo cannot import files. Update it in Tools, then come back.",
   type: "Type",
   format: "Format",
   separator: "Separator",
@@ -70,7 +69,6 @@ const ru: typeof en = {
     "Записи из таблицы или другой системы: счета, платежи, организации и остальное. Выберите тип, скачайте его " +
     "шаблон, заполните и проверьте файл, прежде чем загружать.",
   readingTypes: "Спрашиваю memo, какие записи он принимает",
-  tooOld: "Установленный memo не умеет импортировать файлы. Обновите его в разделе «Инструменты» и вернитесь.",
   type: "Тип",
   format: "Формат",
   separator: "Разделитель",
@@ -130,7 +128,6 @@ const es: typeof en = {
     "Registros de una hoja de cálculo o de otro sistema: facturas, pagos, organizaciones y el resto. Elige un tipo, " +
     "descarga su plantilla, rellénala y comprueba el archivo antes de importarlo.",
   readingTypes: "Preguntando a memo qué registros acepta",
-  tooOld: "El memo instalado no puede importar archivos. Actualízalo en Herramientas y vuelve.",
   type: "Tipo",
   format: "Formato",
   separator: "Separador",

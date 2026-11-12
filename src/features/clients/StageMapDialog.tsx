@@ -7,6 +7,8 @@ import { tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { CrmStageMap } from "@/platform/bindings"
 import { goAiModel } from "@/shared/go-ai-model"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { Board, BoardColumn, DragCopy, useBoardDrag, useSlide } from "@/ui/Board"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -44,6 +46,7 @@ function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
   const error = suggest.error ? message(suggest.error) : null
   const reason = error && /^(ai|stage)\.[\w.-]+$/.test(error) ? error : null
   const done = suggest.data
+  const version = useTools((st) => st.installs.memo?.[0]?.version ?? null)
   return (
     <>
       <Button
@@ -62,7 +65,13 @@ function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
       </Button>
       <span className="text-[0.85rem] text-ink-dim">{s.suggestHint}</span>
       <Collapse open={done !== undefined || error !== null}>
-        {error ? (
+        {error && tooOldFor(error) ? (
+          <ToolNeeded
+            inline
+            gap={{ kind: "old", tool: "memo", version, need: null }}
+            onGo={() => useClients.getState().openMap(null)}
+          />
+        ) : error ? (
           <ErrorNotice
             inline
             raw={error}
@@ -74,7 +83,7 @@ function SuggestStages({ kind, busy }: { kind: Kind; busy: boolean }) {
               ) : undefined
             }
           >
-            {tooOldFor(error) ? s.suggestOld : ((reason && s.suggestWhy[reason]) ?? s.suggestFailed)}
+            {(reason && s.suggestWhy[reason]) ?? s.suggestFailed}
           </ErrorNotice>
         ) : (
           done && (

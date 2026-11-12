@@ -87,7 +87,7 @@ it("refuses a group name Memo would refuse before asking it", async () => {
 it("asks for a memo update on an older memo, in the words every page uses", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue({ kind: "old", version: "0.131.51" })
   render(<GroupsSetting />)
-  expect(await screen.findByText("This page needs a newer Memo than 0.131.51.")).toBeInTheDocument()
+  expect(await screen.findByText("This needs a newer Memo than 0.131.51.")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
 })
 

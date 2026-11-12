@@ -20,7 +20,7 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // for payment" unmapped; Northstar partners and the "In progress" lead stage are suggestions not confirmed yet. A
 // second CRM, Acme on amoCRM, has one pipeline of stages and no cards; its Estimate is a suggestion not confirmed yet.
 // Drops of the portal's cards need crm-write or crm-profiles. `?clients-related=old` is a memo before `related:`, whose
-// card dialog lists only the contact people's tasks.
+// card dialog lists only the contact people's tasks. `?clients=crm-old` has b24 older than the catalog's CRM version.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("clients") ?? memoDefault({ missing: "missing", old: "old", failing: "fail" }) ?? "default"
@@ -418,14 +418,15 @@ const writesWithOf = (writer: CrmWriter, account: CrmAccount | null): CrmWritesW
           why: "2 b24 profiles are on bitrix24:northstar.example; the owner chooses one",
         }
 
-/** `writer` as `?clients=crm-write|crm-profiles`. */
-export function clientsMock(writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
+/** `writer` as `?clients=crm-write|crm-profiles`; `crmCliOld` as `?clients=crm-old`. */
+export function clientsMock(writer: CrmWriter = SCENARIO_WRITER, crmCliOld = scenario === "crm-old"): ClientsApi {
   let cards = scenario === "none" ? [] : seeds()
   const scopes = new Map<string, "mine" | "all">()
   const applied = new Map<string, CrmAppliedScope>()
   const writable = (pipe: Pipe | undefined) => pipe?.account === null || writer !== "none"
   let { bases, mapping } = baseSeeds()
-  const movable = (p: Pipe) => (writable(p) ? { kind: "yes" as const } : { kind: "no" as const, why: "crmCli" })
+  const movable = (p: Pipe) =>
+    writable(p) ? { kind: "yes" as const } : { kind: "no" as const, why: crmCliOld ? "crmCliOld" : "crmCli" }
   // memo answers a row's base stage only once its stage is confirmed onto one; the base set's own rows stand in it.
   const baseOf = (c: CrmCard) => {
     const pipe = ALL_PIPES.find((p) => p.ref === c.pipeline)

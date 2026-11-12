@@ -13,9 +13,7 @@ const en = {
   ways: {
     legend: "How do you want to sign in?",
     others: "Other ways",
-    tooOld: (version: string, need: string) =>
-      `Email ${version} cannot sign in with WireCat's app: it needs ${need} or newer. Update it, or use your own app below.`,
-    update: "Update Email to use this",
+    tooOld: "Signing in with WireCat's app works after the update; your own app below works now.",
     browser: {
       name: "Sign in with Google",
       badge: "Recommended",
@@ -30,10 +28,7 @@ const en = {
       note: "Until Google verifies WireCat's app, this way skips its warning screen.",
       time: "About 2 minutes.",
     },
-  } as { legend: string; others: string; tooOld: (version: string, need: string) => string; update: string } & Record<
-    "appPassword" | "browser",
-    Way
-  >,
+  } as { legend: string; others: string; tooOld: string } & Record<"appPassword" | "browser", Way>,
   guides: {
     gmail: {
       name: "Gmail",
@@ -145,9 +140,7 @@ const ru: MailText = {
   ways: {
     legend: "Как вы хотите войти?",
     others: "Другие способы",
-    tooOld: (version, need) =>
-      `Email ${version} не умеет входить через приложение WireCat: нужна версия ${need} или новее. Обновите его или используйте своё приложение ниже.`,
-    update: "Обновить Email для этого",
+    tooOld: "Вход через приложение WireCat заработает после обновления, своё приложение ниже работает уже сейчас.",
     browser: {
       name: "Войти через Google",
       badge: "Рекомендуем",
@@ -276,9 +269,7 @@ const es: MailText = {
   ways: {
     legend: "¿Cómo quieres entrar?",
     others: "Otras formas",
-    tooOld: (version, need) =>
-      `Email ${version} no puede entrar con la app de WireCat: necesita la ${need} o posterior. Actualízalo, o usa tu propia app abajo.`,
-    update: "Actualizar Email para usar esto",
+    tooOld: "Entrar con la app de WireCat funcionará tras actualizar; tu propia app abajo funciona ya.",
     browser: {
       name: "Entrar con Google",
       badge: "Recomendado",

@@ -14,8 +14,8 @@ import { useClients } from "./store"
 type SyncRun = ReturnType<typeof useSync.getState>["runs"][string]
 
 // A mock of its own per test: a write still under way from the last test must not move a card in this one.
-function freshMemo(writer: CrmWriter = "none") {
-  const memo = clientsMock(writer)
+function freshMemo(writer: CrmWriter = "none", crmCliOld = false) {
+  const memo = clientsMock(writer, crmCliOld)
   vi.spyOn(platform, "clientsRead").mockImplementation(memo.clientsRead)
   vi.spyOn(platform, "clientsMove").mockImplementation(memo.clientsMove)
   vi.spyOn(platform, "clientsScope").mockImplementation(memo.clientsScope)
@@ -303,6 +303,21 @@ describe("Clients on the base stages", () => {
     site.focus()
     await user.keyboard(" {ArrowLeft} ")
     expect(move).toHaveBeenCalledWith("deal", "deal:1", "Call", null)
+  })
+
+  it("asks to update memo when it is too old for Clients", async () => {
+    vi.spyOn(platform, "clientsRead").mockResolvedValue({ kind: "old", version: "0.131.54", need: "0.131.71" })
+    render(<ClientsPage />)
+    expect(await screen.findByText(/needs Memo 0\.131\.71 or newer; this computer has 0\.131\.54/)).toBeVisible()
+    expect(screen.getByRole("button", { name: "Update Memo" })).toBeVisible()
+  })
+
+  it("says to update the CRM's own tool when it is older than the one that moves cards", async () => {
+    freshMemo("none", true)
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await screen.findByRole("button", { name: "Read only" }))
+    expect(await screen.findByText(/Read only: update Bitrix24 on the Tools page/)).toBeInTheDocument()
   })
 
   it("keeps a CRM's cards in place on a drop and says they change in the CRM", async () => {
@@ -752,6 +767,16 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))
     expect(await screen.findByText(/No AI model is chosen/)).toBeVisible()
     expect(screen.getByRole("button", { name: "Open AI model settings" })).toBeVisible()
+  })
+
+  it("offers the memo update, and leaves the dialog for it, when memo cannot suggest yet", async () => {
+    vi.spyOn(platform, "clientsMapSuggest").mockRejectedValue(new Error("unknown command 'suggest'"))
+    useTools.setState({ install: vi.fn(async () => {}) })
+    const { user, column } = await openMap()
+    await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))
+    expect(await screen.findByText(/This needs a newer Memo than/)).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Update Memo" }))
+    expect(screen.queryByRole("dialog", { name: "Deal stages of your CRMs" })).toBeNull()
   })
 
   it("puts a stage on another base stage than memo suggested, from the stage's own menu", async () => {

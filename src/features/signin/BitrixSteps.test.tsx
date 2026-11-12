@@ -281,7 +281,10 @@ describe("Bitrix24's sign-in wizard", () => {
     })
     const dialog = open()
     await toApp(dialog)
-    expect(within(dialog).getByText(/A local application needs 0.14.0 or newer/)).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(/This needs Bitrix24 0\.14\.0 or newer; this computer has 0\.13\.0/),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Update Bitrix24" })).toBeInTheDocument()
     expect(within(dialog).queryByText("Make a local application")).toBeNull()
     await userEvent.click(within(dialog).getByRole("radio", { name: /Incoming webhook/ }))
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))

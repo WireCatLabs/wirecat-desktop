@@ -13,9 +13,20 @@ const nameOf = (id: string) => findTool(id)?.name ?? id
 /**
  * What a page cannot work without, in the same words on every page, and the one button that leads to it on the Tools
  * page: the tool's row to install it, its update, or its accounts to sign in. `children` adds what the page itself
- * would do with it.
+ * would do with it. `inline` sits in a panel or a dialog and says "this" rather than "this page"; `onGo` closes what
+ * would stay over the Tools page.
  */
-export function ToolNeeded({ gap, inline, children }: { gap: Gap; inline?: boolean; children?: ReactNode }) {
+export function ToolNeeded({
+  gap,
+  inline,
+  onGo,
+  children,
+}: {
+  gap: Gap
+  inline?: boolean
+  onGo?: () => void
+  children?: ReactNode
+}) {
   const m = useMessages(needsMessages)
   const install = useTools((s) => s.install)
   const tool = nameOf(gap.tool)
@@ -28,7 +39,11 @@ export function ToolNeeded({ gap, inline, children }: { gap: Gap; inline?: boole
         ]
       : gap.kind === "old"
         ? [
-            gap.need ? m.old(tool, gap.version, gap.need) : m.newer(tool, gap.version),
+            inline
+              ? m.oldHere(tool, gap.version, gap.need)
+              : gap.need
+                ? m.old(tool, gap.version, gap.need)
+                : m.newer(tool, gap.version),
             m.update(tool),
             () => {
               void install(gap.tool)
@@ -47,7 +62,14 @@ export function ToolNeeded({ gap, inline, children }: { gap: Gap; inline?: boole
         <p>{words}</p>
         {children}
       </div>
-      <Button variant={gap.kind === "missing" ? "secondary" : "primary"} size="sm" onClick={go}>
+      <Button
+        variant={gap.kind === "missing" ? "secondary" : "primary"}
+        size="sm"
+        onClick={() => {
+          onGo?.()
+          go()
+        }}
+      >
         {label}
       </Button>
     </div>

@@ -313,7 +313,6 @@ const en = {
   copyAccount: (value: string) => `Copy ${value}`,
   tasksTitle: "Tasks",
   tasksRefused: "The search for this person's tasks was refused.",
-  tasksNeedMemo: "A tool that lists tasks is missing or too old. The Tasks page offers the fix.",
   tasksOpenPage: "Open Tasks",
   tasksFailed: "Could not read this person's tasks.",
   tasksAll: (n: number) => `All ${n} on the Tasks page`,
@@ -662,8 +661,6 @@ const ru: typeof en = {
   copyAccount: (value: string) => `Скопировать ${value}`,
   tasksTitle: "Задачи",
   tasksRefused: "Поиск задач этого человека отклонён.",
-  tasksNeedMemo:
-    "Инструмент, который показывает задачи, не установлен или слишком старый. На странице «Задачи» есть исправление.",
   tasksOpenPage: "Открыть «Задачи»",
   tasksFailed: "Не удалось прочитать задачи этого человека.",
   tasksAll: (n: number) => `Все ${n} на странице «Задачи»`,
@@ -987,8 +984,6 @@ const es: typeof en = {
   copyAccount: (value: string) => `Copiar ${value}`,
   tasksTitle: "Tareas",
   tasksRefused: "La búsqueda de las tareas de esta persona fue rechazada.",
-  tasksNeedMemo:
-    "Falta la herramienta que lista las tareas o es demasiado antigua. La página Tareas ofrece la solución.",
   tasksOpenPage: "Abrir Tareas",
   tasksFailed: "No se pudieron leer las tareas de esta persona.",
   tasksAll: (n: number) => `Las ${n} en la página Tareas`,

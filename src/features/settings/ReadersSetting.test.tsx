@@ -138,7 +138,7 @@ describe("Reading for facts", () => {
   it("says an older memo cannot do it yet", async () => {
     vi.spyOn(platform, "memoryReaders").mockRejectedValue(new Error("error: unknown command 'readers'"))
     render(<ReadersSetting />)
-    expect(await screen.findByText(/This page needs a newer Memo than/)).toBeInTheDocument()
+    expect(await screen.findByText(/This needs a newer Memo than/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
   })
 })

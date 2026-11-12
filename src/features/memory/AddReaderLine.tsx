@@ -7,6 +7,8 @@ import type { Reader } from "@/platform/memory-add-schemas"
 import { goAiModel } from "@/shared/go-ai-model"
 import { useNav } from "@/shared/nav"
 import { useReaders } from "@/shared/readers-store"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
@@ -17,10 +19,13 @@ export function ReaderLine() {
   const m = useMessages(addMessages)
   const readers = useReaders((s) => s.readers)
   const error = useReaders((s) => s.error)
+  const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
   const reader = chosenReader(readers ?? [])
   if (error)
     return tooOldFor(error) ? (
-      <p className="text-[0.95rem] text-ink-soft">{m.tooOldReaders}</p>
+      <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need: null }}>
+        <p>{m.tooOldReaders}</p>
+      </ToolNeeded>
     ) : (
       <ErrorNotice raw={error} inline>
         {m.failed}

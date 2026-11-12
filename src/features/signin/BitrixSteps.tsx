@@ -12,6 +12,7 @@ import { useLang, useMessages } from "@/i18n"
 import { openTool } from "@/shared/go-tool"
 import { OpenLink } from "@/shared/OpenLink"
 import { BITRIX, BITRIX_APP, hasPasted, methodTooOld, running, setPassword, useSignIn } from "@/shared/signin-store"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -85,7 +86,11 @@ function Portal() {
         </p>
       </section>
       <Ways />
-      {old && <ErrorNotice tone="warn">{m.tooOld(old.version, old.need)}</ErrorNotice>}
+      {old && (
+        <ToolNeeded inline gap={old} onGo={() => useSignIn.getState().close()}>
+          <p>{m.tooOld}</p>
+        </ToolNeeded>
+      )}
     </div>
   )
 }

@@ -2,7 +2,6 @@ import { CircleCheck, Clock, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
-import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
 import {
@@ -14,8 +13,8 @@ import {
   setPassword,
   useSignIn,
 } from "@/shared/signin-store"
+import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
-import { Button } from "@/ui/Button"
 import { Disclosure } from "@/ui/Disclosure"
 import { BitrixSteps } from "./BitrixSteps"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
@@ -255,18 +254,10 @@ function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefine
       <legend className="mb-2 text-[1rem] font-semibold text-ink">{m.ways.legend}</legend>
       <WayOption option="browser" name={name}>
         {old && (
-          <div className="flex flex-col items-start gap-2 pb-2">
-            <p className="text-[0.85rem] leading-snug text-ink">{m.ways.tooOld(old.version, old.need)}</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                useSignIn.getState().close()
-                if (tool) openTool(tool)
-              }}
-            >
-              {m.ways.update}
-            </Button>
+          <div className="pb-2">
+            <ToolNeeded inline gap={old} onGo={() => useSignIn.getState().close()}>
+              <p>{m.ways.tooOld}</p>
+            </ToolNeeded>
           </div>
         )}
         {way === "browser" && own && <OwnApp own={own} kind="file" m={pm} open={Boolean(old)} />}

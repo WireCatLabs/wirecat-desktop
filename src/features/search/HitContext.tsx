@@ -9,6 +9,8 @@ import { platform } from "@/platform/bridge"
 import type { SearchContext, SearchHit } from "@/platform/search-schemas"
 import { errorText } from "@/shared/errors"
 import { OpenLink } from "@/shared/OpenLink"
+import { ToolNeeded } from "@/shared/ToolNeeded"
+import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -30,7 +32,7 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<State | null>(null)
   const what = search?.what ?? "messages"
-  const toolName = findTool(tool)?.name ?? tool
+  const version = useTools((s) => s.installs[tool]?.[0]?.version ?? null)
 
   const load = () => {
     if (!ref) return
@@ -66,9 +68,7 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
           {state?.kind === "found" ? (
             <Lines lines={contextLines(what, state.body, hit)} meeting={what === "meetings"} now={now} />
           ) : state?.kind === "old" ? (
-            <ErrorNotice inline raw={state.message}>
-              {m.contextOld(toolName)}
-            </ErrorNotice>
+            <ToolNeeded inline gap={{ kind: "old", tool, version, need: null }} />
           ) : state?.kind === "failed" ? (
             <ErrorNotice
               inline
