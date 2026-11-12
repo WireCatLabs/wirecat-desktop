@@ -1,4 +1,4 @@
-use crate::{catalog, cloudflare_install, mcp_server, node, paths, run};
+use crate::{catalog, cloudflare_install, mcp_server, node, run};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use std::net::TcpListener;
@@ -140,10 +140,7 @@ fn load() -> Option<Record> {
 }
 
 fn save(r: &Record) -> Result<(), String> {
-    let file = record_file()?;
-    std::fs::create_dir_all(file.parent().ok_or("no folder")?).map_err(|e| e.to_string())?;
-    let body = serde_json::to_vec_pretty(r).map_err(|e| e.to_string())?;
-    std::fs::write(&file, body).map_err(|e| format!("Could not save {}: {e}", paths::tilde(&file.to_string_lossy())))
+    node::write_json(&record_file()?, r)
 }
 
 /// A name on the owner's domain for the address: a subdomain (the domain itself usually serves a website), in the

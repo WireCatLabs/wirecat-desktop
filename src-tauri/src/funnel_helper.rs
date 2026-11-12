@@ -144,21 +144,14 @@ struct Owned {
     port: u16,
 }
 
-fn records_file() -> Option<PathBuf> {
-    node::app_data().map(|d| d.join("wirecat-funnel-routes.json"))
-}
+const RECORDS: &str = "wirecat-funnel-routes.json";
 
 fn load() -> Vec<Owned> {
-    records_file().and_then(|f| std::fs::read(f).ok()).and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+    node::load_record(RECORDS)
 }
 
 fn save(records: &[Owned]) -> Result<(), String> {
-    let file = records_file().ok_or("no folder for the app's data")?;
-    if let Some(dir) = file.parent() {
-        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    }
-    let body = serde_json::to_vec_pretty(records).map_err(|e| e.to_string())?;
-    std::fs::write(&file, body).map_err(|e| format!("Could not save {}: {e}", paths::tilde(&file.to_string_lossy())))
+    node::save_record(RECORDS, records)
 }
 
 static ROUTES: Mutex<()> = Mutex::new(());
