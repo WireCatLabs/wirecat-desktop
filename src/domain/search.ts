@@ -14,7 +14,11 @@ export type HitRow = {
   files: HitFile[]
 }
 
-export type HitFile = { kind: string; name: string | null }
+/**
+ * `position` counts every attachment of the message from 1 (cli-core's `hitFiles`); `saved` once a download kept a copy
+ * here (`local_path`, cli-core 0.643.0). Hits carry no type, so a picture is told by its kind or its name.
+ */
+export type HitFile = { kind: string; name: string | null; position: number | null; picture: boolean; saved: boolean }
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null)
 const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {})
@@ -43,7 +47,11 @@ export function hitFiles(hit: Record<string, unknown>): HitFile[] {
   return list.flatMap((raw) => {
     const f = obj(raw)
     const kind = str(f.kind)
-    return kind ? [{ kind, name: str(f.name) }] : []
+    const name = str(f.name)
+    const position =
+      typeof f.position === "number" && Number.isInteger(f.position) && f.position > 0 ? f.position : null
+    const picture = kind === "photo" || /\.(png|jpe?g|webp)$/i.test(name ?? "")
+    return kind ? [{ kind, name, position, picture, saved: str(f.local_path) !== null }] : []
   })
 }
 

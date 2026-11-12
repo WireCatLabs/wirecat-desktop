@@ -11,6 +11,7 @@ const IMAGE_REASONS = [
   "ai.failed",
   "ai.owner-only",
   "ai.setting-invalid",
+  "ai.empty-answer",
 ]
 
 describe("the words for a picture added to memory", () => {

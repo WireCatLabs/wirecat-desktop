@@ -36,7 +36,13 @@ export type Done =
 export type View = "people" | "matches"
 export type MailboxRefusal = Extract<Resolved, { kind: "refused" }>
 /** Where the owner gave a shared mailbox, and memo's refusal that stopped the rest of its pairs, if one did. */
-export type MailboxDone = { organization: string | null; mailbox: string | null; refused: MailboxRefusal | null }
+export type MailboxDone = {
+  organization: string | null
+  mailbox: string | null
+  refused: MailboxRefusal | null
+  /** On a match by name, the address the owner said is the company's. */
+  asked: string | null
+}
 /** What joining some of a group did: who was joined, in order, and why the rest were not, if a join failed. */
 export type GroupDone = { joined: string[]; stopped: string | null }
 /** One page of `people links check`; kept on screen while the next page or a read again is on its way. */
@@ -65,6 +71,8 @@ type PeopleState = {
   kind: PersonKind
   /** memo knows kinds; false for an older memo, whose one list is everyone. */
   kinded: boolean
+  /** This memo gives a company one of the two people's addresses on a match by name. */
+  companyMailbox: boolean
   /** People of each kind, for the tabs; read apart from the list and empty until it comes. */
   kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
   /** Whether each person read so far is the owner, and their tasks: a match may name someone from another tab. */
@@ -140,7 +148,11 @@ type PeopleState = {
    * Gives the shared mailbox of a card to a company, one pair after another (memo has no call for the whole address
    * yet): the first pair finds or makes the organization, the rest go to that same one. Stops at memo's first refusal.
    */
-  resolveMailbox(key: string, ids: readonly string[], to: { organization?: string; name?: string }): Promise<boolean>
+  resolveMailbox(
+    key: string,
+    ids: readonly string[],
+    to: { organization?: string; name?: string; mailbox?: string },
+  ): Promise<boolean>
   /** Records the chosen people of a card as contacts of the organization its mailbox went to; stops at a refusal. */
   saveMailboxUsers(key: string, organization: string, refs: readonly string[]): Promise<boolean>
   /** Joins the chosen people of a group into one; `ids` are the group's matches, kept in place as decided. */
@@ -278,6 +290,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     sort: "interactions",
     kind: "person",
     kinded: false,
+    companyMailbox: false,
     kinds: {},
     seen: {},
     matches: [],
@@ -353,6 +366,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           splits: ready?.splits ?? [],
           splitDecided: {},
           kinded,
+          companyMailbox: ready?.companyMailbox ?? false,
           decided: {},
           joinedGroup: {},
           company: {},
@@ -487,12 +501,17 @@ export const usePeople = create<PeopleState>((set, get) => {
         let last: PersonDetail | null = null
         let refused: MailboxRefusal | null = null
         let organization = to.organization ?? null
+        // A match by name has no mailbox of its own: the address the owner picked goes with each answer after it.
+        const asked = to.mailbox ?? get().company[key]?.asked ?? undefined
         let mailbox: string | null = null
         try {
           for (const id of ids) {
             const m = get().matches.find((x) => x.id === id)
             if (!m || get().decided[id]) continue
-            const r = await platform.peopleResolve(m.persons[0] ?? "", id, organization ? { organization } : to)
+            const r = await platform.peopleResolve(m.persons[0] ?? "", id, {
+              ...(organization ? { organization } : to),
+              ...(asked ? { mailbox: asked } : {}),
+            })
             if (r.kind === "refused") {
               // A pair memo already closed, as the first one's answer may close the rest, is no reason to stop.
               if (r.reason === "proposal.wrong-state") continue
@@ -516,7 +535,7 @@ export const usePeople = create<PeopleState>((set, get) => {
             await settle(answer, answer.ref, persons, ids)
           }
         }
-        return { organization: closed.length ? organization : null, mailbox, refused }
+        return { organization: closed.length ? organization : null, mailbox, refused, asked: asked ?? null }
       })
       if (!done) return false
       set((s) => ({ company: { ...s.company, [key]: done } }))

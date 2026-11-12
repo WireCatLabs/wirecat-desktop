@@ -1,4 +1,4 @@
-import type { ChatHeader, ChatMessage, Conversation } from "./bindings"
+import type { ChatFile, ChatHeader, ChatMessage, Conversation } from "./bindings"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
@@ -9,6 +9,13 @@ const PAGE = 30
 const MINUTE = 60_000
 
 type Thread = { header: ChatHeader; messages: ChatMessage[] }
+
+const file = (name: string, position: number, saved = false): ChatFile => ({
+  name,
+  position,
+  picture: /\.(png|jpe?g|webp)$/i.test(name),
+  saved,
+})
 
 const HOSTILE = [
   "<script>alert('stolen')</script> is what the attacker pasted.",
@@ -40,7 +47,14 @@ function chatMessages(account: string, chat: string, count: number, start: numbe
       at: new Date(start + i * 7 * MINUTE).toISOString(),
       subject: null,
       text: hostile ?? (i === 4 ? null : (LINES[i % LINES.length] ?? "")),
-      files: i === 4 ? ["floor-plan.pdf"] : i === 9 ? ["lease draft v2.docx", "photo.jpg"] : [],
+      files:
+        i === 4
+          ? [file("floor-plan.pdf", 1, true)]
+          : i === 9
+            ? [file("lease draft v2.docx", 1), file("photo.jpg", 2, true)]
+            : i === count - 8
+              ? [file("parking-sign.jpg", 1, true)]
+              : [],
       anchor: false,
     }
   })
@@ -66,7 +80,7 @@ function emails(mailbox: string, thread: string, start: number): ChatMessage[] {
       at: new Date(start + i * 95 * MINUTE).toISOString(),
       subject: i === 0 ? "Warehouse lease" : "Re: Warehouse lease",
       text: EMAIL_TEXT[i] ?? null,
-      files: i === 0 ? ["lease-2026.pdf"] : [],
+      files: i === 0 ? [file("lease-2026.pdf", 1)] : [],
       anchor: false,
     }
   })

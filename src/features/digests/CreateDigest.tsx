@@ -2,7 +2,7 @@ import { CalendarDays, Plus, Sun } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
 import { type Lang, useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec } from "@/platform/bindings"
-import { costed, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
+import { useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
@@ -10,6 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import { briefTemplate } from "./brief-template"
+import { refusalOf } from "./DigestAgent"
 import { titleOf } from "./DigestTable"
 import { type BookText, bookMessages } from "./messages-book"
 import { type Can, DigestFields, focusProblem, NoHarness, problemOf } from "./ScheduleCard"
@@ -37,6 +38,8 @@ export function draftOf(template: Template, digests: readonly DigestItem[], m: B
     routes: [],
     brief: briefTemplate(template === "own" ? "digest" : `${template}-digest`, lang),
     scheduled: true,
+    agent: null,
+    model: null,
     ...DEFAULT_CAPS,
   }
   switch (template) {
@@ -192,9 +195,9 @@ export function CreateDialog({
     setTried(false)
   }
   const working = draft !== null && busy[draft.name] === "save"
-  const problem = draft && problemOf(draft, onDays)
-
   const agents = useAgentsLoaded()
+  const problem = draft && problemOf(draft, onDays, agents)
+
   return (
     <Dialog
       open={start !== null}
@@ -230,18 +233,17 @@ export function CreateDialog({
         <div ref={form} className="flex flex-col gap-4">
           {!harness && <NoHarness />}
           <DigestFields
-            costed={costed(agents, agents?.effective ?? "claude")}
             spec={draft}
             onChange={setDraft}
             onDays={onDays}
             setOnDays={setOnDays}
-            can={{ named: can.named }}
+            can={can}
             creating
             shown={tried ? problem : null}
           />
           {failed?.name === draft.name && failed.what === "create" && (
-            <ErrorNotice raw={failed.message} inline>
-              {m.failedCreate}
+            <ErrorNotice raw={refusalOf(failed.message, m) ? null : failed.message} inline>
+              {refusalOf(failed.message, m) ?? m.failedCreate}
             </ErrorNotice>
           )}
         </div>

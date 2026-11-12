@@ -18,7 +18,8 @@ import type { Platform } from "./types"
 // `more` says memo has more people and matches than were read. `?people-fail=read` fails the read (another sync holds
 // the store), `?people=nokinds` is a memo older than kinds of people (one list of everyone, no contact),
 // `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
-// `identity.stale`, `?people-fail=merge` refuses the second join of a group, `?people-fail=unnamed|ambiguous` refuses
+// `identity.stale`, `?people-mailbox=old` is a memo that gives a company no address on a match by name,
+// `?people-fail=merge` refuses the second join of a group, `?people-fail=unnamed|ambiguous` refuses
 // Company mailbox until the owner names the company or picks one of two. Two splits an agent proposed wait beside the
 // matches and eight people look wrongly joined (`people links check`); `?people=calm` has neither.
 
@@ -565,7 +566,17 @@ export function peopleMock(): Pick<
             (a, b) => Number(b.owner) - Number(a.owner) || (b.messagesFrom ?? 0) - (a.messagesFrom ?? 0),
           )
         : people.map(listed)
-      return { kind: "ready", people: listing, peopleMore: more, matches, matchesMore: more, splits, kinded }
+      const companyMailbox = params.get("people-mailbox") !== "old"
+      return {
+        kind: "ready",
+        people: listing,
+        peopleMore: more,
+        matches,
+        matchesMore: more,
+        splits,
+        kinded,
+        companyMailbox,
+      }
     },
     async peoplePage({ kind, page, size, query, sort }) {
       await delay(400)
@@ -617,7 +628,26 @@ export function peopleMock(): Pick<
       if (!m) throw new Error("This match is not open on this person any more. Read again.")
       const refused = (reason: string, message: string, organizations: { ref: string; name: string | null }[] = []) =>
         ({ kind: "refused", reason, message, organizations }) as const
-      if (!m.shared) return refused("identity.not-shared", `${id} is not about a shared mailbox; confirm or reject it`)
+      if (!m.shared) {
+        // As memo 0.131.86: on a match by name, the company's address is one of the two people's that the owner names.
+        const held = m.persons.flatMap((p) =>
+          find(p).identities.flatMap((i) => (i.identity.startsWith("email:") ? [i.identity.slice(6)] : [])),
+        )
+        if (!to.mailbox || !held.includes(to.mailbox))
+          return refused(
+            "identity.not-shared",
+            `${id} is not about a shared mailbox; name which of the two people's addresses is the company's: ${held.join(", ")}`,
+          )
+        if (fail === "unnamed" && !to.name && !to.organization)
+          return refused("organization.unnamed", `${to.mailbox}: name the company or its organization`)
+        matches = matches.filter((x) => x.id !== id)
+        return {
+          kind: "done",
+          organization: to.organization ?? "organization:3",
+          mailbox: to.mailbox,
+          person: shown(ref),
+        }
+      }
       if (fail === "unnamed" && !to.name && !to.organization)
         return refused("organization.unnamed", `${m.mailbox} is a free mailbox; name the company or its organization`)
       if (fail === "ambiguous" && !to.organization)

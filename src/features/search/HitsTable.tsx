@@ -1,10 +1,11 @@
-import { Filter, FilterX, Group } from "lucide-react"
+import { Filter, FilterX, Group, Paperclip } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { formatWhen } from "@/domain/runs"
 import { type HitFile, type HitRow, hitRow } from "@/domain/search"
 import { hitLink } from "@/domain/search-context"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { SearchHit } from "@/platform/search-schemas"
+import { FileActions, readsPictures } from "@/shared/FileActions"
 import { CopyValue, type FieldOf, JsonTree } from "@/shared/JsonTree"
 import { sharedMessages } from "@/shared/messages"
 import { ServiceIcon } from "@/shared/ServiceIcon"
@@ -149,6 +150,7 @@ export function HitsTable(props: Props) {
                 <div data-tour={open ? "search-hit" : undefined} className="bg-app-2/60 px-[1.3rem] py-[0.9rem]">
                   {open && props.actions?.(hit)}
                   <HitFields hit={hit} row={row} fieldOf={fieldOf} onFilter={onFilter} onGroup={onGroup} />
+                  {open && <HitFiles hit={hit} files={row.files} />}
                   <RawData hit={hit} fieldOf={fieldOf} onFilter={onFilter} onGroup={onGroup} />
                 </div>
               </Collapse>
@@ -161,6 +163,27 @@ export function HitsTable(props: Props) {
 }
 
 type Words = (typeof searchMessages)["en"]
+
+/** A message hit's pictures to read and saved files to open, each by its place in the message. */
+function HitFiles({ hit, files }: { hit: SearchHit; files: HitFile[] }) {
+  const m = useMessages(searchMessages)
+  const ref = typeof hit.ref === "string" && hit.ref.startsWith("msg:") ? hit.ref : null
+  const shown = ref ? files.filter((f) => f.position !== null && (f.saved || (f.picture && readsPictures(ref)))) : []
+  if (!ref || shown.length === 0) return null
+  return (
+    <ul className="mb-[0.6rem] flex flex-col gap-1.5">
+      {shown.map((f) => (
+        <li key={f.position} className="flex flex-col gap-0.5 text-[0.9rem]">
+          <span className="inline-flex items-center gap-1 text-ink-soft">
+            <Paperclip className="size-[0.85rem] shrink-0" aria-hidden />
+            <span className="truncate font-mono">{f.name ?? m.fileKinds[f.kind] ?? m.attachment}</span>
+          </span>
+          <FileActions messageRef={ref} file={{ position: f.position ?? 0, picture: f.picture, saved: f.saved }} />
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 function filesText(files: HitFile[], m: Words): string | null {
   if (files.length === 0) return null

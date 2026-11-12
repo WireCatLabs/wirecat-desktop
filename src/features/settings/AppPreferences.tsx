@@ -8,9 +8,11 @@ import { Select } from "@/ui/Select"
 import { AiModelSetting } from "./AiModelSetting"
 import { BackgroundAgentSetting } from "./BackgroundAgentSetting"
 import { CommunitySetting } from "./CommunitySetting"
+import { LocalOnlySetting } from "./LocalOnlySetting"
 import { MachineSetting } from "./MachineSetup"
 import { settingsMessages } from "./messages"
 import { OwnToolsSetting } from "./OwnToolsSetting"
+import { PictureReadingSetting } from "./PictureReadingSetting"
 import { ReadersSetting } from "./ReadersSetting"
 import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./scale"
 
@@ -36,6 +38,8 @@ export function AppPreferences() {
       <div className="mt-6 flex flex-col gap-6">
         <AiModelSetting />
         <BackgroundAgentSetting />
+        <LocalOnlySetting />
+        <PictureReadingSetting />
         <ReadersSetting />
       </div>
     </section>

@@ -126,6 +126,17 @@ export type CannotOpen = {
 	needs: number,
 };
 
+export type ChatFile = {
+	/**  Its name, else its kind. */
+	name: string,
+	/**  Its place among all the message's attachments, from 1, as `images read --attachment` counts them. */
+	position: number,
+	/**  A PNG, JPEG or WebP picture, as cli-core's `images read` accepts it. */
+	picture: boolean,
+	/**  The tool keeps a copy on this computer (`local_path`, cli-core 0.643.0); the path itself stays in Rust. */
+	saved: boolean,
+};
+
 export type ChatHeader = {
 	title: string | null,
 	/**  memo's `in`: the messenger's name for a chat, the mailbox for a mail thread. */
@@ -145,7 +156,7 @@ export type ChatMessage = {
 	subject: string | null,
 	text: string | null,
 	/**  Attachment names only: their text and their bytes stay in the store. */
-	files: string[],
+	files: ChatFile[],
 	anchor: boolean,
 };
 
@@ -273,7 +284,7 @@ export type CrmCard = {
 	amount: string | null,
 	currency: string | null,
 	organization: string | null,
-	/**  `organization:<id>`, for copying; memo's task search has no field to find a company's tasks by it yet. */
+	/**  `organization:<id>`: copied, and the company's tasks are asked for with it (`related:`). */
 	organizationRef: string | null,
 	people: CrmPerson[],
 	closeDate: string | null,
@@ -319,7 +330,9 @@ export type CrmPipeline = {
 
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
 /**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages. */
-{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
+{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean; 
+/**  This memo lists a deal's, a lead's and a company's own tasks (`related:`). */
+relatedTasks: boolean };
 
 /**  A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
 export type CrmStageMap = {
@@ -386,6 +399,12 @@ export type DigestBook = { state: "noMemo" } | { state: "old"; version: string |
  *  `harness`: an agent for background jobs is ready, so a new digest can be written.
  */
 { state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean; 
+/**  This memo takes the agent's model (`--model`). */
+agent: boolean; 
+/**  This memo reads Drive, Calendar and a CRM too. */
+moreSources: boolean; 
+/**  This memo writes a digest in an agent that needs the owner's consent, once he gives it on the digest. */
+agentConsent: boolean; 
 /**
  *  memo lists a digest only while its schedule exists: a morning digest taken off schedule the old way has
  *  past days and no row, and the daily template brings it back by its name.
@@ -404,6 +423,8 @@ export type DigestItem = {
 	routes: Route[],
 	brief: string | null,
 	scheduled: boolean,
+	/**  The model named on the agent's command line; `None` for the agent's own default. */
+	model: string | null,
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
 	spentTodayUsd: number | null,
@@ -413,6 +434,8 @@ export type DigestItem = {
 	agent: string | null,
 	/**  Why its last run failed, when the agent's own words say: no credit, a limit, signed out. */
 	trouble: AgentTrouble | null,
+	/**  Why its timer will not start it until the owner acts, with memo's command that fixes it. */
+	needs: string | null,
 };
 
 /**  The last run, without its output: the output quotes messages and the page reads the day itself. */
@@ -431,6 +454,8 @@ export type DigestSpec = {
 	sources: string[],
 	routes: string[],
 	brief: string | null,
+	/**  `None` keeps the model; `""` is the agent's own default. */
+	model: string | null,
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
 	scheduled: boolean,
@@ -439,6 +464,8 @@ export type DigestSpec = {
 	 *  agent for background jobs.
 	 */
 	agent?: string | null,
+	/**  The owner ticked his consent to an agent memo cannot limit ([`background_agent::ACK_FLAG`]). */
+	allowDangerous?: boolean,
 };
 
 export type DigestTemplate = { state: "noMemo" } | 
@@ -520,6 +547,8 @@ export type EnrichmentStatus = {
 	measured: EnrichmentMeasured | null,
 	/**  Whether this memo stores a provider key itself (`models keys`); without it the window names the variable. */
 	keys: boolean,
+	/**  Whether this memo takes a model address (`set … --base-url`); without it only memo's offers are shown. */
+	addresses: boolean,
 	/**  Only after revoke: how many records' model text memo deleted. */
 	deleted: number | null,
 };
@@ -529,6 +558,8 @@ export type EnrichmentTarget = {
 	provider: string,
 	model: string,
 	endpointHost: string,
+	/**  The address when the owner gave one (a server on this computer, `OpenRouter`…), so the form can show it again. */
+	baseUrl: string | null,
 	key: EnrichmentKey,
 	priceKnown: boolean,
 };
@@ -660,6 +691,28 @@ export type LastSync = {
 	left: number | null,
 	/**  False when the tool cannot say (too old for `runs list`, or its answer did not parse). */
 	known: boolean,
+};
+
+export type LocalOnly = 
+/**  The installed memo is older than `need`, or `need` is `None`: no memo with it is released yet. */
+{ state: "old"; version: string | null; need: string | null } | { state: "ready"; status: LocalOnlyStatus };
+
+/**  One feature and where its data goes now: `this-computer`, `elsewhere`, `agent` or `off`. */
+export type LocalOnlyFeature = {
+	id: string,
+	/**  memo's English name, shown only for an id the window has no words for. */
+	title: string,
+	where: string,
+	address: string | null,
+	/**  Local only is on and stops this feature until it uses a model on this computer. */
+	refused: boolean,
+};
+
+export type LocalOnlyStatus = {
+	on: boolean,
+	/**  When the owner turned it on; `None` while off, or when memo could not read the setting (which counts as on). */
+	since: string | null,
+	features: LocalOnlyFeature[],
 };
 
 export type LoginCode = {
@@ -1006,6 +1059,31 @@ export type PathPlan = {
 	added: boolean,
 	/**  False when the user has to add the line themselves (an unknown shell, an unusual folder name). */
 	automatic: boolean,
+};
+
+export type PictureRead = 
+/**  The messenger is older than `need`, or `need` is `None`: no version with `images read` is released yet. */
+{ state: "old"; tool: string; version: string | null; need: string | null } | { state: "read"; 
+/**  What the agent read, as the store keeps it now; the picture's own words, shown as plain text only. */
+text: string; extractor: string | null; 
+/**  The origin of the text it replaced, if the attachment had one. */
+replaced: string | null };
+
+export type PictureReading = 
+/**  The installed memo is older than `need`, or `need` is `None`: no memo with it is released yet. */
+{ state: "old"; version: string | null; need: string | null } | { state: "ready"; setting: PictureReadingSetting };
+
+export type PictureReadingSetting = {
+	/**  `never` or `request`. */
+	mode: string,
+	/**  `claude` or `codex`; `None` while never. */
+	agent: string | null,
+	/**  The agent's model; `None` for its own default. */
+	model: string | null,
+	/**  What a read picture's text is marked with: `agent:claude`, `agent:codex/gpt-5`. */
+	extractor: string | null,
+	/**  When the owner turned it on. */
+	since: string | null,
 };
 
 /**  What installing the newest version of a tool does to the other installed tools. Empty when it is safe or unknown. */

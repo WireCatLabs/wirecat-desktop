@@ -12,7 +12,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { type MouseEvent, memo, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
-import { can, type Subject, tabOf, undoMenuKey, undoOf } from "@/domain/memory"
+import { can, type Subject, tabOf, undoMenuKey, undoOf, waitingOf } from "@/domain/memory"
 import { standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -261,8 +261,8 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
               icon={<ExpandChevron open={open} />}
             >
               <StableText
-                value={open ? m.collapseFindings : m.reviewFindings(entry.findings.length)}
-                variants={[m.collapseFindings, m.reviewFindings(entry.findings.length)]}
+                value={open ? m.collapseFindings : m.reviewFindings(waitingOf(entry.findings).length)}
+                variants={[m.collapseFindings, m.reviewFindings(waitingOf(entry.findings).length)]}
               />
             </Button>
           ) : allowed.confirm ? (

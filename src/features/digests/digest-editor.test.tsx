@@ -9,7 +9,7 @@ const names = bookMessages.en.sources
 describe("the digest's sources", () => {
   it("offers the sources whose tools are installed, tasks always, and keeps one already picked", () => {
     const installs = { tg: [{}], zm: [{}], email: [] }
-    expect(sourceOptions(installs, ["whatsapp"], names).map((o) => o.value)).toEqual([
+    expect(sourceOptions(installs, ["whatsapp"], names, false).map((o) => o.value)).toEqual([
       "telegram",
       "meetings",
       "tasks",
@@ -17,8 +17,18 @@ describe("the digest's sources", () => {
     ])
   })
 
+  it("offers Drive, Calendar and a CRM only from the memo that reads them, and keeps one already picked", () => {
+    const installs = { drive: [{}], gcal: [{}], bitrix: [{}] }
+    const values = (more: boolean, picked: string[] = []) =>
+      sourceOptions(installs, picked, names, more).map((o) => o.value)
+    expect(values(false)).toEqual(["tasks"])
+    expect(values(true)).toEqual(["tasks", "drive", "calendar", "crm"])
+    expect(values(false, ["crm"])).toEqual(["tasks", "crm"])
+    expect(sourceOptions(installs, [], names, true).find((o) => o.value === "crm")?.terms).toContain("Bitrix24")
+  })
+
   it("finds a source by the tool behind it", () => {
-    const meetings = sourceOptions({ zm: [{}] }, [], names).find((o) => o.value === "meetings")
+    const meetings = sourceOptions({ zm: [{}] }, [], names, false).find((o) => o.value === "meetings")
     expect(meetings?.terms).toContain("Zoom")
   })
 })

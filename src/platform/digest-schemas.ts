@@ -18,6 +18,12 @@ const moment = v.nullish(v.string(), null)
 const refs = v.nullish(v.array(v.string()), [])
 
 export const CHANNELS = ["telegram", "max", "whatsapp", "mail", "meeting", "task"] as const
+type Channel = (typeof CHANNELS)[number]
+const isChannel = (kind: string): kind is Channel => (CHANNELS as readonly string[]).includes(kind)
+
+// memo 0.131.86's digest reads Drive, Calendar and a CRM but files them under these channels (a calendar event is a
+// `meeting`), as cli-core 0.643.0 checks them. A channel a later one adds is shown without one, not as plain text.
+const channel = v.fallback(v.nullish(v.picklist(CHANNELS), null), null)
 
 export const ReportItemSchema = v.object({
   type: v.picklist(["reply", "question", "task", "fact", "risk", "money", "decision", "meeting"]),
@@ -32,7 +38,7 @@ export const ReportItemSchema = v.object({
   amount: v.nullish(v.object({ value: v.number(), currency: v.string(), direction: v.picklist(["in", "out"]) }), null),
   count: v.nullish(v.number(), null),
   priority: v.nullish(v.picklist(["high", "normal"]), "normal"),
-  channel: v.nullish(v.picklist(CHANNELS), null),
+  channel,
   refs,
 })
 
@@ -65,7 +71,10 @@ export const ReportSchema = v.object({
     v.object({
       from: v.string(),
       to: v.string(),
-      sources: v.array(v.object({ kind: v.picklist(CHANNELS), accounts: v.number() })),
+      sources: v.pipe(
+        v.array(v.object({ kind: v.string(), accounts: v.number() })),
+        v.transform((all) => all.flatMap(({ kind, accounts }) => (isChannel(kind) ? [{ kind, accounts }] : []))),
+      ),
       counts: v.object({ chats: v.number(), mail: v.number(), tasks: v.number(), meetings: v.number() }),
     }),
     null,

@@ -71,6 +71,9 @@ pub struct Tool {
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
+    /// Only memo: what its `digest add|edit` take from which version on (`digest_book.rs`).
+    #[serde(default)]
+    pub digests: Option<crate::digest_book::DigestsSource>,
     /// Only memo: its own `models consents`, which turn search rewriting by a hosted model on and off (`enrichment.rs`).
     #[serde(default)]
     pub enrichment: Option<crate::enrichment::EnrichmentSource>,
@@ -78,6 +81,17 @@ pub struct Tool {
     /// first hits (`search_harder.rs`).
     #[serde(default)]
     pub search_harder: Option<crate::search_harder::SearchHarderSource>,
+    /// Only memo: its own `models local-only`, one switch that keeps every model call on this computer
+    /// (`local_only.rs`).
+    #[serde(default)]
+    pub local_only: Option<crate::local_only::LocalOnlySource>,
+    /// Only memo: its own `models picture-reading`, whether the owner's coding agent may read a picture's text
+    /// (`picture_reading.rs`).
+    #[serde(default)]
+    pub picture_reading: Option<crate::picture_reading::PictureReadingSource>,
+    /// The messengers: `images read`, one picture of a message read by that agent (`attachments.rs`).
+    #[serde(default)]
+    pub images_read: Option<crate::attachments::ImagesReadSource>,
     /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
     #[serde(default)]
     pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,
@@ -213,6 +227,9 @@ pub struct MemorySource {
     /// The first memo with `facts revoke`; below it an accepted fact that is not a decision has no way back.
     #[serde(default)]
     pub revoke_min_version: Option<String>,
+    /// `actions edit`: the owner changes a waiting finding before deciding it.
+    #[serde(default)]
+    pub findings_edit: Option<crate::enrichment::Gate>,
 }
 
 /// `{task}` is a validated task id or key; `release` names the owner as holder, who may release any claim.
@@ -232,6 +249,9 @@ pub struct TaskBoardSource {
 #[serde(rename_all = "camelCase")]
 pub struct CrmBoardSource {
     pub min_version: String,
+    /// `tasks list 'related:"deal:<id>"'` (also `lead:` and `organization:`): a deal's and a company's own tasks.
+    #[serde(default)]
+    pub related_tasks: Option<crate::enrichment::Gate>,
 }
 
 /// `{profile}` is the one the owner chose, `{ref}` a validated `deal:<id>` or `lead:<id>`, `{stage}` a validated stage
@@ -263,6 +283,10 @@ pub struct CrmScopeSource {
 #[serde(rename_all = "camelCase")]
 pub struct PeopleSource {
     pub min_version: String,
+    /// `people resolve <id> company --mailbox <address>`: a company's address on a match that is not about a shared
+    /// mailbox, such as one by name.
+    #[serde(default)]
+    pub company_mailbox: Option<crate::enrichment::Gate>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

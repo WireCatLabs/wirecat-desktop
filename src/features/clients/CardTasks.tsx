@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { referenceOf } from "@/domain/links"
-import { tasksQuery } from "@/domain/tasks"
+import { relatedTasksQuery, tasksQuery } from "@/domain/tasks"
 import { openTarget } from "@/features/links"
 import { DueText, StateText, useTasks } from "@/features/tasks"
 import { useMessages } from "@/i18n"
@@ -28,13 +28,46 @@ export const contactRefs = (card: CrmCard) => [
 ]
 
 /**
- * The tasks of the card's contact people, as memo's task search finds them by assignee. memo has no field yet for a
- * deal's or a company's own tasks, so those are not asked for (and not guessed from every task here).
+ * The card's tasks: its own and its company's, as memo's `related:` finds them, then those of its contact people by
+ * assignee. A memo before `related:` (`related` false) shows only the contact people's.
  */
-export function CardTasks({ card }: { card: CrmCard }) {
+export function CardTasks({ card, related }: { card: CrmCard; related: boolean }) {
   const m = useMessages(clientMessages)
   const refs = contactRefs(card)
-  const query = refs.length ? tasksQuery(refs) : null
+  const kind = card.ref.startsWith("lead:") ? "lead" : "deal"
+  return (
+    <>
+      {related && <TaskList title={m.tasksOwn[kind]} query={relatedTasksQuery(card.ref)} none={m.tasksOwnNone[kind]} />}
+      {related && card.organizationRef && (
+        <TaskList
+          title={m.tasksCompany(card.organization ?? card.organizationRef)}
+          query={relatedTasksQuery(card.organizationRef)}
+          none={m.tasksCompanyNone}
+        />
+      )}
+      <TaskList
+        title={m.tasksTitle}
+        query={refs.length ? tasksQuery(refs) : null}
+        none={m.tasksNone}
+        empty={m.tasksNoPeople}
+      />
+    </>
+  )
+}
+
+/** One list of the card's tasks, as memo's task search answers `query`; `empty` when there is nothing to ask. */
+function TaskList({
+  title,
+  query,
+  none,
+  empty,
+}: {
+  title: string
+  query: string | null
+  none: string
+  empty?: string
+}) {
+  const m = useMessages(clientMessages)
   const read = useQuery({
     queryKey: ["clients", "tasks", query],
     queryFn: () => platform.taskList(query ?? ""),
@@ -51,13 +84,13 @@ export function CardTasks({ card }: { card: CrmCard }) {
   return (
     <section className="flex flex-col gap-[0.5rem]">
       <h3 className="font-medium">
-        {m.tasksTitle}
+        {title}
         {got?.kind === "ready" && got.total > 0 && (
           <span className="ml-2 font-normal text-ink-soft tabular-nums">{got.total}</span>
         )}
       </h3>
       {query === null ? (
-        <p className="text-[0.9rem] text-ink-dim">{m.tasksNoPeople}</p>
+        <p className="text-[0.9rem] text-ink-dim">{empty}</p>
       ) : read.isPending ? (
         <Skeleton className="h-[2.4rem] w-full" />
       ) : read.error || (got && got.kind !== "ready") ? (
@@ -73,7 +106,7 @@ export function CardTasks({ card }: { card: CrmCard }) {
           {m.tasksFailed}
         </ErrorNotice>
       ) : got?.kind === "ready" && got.tasks.length === 0 ? (
-        <p className="text-[0.9rem] text-ink-dim">{m.tasksNone}</p>
+        <p className="text-[0.9rem] text-ink-dim">{none}</p>
       ) : got?.kind === "ready" ? (
         <>
           <ul className="flex flex-col rounded-[0.45rem] border border-line">

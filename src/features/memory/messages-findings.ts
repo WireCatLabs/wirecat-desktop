@@ -29,6 +29,24 @@ const en = {
   open: { mail: "Open the email", message: "Open in the chat" } as Record<string, string>,
   approveAllAbout: "What this button approves",
   kinds: { mail: "Email", message: "Message", meeting: "Meeting", note: "Note" } as Record<string, string>,
+  edit: "Edit",
+  editOf: (text: string) => `Edit the finding: ${text}`,
+  fields: {
+    title: "Title",
+    statement: "Statement",
+    body: "Text",
+    name: "Name",
+    reason: "Why",
+    detail: "Detail",
+    dueAt: "Due date",
+  } as Record<string, string>,
+  editNote: "Only this finding changes, before you decide on it. What it cites stays as it is.",
+  emptyClears: "Leave it empty to clear it.",
+  required: (field: string) => `${field} cannot be empty.`,
+  saveEdit: "Save the change",
+  cancel: "Cancel",
+  stale:
+    "These findings changed since you opened them, so they are shown again as they are now. Check them and decide again.",
 }
 
 const ru: typeof en = {
@@ -60,6 +78,24 @@ const ru: typeof en = {
   open: { mail: "Открыть письмо", message: "Открыть в чате" },
   approveAllAbout: "Что одобряет эта кнопка",
   kinds: { mail: "Письмо", message: "Сообщение", meeting: "Встреча", note: "Заметка" },
+  edit: "Изменить",
+  editOf: (text) => `Изменить находку: ${text}`,
+  fields: {
+    title: "Название",
+    statement: "Утверждение",
+    body: "Текст",
+    name: "Имя",
+    reason: "Почему",
+    detail: "Подробности",
+    dueAt: "Срок",
+  },
+  editNote: "Меняется только эта находка, до вашего решения. То, на что она ссылается, остается как есть.",
+  emptyClears: "Оставьте пустым, чтобы убрать.",
+  required: (field) => `Поле «${field}» не может быть пустым.`,
+  saveEdit: "Сохранить изменение",
+  cancel: "Отмена",
+  stale:
+    "Эти находки изменились, пока они были открыты. Они показаны заново такими, какие они сейчас. Проверьте их и решите снова.",
 }
 
 const es: typeof en = {
@@ -91,6 +127,24 @@ const es: typeof en = {
   open: { mail: "Abrir el correo", message: "Abrir en el chat" },
   approveAllAbout: "Qué aprueba este botón",
   kinds: { mail: "Correo", message: "Mensaje", meeting: "Reunión", note: "Nota" },
+  edit: "Editar",
+  editOf: (text) => `Editar el hallazgo: ${text}`,
+  fields: {
+    title: "Título",
+    statement: "Afirmación",
+    body: "Texto",
+    name: "Nombre",
+    reason: "Por qué",
+    detail: "Detalle",
+    dueAt: "Fecha límite",
+  },
+  editNote: "Solo cambia este hallazgo, antes de que decidas. Lo que cita se queda como está.",
+  emptyClears: "Déjalo vacío para quitarlo.",
+  required: (field) => `«${field}» no puede quedar vacío.`,
+  saveEdit: "Guardar el cambio",
+  cancel: "Cancelar",
+  stale:
+    "Estos hallazgos cambiaron mientras estaban abiertos. Se muestran de nuevo como están ahora. Revísalos y decide otra vez.",
 }
 
 export const findingsMessages: Messages<typeof en> = { en, ru, es }

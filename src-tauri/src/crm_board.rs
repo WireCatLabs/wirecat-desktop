@@ -183,7 +183,7 @@ pub struct CrmCard {
     pub amount: Option<String>,
     pub currency: Option<String>,
     pub organization: Option<String>,
-    /// `organization:<id>`, for copying; memo's task search has no field to find a company's tasks by it yet.
+    /// `organization:<id>`: copied, and the company's tasks are asked for with it (`related:`).
     pub organization_ref: Option<String>,
     pub people: Vec<CrmPerson>,
     pub close_date: Option<String>,
@@ -226,6 +226,8 @@ pub enum CrmRead {
         mapping: Vec<CrmStageMap>,
         cards: Vec<CrmCard>,
         more: bool,
+        /// This memo lists a deal's, a lead's and a company's own tasks (`related:`).
+        related_tasks: bool,
     },
 }
 
@@ -362,7 +364,7 @@ fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRe
     let (base, unsorted) = base::columns(&shown?);
     let mapping = base::mapping(&mapped?);
     let (cards, more) = cards_from([open, won, lost])?;
-    Ok(CrmRead::Base { pipelines, base, unsorted, mapping, cards, more })
+    Ok(CrmRead::Base { pipelines, base, unsorted, mapping, cards, more, related_tasks: false })
 }
 
 /// An answer instead of a board while memo is missing or older than the catalog's `crmBoard.minVersion`.
@@ -381,7 +383,19 @@ pub fn read(kind: CrmKind) -> Result<CrmRead, String> {
     let known = std::cell::RefCell::new(std::collections::HashMap::new());
     let writers =
         |provider: &str| *known.borrow_mut().entry(provider.to_string()).or_insert_with(|| writer::writer(provider));
-    with_memo(READ, |call| read_base_with(call, kind, &writers))
+    let mut read = with_memo(READ, |call| read_base_with(call, kind, &writers))?;
+    if let CrmRead::Base { related_tasks, .. } = &mut read {
+        *related_tasks = related_open()?;
+    }
+    Ok(read)
+}
+
+/// Whether the installed memo takes `related:` in its task search; a null `minVersion` is not released yet.
+fn related_open() -> Result<bool, String> {
+    let memo = crate::catalog::tool("memo")?;
+    let gate = memo.crm_board.as_ref().and_then(|b| b.related_tasks.as_ref());
+    let version = crate::tools::program(&memo.bin).and_then(|bin| crate::tools::version_of(&bin));
+    Ok(gate.is_some_and(|g| g.open(version.as_deref())))
 }
 
 fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard, Failure> {
@@ -584,7 +598,9 @@ mod tests {
             &none,
         )
         .unwrap();
-        let CrmRead::Base { pipelines, base, unsorted, mapping, cards, more } = read else { panic!("not a base read") };
+        let CrmRead::Base { pipelines, base, unsorted, mapping, cards, more, .. } = read else {
+            panic!("not a base read")
+        };
         assert_eq!(pipelines[1].movable, CrmMovable::No { why: "crmCli".into() });
         assert_eq!((base[1].open, base[1].mapped), (1, 2));
         assert_eq!(unsorted, CrmUnsorted { open: 1, stages: 1 });

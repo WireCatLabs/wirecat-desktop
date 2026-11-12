@@ -60,6 +60,25 @@ describe("a conversation a link opens", () => {
     expect(screen.queryByRole("button", { name: "Show earlier messages" })).toBeNull()
   }, 15000)
 
+  it("reads a picture of the chat with the owner's agent, or says picture reading is never", async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    link({ type: "chat", provider: "telegram", account: "1001", chat: "4004" })
+    const list = await messages()
+    const row = within(list).getByText("parking-sign.jpg").closest("li") as HTMLElement
+    expect(within(row).getByRole("button", { name: "Open the file" })).toBeInTheDocument()
+
+    await user.click(within(row).getByRole("button", { name: "Read the picture" }))
+    expect(await within(row).findByText(/Reading pictures is set to never/)).toBeInTheDocument()
+
+    const read = vi
+      .spyOn(platform, "pictureRead")
+      .mockResolvedValue({ state: "read", text: "TENANTS ONLY", extractor: "agent:claude", replaced: null })
+    await user.click(within(row).getByRole("button", { name: "Read the picture" }))
+    expect(await within(row).findByText("TENANTS ONLY")).toBeInTheDocument()
+    expect(read).toHaveBeenCalledWith("msg:telegram/1001/4004/57", 1)
+  }, 15000)
+
   it("reads later messages after a linked one", async () => {
     const user = userEvent.setup()
     render(<App />)

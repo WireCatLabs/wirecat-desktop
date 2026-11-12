@@ -9,10 +9,17 @@ import type { Platform } from "./types"
 // (`none`: no digest and no day yet; `new`: a newer day lands after 3 s).
 // The book: the morning digest (every day at 08:30, to a Telegram bot and a mailbox), an evening one twice a day and a
 // weekly one off schedule. `?digest-memo=old` (a memo without `digest list`: the morning digest as its one row),
-// `resting` (the morning digest taken off schedule the old way: past days, no row), `tooold`, `nomemo`;
-// `?digest-claude=none`; `?digest-fail=1` makes saving fail with memo's words; `?digest-run=failed`
-// (the morning digest's last run failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). Backfill: `?backfill=old` (this memo has no `digest backfill`),
+// `resting` (the morning digest taken off schedule the old way: past days, no row), `agentless` (0.131.84: by name, no
+// `--model` and no Drive, Calendar or CRM source), `tooold`, `nomemo`; `?digest-claude=none`; `?digest-agent=other`
+// (the evening digest runs an agent this computer does not list); `?digest-fail=1` makes saving fail with memo's
+// words, `unchosen` and `cost` with memo's agent refusals; `?digest-run=failed` (the morning digest's last run
+// failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). `?digest-agents=old` is a memo that
+// takes no consent for an agent it cannot limit, `?digest-needs=codex` puts the evening digest on a Codex that waits for
+// the owner's consent. Backfill: `?backfill=old` (this memo has no `digest backfill`),
 // `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
+
+const CODEX_NEEDS =
+  "codex runs on a schedule only with your consent: `memo digest edit evening-wrap --agent codex --allow-dangerous`"
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -232,6 +239,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
   const built = new Set<string>()
   const memo = params.get("digest-memo") ?? memoDefault({ missing: "nomemo", old: "tooold" })
   const named = memo !== "old"
+  const agent = named && memo !== "agentless"
   const item = (spec: DigestSpec, over: Partial<DigestItem> = {}): DigestItem => ({
     name: spec.name,
     title: named ? spec.title : null,
@@ -241,6 +249,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     routes: spec.routes.map(routeOf),
     brief: spec.brief,
     scheduled: spec.scheduled,
+    model: agent ? spec.model || null : null,
     maxCostUsd: spec.maxCostUsd,
     maxCostPerDayUsd: spec.maxCostPerDayUsd,
     spentTodayUsd: null,
@@ -248,8 +257,11 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     nextAt: spec.scheduled ? nextAt(spec.times[0] ?? "08:30") : null,
     agent: named ? (spec.agent ?? params.get("agent") ?? "claude") : null,
     trouble: null,
+    needs: null,
     ...over,
   })
+  const consent = agent && params.get("digest-agents") !== "old"
+  const waits = params.get("digest-needs") === "codex"
   const failed = params.get("digest-run") === "failed" || params.get("digest-run") === "nocredit"
   let book: DigestItem[] =
     mode === "none"
@@ -264,6 +276,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
               sources: [],
               routes: ROUTES,
               brief: "Projects HRB and the warehouse first; skip newsletters.",
+              agent: null,
+              model: null,
               maxCostUsd: 0.5,
               maxCostPerDayUsd: 1,
               scheduled: true,
@@ -292,11 +306,16 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
                     sources: ["telegram", "mail"],
                     routes: [ROUTES[0] ?? ""],
                     brief: null,
+                    agent: params.get("digest-agent") === "other" ? "grok" : waits ? "codex" : null,
+                    model: null,
                     maxCostUsd: 0.4,
                     maxCostPerDayUsd: 1,
                     scheduled: true,
                   },
-                  { last: { at: new Date(Date.now() - 18 * 3_600_000).toISOString(), ok: true, costUsd: 0.19 } },
+                  {
+                    last: { at: new Date(Date.now() - 18 * 3_600_000).toISOString(), ok: true, costUsd: 0.19 },
+                    needs: waits ? CODEX_NEEDS : null,
+                  },
                 ),
                 item({
                   name: "weekly-digest",
@@ -306,6 +325,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
                   sources: ["mail", "meetings", "tasks"],
                   routes: [ROUTES[1] ?? ""],
                   brief: null,
+                  agent: null,
+                  model: "sonnet",
                   maxCostUsd: 1,
                   maxCostPerDayUsd: 2,
                   scheduled: false,
@@ -324,6 +345,9 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       others,
       harness: params.get("digest-claude") !== "none",
       named,
+      agent,
+      moreSources: agent,
+      agentConsent: consent,
       morningRests,
     }
   }
@@ -407,7 +431,12 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     },
     async digestSave(spec, create) {
       await delay(900)
-      if (params.get("digest-fail")) throw new Error("unknown option '--on'")
+      const fail = params.get("digest-fail")
+      if (fail === "unchosen") throw new Error("digest.agent-unchosen")
+      if (fail === "cost") throw new Error("agent.cost-unknown")
+      if (fail) throw new Error("unknown option '--on'")
+      // The mock's Codex is the agent memo runs only with the owner's consent.
+      if (spec.agent === "codex" && !(consent && spec.allowDangerous)) throw new Error("agent.unrestricted")
       if (!named && (spec.name !== "morning-digest" || spec.times.length !== 1))
         throw new Error("this needs a newer Memo")
       const old = book.find((d) => d.name === spec.name)

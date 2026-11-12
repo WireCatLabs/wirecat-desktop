@@ -321,6 +321,10 @@
           "args": ["messages", "sync", "--all", "--timeout", "50m"]
         }
       },
+      "imagesRead": {
+        "minVersion": null,
+        "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
+      },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
         ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
@@ -745,6 +749,10 @@
           "args": ["messages", "sync", "--all", "--timeout", "50m"]
         }
       },
+      "imagesRead": {
+        "minVersion": null,
+        "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
+      },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
         ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
@@ -1167,6 +1175,10 @@
         "lastShape": "runs",
         "what": "messages",
         "note": "WhatsApp has no sync to start. New messages arrive while its background service runs: see Background service below."
+      },
+      "imagesRead": {
+        "minVersion": null,
+        "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
       },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
@@ -1823,20 +1835,26 @@
       },
       "memory": {
         "minVersion": "0.131.83",
-        "revokeMinVersion": "0.131.28"
+        "revokeMinVersion": "0.131.28",
+        "findingsEdit": { "minVersion": "0.131.86" }
       },
       "tasks": null,
       "taskBoard": {
         "minVersion": "0.131.83"
       },
       "crmBoard": {
-        "minVersion": "0.131.71"
+        "minVersion": "0.131.71",
+        "relatedTasks": { "minVersion": "0.131.86" }
       },
       "people": {
-        "minVersion": "0.131.84"
+        "minVersion": "0.131.84",
+        "companyMailbox": { "minVersion": "0.131.86" }
       },
       "digests": {
-        "minVersion": "0.131.75"
+        "minVersion": "0.131.75",
+        "agent": { "minVersion": "0.131.85" },
+        "moreSources": { "minVersion": "0.131.86" },
+        "agentConsent": { "minVersion": "0.131.86" }
       },
       "notesSetup": {
         "minVersion": "0.131.71",
@@ -1853,8 +1871,30 @@
       },
       "enrichment": {
         "show": ["models", "consents", "show", "--no-record", "--json"],
-        "preview": ["models", "consents", "set", "{provider}", "--model", "{model}", "--no-record", "--json"],
-        "on": ["models", "consents", "set", "{provider}", "--model", "{model}", "--yes", "--record", "--json"],
+        "baseUrl": { "minVersion": "0.131.85" },
+        "preview": [
+          "models",
+          "consents",
+          "set",
+          "{provider}",
+          "--model",
+          "{model}",
+          "{baseUrl}",
+          "--no-record",
+          "--json"
+        ],
+        "on": [
+          "models",
+          "consents",
+          "set",
+          "{provider}",
+          "--model",
+          "{model}",
+          "{baseUrl}",
+          "--yes",
+          "--record",
+          "--json"
+        ],
         "off": ["models", "consents", "revoke", "--record", "--json"],
         "keysProbe": ["models", "keys", "set", "--help"],
         "keySet": ["models", "keys", "set", "{provider}", "--record", "--json"],
@@ -1879,6 +1919,17 @@
           "--",
           "{query}"
         ]
+      },
+      "localOnly": {
+        "minVersion": "0.131.85",
+        "show": ["models", "local-only", "show", "--no-record", "--json"],
+        "on": ["models", "local-only", "set", "on", "--from-app", "--record", "--json"],
+        "off": ["models", "local-only", "set", "off", "--from-app", "--record", "--json"]
+      },
+      "pictureReading": {
+        "minVersion": "0.131.86",
+        "show": ["models", "picture-reading", "show", "--no-record", "--json"],
+        "set": ["models", "picture-reading", "set", "{mode}", "{agent}", "{model}", "--from-app", "--record", "--json"]
       },
       "sync": {
         "run": ["sync", "--record", "--json"],

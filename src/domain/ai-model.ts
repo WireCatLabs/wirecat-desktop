@@ -27,3 +27,7 @@ export function providerHost(provider: string, baseUrl: string | null): string {
 
 /** Whether pictures stay on this computer with this provider and address. */
 export const staysHere = (provider: string, baseUrl: string | null) => isLocalHost(providerHost(provider, baseUrl))
+
+/** memo's own rule: a saved model on this computer needs no key. memo's `origin` wins over what the page derives. */
+export const modelOnThisComputer = (m: { provider: string | null; baseUrl: string | null; origin: string | null }) =>
+  m.provider !== null && (m.origin ? isLocalHost(hostOfOrigin(m.origin)) : staysHere(m.provider, m.baseUrl))

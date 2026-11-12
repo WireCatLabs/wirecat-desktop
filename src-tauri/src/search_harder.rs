@@ -5,7 +5,7 @@
 
 use crate::catalog::{SearchShape, Tool};
 use crate::enrichment::EnrichmentKey;
-use crate::skills::{body, call, failure};
+use crate::skills::{body, call};
 use crate::{search, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -124,7 +124,7 @@ fn too_old(tool: &Tool, src: &SearchHarderSource) -> Result<(), String> {
     }
 }
 
-fn checked_model(model: &str) -> Result<&str, String> {
+pub(crate) fn checked_model(model: &str) -> Result<&str, String> {
     let model = model.trim();
     let ok = !model.is_empty()
         && model.len() <= MAX_MODEL
@@ -134,7 +134,7 @@ fn checked_model(model: &str) -> Result<&str, String> {
 }
 
 /// An HTTP or HTTPS address with a host and no user, password, query or fragment, as memo itself accepts.
-fn checked_base_url(raw: &str) -> Result<String, String> {
+pub(crate) fn checked_base_url(raw: &str) -> Result<String, String> {
     let raw = raw.trim();
     let bad = || format!("not a model API address: {raw}");
     if raw.len() > MAX_URL || raw.starts_with('-') {
@@ -231,7 +231,7 @@ fn refusal(out: &crate::run::Output, json: Option<&Value>) -> String {
                 from the app menu and turn it on there."
             .into();
     }
-    failure(out, json)
+    crate::enrichment::refusal_of(out, json)
 }
 
 fn ask(tool: &Tool, args: &[String], timeout: Duration) -> Result<HarderStatus, String> {
@@ -432,10 +432,10 @@ mod tests {
             search: vec![],
         };
         assert!(!gate(&src, Some("9.0.0")));
-        src.min_version = Some("0.132.0".into());
+        src.min_version = Some("0.131.86".into());
         assert!(!gate(&src, Some("0.131.73")));
         assert!(!gate(&src, None));
-        assert!(gate(&src, Some("0.132.0")));
+        assert!(gate(&src, Some("0.131.86")));
         // The first memo on npm with `--harder` and `meta.ranking`.
         assert_eq!(memo_source().min_version.as_deref(), Some("0.131.74"));
     }

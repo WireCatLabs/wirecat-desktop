@@ -155,6 +155,10 @@ const en = {
   sharedMailboxTip:
     "Several people write from this address. WireCat never joins people by a shared mailbox by itself, it only suggests. The cards are in the order of how sure WireCat is.",
   companyMailbox: "Company mailbox",
+  companyAddress: "Company address",
+  companyAddressAsk: "Which of their addresses is the company's?",
+  companyAddressHelp: "The address goes to the company and the two stay apart. WireCat stops suggesting them on it.",
+  companyAddressRefused: "This is not one of their addresses at a company's domain. Pick another one.",
   companyDone: (mailbox: string) =>
     `${mailbox} is a company's mailbox now. The people stay apart and are not suggested again on it.`,
   companyFailed: "It was not saved.",
@@ -493,6 +497,10 @@ const ru: typeof en = {
   sharedMailboxTip:
     "С этого адреса пишут несколько человек. WireCat никогда не объединяет людей по общему ящику сам, только предлагает. Карточки идут по тому, насколько WireCat уверен.",
   companyMailbox: "Ящик компании",
+  companyAddress: "Адрес компании",
+  companyAddressAsk: "Какой из их адресов принадлежит компании?",
+  companyAddressHelp: "Адрес перейдет к компании, а эти двое останутся раздельно. WireCat не предложит их по нему.",
+  companyAddressRefused: "Это не их адрес на домене компании. Выберите другой.",
   companyDone: (mailbox: string) =>
     `${mailbox} теперь ящик компании. Люди остаются раздельно, и WireCat больше не предложит их по этому адресу.`,
   companyFailed: "Это не сохранилось.",
@@ -816,6 +824,10 @@ const es: typeof en = {
   sharedMailboxTip:
     "Varias personas escriben desde esta dirección. WireCat nunca une personas por un buzón compartido por sí solo, solo lo sugiere. Las tarjetas van en el orden de cuán seguro está WireCat.",
   companyMailbox: "Buzón de la empresa",
+  companyAddress: "Dirección de la empresa",
+  companyAddressAsk: "¿Cuál de sus direcciones es de la empresa?",
+  companyAddressHelp: "La dirección pasa a la empresa y los dos siguen separados. WireCat deja de sugerirlos por ella.",
+  companyAddressRefused: "No es una de sus direcciones en el dominio de una empresa. Elige otra.",
   companyDone: (mailbox: string) =>
     `${mailbox} es ahora el buzón de una empresa. Las personas siguen separadas y no se sugieren de nuevo por él.`,
   companyFailed: "No se guardó.",

@@ -14,7 +14,7 @@ const READ: Duration = Duration::from_secs(30);
 const CHECK: Duration = Duration::from_mins(2);
 const PROVIDERS: [&str; 3] = ["anthropic", "openai", "ollama"];
 const MAX_KEY: usize = 400;
-const WORDED: [&str; 1] = ["ai."];
+const WORDED: [&str; 2] = ["ai.", "local-only.refused"];
 const OLLAMA_TAGS: &str = "http://127.0.0.1:11434/api/tags";
 const OPENROUTER_MODELS: &str = "https://openrouter.ai/api/v1/models";
 const LIST: Duration = Duration::from_secs(10);
@@ -28,11 +28,8 @@ const LIST_FAILED: &str = "ai.list-unreachable";
 /// commander's refusal of a command an older memo lacks, goes on; anything else comes back as `memo.refused`.
 fn guarded(e: String) -> String {
     let old = e.contains("unknown command") || e.contains("unknown option");
-    if e.starts_with("ai.") || e == crate::memory_add::REFUSED || old && e.len() < 200 {
-        e
-    } else {
-        crate::memory_add::REFUSED.into()
-    }
+    let worded = e.starts_with("ai.") || e == "local-only.refused" || e == crate::memory_add::REFUSED;
+    if worded || old && e.len() < 200 { e } else { crate::memory_add::REFUSED.into() }
 }
 
 fn with_memo<T>(timeout: Duration, f: impl FnOnce(&crate::memory_add::Feed) -> Result<T, String>) -> Result<T, String> {
@@ -340,6 +337,7 @@ mod tests {
     #[test]
     fn memos_words_never_reach_the_page_but_a_reason_or_an_old_memo_does() {
         assert_eq!(guarded("ai.no-credit".into()), "ai.no-credit");
+        assert_eq!(guarded("local-only.refused".into()), "local-only.refused");
         assert_eq!(guarded("error: unknown command 'ai'".into()), "error: unknown command 'ai'");
         assert_eq!(guarded("Incorrect API key provided: sk-proj-****abcd".into()), crate::memory_add::REFUSED);
     }

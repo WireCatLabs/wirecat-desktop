@@ -1,5 +1,7 @@
 /** Add to Memory's rules: what the owner gave, whether it can be saved, and which reader reads it for facts. */
 
+import { modelOnThisComputer } from "./ai-model"
+
 export type Way = "text" | "link" | "file"
 export type Draft = { way: Way; text: string; title: string; url: string; path: string | null }
 export type Given = { kind: "text"; text: string } | { kind: "file"; path: string } | { kind: "link"; url: string }
@@ -91,11 +93,17 @@ export const tooOldFor = (error: string) => /unknown (command|option)/.test(erro
 
 /** Why a picture would be kept by its name only, from what Settings holds; `null` when the AI model will read it. */
 export function imageReasonBefore(
-  model: { provider: string | null; images: boolean; key: { stored: boolean } } | null,
+  model: {
+    provider: string | null
+    baseUrl: string | null
+    origin: string | null
+    images: boolean
+    key: { stored: boolean }
+  } | null,
 ): "ai.not-set" | "ai.images-not-allowed" | "ai.key-missing" | null {
   if (!model?.provider) return "ai.not-set"
   if (!model.images) return "ai.images-not-allowed"
-  return model.provider !== "ollama" && !model.key.stored ? "ai.key-missing" : null
+  return !modelOnThisComputer(model) && !model.key.stored ? "ai.key-missing" : null
 }
 
 /** The reasons a trip to Settings, "AI model", can mend. */
@@ -105,4 +113,5 @@ export const MENDED_IN_SETTINGS = [
   "ai.key-missing",
   "ai.failed",
   "ai.setting-invalid",
+  "ai.empty-answer",
 ]

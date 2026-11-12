@@ -23,6 +23,27 @@ pub async fn memory_confirm(reference: String, accept: Option<Vec<String>>) -> R
     .await
 }
 
+/// One field of a finding the owner changed; `value: null` empties it.
+#[derive(serde::Deserialize)]
+pub struct FindingChange {
+    name: String,
+    value: Option<String>,
+}
+
+#[tauri::command]
+pub async fn memory_finding_edit(
+    reference: String,
+    finding: String,
+    fingerprint: String,
+    changes: Vec<FindingChange>,
+) -> Result<memory::Entry, AppError> {
+    crate::log::command("memory_finding_edit", async move {
+        let changes: Vec<(String, Option<String>)> = changes.into_iter().map(|c| (c.name, c.value)).collect();
+        attempt(move || memory::edit_finding(&reference, &finding, &fingerprint, &changes)).await
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn memory_discard(reference: String) -> Result<memory::Entry, AppError> {
     crate::log::command("memory_discard", async move { attempt(move || memory::discard(&reference)).await }).await
@@ -236,4 +257,50 @@ pub async fn memory_file_preview(
 #[tauri::command]
 pub async fn memory_link_preview(url: String) -> Result<Option<memory_preview::LinkPreview>, AppError> {
     crate::log::command("memory_link_preview", async move { attempt(move || memory_preview::link(&url)).await }).await
+}
+
+#[tauri::command]
+pub async fn local_only_status() -> Result<crate::local_only::LocalOnly, AppError> {
+    crate::log::command("local_only_status", async move { attempt(crate::local_only::status).await }).await
+}
+
+/// Sent only from the Settings switch the owner moved; memo answers with the whole new state.
+#[tauri::command]
+pub async fn local_only_set(on: bool) -> Result<crate::local_only::LocalOnlyStatus, AppError> {
+    crate::log::command("local_only_set", async move { attempt(move || crate::local_only::set(on)).await }).await
+}
+
+#[tauri::command]
+pub async fn picture_reading_status() -> Result<crate::picture_reading::PictureReading, AppError> {
+    crate::log::command("picture_reading_status", async move { attempt(crate::picture_reading::status).await }).await
+}
+
+/// Sent only from Settings, where the owner chose; memo answers with the whole new setting.
+#[tauri::command]
+pub async fn picture_reading_set(
+    mode: String,
+    agent: Option<String>,
+    model: Option<String>,
+) -> Result<crate::picture_reading::PictureReadingSetting, AppError> {
+    crate::log::command("picture_reading_set", async move {
+        attempt(move || crate::picture_reading::set(&mode, agent.as_deref(), model.as_deref())).await
+    })
+    .await
+}
+
+/// Sent only when the owner pressed "Read the picture" on that one picture.
+#[tauri::command]
+pub async fn picture_read(reference: String, attachment: u32) -> Result<crate::attachments::PictureRead, AppError> {
+    crate::log::command("picture_read", async move {
+        attempt(move || crate::attachments::read_picture(&reference, attachment)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn attachment_open(reference: String, attachment: u32) -> Result<(), AppError> {
+    crate::log::command("attachment_open", async move {
+        attempt(move || crate::attachments::open_file(&reference, attachment)).await
+    })
+    .await
 }

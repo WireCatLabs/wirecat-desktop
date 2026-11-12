@@ -20,6 +20,7 @@ import { driveFoldersMock } from "./mock-drive-folders"
 import { enrichmentMock } from "./mock-enrichment"
 import { groupsMock } from "./mock-groups"
 import { npmLines } from "./mock-install"
+import { localOnlyMock } from "./mock-local-only"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
 import { memoState, OLD_MEMO } from "./mock-memo"
@@ -28,6 +29,7 @@ import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
 import { peopleMock, peopleProfileMock } from "./mock-people"
 import { permissionsMock } from "./mock-permissions"
+import { pictureReadingMock } from "./mock-picture-reading"
 import { recordsMock } from "./mock-records"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
@@ -737,6 +739,8 @@ export function createMock(os: Platform["os"]): Platform {
     ...recordsMock(params),
     ...enrichmentMock(params),
     ...searchHarderMock(params),
+    ...localOnlyMock(params),
+    ...pictureReadingMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

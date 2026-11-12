@@ -46,7 +46,7 @@ describe("AI model", () => {
   beforeEach(() => {
     useAiModel.setState(useAiModel.getInitialState(), true)
     useTools.setState({
-      installs: { memo: [{ path: "/bin/memo", version: "0.132.0", manager: "npm", problem: null }] },
+      installs: { memo: [{ path: "/bin/memo", version: "0.131.86", manager: "npm", problem: null }] },
     })
   })
 
@@ -323,10 +323,42 @@ describe("AI model", () => {
     expect(await screen.findByText(/Now no model reads pictures/)).toBeInTheDocument()
   })
 
+  it("asks no key of a server on this computer and lets it read pictures without one", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue({
+      ...ANTHROPIC,
+      provider: "openai",
+      model: "qwen2.5-vl-7b",
+      baseUrl: "http://localhost:1234/v1",
+      origin: "http://localhost:1234",
+      key: { stored: false, source: null },
+    })
+    render(<AiModelSetting />)
+    expect(await screen.findByText("Now qwen2.5-vl-7b, a model on this computer, reads pictures.")).toBeInTheDocument()
+    expect(screen.getByText(/usually needs no key/)).toBeInTheDocument()
+    expect(screen.queryByText(/No key is saved yet/)).not.toBeInTheDocument()
+  })
+
+  it("says linking, replies and OCR use this model when they have none of their own", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(NONE)
+    render(<AiModelSetting />)
+    expect(
+      await screen.findByText(/reply drafts and reading text in attachments \(OCR\) use this model/),
+    ).toBeInTheDocument()
+  })
+
+  it("says a model that answered nothing seems not to read pictures, and what to pick", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
+    vi.spyOn(platform, "aiModelCheck").mockResolvedValue(checked("ai.empty-answer"))
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.click(await screen.findByRole("button", { name: "Check" }))
+    expect(await screen.findByText(/seems not to read pictures.*Choose a model that reads them/)).toBeInTheDocument()
+  })
+
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)
-    expect(await screen.findByText("This page needs a newer Memo than 0.132.0.")).toBeInTheDocument()
+    expect(await screen.findByText("This page needs a newer Memo than 0.131.86.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })

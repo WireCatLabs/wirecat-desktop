@@ -131,3 +131,8 @@ export function matchFacts(match: Match, names: (string | null)[], contacts: Con
     facts.push({ kind: "chat", value: null })
   return facts
 }
+
+/** Each mail address of the people on a match once, as memo compares them: lower case. */
+export const addressesOf = (contacts: readonly Contacts[]) => [
+  ...new Set(contacts.flatMap((c) => c.emails.map(emailKey)).filter(looksLikeEmail)),
+]

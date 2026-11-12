@@ -18,7 +18,7 @@ const PAGE: usize = 30;
 const MAX_PART: usize = 512;
 const MAX_TEXT: usize = 20_000;
 /// Messengers whose `messages list` takes a chat reference and `--offline`; memo names them by their program.
-const LISTS: [&str; 3] = ["tg", "max", "wa"];
+pub(crate) const LISTS: [&str; 3] = ["tg", "max", "wa"];
 
 /// What the page asks for: the first view, or the page before the oldest or after the newest message it shows.
 #[derive(specta::Type, Debug, Deserialize, Clone, PartialEq)]
@@ -96,8 +96,21 @@ pub struct ChatMessage {
     pub subject: Option<String>,
     pub text: Option<String>,
     /// Attachment names only: their text and their bytes stay in the store.
-    pub files: Vec<String>,
+    pub files: Vec<ChatFile>,
     pub anchor: bool,
+}
+
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatFile {
+    /// Its name, else its kind.
+    pub name: String,
+    /// Its place among all the message's attachments, from 1, as `images read --attachment` counts them.
+    pub position: u32,
+    /// A PNG, JPEG or WebP picture, as cli-core's `images read` accepts it.
+    pub picture: bool,
+    /// The tool keeps a copy on this computer (`local_path`, cli-core 0.643.0); the path itself stays in Rust.
+    pub saved: bool,
 }
 
 /// Runs one program (`memo`, or a messenger's program as memo names it) and answers its JSON, or why it failed.
@@ -129,7 +142,7 @@ fn valid_part(part: &str) -> bool {
 }
 
 impl ChatPlace {
-    fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), String> {
         let provider = !self.provider.is_empty()
             && self.provider.len() <= 32
             && self.provider.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit());
@@ -137,11 +150,11 @@ impl ChatPlace {
         if provider && parts { Ok(()) } else { Err("not a chat or message of the store".into()) }
     }
 
-    fn chat_ref(&self) -> String {
+    pub(crate) fn chat_ref(&self) -> String {
         format!("chat:{}/{}/{}", self.provider, encode(&self.account), encode(&self.chat))
     }
 
-    fn message_ref(&self, message: &str) -> String {
+    pub(crate) fn message_ref(&self, message: &str) -> String {
         format!("msg:{}/{}/{}/{}", self.provider, encode(&self.account), encode(&self.chat), encode(message))
     }
 
@@ -179,13 +192,29 @@ fn message(v: &Value, asked: Option<&str>) -> Option<ChatMessage> {
         at: text(v, "timestamp"),
         subject: text(email, "subject"),
         text: text(v, "text").or_else(|| text(v, "transcript")).map(clipped),
-        files: v["attachments"]
-            .as_array()
-            .map(|a| a.iter().filter_map(|f| text(f, "name").or_else(|| text(f, "kind"))).collect())
-            .unwrap_or_default(),
+        files: v["attachments"].as_array().map(|a| files(a)).unwrap_or_default(),
         anchor: asked.is_some_and(|a| a == reference),
         reference,
     })
+}
+
+/// The position counts every attachment, the files with no name or kind too, as the store numbers them.
+fn files(list: &[Value]) -> Vec<ChatFile> {
+    list.iter()
+        .zip(1u32..)
+        .filter_map(|(f, position)| {
+            let name = text(f, "name").or_else(|| text(f, "kind"))?;
+            Some(ChatFile { position, picture: is_picture(f), saved: text(f, "local_path").is_some(), name })
+        })
+        .collect()
+}
+
+/// cli-core's test in `readPicture`: a photo, an `image/` type, or a PNG, JPEG or WebP name.
+pub(crate) fn is_picture(f: &Value) -> bool {
+    let name = text(f, "name").unwrap_or_default().to_ascii_lowercase();
+    text(f, "kind").as_deref() == Some("photo")
+        || text(f, "mime").is_some_and(|m| m.starts_with("image/"))
+        || [".png", ".jpg", ".jpeg", ".webp"].iter().any(|e| name.ends_with(e))
 }
 
 fn messages(v: &Value, asked: Option<&str>) -> Vec<ChatMessage> {
@@ -193,13 +222,13 @@ fn messages(v: &Value, asked: Option<&str>) -> Vec<ChatMessage> {
 }
 
 /// memo's `show` of the chat: its header, and the profile its messenger reads it with.
-struct Shown {
-    chat: ChatHeader,
-    available: bool,
-    tool: Option<String>,
+pub(crate) struct Shown {
+    pub chat: ChatHeader,
+    pub available: bool,
+    pub tool: Option<String>,
 }
 
-fn shown(v: &Value, email: bool) -> Option<Shown> {
+pub(crate) fn shown(v: &Value, email: bool) -> Option<Shown> {
     let item = v["items"].as_array()?.first()?;
     let profile = item["open"]["profiles"].as_array().and_then(|p| p.first()).and_then(Value::as_str);
     Some(Shown {
@@ -412,6 +441,29 @@ mod tests {
     }
 
     #[test]
+    fn each_file_keeps_its_place_among_all_attachments_and_says_whether_it_is_a_picture() {
+        let list = json!([
+            { "kind": "webpage", "name": "" },
+            { "kind": "photo", "local_path": "/home/u/.local/share/tg/photo.jpg" },
+            { "kind": "document", "name": "Scan.PNG", "mime": "application/octet-stream" },
+            { "kind": "document", "name": "plan.pdf", "mime": "application/pdf" },
+            { "kind": "file", "name": "board", "mime": "image/webp" }
+        ]);
+        let got: Vec<_> =
+            files(list.as_array().unwrap()).into_iter().map(|f| (f.name, f.position, f.picture, f.saved)).collect();
+        assert_eq!(
+            got,
+            [
+                ("webpage".to_string(), 1, false, false),
+                ("photo".to_string(), 2, true, true),
+                ("Scan.PNG".to_string(), 3, true, false),
+                ("plan.pdf".to_string(), 4, false, false),
+                ("board".to_string(), 5, true, false),
+            ]
+        );
+    }
+
+    #[test]
     fn a_reference_is_encoded_as_the_interface_encodes_it() {
         let p = place("email", "thread one/a", Some("<id@mail.example>"));
         assert_eq!(p.chat_ref(), "chat:email/owner%40example.com/thread%20one%2Fa");
@@ -454,7 +506,7 @@ mod tests {
         );
         assert_eq!(messages.len(), 21);
         assert_eq!(messages.iter().filter(|m| m.anchor).map(|m| m.id.as_str()).collect::<Vec<_>>(), ["30"]);
-        assert_eq!(messages[0].files, ["plan.pdf"]);
+        assert_eq!(messages[0].files[0].name, "plan.pdf");
         assert!(older && newer);
         let calls = f.calls.lock().unwrap();
         assert!(calls.iter().all(|(program, _)| program == "memo"));

@@ -29,6 +29,50 @@ export const AiOffSchema = v.object({ changed: v.boolean(), keyKept: v.boolean()
 
 export const AiModelListSchema = v.array(v.string())
 
+/** `local_only.rs`: where each feature sends data now. `where` stays a string: a newer memo may add a place. */
+export const LocalOnlyStatusSchema = v.object({
+  on: v.boolean(),
+  since: text,
+  features: v.array(
+    v.object({
+      id: v.string(),
+      title: v.string(),
+      where: v.string(),
+      address: text,
+      refused: v.boolean(),
+    }),
+  ),
+})
+
+export const LocalOnlySchema = v.variant("state", [
+  v.object({ state: v.literal("old"), version: text, need: text }),
+  v.object({ state: v.literal("ready"), status: LocalOnlyStatusSchema }),
+])
+
+export const PictureReadingSettingSchema = v.object({
+  mode: v.picklist(["never", "request"]),
+  agent: v.nullable(v.picklist(["claude", "codex"])),
+  model: text,
+  extractor: text,
+  since: text,
+})
+
+export const PictureReadingSchema = v.variant("state", [
+  v.object({ state: v.literal("old"), version: text, need: text }),
+  v.object({ state: v.literal("ready"), setting: PictureReadingSettingSchema }),
+])
+
+export const PictureReadSchema = v.variant("state", [
+  v.object({ state: v.literal("old"), tool: v.string(), version: text, need: text }),
+  v.object({ state: v.literal("read"), text: v.string(), extractor: text, replaced: text }),
+])
+
+export type PictureReadingSetting = v.InferOutput<typeof PictureReadingSettingSchema>
+export type PictureReading = v.InferOutput<typeof PictureReadingSchema>
+export type PictureAgent = NonNullable<PictureReadingSetting["agent"]>
+export type PictureRead = v.InferOutput<typeof PictureReadSchema>
+export type LocalOnlyStatus = v.InferOutput<typeof LocalOnlyStatusSchema>
+export type LocalOnly = v.InferOutput<typeof LocalOnlySchema>
 export type AiModel = v.InferOutput<typeof AiModelSchema>
 export type AiChecked = v.InferOutput<typeof AiCheckedSchema>
 export type AiOff = v.InferOutput<typeof AiOffSchema>

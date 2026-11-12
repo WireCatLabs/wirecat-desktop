@@ -3,6 +3,7 @@ mod agent_run;
 mod ai_model;
 mod analytics;
 mod archive;
+mod attachments;
 mod background;
 mod background_agent;
 mod backup;
@@ -35,6 +36,7 @@ mod host_open;
 mod install;
 #[cfg(test)]
 mod install_e2e;
+mod local_only;
 mod log;
 mod mail_agent;
 mod mcp;
@@ -63,6 +65,7 @@ mod paths;
 mod people;
 mod permissions;
 mod person_profile;
+mod picture_reading;
 mod preflight;
 mod profile;
 mod provenance;
@@ -348,6 +351,7 @@ pub fn run() {
             commands::memory::conversation_read,
             commands::memory::memory_sources,
             commands::memory::memory_confirm,
+            commands::memory::memory_finding_edit,
             commands::memory::memory_discard,
             commands::memory::memory_correct,
             commands::memory::memory_relation_edit,
@@ -393,6 +397,12 @@ pub fn run() {
             commands::memory::ai_model_off,
             commands::memory::ai_model_check,
             commands::memory::ai_model_list,
+            commands::memory::local_only_status,
+            commands::memory::local_only_set,
+            commands::memory::picture_reading_status,
+            commands::memory::picture_reading_set,
+            commands::memory::picture_read,
+            commands::memory::attachment_open,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

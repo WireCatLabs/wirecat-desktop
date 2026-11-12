@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react"
 import { useEffect, useId, useMemo, useState } from "react"
+import { isLocalHost } from "@/domain/ai-model"
 import type { CatalogTool } from "@/domain/catalog"
 import { formatUsd } from "@/domain/mail-agent"
 import type { SyncEnrichment } from "@/domain/sync"
@@ -14,6 +15,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { type EnrichmentChoice, useEnrichment, useEnrichmentPreview, useSetEnrichment } from "./api"
+import { ModelAddressFields, useRefusalText } from "./ModelAddressFields"
 import { type EnrichmentText, enrichmentMessages } from "./messages-enrichment"
 import { ProviderKey, providerName } from "./ProviderKey"
 import { syncKey, useSync } from "./sync-store"
@@ -29,9 +31,24 @@ function percents(m: EnrichmentMeasured | null | undefined): [number, number, nu
   return [a ?? 0, b ?? 0, c ?? 0, d ?? 0]
 }
 
-/** Browser build only: `?enrich=consent` opens the consent step without a click, for review captures. */
-const consentByScenario = () =>
-  platform.kind === "mock" && new URLSearchParams(window.location.search).get("enrich") === "consent"
+const scenario = () => (platform.kind === "mock" ? new URLSearchParams(window.location.search).get("enrich") : null)
+/**
+ * Browser build only: `?enrich=consent` opens the consent step without a click, and `?enrich=address` opens it on a
+ * plain-http address on another computer, for review captures.
+ */
+const consentByScenario = () => scenario() === "consent" || scenario() === "address"
+const choiceByScenario = (): EnrichmentChoice | null =>
+  scenario() === "address"
+    ? { provider: "openai", model: "llama3.1:8b", baseUrl: "http://192.168.1.20:11434/v1" }
+    : null
+
+// Long enough that typing a model name or an address asks memo once, not at every letter.
+const TYPING_MS = 600
+
+/** Where the records go, as the owner knows it: the provider, or the address he gave. */
+const whereOf = (t: EnrichmentTarget) => (t.baseUrl ? t.endpointHost : providerName(t.provider))
+/** A model at an address is asked about only once both are typed. */
+const complete = (c: EnrichmentChoice) => c.baseUrl === null || (c.baseUrl.trim() !== "" && c.model.trim() !== "")
 
 function usdText(m: EnrichmentText, usd: number, lang: Lang) {
   return usd > 0 && usd < 0.01 ? m.lessThanCent : formatUsd(usd, lang)
@@ -39,7 +56,7 @@ function usdText(m: EnrichmentText, usd: number, lang: Lang) {
 
 const defaultChoice = (offered: EnrichmentOffer[]): EnrichmentChoice | null => {
   const offer = offered.find((o) => o.default) ?? offered[0]
-  return offer ? { provider: offer.provider, model: offer.model } : null
+  return offer ? { provider: offer.provider, model: offer.model, baseUrl: null } : null
 }
 
 /**
@@ -52,8 +69,9 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
   const state = useEnrichment(tool.id)
   const preview = useEnrichmentPreview(tool.id)
   const change = useSetEnrichment(tool.id)
+  const refusalText = useRefusalText()
   const [consenting, setConsenting] = useState(consentByScenario)
-  const [choice, setChoice] = useState<EnrichmentChoice | null>(null)
+  const [choice, setChoice] = useState<EnrichmentChoice | null>(choiceByScenario)
   const [confirmingOff, setConfirmingOff] = useState(false)
   const [done, setDone] = useState<Done>(null)
   const { mutate: ask } = preview
@@ -64,7 +82,9 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
   const chosen = useMemo(() => choice ?? (offered ? defaultChoice(offered) : null), [choice, offered])
 
   useEffect(() => {
-    if (consenting && chosen) ask(chosen)
+    if (!consenting || !chosen || !complete(chosen)) return
+    const timer = setTimeout(() => ask(chosen), chosen.baseUrl === null ? 0 : TYPING_MS)
+    return () => clearTimeout(timer)
   }, [consenting, chosen, ask])
 
   // A sync is when memo rewrites the waiting records, so the counts are read again after each one.
@@ -130,10 +150,14 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
               m={m}
               toolId={tool.id}
               offered={status.offered}
+              addresses={status.addresses}
               chosen={chosen}
-              onChoose={setChoice}
-              preview={preview.isPending ? null : (preview.data ?? null)}
-              error={preview.isError ? messageOf(preview.error) : null}
+              onChoose={(c) => {
+                preview.reset()
+                setChoice(c)
+              }}
+              preview={preview.isPending || !complete(chosen) ? null : (preview.data ?? null)}
+              error={preview.isError ? preview.error : null}
               busy={change.isPending}
               onRetry={() => ask(chosen)}
               onAgree={turnOn}
@@ -161,7 +185,9 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
       <Collapse open={change.isError}>
         <ErrorNotice inline>
           {change.isError &&
-            (change.variables ? m.failedOn(messageOf(change.error)) : m.failedOff(messageOf(change.error)))}
+            (change.variables
+              ? (refusalText(change.error) ?? m.failedOn(messageOf(change.error)))
+              : m.failedOff(messageOf(change.error)))}
         </ErrorNotice>
       </Collapse>
       <Dialog
@@ -194,7 +220,7 @@ function Off(props: { m: EnrichmentText; status: EnrichmentStatus; deleted: numb
       <p className="text-[0.9rem] text-ink-soft" aria-live="polite">
         {deleted !== null ? m.turnedOff(m.records(deleted)) : m.off}
         {target && estimate.usd !== null && status.pending > 0 && (
-          <> {m.offCost(m.records(status.pending), providerName(target.provider), usdText(m, estimate.usd, lang))}</>
+          <> {m.offCost(m.records(status.pending), whereOf(target), usdText(m, estimate.usd, lang))}</>
         )}
       </p>
       <div>
@@ -223,6 +249,7 @@ function EnrichmentKey(props: {
       keys={keys}
       missing={!keys && envVar ? m.keyMissing(envVar) : m.keyMissingGeneric}
       onChanged={onChanged}
+      local={isLocalHost(target.endpointHost)}
     />
   )
 }
@@ -231,19 +258,28 @@ function Consent(props: {
   m: EnrichmentText
   toolId: string
   offered: EnrichmentOffer[]
+  addresses: boolean
   chosen: EnrichmentChoice
   onChoose: (c: EnrichmentChoice) => void
   preview: EnrichmentStatus | null
-  error: string | null
+  error: unknown
   busy: boolean
   onRetry: () => void
   onAgree: () => void
   onCancel: () => void
 }) {
-  const { m, toolId, offered, chosen, onChoose, preview, error, busy, onRetry, onAgree, onCancel } = props
+  const { m, toolId, offered, addresses, chosen, onChoose, preview, error, busy, onRetry, onAgree, onCancel } = props
   const lang = useLang()
   const titleId = useId()
   const groupName = useId()
+  const refused = useRefusalText()(error)
+  const atAddress = chosen.baseUrl !== null
+  // What was typed for a model at an address stays while the owner looks at memo's offers.
+  const [own, setOwn] = useState({ model: atAddress ? chosen.model : "", baseUrl: chosen.baseUrl ?? "" })
+  const chooseOwn = (next: typeof own) => {
+    setOwn(next)
+    onChoose({ provider: "openai", model: next.model, baseUrl: next.baseUrl })
+  }
   const target = preview?.target ?? null
   const records = preview ? m.records(preview.pending) : ""
   const input = preview ? formatNumber(preview.estimate.inputTokens, lang) : ""
@@ -257,7 +293,7 @@ function Consent(props: {
       <h5 id={titleId} className="font-semibold text-ink">
         {m.consentTitle}
       </h5>
-      {offered.length > 1 && (
+      {(offered.length > 1 || addresses) && (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1.5 text-[0.9rem] font-medium text-ink-dim">{m.modelLabel}</legend>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -266,9 +302,9 @@ function Consent(props: {
                 <input
                   type="radio"
                   name={groupName}
-                  checked={o.provider === chosen.provider && o.model === chosen.model}
+                  checked={!atAddress && o.provider === chosen.provider && o.model === chosen.model}
                   disabled={busy}
-                  onChange={() => onChoose({ provider: o.provider, model: o.model })}
+                  onChange={() => onChoose({ provider: o.provider, model: o.model, baseUrl: null })}
                   className="peer sr-only"
                 />
                 <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
@@ -282,27 +318,66 @@ function Consent(props: {
                 </span>
               </label>
             ))}
+            {addresses && (
+              <label className="relative cursor-pointer">
+                <input
+                  type="radio"
+                  name={groupName}
+                  checked={atAddress}
+                  disabled={busy}
+                  onChange={() => chooseOwn(own)}
+                  className="peer sr-only"
+                />
+                <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+                  <span className="text-[0.9rem] font-medium text-ink">{m.ownOffer}</span>
+                  <span className="text-[0.8rem] text-ink-soft">{m.ownOfferNote}</span>
+                </span>
+              </label>
+            )}
           </div>
         </fieldset>
       )}
-      {!preview && !error && <Skeleton className="h-[7.5rem] w-full" label={m.counting} />}
-      {error && (
+      {atAddress && (
+        <ModelAddressFields
+          model={own.model}
+          onModel={(model) => chooseOwn({ ...own, model })}
+          modelLabel={m.modelLabel}
+          modelHelp={m.ownModelHelp}
+          address={own.baseUrl}
+          onAddress={(baseUrl) => chooseOwn({ ...own, baseUrl })}
+          addressLabel={m.addressLabel}
+          addressHelp={m.addressHelp}
+          withAddress
+          disabled={busy}
+        />
+      )}
+      {!complete(chosen) && <p className="text-[0.875rem] text-ink-dim">{m.ownNeeds}</p>}
+      {complete(chosen) && !preview && !error && <Skeleton className="h-[7.5rem] w-full" label={m.counting} />}
+      {error !== null && (
         <ErrorNotice
-          raw={error}
+          raw={refused ? null : messageOf(error)}
           inline
           action={
-            <Button size="sm" variant="secondary" onClick={onRetry}>
-              {m.tryAgain}
-            </Button>
+            refused ? undefined : (
+              <Button size="sm" variant="secondary" onClick={onRetry}>
+                {m.tryAgain}
+              </Button>
+            )
           }
         >
-          {m.previewFailed}
+          {refused ?? m.previewFailed}
         </ErrorNotice>
       )}
       {preview && target && (
         <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[0.9rem] leading-relaxed text-ink">
           <li>{m.sends(records)}</li>
-          <li>{m.to(providerName(target.provider), target.endpointHost, target.model)}</li>
+          <li>
+            {target.baseUrl
+              ? isLocalHost(target.endpointHost)
+                ? m.toHere(target.endpointHost, target.model)
+                : m.toAddress(target.endpointHost, target.model)
+              : m.to(providerName(target.provider), target.endpointHost, target.model)}
+          </li>
           <li>
             {preview.estimate.usd === null
               ? m.costUnknown(input, output)
@@ -319,7 +394,7 @@ function Consent(props: {
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="primary" disabled={!preview || busy} onClick={onAgree}>
-          {preview && target ? m.agree(records, providerName(target.provider)) : m.turnOn}
+          {preview && target ? m.agree(records, whereOf(target)) : m.turnOn}
         </Button>
         <Button size="sm" disabled={busy} onClick={onCancel}>
           {m.cancel}
@@ -364,7 +439,7 @@ function On(props: {
   const { m, toolId, status, justOn, sync, busy, onOff } = props
   const lang = useLang()
   const target = status.target
-  const provider = target ? providerName(target.provider) : ""
+  const provider = target ? whereOf(target) : ""
   const when = status.consentedAt
     ? formatDate(status.consentedAt, { dateStyle: "medium", timeStyle: "short" }, lang)
     : ""
@@ -372,7 +447,13 @@ function On(props: {
   return (
     <div className="flex flex-col gap-2 text-[0.9rem] text-ink-soft" aria-live="polite">
       {justOn && <p className="font-medium text-ink">{m.turnedOn(provider)}</p>}
-      {target && <p>{m.onSince(when, provider, target.model, target.endpointHost)}</p>}
+      {target && (
+        <p>
+          {target.baseUrl
+            ? m.onSinceAt(when, target.model, target.endpointHost)
+            : m.onSince(when, provider, target.model, target.endpointHost)}
+        </p>
+      )}
       <p className="tabular-nums">
         {m.progress(formatNumber(status.enriched, lang), m.records(status.records))}{" "}
         {status.pending > 0 ? m.waiting(m.records(status.pending), status.syncsNeeded ?? 1, usd) : m.allDone}

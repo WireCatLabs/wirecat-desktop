@@ -102,6 +102,8 @@ export const PeopleReadSchema = v.variant("kind", [
     splits: v.optional(v.array(SplitSchema), []),
     /** memo lists one kind of people at a time; false from a memo older than kinds, which lists everyone. */
     kinded: v.optional(v.boolean(), false),
+    /** This memo gives a company one of the two people's addresses on a match by name (`--mailbox`). */
+    companyMailbox: v.optional(v.boolean()),
   }),
 ])
 

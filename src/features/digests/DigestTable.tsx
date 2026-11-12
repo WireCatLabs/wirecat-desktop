@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react"
+import { LoaderCircle, TriangleAlert } from "lucide-react"
 import { formatUsd } from "@/domain/mail-agent"
 import { freeWords, setField, valuesOf } from "@/domain/query-terms"
 import { ago } from "@/features/tools"
@@ -82,6 +82,12 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
         >
           <span className="font-medium text-ink [overflow-wrap:anywhere] group-hover:text-brand">{titleOf(d, m)}</span>
           <span className="font-mono text-[0.8rem] text-ink-dim [overflow-wrap:anywhere]">{d.name}</span>
+          {d.needs && (
+            <span className="mt-0.5 flex items-center gap-1 text-[0.85rem] text-warn-ink" title={d.needs}>
+              <TriangleAlert className="size-3.5 shrink-0 text-warn" aria-hidden />
+              {m.one.needs}
+            </span>
+          )}
         </button>
       ),
     },

@@ -3,6 +3,7 @@ import type { Messages } from "@/i18n"
 // The provider key memo keeps for its hosted models: enrichment and search harder read the same one.
 const en = {
   keyFound: (source: string) => `Memo found your API key (${source}).`,
+  keyNotNeeded: "The model is on this computer, so it needs no API key.",
   keySource: {
     keyring: "in the system keyring",
     file: "in Memo's key file",
@@ -26,6 +27,7 @@ const en = {
 
 const ru: typeof en = {
   keyFound: (source) => `Memo нашёл ваш API-ключ (${source}).`,
+  keyNotNeeded: "Модель на этом компьютере, поэтому API-ключ ей не нужен.",
   keySource: { keyring: "в системной связке ключей", file: "в файле ключей Memo", env: "в переменной окружения" },
   keyLabel: (provider) => `API-ключ для ${provider}`,
   keySave: "Сохранить ключ",
@@ -45,6 +47,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   keyFound: (source) => `Memo encontró tu clave de API (${source}).`,
+  keyNotNeeded: "El modelo está en este ordenador, así que no necesita clave de API.",
   keySource: {
     keyring: "en el llavero del sistema",
     file: "en el archivo de claves de Memo",

@@ -14,7 +14,18 @@ import type {
   SkillText,
   Target,
 } from "./agents-schemas"
-import type { AiChecked, AiModel, AiModelChoice, AiOff } from "./ai-model-schemas"
+import type {
+  AiChecked,
+  AiModel,
+  AiModelChoice,
+  AiOff,
+  LocalOnly,
+  LocalOnlyStatus,
+  PictureAgent,
+  PictureRead,
+  PictureReading,
+  PictureReadingSetting,
+} from "./ai-model-schemas"
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackgroundAgents } from "./background-agent-schemas"
@@ -155,6 +166,9 @@ export type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress }
 /** Everything the interface may ask of the machine. Each call names a known operation, never a command line. */
 /** The provider, model and address the owner picks for search harder; a null model is memo's default. */
 export type HarderChoice = { provider: string; model: string | null; baseUrl: string | null }
+
+/** One of memo's enrichment offers, or a model at an address the owner gives (`baseUrl`, OpenAI-compatible only). */
+export type EnrichmentChoice = { provider: string; model: string; baseUrl: string | null }
 
 export type Platform = {
   kind: "tauri" | "mock"
@@ -340,6 +354,16 @@ export type Platform = {
    * batch, `accept` names the findings to create (all when absent); the rest are rejected.
    */
   memoryConfirm(ref: string, accept?: string[]): Promise<MemoryEntry>
+  /**
+   * Changes one waiting finding of a batch at the fingerprint the page read; `value: null` empties a field. The batch
+   * comes back with a new fingerprint. A batch that changed meanwhile is refused with `findings.stale`.
+   */
+  memoryFindingEdit(
+    ref: string,
+    finding: string,
+    fingerprint: string,
+    changes: { name: string; value: string | null }[],
+  ): Promise<MemoryEntry>
   /** "No longer holds": a memory goes stale, a fact is rejected or reversed, an action is rejected. */
   memoryDiscard(ref: string): Promise<MemoryEntry>
   /** Writes the owner's version, which replaces the old one, with a new kind or subject if given; the new record. */
@@ -405,8 +429,15 @@ export type Platform = {
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */
   peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
-  /** Says the shared mailbox of a match is a company's (`organization` or a new one `name`d): the people stay apart. */
-  peopleResolve(ref: string, id: string, to: { organization?: string; name?: string }): Promise<Resolved>
+  /**
+   * Says the shared mailbox of a match is a company's (`organization` or a new one `name`d): the people stay apart. On
+   * a match by name, `mailbox` names which of the two people's addresses is the company's.
+   */
+  peopleResolve(
+    ref: string,
+    id: string,
+    to: { organization?: string; name?: string; mailbox?: string },
+  ): Promise<Resolved>
   /** The owner's answer to a split an agent proposed on this person; answers the person read again. */
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */
@@ -570,6 +601,31 @@ export type Platform = {
   backgroundStatus(id: string, profile: string): Promise<Background>
   /** One of the tool's own `server` commands for one profile; a failure comes back as `fault`, sorted for the page. */
   backgroundRun(id: string, profile: string, action: BackgroundAction): Promise<BackgroundOutcome>
+  /** memo's `models local-only show` (`localOnly` in the catalog): the switch, and where each feature sends data now. */
+  localOnlyStatus(): Promise<LocalOnly>
+  /**
+   * The owner moved the switch in Settings (`set on|off --from-app`); memo answers the whole new state. memo's refusals
+   * come back as `local-only.owner-only` or `local-only.refused`.
+   */
+  localOnlySet(on: boolean): Promise<LocalOnlyStatus>
+  /** memo's `models picture-reading show` (`pictureReading` in the catalog): never, or on request with which agent. */
+  pictureReadingStatus(): Promise<PictureReading>
+  /**
+   * The owner chose in Settings (`set never|request --agent --model --from-app`); memo answers the whole new setting.
+   * memo's refusals come back as `picture-reading.owner-only` or `picture-reading.agent-missing`.
+   */
+  pictureReadingSet(
+    mode: PictureReadingSetting["mode"],
+    agent: PictureAgent | null,
+    model: string | null,
+  ): Promise<PictureReadingSetting>
+  /**
+   * The owner pressed "Read the picture": the messenger's `images read <ref> --attachment n` (`imagesRead` in the
+   * catalog). Its refusals come back as `picture-reading.off`, `picture-reading.unavailable:claude|codex`, …
+   */
+  pictureRead(ref: string, attachment: number): Promise<PictureRead>
+  /** The saved copy of a message's file, by the path memo names for it now, in the owner's own program. */
+  attachmentOpen(ref: string, attachment: number): Promise<void>
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
   /** memo's own `schedule agent` at `every` (the catalog's default when left out) or `schedule remove`; rejects
@@ -585,10 +641,13 @@ export type Platform = {
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */
   enrichmentStatus(id: string): Promise<Enrichment>
-  /** What turning it on with one of memo's offers sends and costs (`consents set` without `--yes`); changes nothing. */
-  enrichmentPreview(id: string, provider: string, model: string): Promise<EnrichmentStatus>
-  /** Turns it on with that offer; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
-  enrichmentOn(id: string, provider: string, model: string): Promise<EnrichmentStatus>
+  /**
+   * What turning it on with one of memo's offers, or a model at an address, sends and costs (`consents set` without
+   * `--yes`); changes nothing. memo's refusal of the address comes back as `model.address-refused` or `local-only.refused`.
+   */
+  enrichmentPreview(id: string, choice: EnrichmentChoice): Promise<EnrichmentStatus>
+  /** Turns it on with that choice; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
+  enrichmentOn(id: string, choice: EnrichmentChoice): Promise<EnrichmentStatus>
   /**
    * memo's `models keys set`: Rust hands the key to memo on stdin, and memo keeps it in the system keyring (a private file
    * when none answers). The app never stores it; the answer says only whether a key is found and where.

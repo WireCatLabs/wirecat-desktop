@@ -359,6 +359,7 @@ describe("Add to memory", () => {
     ["ai.images-not-allowed", /Reading pictures is off/, true],
     ["ai.key-missing", /no API key saved/, true],
     ["ai.failed", /could not read the picture/, true],
+    ["ai.empty-answer", /This model seems not to read pictures/, true],
     ["image.unsupported", /GIF, over 4 MB/, false],
   ])("words %s for a picture kept by its name", async (reason, text, linked) => {
     const { panel } = await addPicture(picture({ read: "no-text", chars: 0, image: { readBy: null, reason } }))

@@ -4,6 +4,7 @@ import {
   emptyDraft,
   fileName,
   givenOf,
+  imageReasonBefore,
   MAX_TEXT,
   missingOf,
   reasonOf,
@@ -58,5 +59,16 @@ describe("Add to Memory", () => {
     expect(reasonOf("memo.refused")).toBe("memo.refused")
     expect(tooOldFor("error: unknown command 'sources'")).toBe(true)
     expect(fileName("C:\\Users\\o\\runner notes.pdf")).toBe("runner notes.pdf")
+  })
+
+  it("needs a key only for a model that is not on this computer, as memo decides", () => {
+    const model = { provider: "openai", baseUrl: null, origin: null, images: true, key: { stored: false } }
+    expect(imageReasonBefore(model)).toBe("ai.key-missing")
+    expect(imageReasonBefore({ ...model, baseUrl: "http://localhost:1234/v1" })).toBeNull()
+    expect(imageReasonBefore({ ...model, origin: "http://127.0.0.1:8080" })).toBeNull()
+    expect(imageReasonBefore({ ...model, provider: "ollama" })).toBeNull()
+    expect(imageReasonBefore({ ...model, baseUrl: "https://openrouter.ai/api/v1" })).toBe("ai.key-missing")
+    expect(imageReasonBefore({ ...model, key: { stored: true } })).toBeNull()
+    expect(imageReasonBefore({ ...model, images: false })).toBe("ai.images-not-allowed")
   })
 })

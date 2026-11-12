@@ -69,6 +69,10 @@ type Words = {
   tasksNoPeople: string
   tasksFailed: string
   tasksAll: (n: number) => string
+  tasksOwn: Record<"deal" | "lead", string>
+  tasksOwnNone: Record<"deal" | "lead", string>
+  tasksCompany: (company: string) => string
+  tasksCompanyNone: string
   cancel: string
   readOnlyInstall: (tool: string) => string
   readOnlyUpdate: (tool: string) => string
@@ -166,6 +170,10 @@ const en: Words = {
   tasksNoPeople: "No contact person on this card, so there are no tasks to show.",
   tasksFailed: "Could not read the tasks.",
   tasksAll: (n) => `All ${n} on the Tasks page`,
+  tasksOwn: { deal: "Tasks of this deal", lead: "Tasks of this lead" },
+  tasksOwnNone: { deal: "This deal has no tasks.", lead: "This lead has no tasks." },
+  tasksCompany: (company) => `Tasks of ${company}`,
+  tasksCompanyNone: "The company has no tasks, in its projects or in its deals and leads.",
   cancel: "Cancel",
   readOnlyInstall: (tool) => `Read only: install ${tool} on the Tools page to move this CRM's cards from here.`,
   readOnlyUpdate: (tool) => `Read only: update ${tool} on the Tools page to move this CRM's cards from here.`,
@@ -270,6 +278,10 @@ const ru: Words = {
   tasksNoPeople: "На карточке нет контактного лица, поэтому задач не показать.",
   tasksFailed: "Не удалось прочитать задачи.",
   tasksAll: (n) => `Все ${n} на странице «Задачи»`,
+  tasksOwn: { deal: "Задачи этой сделки", lead: "Задачи этого лида" },
+  tasksOwnNone: { deal: "У этой сделки задач нет.", lead: "У этого лида задач нет." },
+  tasksCompany: (company) => `Задачи компании ${company}`,
+  tasksCompanyNone: "У компании нет задач ни в ее проектах, ни в ее сделках и лидах.",
   cancel: "Отмена",
   readOnlyInstall: (tool) =>
     `Только чтение: установите ${tool} на странице «Инструменты», чтобы переносить карточки этой CRM отсюда.`,
@@ -377,6 +389,10 @@ const es: Words = {
   tasksNoPeople: "Esta tarjeta no tiene persona de contacto, así que no hay tareas que mostrar.",
   tasksFailed: "No se pudieron leer las tareas.",
   tasksAll: (n) => `Las ${n} en la página Tareas`,
+  tasksOwn: { deal: "Tareas de esta negociación", lead: "Tareas de este prospecto" },
+  tasksOwnNone: { deal: "Esta negociación no tiene tareas.", lead: "Este prospecto no tiene tareas." },
+  tasksCompany: (company) => `Tareas de ${company}`,
+  tasksCompanyNone: "La empresa no tiene tareas, ni en sus proyectos ni en sus negociaciones y prospectos.",
   cancel: "Cancelar",
   readOnlyInstall: (tool) =>
     `Solo lectura: instala ${tool} en la página Herramientas para mover desde aquí las tarjetas de este CRM.`,

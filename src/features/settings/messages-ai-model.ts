@@ -14,19 +14,22 @@ export const CHECK_REASONS = [
   "ai.model-unknown",
   "ai.unreachable",
   "ai.bad-answer",
+  "ai.empty-answer",
   "ai.provider-error",
   "ai.address-refused",
   "ai.failed",
 ] as const
 export type CheckReason = (typeof CHECK_REASONS)[number]
 
-export const SAVE_REASONS = ["ai.address-refused", "ai.setting-invalid", "ai.owner-only"] as const
+export const SAVE_REASONS = ["ai.address-refused", "ai.setting-invalid", "ai.owner-only", "local-only.refused"] as const
 export type SaveReason = (typeof SAVE_REASONS)[number]
 
 const en = {
   heading: "AI model",
   intro:
     "Instead of your agent (Claude Code, Codex), WireCat can read sources, link chats and do other jobs with an AI model of your choice: Anthropic (Claude), OpenAI (ChatGPT), a service like OpenRouter, or Ollama on this computer. You pay Anthropic, OpenAI or the service for what the model reads. Ollama is free.",
+  shared:
+    "Linking chats, reply drafts and reading text in attachments (OCR) use this model too, unless a messenger profile sets a model of its own for them.",
   noModel: "No model (use your agent)",
   noModelDetails: "WireCat leaves this work to your agent. A picture you add to memory is kept by its name only.",
   providers: {
@@ -44,6 +47,7 @@ const en = {
   keyInFile: "This computer has no password store, so the key is kept in a file only your user can read.",
   keyFromEnvironment: "The key comes from an environment variable on this computer.",
   keyNone: "No key is saved yet.",
+  keyNotNeeded: "A model on this computer usually needs no key. Paste one only if your server asks for it.",
   keyReplace: "A key is saved. Paste a new one only to replace it.",
   showKey: "Show the key",
   hideKey: "Hide the key",
@@ -82,6 +86,8 @@ const en = {
     "ai.address-refused": "This address is not allowed. Use https, or http only for a server on this computer.",
     "ai.setting-invalid": "These settings were refused. Check the provider, the model and the address.",
     "ai.owner-only": "Only you can change the AI model, from WireCat or from your own terminal.",
+    "local-only.refused":
+      "“Only this computer” is on below, so WireCat sends nothing to a model on another computer. Choose a model on this computer, or turn that switch off.",
   } satisfies Record<SaveReason, string>,
   check: "Check",
   checking: "Checking…",
@@ -102,6 +108,8 @@ const en = {
     "ai.unreachable": (s) =>
       s.ollama ? "Ollama is not running. Start it, then check again." : `Cannot reach ${s.host}.`,
     "ai.bad-answer": (s) => `${s.host} answered, but not with text. The model may not support chat.`,
+    "ai.empty-answer": () =>
+      "This model seems not to read pictures: it answered nothing. Choose a model that reads them.",
     "ai.provider-error": (s) => `${s.host} has a problem on its side. Try again later.`,
     "ai.address-refused": () => "This address is not allowed. Use https, or http only for a server on this computer.",
     "ai.failed": (s) => `${s.host} refused the request.`,
@@ -119,6 +127,8 @@ const ru: typeof en = {
   heading: "Модель ИИ",
   intro:
     "Вместо вашего агента (Claude Code, Codex) WireCat может читать источники, связывать чаты и делать другую работу с помощью модели ИИ, которую вы выберете: Anthropic (Claude), OpenAI (ChatGPT), сервис вроде OpenRouter или Ollama на этом компьютере. За прочитанное вы платите Anthropic, OpenAI или этому сервису. Ollama бесплатна.",
+  shared:
+    "Связывание чатов, черновики ответов и чтение текста во вложениях (OCR) тоже идут через эту модель, если в профиле мессенджера для них не задана своя.",
   noModel: "Без модели (использовать агента)",
   noModelDetails:
     "Эту работу WireCat оставляет вашему агенту. Картинка, которую вы добавляете в память, сохраняется только по названию.",
@@ -139,6 +149,7 @@ const ru: typeof en = {
     "На этом компьютере нет хранилища паролей, поэтому ключ хранится в файле, который может прочитать только ваш пользователь.",
   keyFromEnvironment: "Ключ берётся из переменной окружения на этом компьютере.",
   keyNone: "Ключ пока не сохранён.",
+  keyNotNeeded: "Модели на этом компьютере ключ обычно не нужен. Вставьте его, только если ваш сервер его просит.",
   keyReplace: "Ключ сохранён. Вставляйте новый, только если хотите заменить его.",
   showKey: "Показать ключ",
   hideKey: "Скрыть ключ",
@@ -177,6 +188,8 @@ const ru: typeof en = {
     "ai.address-refused": "Этот адрес не разрешён. Нужен https, а http только для сервера на этом компьютере.",
     "ai.setting-invalid": "Эти настройки не приняты. Проверьте провайдера, модель и адрес.",
     "ai.owner-only": "Модель ИИ можете менять только вы, из WireCat или из своего терминала.",
+    "local-only.refused":
+      "Ниже включено «Только этот компьютер», поэтому WireCat ничего не отправляет модели на другом компьютере. Выберите модель на этом компьютере или выключите этот переключатель.",
   },
   check: "Проверить",
   checking: "Проверяем…",
@@ -197,6 +210,7 @@ const ru: typeof en = {
     "ai.unreachable": (s) =>
       s.ollama ? "Ollama не запущена. Запустите её и проверьте снова." : `Не удаётся связаться с ${s.host}.`,
     "ai.bad-answer": (s) => `${s.host} ответил, но не текстом. Возможно, модель не умеет вести чат.`,
+    "ai.empty-answer": () => "Эта модель, похоже, не читает картинки. Выберите модель, которая их читает.",
     "ai.provider-error": (s) => `У ${s.host} неполадка на их стороне. Попробуйте позже.`,
     "ai.address-refused": () => "Этот адрес не разрешён. Нужен https, а http только для сервера на этом компьютере.",
     "ai.failed": (s) => `${s.host} отклонил запрос.`,
@@ -214,6 +228,8 @@ const es: typeof en = {
   heading: "Modelo de IA",
   intro:
     "En lugar de tu agente (Claude Code, Codex), WireCat puede leer fuentes, enlazar chats y hacer otras tareas con el modelo de IA que elijas: Anthropic (Claude), OpenAI (ChatGPT), un servicio como OpenRouter u Ollama en este ordenador. Pagas a Anthropic, OpenAI o al servicio por lo que lee el modelo. Ollama es gratis.",
+  shared:
+    "Enlazar chats, los borradores de respuesta y leer el texto de los adjuntos (OCR) también usan este modelo, salvo que un perfil de mensajería les asigne uno propio.",
   noModel: "Sin modelo (usar tu agente)",
   noModelDetails:
     "WireCat deja este trabajo a tu agente. Una imagen que añades a la memoria se guarda solo por su nombre.",
@@ -234,6 +250,7 @@ const es: typeof en = {
     "Este ordenador no tiene almacén de contraseñas, así que la clave se guarda en un archivo que solo tu usuario puede leer.",
   keyFromEnvironment: "La clave viene de una variable de entorno de este ordenador.",
   keyNone: "Aún no hay ninguna clave guardada.",
+  keyNotNeeded: "Un modelo en este ordenador no suele necesitar clave. Pega una solo si tu servidor la pide.",
   keyReplace: "Hay una clave guardada. Pega otra solo para reemplazarla.",
   showKey: "Mostrar la clave",
   hideKey: "Ocultar la clave",
@@ -273,6 +290,8 @@ const es: typeof en = {
       "Esta dirección no está permitida. Usa https, o http solo para un servidor en este ordenador.",
     "ai.setting-invalid": "Estos ajustes fueron rechazados. Revisa el proveedor, el modelo y la dirección.",
     "ai.owner-only": "Solo tú puedes cambiar el modelo de IA, desde WireCat o desde tu propia terminal.",
+    "local-only.refused":
+      "«Solo este ordenador» está activado abajo, así que WireCat no envía nada a un modelo en otro ordenador. Elige un modelo en este ordenador o desactiva ese interruptor.",
   },
   check: "Comprobar",
   checking: "Comprobando…",
@@ -293,6 +312,7 @@ const es: typeof en = {
     "ai.unreachable": (s) =>
       s.ollama ? "Ollama no está en marcha. Inícialo y comprueba de nuevo." : `No se puede conectar con ${s.host}.`,
     "ai.bad-answer": (s) => `${s.host} respondió, pero no con texto. Puede que el modelo no admita chat.`,
+    "ai.empty-answer": () => "Este modelo parece no leer imágenes: no respondió nada. Elige un modelo que las lea.",
     "ai.provider-error": (s) => `${s.host} tiene un problema por su parte. Inténtalo más tarde.`,
     "ai.address-refused": () =>
       "Esta dirección no está permitida. Usa https, o http solo para un servidor en este ordenador.",

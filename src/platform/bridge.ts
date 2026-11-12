@@ -17,7 +17,17 @@ import {
   SkillWrittenSchema,
   TerminalReachSchema,
 } from "./agents-schemas"
-import { AiCheckedSchema, AiModelListSchema, AiModelSchema, AiOffSchema } from "./ai-model-schemas"
+import {
+  AiCheckedSchema,
+  AiModelListSchema,
+  AiModelSchema,
+  AiOffSchema,
+  LocalOnlySchema,
+  LocalOnlyStatusSchema,
+  PictureReadingSchema,
+  PictureReadingSettingSchema,
+  PictureReadSchema,
+} from "./ai-model-schemas"
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
 import { BackgroundAgentsSchema } from "./background-agent-schemas"
@@ -241,6 +251,8 @@ function createTauri(): Platform {
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
+    memoryFindingEdit: (ref, finding, fingerprint, changes) =>
+      call(MemoryEntrySchema, "memory_finding_edit", { reference: ref, finding, fingerprint, changes }),
     memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
     memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
     conversationRead: (place, ask) => invoke("conversation_read", { place, ask }),
@@ -275,6 +287,7 @@ function createTauri(): Platform {
         id,
         organization: to.organization ?? null,
         name: to.name ?? null,
+        mailbox: to.mailbox ?? null,
       }),
     peopleSplitDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),
@@ -318,6 +331,13 @@ function createTauri(): Platform {
     aiModelOff: () => call(AiOffSchema, "ai_model_off"),
     aiModelCheck: () => call(AiCheckedSchema, "ai_model_check"),
     aiModelList: (source) => call(AiModelListSchema, "ai_model_list", { source }),
+    localOnlyStatus: () => call(LocalOnlySchema, "local_only_status"),
+    localOnlySet: (on) => call(LocalOnlyStatusSchema, "local_only_set", { on }),
+    pictureReadingStatus: () => call(PictureReadingSchema, "picture_reading_status"),
+    pictureReadingSet: (mode, agent, model) =>
+      call(PictureReadingSettingSchema, "picture_reading_set", { mode, agent, model }),
+    pictureRead: (ref, attachment) => call(PictureReadSchema, "picture_read", { reference: ref, attachment }),
+    attachmentOpen: (ref, attachment) => invoke("attachment_open", { reference: ref, attachment }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskChats: () => call(ChatTasksSchema, "task_chats"),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
@@ -386,8 +406,8 @@ function createTauri(): Platform {
     backgroundAgentAcknowledge: (id) => call(BackgroundAgentsSchema, "background_agent_acknowledge", { id }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     enrichmentStatus: (id) => invoke("enrichment_status", { id }),
-    enrichmentPreview: (id, provider, model) => invoke("enrichment_preview", { id, provider, model }),
-    enrichmentOn: (id, provider, model) => invoke("enrichment_on", { id, provider, model }),
+    enrichmentPreview: (id, choice) => invoke("enrichment_preview", { id, choice }),
+    enrichmentOn: (id, choice) => invoke("enrichment_on", { id, choice }),
     enrichmentOff: (id) => invoke("enrichment_off", { id }),
     enrichmentKeySet: (id, provider, key) => invoke("enrichment_key_set", { id, provider, key }),
     enrichmentKeyRemove: (id, provider) => invoke("enrichment_key_remove", { id, provider }),

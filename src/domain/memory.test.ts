@@ -26,6 +26,7 @@ import {
   toneOf,
   undoMenuKey,
   undoOf,
+  waitingOf,
   withCleanNames,
 } from "./memory"
 
@@ -167,8 +168,22 @@ describe("rules of a record's row", () => {
       { id: "b", kind: "task", outcome: "rejected" },
       { id: "c", kind: "fact" },
     ]
-    expect(findingsCounts(f, "proposed")).toEqual({ reviewed: false, first: 2, second: 1 })
     expect(findingsCounts(f, "approved")).toEqual({ reviewed: true, first: 1, second: 2 })
+    expect(findingsCounts([...f, { id: "d", kind: "task" }], "proposed")).toEqual({
+      reviewed: false,
+      first: 1,
+      second: 1,
+    })
+  })
+
+  it("leaves the findings a partial decision settled out of what still waits", () => {
+    const f = [
+      { id: "a", kind: "fact", outcome: "accepted" },
+      { id: "b", kind: "task" },
+      { id: "c", kind: "fact" },
+    ]
+    expect(waitingOf(f).map((x) => x.id)).toEqual(["b", "c"])
+    expect(tickedCount(f, ["c"])).toBe(1)
   })
 
   it("picks a source's icon kind and a ref's kind", () => {

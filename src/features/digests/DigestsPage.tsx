@@ -39,7 +39,12 @@ export function DigestsPage() {
   }, [])
 
   const ready = book?.state === "ready" ? book : null
-  const can = { named: ready?.named ?? false }
+  const can = {
+    named: ready?.named ?? false,
+    agent: ready?.agent ?? false,
+    moreSources: ready?.moreSources ?? false,
+    agentConsent: ready?.agentConsent ?? false,
+  }
   const harness = ready?.harness ?? false
   const item = ready?.digests.find((d) => d.name === open) ?? null
   // A digest removed elsewhere closes its page.

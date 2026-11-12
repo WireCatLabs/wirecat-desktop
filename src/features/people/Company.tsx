@@ -40,6 +40,56 @@ export function CompanyButton({ group }: { group: MatchGroup }) {
   )
 }
 
+/**
+ * "Company address" on a match by name: the owner says which of the two people's addresses is a company's. The address
+ * goes to the company, and the people stay apart and are not suggested again on it.
+ */
+export function CompanyAddress({
+  group,
+  addresses,
+  onCancel,
+}: {
+  group: MatchGroup
+  addresses: readonly string[]
+  onCancel: () => void
+}) {
+  const m = useMessages(peopleMessages)
+  const busy = usePeople((s) => s.busy[group.key])
+  const asked = usePeople((s) => s.company[group.key]?.asked)
+  const head = useId()
+  return (
+    <fieldset aria-labelledby={head} className="reveal flex flex-col gap-[0.45rem]">
+      <legend id={head} className="text-[0.95rem] font-medium">
+        {m.companyAddressAsk}
+      </legend>
+      <p className="text-[0.9rem] text-ink-soft">{m.companyAddressHelp}</p>
+      <span className="flex flex-wrap items-center gap-2">
+        {addresses.map((a) => (
+          <Button
+            key={a}
+            size="sm"
+            disabled={!!busy}
+            aria-pressed={asked === a}
+            icon={
+              busy && asked === a ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Building2 className="size-4" aria-hidden />
+              )
+            }
+            onClick={() => void usePeople.getState().resolveMailbox(group.key, open(group), { mailbox: a })}
+          >
+            <span className="selectable font-mono text-[0.88rem]">{a}</span>
+          </Button>
+        ))}
+        <Button size="sm" variant="ghost" disabled={!!busy} onClick={onCancel}>
+          {m.cancel}
+        </Button>
+      </span>
+    </fieldset>
+  )
+}
+
 /** What giving the mailbox to a company did, and what memo needs when it refused: a company's name, or which one. */
 export function CompanyFollowUp({ group }: { group: MatchGroup }) {
   const m = useMessages(peopleMessages)
@@ -56,7 +106,8 @@ export function CompanyFollowUp({ group }: { group: MatchGroup }) {
       </div>
     )
   const { reason, message, organizations } = done.refused
-  const said = m.companyReasons[reason]
+  // On a match by name memo refuses an address that is not one of theirs at a company's domain.
+  const said = !group.mailbox && reason === "identity.not-shared" ? m.companyAddressRefused : m.companyReasons[reason]
   return (
     <div className="flex flex-col gap-[0.5rem]">
       <ErrorNotice inline>{said ?? m.companyFailed}</ErrorNotice>
