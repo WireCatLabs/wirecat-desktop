@@ -306,7 +306,7 @@ fn join(
                 signed_in: signed_in.filter(|_| state == AgentState::Ready),
                 reports_cost: runnable.is_some_and(|r| r.reports_cost),
                 reason: runnable.filter(|r| !r.restricted).and_then(|r| r.reason.clone()),
-                needs_ack: runnable.is_some_and(|r| !r.restricted),
+                needs_ack: runnable.is_some_and(|r| !r.restricted && r.ack),
                 acknowledged: acknowledged.contains(&id),
                 id,
             }

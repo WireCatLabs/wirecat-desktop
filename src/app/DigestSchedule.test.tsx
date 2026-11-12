@@ -6,6 +6,7 @@ import { useTasks } from "@/features/tasks"
 import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { agentsFixture } from "@/platform/mock-background-agent"
+import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
@@ -27,6 +28,7 @@ beforeEach(() => {
     pageSize: 50,
   })
   useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
+  useBackgroundAgents.setState({ agents: null, error: null, busy: false, chooseError: null })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
 })
 

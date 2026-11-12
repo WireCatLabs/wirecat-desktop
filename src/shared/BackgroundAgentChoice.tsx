@@ -56,21 +56,27 @@ export function useAgentWarning() {
   const m = useMessages(backgroundAgentMessages)
   const [asking, setAsking] = useState<{ agent: BackgroundAgent; then: () => void } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
   const ask = (id: string, then: () => void) => {
     const agent = useBackgroundAgents.getState().agents?.agents.find((a) => a.id === id)
     if (!agent?.needsAck || agent.acknowledged) return then()
+    setFailed(null)
     setAsking({ agent, then })
+  }
+  const close = () => {
+    if (!busy) setAsking(null)
   }
   const shown = asking?.agent
   const dialog = (
     <Dialog
       open={asking !== null}
       title={shown ? m.warning.title(shown.name) : ""}
-      onClose={() => setAsking(null)}
+      onClose={close}
+      canClose={() => !busy}
       actions={
         shown && (
           <>
-            <Button variant="secondary" onClick={() => setAsking(null)}>
+            <Button variant="secondary" disabled={busy} onClick={close}>
               {m.warning.cancel}
             </Button>
             <Button
@@ -80,8 +86,10 @@ export function useAgentWarning() {
                 setBusy(true)
                 const kept = await useBackgroundAgents.getState().acknowledge(asking.agent.id)
                 setBusy(false)
+                // A failure stays in the dialog: from the mail agent or a digest nothing else would show it.
+                if (!kept) return setFailed(useBackgroundAgents.getState().chooseError ?? "")
                 setAsking(null)
-                if (kept) asking.then()
+                asking.then()
               }}
             >
               {m.warning.accept(shown.name)}
@@ -96,6 +104,11 @@ export function useAgentWarning() {
           <p className="text-ink">{m.warning.can(shown.name)}</p>
           {shown.reason && <p>{m.warning.memo(shown.reason)}</p>}
           <p>{m.warning.once}</p>
+          {failed !== null && (
+            <ErrorNotice raw={failed || null} inline>
+              {m.chooseFailed}
+            </ErrorNotice>
+          )}
         </div>
       )}
     </Dialog>

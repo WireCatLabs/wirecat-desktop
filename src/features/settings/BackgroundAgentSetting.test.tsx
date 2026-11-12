@@ -100,6 +100,22 @@ it("offers Codex after a warning: Cancel keeps the choice, «I understand» conf
   await vi.waitFor(() => expect(choose).toHaveBeenCalledWith("codex"))
 })
 
+it("keeps the warning open with the error when the confirmation is not saved, and chooses nothing", async () => {
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "codex"]))
+  vi.spyOn(platform, "backgroundAgentAcknowledge").mockRejectedValue(new Error("disk full"))
+  const choose = vi.spyOn(platform, "backgroundAgentChoose")
+  const user = userEvent.setup()
+  render(<BackgroundAgentSetting />)
+
+  await user.click(await screen.findByRole("combobox", { name: "Agent for background jobs" }))
+  await user.click(screen.getByRole("option", { name: "Codex · Ready after a warning" }))
+  await user.click(screen.getByRole("button", { name: "Use this agent" }))
+  const warning = await screen.findByRole("dialog", { name: "Run background jobs in Codex?" })
+  await user.click(within(warning).getByRole("button", { name: "I understand, use Codex" }))
+  expect(await within(warning).findByText("Your choice was not saved.")).toBeInTheDocument()
+  expect(choose).not.toHaveBeenCalled()
+})
+
 it("on a memo that cannot list its agents, keeps Claude Code, greys Codex and points to the Memo update", async () => {
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"], "claude", false))
   render(<BackgroundAgentSetting />)
