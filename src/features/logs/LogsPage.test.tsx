@@ -408,6 +408,8 @@ describe("Logs snapshot", () => {
     const sources = await openSettings(user)
     expect(within(sources).getByText("did not answer in 1 s")).toBeInTheDocument()
 
+    // The next round waits long enough on any machine, so it is the held answer it takes, not another time limit.
+    timing.answer = 30_000
     await user.click(screen.getByRole("button", { name: "Read again" }))
     answerTg()
     await loaded()
