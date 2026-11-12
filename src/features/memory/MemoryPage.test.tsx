@@ -395,6 +395,15 @@ describe("Memory", () => {
     expect(match(run("tg", "facts list"))).toBe(false)
   })
 
+  it("offers one retry when memory cannot be read: the error's, not the header's Read again too", async () => {
+    const read = vi.spyOn(platform, "memoryRead").mockRejectedValue(new Error("spawn memo ENOENT"))
+    render(<MemoryPage />)
+    const alert = await screen.findByRole("alert")
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Read again" })).not.toBeInTheDocument()
+    read.mockRestore()
+  })
+
   it("shows the rest of memory, and says so, when memo does not list the links", async () => {
     const read = await platform.memoryRead()
     if (read.kind !== "ready") throw new Error("the mock memo is ready")

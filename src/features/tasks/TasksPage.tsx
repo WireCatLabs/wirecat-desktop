@@ -4,6 +4,7 @@ import { gapFromRead } from "@/domain/needs"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
+import { PageError } from "@/shared/PageError"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -95,21 +96,15 @@ function Body() {
   const unusable = useTasks((s) => s.unusable)
   const loaded = useTasks((s) => s.loaded)
   const error = useTasks((s) => s.error)
+  const reading = useTasks((s) => s.reading)
 
   const gap = gapFromRead(unusable)
   if (gap) return <ToolNeeded gap={gap} />
   if (error) {
     return (
-      <ErrorNotice
-        raw={error}
-        action={
-          <Button size="sm" onClick={() => void useTasks.getState().load()}>
-            {m.tryAgain}
-          </Button>
-        }
-      >
+      <PageError raw={error} what="Reading tasks" busy={reading} onRetry={() => void useTasks.getState().load()}>
         {m.readFailed}
-      </ErrorNotice>
+      </PageError>
     )
   }
   return (

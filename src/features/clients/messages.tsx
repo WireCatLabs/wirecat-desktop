@@ -17,7 +17,6 @@ type Words = {
   notices: string
   crmChip: Record<"missing" | "old" | "signedOut", (tool: string) => string>
   readOnlyChip: string
-  tryAgain: string
   none: Record<Kind, string>
   noneBody: Record<Kind, string>
   noMatch: string
@@ -108,7 +107,6 @@ const en: Words = {
     signedOut: (tool) => `${tool}: not signed in`,
   },
   readOnlyChip: "Read only",
-  tryAgain: "Try again",
   none: { deal: "No deals yet", lead: "No leads yet" },
   noneBody: {
     deal: "Sync a CRM on the Tools page, or ask your agent to record a deal. Deals show here by stage.",
@@ -215,7 +213,6 @@ const ru: Words = {
     signedOut: (tool) => `${tool}: вход не выполнен`,
   },
   readOnlyChip: "Только чтение",
-  tryAgain: "Ещё раз",
   none: { deal: "Сделок пока нет", lead: "Лидов пока нет" },
   noneBody: {
     deal: "Синхронизируйте CRM на странице «Инструменты» или попросите агента записать сделку. Сделки появятся здесь по этапам.",
@@ -326,7 +323,6 @@ const es: Words = {
     signedOut: (tool) => `${tool}: sin sesión`,
   },
   readOnlyChip: "Solo lectura",
-  tryAgain: "Reintentar",
   none: { deal: "Aún no hay negociaciones", lead: "Aún no hay prospectos" },
   noneBody: {
     deal: "Sincroniza un CRM en la página Herramientas o pide a tu agente que registre una negociación. Aparecen aquí por etapa.",

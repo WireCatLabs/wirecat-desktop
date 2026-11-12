@@ -9,13 +9,12 @@ import type { StorageArea } from "@/platform/schemas"
 import { useCompat } from "@/shared/compat-store"
 import { KeptFolders } from "@/shared/KeptFolders"
 import { Page, PageHeader } from "@/shared/Page"
-import { ReportThis } from "@/shared/ReportThis"
+import { PageError } from "@/shared/PageError"
 import { areaBytes, useStorage } from "@/shared/storage-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { ArchiveSummary } from "./ArchiveSummary"
 import { BackupPanel } from "./BackupPanel"
@@ -61,9 +60,14 @@ export function StoragePage() {
       />
 
       {error && (
-        <ErrorNotice action={<ReportThis what="Working with data on this computer" error={error} />}>
-          {error}
-        </ErrorNotice>
+        <PageError
+          raw={error}
+          what="Working with data on this computer"
+          busy={revalidating}
+          onRetry={() => void refresh()}
+        >
+          {m.readFailed}
+        </PageError>
       )}
 
       {/* Room for the one-line warning box, so it arriving after the page does not push everything down. */}

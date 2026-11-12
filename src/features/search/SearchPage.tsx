@@ -28,6 +28,7 @@ import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-sc
 import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
+import { PageError } from "@/shared/PageError"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { ToolNeeded } from "@/shared/ToolNeeded"
@@ -400,9 +401,9 @@ function resultsView(
     return {
       view: "error",
       node: (
-        <ErrorNotice raw={s.error} action={<ReportThis what={`Searching ${toolName}`} error={s.error} />}>
+        <PageError raw={s.error} what={`Searching ${toolName}`} busy={s.loading} onRetry={() => s.search(page)}>
           {m.failed}
-        </ErrorNotice>
+        </PageError>
       ),
     }
   if (answer?.kind === "old")

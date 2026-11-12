@@ -7,6 +7,7 @@ import { gapFromRead } from "@/domain/needs"
 import { useMessages } from "@/i18n"
 import { crmNeed, useNeed } from "@/shared/needs"
 import { Page, PageHeader } from "@/shared/Page"
+import { PageError } from "@/shared/PageError"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
@@ -58,7 +59,7 @@ export function ClientsPage() {
               onClick={() => void readAgain()}
               label={m.readAgain}
               busyLabel={m.reading}
-              className={cx(!based && "invisible")}
+              className={cx((!based || board.error) && "invisible")}
             />
             {based && (
               <Button
@@ -236,20 +237,13 @@ function Body() {
   const m = useMessages(clientMessages)
   const kind = useClients((s) => s.kind)
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
-  const { data, error, isPending } = useBoard(kind, pipeline)
+  const { data, error, isPending, isFetching } = useBoard(kind, pipeline)
 
   if (error) {
     return (
-      <ErrorNotice
-        raw={error.message}
-        action={
-          <Button size="sm" onClick={() => void readAgain()}>
-            {m.tryAgain}
-          </Button>
-        }
-      >
+      <PageError raw={error.message} what="Reading clients" busy={isFetching} onRetry={() => void readAgain()}>
         {m.readFailed}
-      </ErrorNotice>
+      </PageError>
     )
   }
   if (isPending || !data) return <Loading />

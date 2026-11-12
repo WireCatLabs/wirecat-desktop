@@ -2,10 +2,9 @@ import { useEffect, useState } from "react"
 import { gapFromRead } from "@/domain/needs"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { Page, PageHeader } from "@/shared/Page"
-import { ReportThis } from "@/shared/ReportThis"
+import { PageError } from "@/shared/PageError"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Crossfade } from "@/ui/Crossfade"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { AddPerson } from "./AddPerson"
@@ -54,16 +53,17 @@ export function PeoplePage() {
         intro={m.intro}
         guide={{ label: m.guide, href: guide(lang) }}
         actions={
-          s.read !== "missing" && (
+          s.read !== "missing" &&
+          !s.error && (
             <RefreshButton busy={s.reading} onClick={() => void load()} label={m.readAgain} busyLabel={m.reading} />
           )
         }
       />
 
       {s.error ? (
-        <ErrorNotice raw={s.error} action={<ReportThis what="Reading people" error={s.error} />}>
+        <PageError raw={s.error} what="Reading people" busy={s.reading} onRetry={() => void load()}>
           {m.readFailed}
-        </ErrorNotice>
+        </PageError>
       ) : gap ? (
         <ToolNeeded gap={gap} />
       ) : (
