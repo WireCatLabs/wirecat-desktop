@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 /** The MCP server section: its summary, Server details, the login code and forgetting logins. */
 const en = {
@@ -60,7 +61,7 @@ const en = {
       ) : (
         <>An older Tailscale Funnel still sends {url} to this computer. Starting the server replaces it.</>
       ),
-    turningOff: "Turning off…",
+    turningOff: uiMessages.en.turningOff,
     turnOff: "Turn it off",
     copying: "Copying…",
     copyConfig: "Copy config for desktop apps",
@@ -165,7 +166,7 @@ const ru: typeof en = {
       ) : (
         <>Старый Tailscale Funnel всё ещё направляет {url} на этот компьютер. Запуск сервера заменит его.</>
       ),
-    turningOff: "Выключаем…",
+    turningOff: uiMessages.ru.turningOff,
     turnOff: "Выключить",
     copying: "Копируем…",
     copyConfig: "Скопировать настройки для настольных приложений",
@@ -263,7 +264,7 @@ const es: typeof en = {
       ) : (
         <>Un Tailscale Funnel anterior sigue enviando {url} a este ordenador. Iniciar el servidor lo sustituye.</>
       ),
-    turningOff: "Desactivando…",
+    turningOff: uiMessages.es.turningOff,
     turnOff: "Desactivarlo",
     copying: "Copiando…",
     copyConfig: "Copiar la configuración para apps de escritorio",

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 /** The Tailscale and Cloudflare steps of the Connect guide. */
 const en = {
@@ -61,7 +62,7 @@ const en = {
     addSource: "Add the update source",
     operator:
       "On Linux, Tailscale takes orders only from the administrator unless you name your user as its operator. Do this once: it lets WireCat log in and turn Funnel on without asking for your password each time.",
-    copyCommand: "Copy the command",
+    copyCommand: uiMessages.en.copyCommand,
     operatorHow:
       "Paste it in a terminal; it asks for your computer password. WireCat does not run it for you, because it changes who controls Tailscale. Then come back here; the step checks itself.",
     why: "Tailscale gives this computer a fixed https address on the internet, so ChatGPT or Claude in the browser can reach the server.",
@@ -236,7 +237,7 @@ const ru: typeof en = {
     addSource: "Добавить источник обновлений",
     operator:
       "В Linux Tailscale слушается только администратора, пока вы не назначите своего пользователя его оператором. Сделайте это один раз: тогда WireCat сможет входить и включать Funnel, не спрашивая каждый раз пароль.",
-    copyCommand: "Скопировать команду",
+    copyCommand: uiMessages.ru.copyCommand,
     operatorHow:
       "Вставьте её в терминал, она попросит пароль от компьютера. WireCat не выполняет её сам, потому что она меняет, кто управляет Tailscale. Затем вернитесь сюда: шаг проверится сам.",
     why: "Tailscale даёт этому компьютеру постоянный https-адрес в интернете, чтобы ChatGPT или Claude в браузере могли достучаться до сервера.",
@@ -411,7 +412,7 @@ const es: typeof en = {
     addSource: "Añadir la fuente de actualizaciones",
     operator:
       "En Linux, Tailscale solo obedece al administrador, salvo que nombres a tu usuario como su operador. Hazlo una vez: así WireCat puede iniciar sesión y activar Funnel sin pedirte la contraseña cada vez.",
-    copyCommand: "Copiar el comando",
+    copyCommand: uiMessages.es.copyCommand,
     operatorHow:
       "Pégalo en un terminal; te pedirá la contraseña del ordenador. WireCat no lo ejecuta por ti, porque cambia quién controla Tailscale. Luego vuelve aquí; el paso se comprueba solo.",
     why: "Tailscale da a este ordenador una dirección https fija en internet, para que ChatGPT o Claude en el navegador puedan llegar al servidor.",

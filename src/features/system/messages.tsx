@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 type Os = "linux" | "macos" | "windows"
 
@@ -84,7 +85,7 @@ const en = {
   adminManual: (bin: ReactNode): ReactNode => (
     <>Point npm at a folder in your home, then add that folder's {bin} to your PATH and check again.</>
   ),
-  copyCommand: "Copy the command",
+  copyCommand: uiMessages.en.copyCommand,
   install: {
     linux: (requirement: string) =>
       `Install ${requirement}. Use nvm or fnm, or your distribution's NodeSource package; the version in the default repositories is often too old. Then check again.`,
@@ -178,7 +179,7 @@ const ru: typeof en = {
   adminManual: (bin) => (
     <>Укажите npm папку в вашем домашнем каталоге, затем добавьте её {bin} в PATH и проверьте снова.</>
   ),
-  copyCommand: "Скопировать команду",
+  copyCommand: uiMessages.ru.copyCommand,
   install: {
     linux: (requirement) =>
       `Установите ${requirement}. Используйте nvm или fnm либо пакет NodeSource для вашего дистрибутива: версия в стандартных репозиториях часто слишком старая. Затем проверьте снова.`,
@@ -277,7 +278,7 @@ const es: typeof en = {
   adminManual: (bin) => (
     <>Indica a npm una carpeta dentro de tu carpeta personal, añade su {bin} a tu PATH y vuelve a comprobar.</>
   ),
-  copyCommand: "Copiar el comando",
+  copyCommand: uiMessages.es.copyCommand,
   install: {
     linux: (requirement) =>
       `Instala ${requirement}. Usa nvm o fnm, o el paquete NodeSource de tu distribución; la versión de los repositorios por defecto suele ser demasiado antigua. Luego vuelve a comprobar.`,

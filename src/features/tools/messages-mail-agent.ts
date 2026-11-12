@@ -1,4 +1,5 @@
 import { type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   title: "Mail agent",
@@ -10,7 +11,7 @@ const en = {
   changing: "Changing…",
   failedEvery: "Could not change how often it runs.",
   turningOn: "Turning on…",
-  turningOff: "Turning off…",
+  turningOff: uiMessages.en.turningOff,
   noMemo: "The mail agent runs in Memo. Install Memo to use it.",
   openMemo: "Open Memo",
   old: (version: string | null, need: string) =>
@@ -58,7 +59,7 @@ const ru: typeof en = {
   changing: "Меняю…",
   failedEvery: "Не удалось изменить частоту запуска.",
   turningOn: "Включаю…",
-  turningOff: "Выключаю…",
+  turningOff: uiMessages.ru.turningOff,
   noMemo: "Почтовый агент работает в Memo. Установите Memo, чтобы им пользоваться.",
   openMemo: "Открыть Memo",
   old: (version, need) =>
@@ -120,7 +121,7 @@ const es: typeof en = {
   changing: "Cambiando…",
   failedEvery: "No se pudo cambiar la frecuencia.",
   turningOn: "Activando…",
-  turningOff: "Desactivando…",
+  turningOff: uiMessages.es.turningOff,
   noMemo: "El agente de correo funciona en Memo. Instala Memo para usarlo.",
   openMemo: "Abrir Memo",
   old: (version, need) =>

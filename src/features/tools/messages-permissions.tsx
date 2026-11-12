@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { type Messages, plural } from "@/i18n"
 import type { Level } from "@/platform/permissions-schemas"
+import { uiMessages } from "@/ui/messages"
 
 type Count = { allowed: number; total: number }
 
@@ -127,7 +128,7 @@ const en = {
     levelInline: EN_LEVEL_INLINE,
     ceilingNoEffect: "Your first-run answer still keeps every tool read only, so this has no effect until then.",
     runs: "WireCat runs:",
-    copyCommand: "Copy the command",
+    copyCommand: uiMessages.en.copyCommand,
   },
   // Wording follows cli-base's permissions standard (WC-PERM-2, -4, -6, -11), WC-MCP-7, tg-cli's docs/permissions.md,
   // and the keys cli-core's `keyForCommand` checks each command against.
@@ -299,7 +300,7 @@ const ru: typeof en = {
     ceilingNoEffect:
       "Ваш ответ при первой настройке по-прежнему держит все инструменты в режиме только для чтения, так что пока это ни на что не влияет.",
     runs: "WireCat выполнит:",
-    copyCommand: "Скопировать команду",
+    copyCommand: uiMessages.ru.copyCommand,
   },
   levels: {
     open: "Что значат эти уровни?",
@@ -467,7 +468,7 @@ const es: typeof en = {
     ceilingNoEffect:
       "Tu respuesta en la primera configuración sigue dejando todas las herramientas en solo lectura, así que esto no tiene efecto hasta entonces.",
     runs: "WireCat ejecuta:",
-    copyCommand: "Copiar el comando",
+    copyCommand: uiMessages.es.copyCommand,
   },
   levels: {
     open: "¿Qué significan estos niveles?",

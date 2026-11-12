@@ -38,6 +38,9 @@ const en = {
   pageSize: "Rows per page",
   perPage: (n: string) => `${n} per page`,
   aboutPage: (title: string) => `About ${title}`,
+  copyCommand: "Copy the command",
+  notInstalled: "Not installed",
+  turningOff: "Turning off…",
 }
 
 const ru: typeof en = {
@@ -78,6 +81,9 @@ const ru: typeof en = {
   pageSize: "Строк на странице",
   perPage: (n) => `${n} на странице`,
   aboutPage: (title) => `О разделе «${title}»`,
+  copyCommand: "Скопировать команду",
+  notInstalled: "Не установлен",
+  turningOff: "Выключаю…",
 }
 
 const es: typeof en = {
@@ -118,6 +124,9 @@ const es: typeof en = {
   pageSize: "Filas por página",
   perPage: (n) => `${n} por página`,
   aboutPage: (title) => `Sobre ${title}`,
+  copyCommand: "Copiar el comando",
+  notInstalled: "Sin instalar",
+  turningOff: "Desactivando…",
 }
 
 export const uiMessages: Messages<typeof en> = { en, ru, es }

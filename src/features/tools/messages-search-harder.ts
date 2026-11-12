@@ -1,4 +1,5 @@
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   title: "Search harder",
@@ -32,7 +33,7 @@ const en = {
     `Allowed since ${when}: ${provider} ${model} (${host}).`,
   change: "Change model",
   turnOff: "Turn off",
-  turningOff: "Turning off…",
+  turningOff: uiMessages.en.turningOff,
   turnedOff: "Off. No search sends anything.",
   oldNeed: (need: string) => `Search harder comes with memo ${need}. Update memo on the Tools page.`,
   oldNone: "Search harder comes with a memo update that is not released yet.",
@@ -74,7 +75,7 @@ const ru: typeof en = {
   onSince: (when, provider, model, host) => `Разрешено с ${when}: ${provider} ${model} (${host}).`,
   change: "Сменить модель",
   turnOff: "Выключить",
-  turningOff: "Выключаю…",
+  turningOff: uiMessages.ru.turningOff,
   turnedOff: "Выключено. Ни один поиск ничего не отправляет.",
   oldNeed: (need) => `Тщательный поиск появится в memo ${need}. Обновите memo на странице «Инструменты».`,
   oldNone: "Тщательный поиск появится в обновлении memo, которое ещё не вышло.",
@@ -116,7 +117,7 @@ const es: typeof en = {
   onSince: (when, provider, model, host) => `Permitido desde ${when}: ${provider} ${model} (${host}).`,
   change: "Cambiar modelo",
   turnOff: "Desactivar",
-  turningOff: "Desactivando…",
+  turningOff: uiMessages.es.turningOff,
   turnedOff: "Desactivado. Ninguna búsqueda envía nada.",
   oldNeed: (need) => `Buscar a fondo llega con memo ${need}. Actualiza memo en la página Herramientas.`,
   oldNone: "Buscar a fondo llega con una actualización de memo que aún no ha salido.",

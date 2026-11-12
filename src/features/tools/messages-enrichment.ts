@@ -1,4 +1,5 @@
 import { type Messages, plural } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   title: "Rewrite records for better search",
@@ -58,7 +59,7 @@ const en = {
     `Memo deletes the facts and questions the model wrote for ${records}. Search reads only the records' own words again. Turning it on later sends the records again and costs again.`,
   keepOn: "Keep it on",
   offConfirm: "Turn off and delete",
-  turningOff: "Turning off…",
+  turningOff: uiMessages.en.turningOff,
   turnedOff: (records: string) => `Off. Deleted the model's text for ${records}. Nothing more is sent.`,
   old: (version: string | null) =>
     `${version ? `Memo ${version}` : "This Memo"} cannot rewrite records yet. It comes with a Memo update.`,
@@ -140,7 +141,7 @@ const ru: typeof en = {
     `Memo удалит факты и вопросы, которые модель написала для: ${records}. Поиск снова читает только слова самих записей. Если включить позже, записи отправятся снова и это снова будет стоить денег.`,
   keepOn: "Оставить включённым",
   offConfirm: "Выключить и удалить",
-  turningOff: "Выключаю…",
+  turningOff: uiMessages.ru.turningOff,
   turnedOff: (records) => `Выключено. Текст модели удалён для: ${records}. Больше ничего не отправляется.`,
   old: (version) =>
     `${version ? `Memo ${version}` : "Эта версия Memo"} пока не умеет переписывать записи. Это придёт с обновлением Memo.`,
@@ -230,7 +231,7 @@ const es: typeof en = {
     `Memo borra los hechos y preguntas que el modelo escribió para ${records}. La búsqueda vuelve a leer solo las palabras de los registros. Si lo activas más tarde, los registros se envían otra vez y vuelve a costar.`,
   keepOn: "Dejarlo activado",
   offConfirm: "Desactivar y borrar",
-  turningOff: "Desactivando…",
+  turningOff: uiMessages.es.turningOff,
   turnedOff: (records) => `Desactivado. Se borró el texto del modelo de ${records}. No se envía nada más.`,
   old: (version) =>
     `${version ? `Memo ${version}` : "Esta versión de Memo"} aún no puede reescribir registros. Llegará con una actualización de Memo.`,

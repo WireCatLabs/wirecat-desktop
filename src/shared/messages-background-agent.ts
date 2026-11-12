@@ -1,6 +1,7 @@
 import type { Messages } from "@/i18n"
 import type { AgentState } from "@/platform/background-agent-schemas"
 import type { TroubleKind } from "@/platform/bindings"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   heading: "Agent for background jobs",
@@ -8,7 +9,7 @@ const en = {
   pick: "Not chosen",
   states: {
     ready: "Ready",
-    notInstalled: "Not installed",
+    notInstalled: uiMessages.en.notInstalled,
     programMissing: "Its program is not found",
     notSupported: "Cannot run on a schedule yet",
     needsNewerMemo: "Needs a newer Memo",
@@ -57,7 +58,7 @@ const ru: typeof en = {
   pick: "Не выбран",
   states: {
     ready: "Готов",
-    notInstalled: "Не установлен",
+    notInstalled: uiMessages.ru.notInstalled,
     programMissing: "Не найдена его программа",
     notSupported: "Пока не умеет работать по расписанию",
     needsNewerMemo: "Нужна более новая Memo",
@@ -106,7 +107,7 @@ const es: typeof en = {
   pick: "Sin elegir",
   states: {
     ready: "Listo",
-    notInstalled: "No instalado",
+    notInstalled: uiMessages.es.notInstalled,
     programMissing: "No se encuentra su programa",
     notSupported: "Aún no puede ejecutarse con horario",
     needsNewerMemo: "Necesita un Memo más reciente",

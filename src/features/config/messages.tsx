@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 const en = {
   find: "Find in the JSON",
@@ -10,7 +11,7 @@ const en = {
   findNext: "Next match",
   shared: "WireCat (shared)",
   sharedNeedsTool: "Install Telegram, MAX or WhatsApp to change shared settings",
-  notInstalled: "Not installed",
+  notInstalled: uiMessages.en.notInstalled,
   noneInstalled: "Install a tool to change its settings.",
   openTools: "Open Tools",
   profile: "Profile",
@@ -165,7 +166,7 @@ const ru: ConfigText = {
   findNext: "Следующее совпадение",
   shared: "WireCat (общие)",
   sharedNeedsTool: "Установите Telegram, MAX или WhatsApp, чтобы менять общие настройки",
-  notInstalled: "Не установлен",
+  notInstalled: uiMessages.ru.notInstalled,
   noneInstalled: "Установите инструмент, чтобы менять его настройки.",
   openTools: "Открыть Инструменты",
   profile: "Профиль",
@@ -325,7 +326,7 @@ const es: ConfigText = {
   findNext: "Coincidencia siguiente",
   shared: "WireCat (compartidos)",
   sharedNeedsTool: "Instala Telegram, MAX o WhatsApp para cambiar los ajustes compartidos",
-  notInstalled: "No instalado",
+  notInstalled: uiMessages.es.notInstalled,
   noneInstalled: "Instala una herramienta para cambiar sus ajustes.",
   openTools: "Abrir Herramientas",
   profile: "Perfil",

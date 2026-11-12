@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { type CatalogTool, tools } from "@/domain/catalog"
 import { type Messages, plural } from "@/i18n"
 import type { StepId } from "@/shared/onboarding-store"
+import { uiMessages } from "@/ui/messages"
 
 type Page = { title: string; lead: string }
 type Stop = { title: string; text: string }
@@ -93,7 +94,7 @@ const en = {
   },
   install: {
     list: "Installing",
-    notInstalled: "Not installed",
+    notInstalled: uiMessages.en.notInstalled,
     notInstalledFailed: "Did not install",
     checking: "Checking…",
     queued: "Waiting for its turn",
@@ -204,7 +205,7 @@ const en = {
   },
   done: {
     list: "Your tools",
-    notInstalled: "Not installed",
+    notInstalled: uiMessages.en.notInstalled,
     moreLater: "You can install other tools later on the Tools page.",
     next: "What next",
     agents: "See which agents use them",
@@ -413,7 +414,7 @@ const ru: OnboardingText = {
   },
   install: {
     list: "Установка",
-    notInstalled: "Не установлен",
+    notInstalled: uiMessages.ru.notInstalled,
     notInstalledFailed: "Не установился",
     checking: "Проверяем…",
     queued: "Ждёт своей очереди",
@@ -557,7 +558,7 @@ const ru: OnboardingText = {
   },
   done: {
     list: "Ваши инструменты",
-    notInstalled: "Не установлен",
+    notInstalled: uiMessages.ru.notInstalled,
     moreLater: "Другие инструменты можно установить позже на странице «Инструменты».",
     next: "Что дальше",
     agents: "Посмотреть, какие агенты их используют",
@@ -737,7 +738,7 @@ const es: OnboardingText = {
   },
   install: {
     list: "Instalando",
-    notInstalled: "Sin instalar",
+    notInstalled: uiMessages.es.notInstalled,
     notInstalledFailed: "No se instaló",
     checking: "Comprobando…",
     queued: "Esperando su turno",
@@ -872,7 +873,7 @@ const es: OnboardingText = {
   },
   done: {
     list: "Tus herramientas",
-    notInstalled: "Sin instalar",
+    notInstalled: uiMessages.es.notInstalled,
     moreLater: "Puedes instalar otras herramientas más tarde en la página Herramientas.",
     next: "Qué sigue",
     agents: "Ver qué agentes las usan",

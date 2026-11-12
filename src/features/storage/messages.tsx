@@ -5,6 +5,7 @@ import type { EntryKey } from "@/domain/files"
 import type { TableGroup } from "@/domain/table-groups"
 import { formatDate, formatNumber, type Lang, type Messages, plural, pluralRu } from "@/i18n"
 import type { StorageFolder } from "@/platform/schemas"
+import { uiMessages } from "@/ui/messages"
 
 type FolderKind = StorageFolder["kind"]
 
@@ -222,7 +223,7 @@ const en = {
   noProblems: "No problems found",
   problems: (n: number) => plural("en", n, { one: "# problem found", other: "# problems found" }),
   checkedIn: (time: string) => `checked in ${time}`,
-  copyCommand: "Copy the command",
+  copyCommand: uiMessages.en.copyCommand,
   duration: (ms: number) => duration(ms, "s", "min"),
   databaseWords: {
     noBackup: "No backup recorded beside the storage file",
@@ -492,7 +493,7 @@ const ru: typeof en = {
   noProblems: "Проблем не найдено",
   problems: (n) => pluralRu(n, ["Найдена # проблема", "Найдено # проблемы", "Найдено # проблем"]),
   checkedIn: (time) => `проверено за ${time}`,
-  copyCommand: "Скопировать команду",
+  copyCommand: uiMessages.ru.copyCommand,
   duration: (ms) => duration(ms, "с", "мин"),
   databaseWords: {
     noBackup: "Рядом с файлом хранилища нет записи о резервной копии",
@@ -767,7 +768,7 @@ const es: typeof en = {
   noProblems: "No se encontraron problemas",
   problems: (n) => plural("es", n, { one: "Se encontró # problema", other: "Se encontraron # problemas" }),
   checkedIn: (time) => `comprobado en ${time}`,
-  copyCommand: "Copiar el comando",
+  copyCommand: uiMessages.es.copyCommand,
   duration: (ms) => duration(ms, "s", "min"),
   databaseWords: {
     noBackup: "No hay ninguna copia registrada junto al archivo del almacenamiento",

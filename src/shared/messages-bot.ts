@@ -1,4 +1,5 @@
 import type { Messages } from "@/i18n"
+import { uiMessages } from "@/ui/messages"
 
 type Tool = "tg" | "max" | "wa"
 
@@ -90,7 +91,7 @@ const en = {
     wa: "Send the hello_world template to a number you added in API Setup. Receiving messages needs a webhook; the bot guide explains it.",
   } satisfies Record<Tool, string>,
   tryIt: "Check which bot it is:",
-  copyCommand: "Copy the command",
+  copyCommand: uiMessages.en.copyCommand,
   guide: "Read the bot guide",
   bots: "Bots",
   noBots: "No bot yet.",
@@ -217,7 +218,7 @@ const ru: typeof en = {
     wa: "Отправьте шаблон hello_world на номер, добавленный в API Setup. Чтобы получать сообщения, нужен вебхук — об этом в руководстве по боту.",
   },
   tryIt: "Проверьте, какой это бот:",
-  copyCommand: "Скопировать команду",
+  copyCommand: uiMessages.ru.copyCommand,
   guide: "Руководство по боту",
   bots: "Боты",
   noBots: "Ботов пока нет.",
@@ -343,7 +344,7 @@ const es: typeof en = {
     wa: "Envía la plantilla hello_world a un número que añadiste en API Setup. Para recibir mensajes hace falta un webhook; lo explica la guía del bot.",
   },
   tryIt: "Comprueba qué bot es:",
-  copyCommand: "Copiar el comando",
+  copyCommand: uiMessages.es.copyCommand,
   guide: "Leer la guía del bot",
   bots: "Bots",
   noBots: "Aún no hay ningún bot.",
