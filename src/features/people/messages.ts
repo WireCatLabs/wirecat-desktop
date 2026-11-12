@@ -277,7 +277,7 @@ const en = {
   doubtsTitle: "Check the links",
   doubtsCount: (n: number) => (n === 1 ? "1 person to check" : `${n} people to check`),
   doubtsHelp:
-    "We found people whose accounts may not all be theirs. Check each one. If it is right, press «These belong together» and they will not come up here again. If an account is someone else's, move it away.",
+    "We found people whose accounts may not all be theirs. Check each one. If it is right, press “These belong together” and they will not come up here again. If an account is someone else's, move it away.",
   doubtReasons: {
     "test-data": "These accounts look like test data, not a real person.",
     "shared-address": "This address is shared by several people, such as a team inbox.",

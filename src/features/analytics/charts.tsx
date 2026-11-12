@@ -10,7 +10,8 @@ export type Series = { id: string; label: string; color: string }
 
 /** A round top for the axis: 1, 2, 2.5 or 5 times a power of ten, so the gridlines fall on numbers people read. */
 function niceMax(v: number): number {
-  if (v <= 0) return 1
+  // 2, so an empty chart's middle line reads 1 and not 0.5 of a message.
+  if (v <= 0) return 2
   const pow = 10 ** Math.floor(Math.log10(v))
   return ([1, 2, 2.5, 5, 10].find((m) => m * pow >= v) ?? 10) * pow
 }
