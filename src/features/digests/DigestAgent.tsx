@@ -29,7 +29,7 @@ export function DigestAgent({ item, title }: { item: DigestItem; title: string }
   const failing =
     trouble !== null && last !== null && !last.ok && (trouble.agent === null || trouble.agent === item.agent)
   const troubled = failing ? (trouble.agent ?? item.agent) : null
-  const other = otherAgent(agents, troubled)
+  const other = otherAgent(agents, troubled, false)
   const instead = failing ? other.instead : undefined
   const moveTo = (agent: string) =>
     warning.ask(agent, () => void save({ ...specOf(item, title, remembered), agent }, false))

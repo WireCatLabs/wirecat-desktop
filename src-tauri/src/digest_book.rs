@@ -210,9 +210,6 @@ fn save_args(spec: &DigestSpec, create: bool, agent: Option<&Pick>) -> Result<Ve
     args.extend(options);
     if let Some(agent) = agent {
         args.extend(["--agent".to_string(), agent.id.clone()]);
-        if agent.ack {
-            args.push(background_agent::ACK_FLAG.into());
-        }
     }
     // An open digest's brief has its own card and memo verb; an edit that sent it would undo that card's save.
     if create {
@@ -281,7 +278,12 @@ fn agent_for(spec: &DigestSpec, create: bool) -> Result<Option<Pick>, String> {
     if spec.agent.is_none() && !create {
         return Ok(None);
     }
-    background_agent::pick(spec.agent.as_deref()).map(Some)
+    let pick = background_agent::pick(spec.agent.as_deref())?;
+    // `digest add|edit` takes no `--allow-dangerous`, so memo would refuse it; said here, in words, before memo.
+    if pick.ack {
+        return Err(format!("Memo cannot write digests in {} yet. Choose another agent for them.", pick.id));
+    }
+    Ok(Some(pick))
 }
 
 /// A memo from before `digest --agent` writes every digest with claude: asking it for claude is asking for nothing.
@@ -573,9 +575,6 @@ mod tests {
         let pick = |id: &str, costed, ack| Pick { id: id.into(), costed, ack };
         let moved = save_args(&weekly, false, Some(&pick("gemini", false, false))).unwrap();
         assert!(moved.windows(2).any(|w| w == ["--agent", "gemini"]));
-        assert!(!moved.contains(&background_agent::ACK_FLAG.to_string()));
-        let warned = save_args(&weekly, false, Some(&pick("codex", false, true))).unwrap();
-        assert!(warned.windows(3).any(|w| w == ["--agent", "codex", background_agent::ACK_FLAG]), "{warned:?}");
         assert!(!moved.iter().any(|a| a.starts_with("--max-cost")), "memo refuses a cap for an agent with no cost");
         assert!(!args.iter().any(|a| a == "--agent"), "an edit without one keeps the digest's own");
         let claude = save_args(&weekly, true, Some(&pick("claude", true, false))).unwrap();

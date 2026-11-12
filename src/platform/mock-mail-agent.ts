@@ -8,7 +8,8 @@ import type { Platform } from "./types"
 // `?mail-agent=nocap` on from a memo that does not report its caps, `?mail-agent=noclaude` off with
 // Claude Code missing, `?mail-agent=nomemo` without memo, `?mail-agent=old` with a memo too old;
 // `?mail-agent-fail=1` makes turning it on fail with memo's words; `?mail-agent=nocredit` on through Claude Code, whose
-// last two runs failed for lack of credit, `?mail-agent=codexlimit` on through Codex at its usage limit.
+// last two runs failed for lack of credit, `?mail-agent=codexlimit` on through Codex at its usage limit,
+// `?mail-agent=resave` on through Claude Code, stopped by memo until the schedule is saved again.
 export function mailAgentMock(
   params: URLSearchParams,
 ): Pick<Platform, "mailAgentStatus" | "mailAgentSet" | "mailAgentWaiting"> {
@@ -62,6 +63,20 @@ export function mailAgentMock(
         agent: "codex",
         trouble: { agent: "codex", kind: "limit", line: "You've hit your usage limit. Try again at 3:45 PM." },
       })
+    if (scenario === "resave")
+      return on({
+        last: {
+          at: ago(300),
+          exitCode: 0,
+          reason: null,
+          failures: null,
+          skipped: {
+            at: ago(20),
+            why: "schedule mail-triage does not run: it was saved by an older version, which kept no agent to rebuild its start from; save it again to run it",
+            reason: "agent.refused",
+          },
+        },
+      })
     if (scenario === "nocap") return on({ maxCostUsd: null, maxCostPerDayUsd: null })
     if (scenario === "nomemo") return { state: "noMemo" }
     if (scenario === "old") return { state: "old", version: "0.131.20", need: "0.131.26" }
@@ -86,7 +101,9 @@ export function mailAgentMock(
               trouble: state.trouble,
             }
           : { last: null, spentTodayUsd: 0, agent: agent ?? "claude", trouble: null }
-      state = turnOn ? on({ ...kept, when: `every ${every}`, every }) : { state: "off", harness: true }
+      // As memo: a skip from before this save is history.
+      const last = kept.last?.skipped ? { ...kept.last, skipped: null } : kept.last
+      state = turnOn ? on({ ...kept, last, when: `every ${every}`, every }) : { state: "off", harness: true }
       return state
     },
     async mailAgentWaiting() {

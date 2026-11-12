@@ -187,6 +187,30 @@ it("switches to Codex only through its warning, and asks no more once confirmed"
   await vi.waitFor(() => expect(set).toHaveBeenCalledWith("email", true, "30m", "codex"))
 })
 
+it("saves a schedule memo stopped again as it is, with its own agent and interval, and chooses nothing", async () => {
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "gemini"], "gemini"))
+  const why =
+    "schedule mail-triage does not run: it was saved by an older version, which kept no agent to rebuild its start from; save it again to run it"
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
+    ...on,
+    every: "15m",
+    last: { ...ran, skipped: { at: new Date().toISOString(), why, reason: "agent.refused" } },
+  })
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, every: "15m" })
+  const choose = vi.spyOn(platform, "backgroundAgentChoose")
+  const user = userEvent.setup()
+  render(<MailAgent tool={email} />)
+
+  expect(
+    await screen.findByText(/does not run until it is saved again\. It is saved as it is: in Claude Code/),
+  ).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Save again" }))
+  expect(set).toHaveBeenCalledWith("email", true, "15m", "claude")
+  expect(choose).not.toHaveBeenCalled()
+  expect(await screen.findByText(/Last run/)).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Save again" })).not.toBeInTheDocument()
+})
+
 it("offers Memo instead of a switch when memo is not installed", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "noMemo" })
   render(<MailAgent tool={email} />)

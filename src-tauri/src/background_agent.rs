@@ -18,9 +18,8 @@ const SUPPORTED: [&str; 4] = ["schedule", "agents", "list", "--json"];
 /// which it holds to the CLIs' commands, so only claude runs a job: cli-core #2882 refuses codex too.
 const FALLBACK: [(&str, bool); 2] = [("claude", true), ("codex", false)];
 const FILE: &str = "background-agent.json";
-/// The word memo needs to schedule an agent it lets run only after the owner's warning. cli-core has not fixed the
-/// name yet; it is relayed, and this is the one place it lives.
-pub const ACK_FLAG: &str = "--accept-unrestricted";
+/// The word `schedule agent` needs to start an agent it lets run only after the owner's warning (cli-core #2882).
+pub const ACK_FLAG: &str = "--allow-dangerous";
 /// An agent prints its refusal last; the head of a long stderr is never needed for it.
 const TAIL: u64 = 64 * 1024;
 /// A refusal in the report is the whole answer, one sentence. A longer report is the agent's work, which may quote

@@ -18,6 +18,11 @@ const en = {
   noHarness: "No agent on this computer can run it. Settings, «Agent for background jobs», says why for each.",
   needAgent: "Choose the agent it runs in first.",
   pickOther: "Choose another agent for background jobs, then switch the mail agent to it.",
+  resave: (name: string) =>
+    `Memo now checks how each agent is started, so this schedule does not run until it is saved again. It is saved as it is: in ${name}, at the same interval.`,
+  resaveUnknown:
+    "Memo now checks how each agent is started, so this schedule does not run until it is saved again. Memo does not say which agent it ran in: turn it off and on again, and choose the agent.",
+  resaveButton: "Save again",
   otherChosen: (chosen: string, running: string) =>
     `You chose ${chosen} for background jobs, but the mail agent still runs in ${running}.`,
   aboutClaude: "About Claude Code",
@@ -61,6 +66,11 @@ const ru: typeof en = {
     "Ни один агент на этом компьютере не может его запускать. В настройках, «Агент для фоновых задач», сказано, почему для каждого.",
   needAgent: "Сначала выберите, в каком агенте он работает.",
   pickOther: "Выберите другого агента для фоновых задач, затем переведите на него почтового агента.",
+  resave: (name) =>
+    `Memo теперь проверяет, как запускается каждый агент, поэтому это расписание не запускается, пока его не сохранят заново. Оно сохранится как есть: в ${name}, с тем же интервалом.`,
+  resaveUnknown:
+    "Memo теперь проверяет, как запускается каждый агент, поэтому это расписание не запускается, пока его не сохранят заново. Memo не сообщает, в каком агенте оно работало: выключите и включите его снова и выберите агента.",
+  resaveButton: "Сохранить заново",
   otherChosen: (chosen, running) =>
     `Для фоновых задач вы выбрали ${chosen}, но почтовый агент пока работает в ${running}.`,
   aboutClaude: "О Claude Code",
@@ -117,6 +127,11 @@ const es: typeof en = {
     "Ningún agente de este equipo puede ejecutarlo. Ajustes, «Agente para tareas en segundo plano», dice por qué para cada uno.",
   needAgent: "Elige primero en qué agente se ejecuta.",
   pickOther: "Elige otro agente para las tareas en segundo plano y luego cambia el agente de correo a él.",
+  resave: (name) =>
+    `Memo ahora comprueba cómo se inicia cada agente, así que esta programación no se ejecuta hasta guardarla de nuevo. Se guarda tal cual: en ${name}, con el mismo intervalo.`,
+  resaveUnknown:
+    "Memo ahora comprueba cómo se inicia cada agente, así que esta programación no se ejecuta hasta guardarla de nuevo. Memo no dice en qué agente se ejecutaba: apágala y vuelve a encenderla, y elige el agente.",
+  resaveButton: "Guardar de nuevo",
   otherChosen: (chosen, running) =>
     `Elegiste ${chosen} para las tareas en segundo plano, pero el agente de correo aún se ejecuta en ${running}.`,
   aboutClaude: "Acerca de Claude Code",

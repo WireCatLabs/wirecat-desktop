@@ -23,11 +23,14 @@ export const costed = (agents: BackgroundAgents | null, id: string) =>
 
 /**
  * The agent to offer when `failing` refused a run: the one chosen for background jobs, or the only other one ready.
- * `undefined` with several others ready: the owner picks, nothing is picked for him.
+ * `undefined` with several others ready: the owner picks, nothing is picked for him. `warned: false` leaves out an
+ * agent that runs only after its warning, for a job memo cannot start it in (a digest).
  */
-export function otherAgent(agents: BackgroundAgents | null, failing: string | null) {
-  const others = (agents?.agents ?? []).filter((a) => a.state === "ready" && a.id !== failing).map((a) => a.id)
-  const effective = agents?.effective ?? null
+export function otherAgent(agents: BackgroundAgents | null, failing: string | null, warned = true) {
+  const fits = (a: BackgroundAgent) => a.state === "ready" && a.id !== failing && (warned || !a.needsAck)
+  const others = (agents?.agents ?? []).filter(fits).map((a) => a.id)
+  const chosen = agents?.agents.find((a) => a.id === agents.effective)
+  const effective = chosen && (warned || !chosen.needsAck) ? chosen.id : null
   const instead = effective !== null && effective !== failing ? effective : others.length === 1 ? others[0] : undefined
   return { instead, pick: instead === undefined && others.length > 1 }
 }

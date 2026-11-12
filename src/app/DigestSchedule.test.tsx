@@ -429,27 +429,17 @@ describe("the agent that writes it", () => {
     expect(screen.queryByText(/has no credit left/)).not.toBeInTheDocument()
   }, 15000)
 
-  it("moves the digest to Codex only after the owner confirms Codex's warning", async () => {
-    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "codex"], "claude"))
-    const ack = vi
-      .spyOn(platform, "backgroundAgentAcknowledge")
-      .mockResolvedValue(agentsFixture(["claude", "codex"], "claude", true, true))
+  it("never offers Codex for a digest, even confirmed: memo cannot write digests in it yet", async () => {
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "codex"], "codex", true, true))
     const failed: DigestItem = {
       ...morning,
       last: { ...(morning.last as NonNullable<DigestItem["last"]>), ok: false },
       trouble: { agent: "claude", kind: "limit", line: "You've hit your session limit" },
     }
-    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([{ ...failed, agent: "codex" }]))
-    const user = await openMorning(ready([failed]))
+    await openMorning(ready([failed]))
 
-    await user.click(await screen.findByRole("button", { name: "Switch to Codex" }))
-    const warning = await screen.findByRole("dialog", { name: "Run background jobs in Codex?" })
-    expect(save).not.toHaveBeenCalled()
-    await user.click(within(warning).getByRole("button", { name: "I understand, use Codex" }))
-    expect(ack).toHaveBeenCalledWith("codex")
-    await vi.waitFor(() =>
-      expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "morning-digest", agent: "codex" }), false),
-    )
+    expect(await screen.findByText("Claude Code reached its usage limit, so the run failed.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Switch to/ })).not.toBeInTheDocument()
   }, 15000)
 })
 

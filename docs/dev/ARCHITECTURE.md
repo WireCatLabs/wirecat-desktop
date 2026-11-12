@@ -206,7 +206,10 @@ src-tauri/src/
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
                 schedule's own and turns on at the one chosen, the catalog's `every` (30m) only when none is known.
-                The agent (`{harness}`) is the one the page passes, else `background_agent.rs`'s choice.
+                The agent (`{harness}`) is the one the page passes, else `background_agent.rs`'s choice. A schedule
+                cli-core's start guard stopped (skip `agent.refused`, "save it again") is offered «Save again»: the
+                same agent and interval, the owner's choice untouched. A skip older than the schedule's `created_at`
+                is dropped, since memo keeps it until the next run.
   background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents page
                 finds (`skills::agents`) and every one memo starts (`schedule agents list`: id, name, programs,
                 `reports_cost`, `restricted`, `installed`) is listed; one that cannot run a job carries why (not
@@ -215,8 +218,8 @@ src-tauri/src/
                 those run no background job, and memo's `restricted_reason` says why), never hidden. Desktop names no
                 agent as allowed: only one memo marks restricted is offered or accepted, or one memo marks
                 `allowed_with_ack` (Codex) once the owner confirmed its warning (`acknowledge`, kept per agent in the
-                same file); its schedule and digest saves then carry `ACK_FLAG`. Both names wait for cli-core's final
-                ones. memo's `installed` and its
+                same file); its mail-agent schedule then carries `ACK_FLAG` (`--allow-dangerous`). `digest add|edit`
+                takes no such option yet, so a digest is never moved to it. memo's `installed` and its
                 `programs` decide "ready" (Cursor: `cursor-agent` or `agent`, never the `cursor` editor). A memo
                 without the list gets Claude Code, and Codex greyed: that memo cannot say which agent it limits.
                 The owner's pick is kept in the app's data folder, because memo has no default; several ready and

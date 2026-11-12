@@ -85,7 +85,8 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   }, [tool.id, loadWaiting])
 
   // A new interval keeps the agent the schedule runs in; only an explicit pick moves it to another.
-  const change = (on: boolean, interval = every, pick?: string) => {
+  // `choose`: an explicit pick is the owner's choice for every job; saving the schedule again as it is moves nothing.
+  const change = (on: boolean, interval = every, pick?: string, choose = true) => {
     const agent = pick ?? (state?.state === "on" ? (state.agent ?? effective) : effective)
     if (on && agent === null) return setAsk(true)
     setAsk(false)
@@ -98,7 +99,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
         setPending(null)
         loadWaiting()
         // The mail agent is the one job that can change agent, so the owner's click here is his choice for all.
-        if (pick && agents?.chosen !== pick) void useBackgroundAgents.getState().choose(pick)
+        if (choose && pick && agents?.chosen !== pick) void useBackgroundAgents.getState().choose(pick)
       },
       (e) => {
         setPending(null)
@@ -208,6 +209,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
             agents={agents}
             busy={pending !== null}
             onRun={(agent) => warning.ask(agent, () => change(true, shownEvery ?? every, agent))}
+            onResave={(agent) => warning.ask(agent, () => change(true, shownEvery ?? every, agent, false))}
           />
         )}
       </Collapse>
@@ -239,9 +241,11 @@ type StatusProps = {
   agents: BackgroundAgents | null
   busy: boolean
   onRun: (agent: string) => void
+  /** Saves the schedule again with the same agent and interval, for one memo stopped until it is saved again. */
+  onResave: (agent: string) => void
 }
 
-function Status({ state, m, effective, agents, busy, onRun }: StatusProps) {
+function Status({ state, m, effective, agents, busy, onRun, onResave }: StatusProps) {
   const lang = useLang()
   const a = useMessages(backgroundAgentMessages)
   const { last, spentTodayUsd, trouble } = state
@@ -259,6 +263,8 @@ function Status({ state, m, effective, agents, busy, onRun }: StatusProps) {
   const paid = state.agent === null || costed(agents, state.agent)
   const moved = !failing && state.agent !== null && effective !== null && effective !== state.agent
   const outcome = last ? runOutcome(last) : null
+  // cli-core's start guard (SEC-11): a schedule saved before it, or changed since, is skipped until saved again.
+  const stale = last?.skipped?.reason === "agent.refused" && /save it again/i.test(last.skipped.why)
   const cap = dailyCap(state.maxCostPerDayUsd)
   return (
     <div className="flex flex-col gap-1 text-[0.9rem] text-ink-soft" aria-live="polite">
@@ -294,6 +300,16 @@ function Status({ state, m, effective, agents, busy, onRun }: StatusProps) {
         >
           {a.trouble[trouble.kind](troubled === null ? a.theAgent : name(troubled))}
         </ErrorNotice>
+      )}
+      {stale && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-warn-ink">{state.agent ? m.resave(name(state.agent)) : m.resaveUnknown}</p>
+          {state.agent && (
+            <Button size="sm" disabled={busy} onClick={() => state.agent && onResave(state.agent)}>
+              {m.resaveButton}
+            </Button>
+          )}
+        </div>
       )}
       {pickOther && (
         <div className="flex flex-col gap-2">

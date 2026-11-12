@@ -125,7 +125,7 @@ fn read(src: &MailAgentSource, v: &Value, agent: Option<String>, ready: impl FnO
         agent,
         every: crate::sync_schedule::interval_of(&src.choices, &when),
         when,
-        last: last_run(&item["last"]).map(Box::new),
+        last: last_run(&item["last"]).map(|l| Box::new(since_saved(l, item["created_at"].as_str()))),
         spent_today_usd: item["spent_today_usd"].as_f64(),
         max_cost_usd: item["max_cost_usd"].as_f64(),
         max_cost_per_day_usd: item["max_cost_per_day_usd"].as_f64(),
@@ -140,6 +140,20 @@ fn last_run(v: &Value) -> Option<LastRun> {
         failures: v["failures"].as_u64(),
         skipped: skipped(&v["skipped"]),
     })
+}
+
+/// memo keeps a run's skip until the next run, even across a save; one from before the schedule was saved last is
+/// history, as is its "save it again". Both times are memo's own UTC ISO strings, so they order as text.
+fn since_saved(mut last: LastRun, saved: Option<&str>) -> LastRun {
+    let utc = |t: &str| t.ends_with('Z');
+    if let (Some(skip), Some(saved)) = (&last.skipped, saved)
+        && utc(&skip.at)
+        && utc(saved)
+        && skip.at.as_str() < saved
+    {
+        last.skipped = None;
+    }
+    last
 }
 
 fn skipped(v: &Value) -> Option<Skipped> {
@@ -324,6 +338,23 @@ mod tests {
         );
         assert_eq!((max_cost_usd, max_cost_per_day_usd), (Some(1.0), Some(5.0)));
         assert_eq!(agent.as_deref(), Some("claude"), "only claude's command line has a per-run cap");
+    }
+
+    #[test]
+    fn forgets_a_skip_from_before_the_schedule_was_saved_again() {
+        let why = "schedule mail-triage does not run: it was saved by an older version, which kept no agent to rebuild \
+                   its start from; save it again to run it";
+        let item = |created: &str| {
+            json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 30m", "harness": "claude",
+                "created_at": created, "last": {"at": "2026-11-11T08:00:00.000Z", "exit_code": 0,
+                "skipped": {"at": "2026-11-12T09:30:00.000Z", "why": why, "reason": "agent.refused"}}}]})
+        };
+        let skip = |v: &Value| match read(src(), v, None, || true) {
+            MailAgent::On { last: Some(last), .. } => last.skipped.map(|s| s.reason),
+            _ => panic!("on"),
+        };
+        assert_eq!(skip(&item("2026-10-01T10:00:00.000Z")), Some(Some("agent.refused".into())));
+        assert_eq!(skip(&item("2026-11-12T09:31:00.000Z")), None, "saved again after the refusal");
     }
 
     #[test]
