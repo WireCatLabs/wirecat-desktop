@@ -417,6 +417,29 @@ describe("Add to memory", () => {
     expect(within(panel).queryByText("Lena Ortiz")).not.toBeInTheDocument()
   })
 
+  it("says when the text it shows was shortened for the preview", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    vi.spyOn(platform, "memorySourceShow").mockResolvedValue({
+      ref: "document:42",
+      title: "Call with Lena",
+      kind: "text",
+      url: null,
+      fileName: null,
+      kept: "text",
+      chars: 120_000,
+      text: "notes",
+      textTruncated: true,
+      subjects: [],
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    await user.click(await within(panel).findByRole("button", { name: "Show its text" }))
+    expect(await within(panel).findByText("Shortened for the preview.")).toBeInTheDocument()
+  })
+
   it("words a refusal of pasted text without memo's own message", async () => {
     vi.spyOn(platform, "memorySourceAdd").mockRejectedValue(new Error("memo.refused"))
     const user = userEvent.setup()

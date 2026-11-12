@@ -63,6 +63,15 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
   const installed = status?.installed === true
   const running = helperReady(status)
   const waiting = busy && status && status.state !== "running" ? status.state : null
+  // The Tailscale page the helper waits on, from its status: a one-time login link, never logged.
+  const pending = status?.actionUrl ?? null
+  const asks =
+    !busy &&
+    pending &&
+    (status?.state === "needs-login" || status?.state === "needs-approval" || status?.state === "needs-funnel")
+      ? status.state
+      : null
+  const again = page ?? pending
   const host = status?.url ? new URL(status.url).host : null
 
   return (
@@ -103,10 +112,14 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
             </span>
           </span>
           {installed && !running && !busy && (
-            <div className="pl-6">
-              <Button size="sm" variant="primary" onClick={connect}>
-                {m.connect}
-              </Button>
+            <div className="flex flex-col gap-2 pl-6">
+              {asks && <p className="text-[0.92rem] text-ink">{m.waiting[asks]}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="primary" onClick={connect}>
+                  {m.connect}
+                </Button>
+                {asks && pending && <OpenLink url={pending}>{m.openAgain}</OpenLink>}
+              </div>
             </div>
           )}
           {busy && (
@@ -115,7 +128,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
                 {waiting && waiting !== "stopped" && waiting !== "error" ? m.waiting[waiting] : m.connecting}
               </p>
               <div className="flex flex-wrap gap-2">
-                {page && <OpenLink url={page}>{m.openAgain}</OpenLink>}
+                {again && <OpenLink url={again}>{m.openAgain}</OpenLink>}
                 <Button size="sm" variant="ghost" onClick={() => platform.tailscaleStop()}>
                   {m.stop}
                 </Button>

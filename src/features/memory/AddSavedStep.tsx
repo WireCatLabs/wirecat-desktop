@@ -135,9 +135,12 @@ export function SourceCard({ added }: { added: AddedSource }) {
             {m.failed}
           </ErrorNotice>
         ) : (
-          <p className="selectable max-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line bg-app px-[0.8rem] py-[0.6rem] text-[0.95rem] whitespace-pre-line">
-            {stored.source.text}
-          </p>
+          <>
+            <p className="selectable max-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line bg-app px-[0.8rem] py-[0.6rem] text-[0.95rem] whitespace-pre-line">
+              {stored.source.text}
+            </p>
+            {stored.source.textTruncated && <p className="mt-[0.3rem] text-[0.9rem] text-ink-dim">{m.shortened}</p>}
+          </>
         )}
       </Collapse>
     </div>
