@@ -321,6 +321,10 @@
           "args": ["messages", "sync", "--all", "--timeout", "50m"]
         }
       },
+      "imagesRead": {
+        "minVersion": null,
+        "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
+      },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
         ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
@@ -745,6 +749,10 @@
           "args": ["messages", "sync", "--all", "--timeout", "50m"]
         }
       },
+      "imagesRead": {
+        "minVersion": null,
+        "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
+      },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
         ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
@@ -1167,6 +1175,10 @@
         "lastShape": "runs",
         "what": "messages",
         "note": "WhatsApp has no sync to start. New messages arrive while its background service runs: see Background service below."
+      },
+      "imagesRead": {
+        "minVersion": null,
+        "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
       },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
@@ -1907,6 +1919,11 @@
         "show": ["models", "local-only", "show", "--no-record", "--json"],
         "on": ["models", "local-only", "set", "on", "--from-app", "--record", "--json"],
         "off": ["models", "local-only", "set", "off", "--from-app", "--record", "--json"]
+      },
+      "pictureReading": {
+        "minVersion": null,
+        "show": ["models", "picture-reading", "show", "--no-record", "--json"],
+        "set": ["models", "picture-reading", "set", "{mode}", "{agent}", "{model}", "--from-app", "--record", "--json"]
       },
       "sync": {
         "run": ["sync", "--record", "--json"],

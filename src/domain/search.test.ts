@@ -41,13 +41,19 @@ describe("hitRow", () => {
   it("names the files a hit without text carries", () => {
     const hit = {
       excerpt: "",
-      attachments: [{ position: 1, kind: "photo" }, { position: 2, kind: "document", name: "a.pdf" }, {}],
+      attachments: [
+        { position: 1, kind: "photo", local_path: "/home/u/tg/1.jpg" },
+        { position: 3, kind: "document", name: "a.pdf" },
+        { kind: "document", name: "Scan.PNG" },
+        {},
+      ],
     }
     expect(hitRow(hit, 0)).toMatchObject({
       text: null,
       files: [
-        { kind: "photo", name: null },
-        { kind: "document", name: "a.pdf" },
+        { kind: "photo", name: null, position: 1, picture: true, saved: true },
+        { kind: "document", name: "a.pdf", position: 3, picture: false, saved: false },
+        { kind: "document", name: "Scan.PNG", position: null, picture: true, saved: false },
       ],
     })
   })

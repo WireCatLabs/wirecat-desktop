@@ -12,6 +12,7 @@ import { LocalOnlySetting } from "./LocalOnlySetting"
 import { MachineSetting } from "./MachineSetup"
 import { settingsMessages } from "./messages"
 import { OwnToolsSetting } from "./OwnToolsSetting"
+import { PictureReadingSetting } from "./PictureReadingSetting"
 import { ReadersSetting } from "./ReadersSetting"
 import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./scale"
 
@@ -38,6 +39,7 @@ export function AppPreferences() {
         <AiModelSetting />
         <BackgroundAgentSetting />
         <LocalOnlySetting />
+        <PictureReadingSetting />
         <ReadersSetting />
       </div>
     </section>

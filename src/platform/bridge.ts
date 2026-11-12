@@ -24,6 +24,9 @@ import {
   AiOffSchema,
   LocalOnlySchema,
   LocalOnlyStatusSchema,
+  PictureReadingSchema,
+  PictureReadingSettingSchema,
+  PictureReadSchema,
 } from "./ai-model-schemas"
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
@@ -327,6 +330,11 @@ function createTauri(): Platform {
     aiModelList: (source) => call(AiModelListSchema, "ai_model_list", { source }),
     localOnlyStatus: () => call(LocalOnlySchema, "local_only_status"),
     localOnlySet: (on) => call(LocalOnlyStatusSchema, "local_only_set", { on }),
+    pictureReadingStatus: () => call(PictureReadingSchema, "picture_reading_status"),
+    pictureReadingSet: (mode, agent, model) =>
+      call(PictureReadingSettingSchema, "picture_reading_set", { mode, agent, model }),
+    pictureRead: (ref, attachment) => call(PictureReadSchema, "picture_read", { reference: ref, attachment }),
+    attachmentOpen: (ref, attachment) => invoke("attachment_open", { reference: ref, attachment }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskChats: () => call(ChatTasksSchema, "task_chats"),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),

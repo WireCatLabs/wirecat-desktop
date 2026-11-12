@@ -99,6 +99,8 @@ const en = {
       "An agent added this picture, and only you can have pictures read, so it is kept by its name only.",
     "ai.setting-invalid":
       "The AI model setting is not valid, so the picture is kept by its name only. Fix it in Settings.",
+    "ai.empty-answer":
+      "This model seems not to read pictures: it answered nothing, so the picture is kept by its name only. Choose a model that reads them in Settings.",
   } as Record<string, string>,
   imageNeedsUpdate:
     "Pictures cannot be read with an AI model yet, so this picture will be kept by its name only. Update Memo on the Tools page.",
@@ -258,6 +260,8 @@ const ru: typeof en = {
       "Эту картинку добавил агент, а читать картинки можно только по вашей команде, поэтому она сохранена только по названию.",
     "ai.setting-invalid":
       "Настройка модели ИИ неверна, поэтому картинка сохранена только по названию. Исправьте её в Настройках.",
+    "ai.empty-answer":
+      "Эта модель, похоже, не читает картинки, поэтому картинка сохранена только по названию. Выберите в Настройках модель, которая их читает.",
   },
   imageNeedsUpdate:
     "Картинки пока нельзя читать моделью ИИ, поэтому картинка сохранится только по названию. Обновите Memo на странице «Инструменты».",
@@ -422,6 +426,8 @@ const es: typeof en = {
       "Un agente añadió esta imagen y solo tú puedes hacer que se lean imágenes, así que se guarda solo por su nombre.",
     "ai.setting-invalid":
       "El ajuste del modelo de IA no es válido, así que la imagen se guarda solo por su nombre. Corrígelo en Ajustes.",
+    "ai.empty-answer":
+      "Este modelo parece no leer imágenes: no respondió nada, así que la imagen se guarda solo por su nombre. Elige en Ajustes un modelo que las lea.",
   },
   imageNeedsUpdate:
     "Aún no se pueden leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualiza Memo en la página Herramientas.",

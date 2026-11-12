@@ -29,6 +29,7 @@ import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
 import { peopleMock, peopleProfileMock } from "./mock-people"
 import { permissionsMock } from "./mock-permissions"
+import { pictureReadingMock } from "./mock-picture-reading"
 import { recordsMock } from "./mock-records"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
@@ -739,6 +740,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...enrichmentMock(params),
     ...searchHarderMock(params),
     ...localOnlyMock(params),
+    ...pictureReadingMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

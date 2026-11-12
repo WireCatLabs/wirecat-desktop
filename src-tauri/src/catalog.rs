@@ -82,6 +82,13 @@ pub struct Tool {
     /// (`local_only.rs`).
     #[serde(default)]
     pub local_only: Option<crate::local_only::LocalOnlySource>,
+    /// Only memo: its own `models picture-reading`, whether the owner's coding agent may read a picture's text
+    /// (`picture_reading.rs`).
+    #[serde(default)]
+    pub picture_reading: Option<crate::picture_reading::PictureReadingSource>,
+    /// The messengers: `images read`, one picture of a message read by that agent (`attachments.rs`).
+    #[serde(default)]
+    pub images_read: Option<crate::attachments::ImagesReadSource>,
     /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
     #[serde(default)]
     pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,

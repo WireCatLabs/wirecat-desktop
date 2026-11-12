@@ -3,27 +3,37 @@ import { splitQuoted } from "@/domain/conversation"
 import { formatWhen } from "@/domain/runs"
 import { useLang, useMessages } from "@/i18n"
 import type { ChatMessage } from "@/platform/bindings"
+import { FileActions } from "@/shared/FileActions"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { LinkedText } from "./LinkedText"
 import { conversationMessages } from "./messages"
 
-// Two attachments may share a name, so each one's key counts the same names before it.
-const keyed = (files: string[]) =>
-  files.map((name, at) => ({ name, key: `${name}#${files.slice(0, at).filter((f) => f === name).length}` }))
-
-function Files({ files }: { files: string[] }) {
+/**
+ * The files a message carries, each by its name; a picture of a messenger can be read by the owner's agent, and a file
+ * the tool saved here opens in the owner's own program.
+ */
+function Files({ message }: { message: ChatMessage }) {
   const m = useMessages(conversationMessages)
-  if (files.length === 0) return null
+  if (message.files.length === 0) return null
   return (
-    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-      {keyed(files).map(({ name, key }) => (
-        <span key={key} className="inline-flex min-w-0 items-center gap-1 text-[0.85rem] text-ink-soft">
-          <Paperclip className="size-[0.85rem] shrink-0" aria-label={m.attached} />
-          <span className="truncate font-mono">{name}</span>
-        </span>
+    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+      {message.files.map((file) => (
+        <div
+          key={file.position}
+          className={cx(
+            "flex min-w-0 flex-col gap-0.5 text-[0.85rem] text-ink-soft",
+            (file.picture || file.saved) && "basis-full",
+          )}
+        >
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <Paperclip className="size-[0.85rem] shrink-0" aria-label={m.attached} />
+            <span className="truncate font-mono">{file.name}</span>
+          </span>
+          <FileActions messageRef={message.ref} file={file} />
+        </div>
       ))}
-    </p>
+    </div>
   )
 }
 
@@ -64,7 +74,7 @@ export function ChatRow({ message, now }: { message: ChatMessage; now: Date }) {
           message.files.length === 0 && <span className="text-ink-dim">{m.noText}</span>
         )}
       </p>
-      <Files files={message.files} />
+      <Files message={message} />
     </li>
   )
 }
@@ -105,7 +115,7 @@ export function EmailCard({ message, now }: { message: ChatMessage; now: Date })
           </Disclosure>
         </div>
       )}
-      <Files files={message.files} />
+      <Files message={message} />
     </li>
   )
 }

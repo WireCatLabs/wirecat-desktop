@@ -14,7 +14,18 @@ import type {
   SkillText,
   Target,
 } from "./agents-schemas"
-import type { AiChecked, AiModel, AiModelChoice, AiOff, LocalOnly, LocalOnlyStatus } from "./ai-model-schemas"
+import type {
+  AiChecked,
+  AiModel,
+  AiModelChoice,
+  AiOff,
+  LocalOnly,
+  LocalOnlyStatus,
+  PictureAgent,
+  PictureRead,
+  PictureReading,
+  PictureReadingSetting,
+} from "./ai-model-schemas"
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackgroundAgents } from "./background-agent-schemas"
@@ -580,6 +591,24 @@ export type Platform = {
    * come back as `local-only.owner-only` or `local-only.refused`.
    */
   localOnlySet(on: boolean): Promise<LocalOnlyStatus>
+  /** memo's `models picture-reading show` (`pictureReading` in the catalog): never, or on request with which agent. */
+  pictureReadingStatus(): Promise<PictureReading>
+  /**
+   * The owner chose in Settings (`set never|request --agent --model --from-app`); memo answers the whole new setting.
+   * memo's refusals come back as `picture-reading.owner-only` or `picture-reading.agent-missing`.
+   */
+  pictureReadingSet(
+    mode: PictureReadingSetting["mode"],
+    agent: PictureAgent | null,
+    model: string | null,
+  ): Promise<PictureReadingSetting>
+  /**
+   * The owner pressed "Read the picture": the messenger's `images read <ref> --attachment n` (`imagesRead` in the
+   * catalog). Its refusals come back as `picture-reading.off`, `picture-reading.unavailable:claude|codex`, …
+   */
+  pictureRead(ref: string, attachment: number): Promise<PictureRead>
+  /** The saved copy of a message's file, by the path memo names for it now, in the owner's own program. */
+  attachmentOpen(ref: string, attachment: number): Promise<void>
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
   /** memo's own `schedule agent` at `every` (the catalog's default when left out) or `schedule remove`; rejects

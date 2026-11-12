@@ -30,7 +30,7 @@ const TITLES = ["Quarterly plan", "Invoice template", "Harbour flat lease", "Wee
 
 // Photos, voice messages and files often come without text: the page names what they carry instead.
 const FILES = [
-  { position: 1, kind: "photo" },
+  { position: 1, kind: "photo", local_path: "/home/owner/.local/share/wirecat/tg/files/photo-1.jpg" },
   { position: 1, kind: "voice" },
   { position: 1, kind: "document", name: "invoice.pdf", size: 48213 },
 ]

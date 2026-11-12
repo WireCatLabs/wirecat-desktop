@@ -49,6 +49,28 @@ export const LocalOnlySchema = v.variant("state", [
   v.object({ state: v.literal("ready"), status: LocalOnlyStatusSchema }),
 ])
 
+export const PictureReadingSettingSchema = v.object({
+  mode: v.picklist(["never", "request"]),
+  agent: v.nullable(v.picklist(["claude", "codex"])),
+  model: text,
+  extractor: text,
+  since: text,
+})
+
+export const PictureReadingSchema = v.variant("state", [
+  v.object({ state: v.literal("old"), version: text, need: text }),
+  v.object({ state: v.literal("ready"), setting: PictureReadingSettingSchema }),
+])
+
+export const PictureReadSchema = v.variant("state", [
+  v.object({ state: v.literal("old"), tool: v.string(), version: text, need: text }),
+  v.object({ state: v.literal("read"), text: v.string(), extractor: text, replaced: text }),
+])
+
+export type PictureReadingSetting = v.InferOutput<typeof PictureReadingSettingSchema>
+export type PictureReading = v.InferOutput<typeof PictureReadingSchema>
+export type PictureAgent = NonNullable<PictureReadingSetting["agent"]>
+export type PictureRead = v.InferOutput<typeof PictureReadSchema>
 export type LocalOnlyStatus = v.InferOutput<typeof LocalOnlyStatusSchema>
 export type LocalOnly = v.InferOutput<typeof LocalOnlySchema>
 export type AiModel = v.InferOutput<typeof AiModelSchema>

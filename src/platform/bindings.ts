@@ -126,6 +126,17 @@ export type CannotOpen = {
 	needs: number,
 };
 
+export type ChatFile = {
+	/**  Its name, else its kind. */
+	name: string,
+	/**  Its place among all the message's attachments, from 1, as `images read --attachment` counts them. */
+	position: number,
+	/**  A PNG, JPEG or WebP picture, as cli-core's `images read` accepts it. */
+	picture: boolean,
+	/**  The tool keeps a copy on this computer (`local_path`, cli-core 0.643.0); the path itself stays in Rust. */
+	saved: boolean,
+};
+
 export type ChatHeader = {
 	title: string | null,
 	/**  memo's `in`: the messenger's name for a chat, the mailbox for a mail thread. */
@@ -145,7 +156,7 @@ export type ChatMessage = {
 	subject: string | null,
 	text: string | null,
 	/**  Attachment names only: their text and their bytes stay in the store. */
-	files: string[],
+	files: ChatFile[],
 	anchor: boolean,
 };
 
@@ -1032,6 +1043,31 @@ export type PathPlan = {
 	added: boolean,
 	/**  False when the user has to add the line themselves (an unknown shell, an unusual folder name). */
 	automatic: boolean,
+};
+
+export type PictureRead = 
+/**  The messenger is older than `need`, or `need` is `None`: no version with `images read` is released yet. */
+{ state: "old"; tool: string; version: string | null; need: string | null } | { state: "read"; 
+/**  What the agent read, as the store keeps it now; the picture's own words, shown as plain text only. */
+text: string; extractor: string | null; 
+/**  The origin of the text it replaced, if the attachment had one. */
+replaced: string | null };
+
+export type PictureReading = 
+/**  The installed memo is older than `need`, or `need` is `None`: no memo with it is released yet. */
+{ state: "old"; version: string | null; need: string | null } | { state: "ready"; setting: PictureReadingSetting };
+
+export type PictureReadingSetting = {
+	/**  `never` or `request`. */
+	mode: string,
+	/**  `claude` or `codex`; `None` while never. */
+	agent: string | null,
+	/**  The agent's model; `None` for its own default. */
+	model: string | null,
+	/**  What a read picture's text is marked with: `agent:claude`, `agent:codex/gpt-5`. */
+	extractor: string | null,
+	/**  When the owner turned it on. */
+	since: string | null,
 };
 
 /**  What installing the newest version of a tool does to the other installed tools. Empty when it is safe or unknown. */

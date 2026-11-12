@@ -113,4 +113,5 @@ export const MENDED_IN_SETTINGS = [
   "ai.key-missing",
   "ai.failed",
   "ai.setting-invalid",
+  "ai.empty-answer",
 ]

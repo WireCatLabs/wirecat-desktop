@@ -1286,11 +1286,15 @@ fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String>
 }
 
 pub fn open_source(reference: &str) -> Result<(), String> {
-    let file = with_memo(|call| note_file(call, reference))?;
-    if runs_as_program(&file) {
-        tauri_plugin_opener::reveal_item_in_dir(&file).map_err(|e| e.to_string())
+    open_file(&with_memo(|call| note_file(call, reference))?)
+}
+
+/// A file of the owner's in its default program, or in its folder when that program would run it.
+pub(crate) fn open_file(file: &Path) -> Result<(), String> {
+    if runs_as_program(file) {
+        tauri_plugin_opener::reveal_item_in_dir(file).map_err(|e| e.to_string())
     } else {
-        crate::host_open::path(&file)
+        crate::host_open::path(file)
     }
 }
 

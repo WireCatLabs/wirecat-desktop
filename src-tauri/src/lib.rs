@@ -3,6 +3,7 @@ mod agent_run;
 mod ai_model;
 mod analytics;
 mod archive;
+mod attachments;
 mod background;
 mod background_agent;
 mod backup;
@@ -64,6 +65,7 @@ mod paths;
 mod people;
 mod permissions;
 mod person_profile;
+mod picture_reading;
 mod preflight;
 mod profile;
 mod provenance;
@@ -396,6 +398,10 @@ pub fn run() {
             commands::memory::ai_model_list,
             commands::memory::local_only_status,
             commands::memory::local_only_set,
+            commands::memory::picture_reading_status,
+            commands::memory::picture_reading_set,
+            commands::memory::picture_read,
+            commands::memory::attachment_open,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

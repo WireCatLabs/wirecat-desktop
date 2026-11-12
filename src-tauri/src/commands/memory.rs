@@ -248,3 +248,38 @@ pub async fn local_only_status() -> Result<crate::local_only::LocalOnly, AppErro
 pub async fn local_only_set(on: bool) -> Result<crate::local_only::LocalOnlyStatus, AppError> {
     crate::log::command("local_only_set", async move { attempt(move || crate::local_only::set(on)).await }).await
 }
+
+#[tauri::command]
+pub async fn picture_reading_status() -> Result<crate::picture_reading::PictureReading, AppError> {
+    crate::log::command("picture_reading_status", async move { attempt(crate::picture_reading::status).await }).await
+}
+
+/// Sent only from Settings, where the owner chose; memo answers with the whole new setting.
+#[tauri::command]
+pub async fn picture_reading_set(
+    mode: String,
+    agent: Option<String>,
+    model: Option<String>,
+) -> Result<crate::picture_reading::PictureReadingSetting, AppError> {
+    crate::log::command("picture_reading_set", async move {
+        attempt(move || crate::picture_reading::set(&mode, agent.as_deref(), model.as_deref())).await
+    })
+    .await
+}
+
+/// Sent only when the owner pressed "Read the picture" on that one picture.
+#[tauri::command]
+pub async fn picture_read(reference: String, attachment: u32) -> Result<crate::attachments::PictureRead, AppError> {
+    crate::log::command("picture_read", async move {
+        attempt(move || crate::attachments::read_picture(&reference, attachment)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn attachment_open(reference: String, attachment: u32) -> Result<(), AppError> {
+    crate::log::command("attachment_open", async move {
+        attempt(move || crate::attachments::open_file(&reference, attachment)).await
+    })
+    .await
+}
