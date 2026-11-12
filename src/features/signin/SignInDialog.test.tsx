@@ -10,6 +10,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import { useReport } from "@/shared/report-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
+import { reduceMotion } from "@/testing/motion"
 import { act, fireEvent, render, screen, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { NewProfile } from "../tools/Health"
@@ -27,14 +28,15 @@ const STAGE_TEXT = "p:not([role=status])"
 
 const SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
 
-/** The copy of a step fading out has gone. */
-const settled = () => act(() => new Promise((done) => setTimeout(done, MOTION.swap + 50)))
+/** The copy of a step fading out has gone: with reduced motion nothing fades, so one turn is enough. */
+const settled = () => act(() => new Promise((done) => setTimeout(done, 0)))
 
 let send: (e: SignInEvent) => void = () => undefined
 let finish: () => void = () => undefined
 const pending: (() => void)[] = []
 
 beforeEach(() => {
+  reduceMotion()
   useOnboarding.setState({ open: false })
   vi.spyOn(platform, "signIn").mockImplementation((_id, _method, _profile, onEvent) => {
     send = (e) => act(() => onEvent(e))

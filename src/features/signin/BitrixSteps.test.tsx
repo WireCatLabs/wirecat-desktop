@@ -6,14 +6,15 @@ import type { SignInEvent } from "@/platform/signin-schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
+import { reduceMotion } from "@/testing/motion"
 import { act, render, screen, within } from "@/testing/render"
-import { MOTION } from "@/ui/motion"
 import { SignInDialog } from "./SignInDialog"
 
 const HOOK = "https://acme.bitrix24.ru/rest/12/s3cr3tk3y/"
 const APP_ID = "local.0123abcd.45678901"
 const APP_KEY = "s3cr3tAppK3y"
-const settled = () => act(() => new Promise((done) => setTimeout(done, MOTION.swap + 50)))
+/** With reduced motion nothing fades, so one turn lets the old step go. */
+const settled = () => act(() => new Promise((done) => setTimeout(done, 0)))
 
 describe("the portal and the webhook, read in the window", () => {
   it("keeps only the portal's host from what is typed", () => {
@@ -78,6 +79,7 @@ describe("Bitrix24's sign-in wizard", () => {
   const pending: (() => void)[] = []
 
   beforeEach(() => {
+    reduceMotion()
     useOnboarding.setState({ open: false })
     vi.spyOn(platform, "signIn").mockImplementation((_id, _method, _profile, onEvent) => {
       send = (e) => act(() => onEvent(e))
