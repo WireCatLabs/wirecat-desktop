@@ -2,7 +2,6 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useGroups } from "@/features/groups"
 import { platform } from "@/platform/bridge"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { PeoplePage } from "./PeoplePage"
 import { usePeople } from "./store"
@@ -257,7 +256,6 @@ describe("People", () => {
   })
 
   it("says the shared number is hidden when no account shows it, and never makes one up", async () => {
-    answerAtOnce()
     const user = userEvent.setup()
     render(<PeoplePage />)
     const card = await openMatch(user, "Lena Ortiz · 2 people")

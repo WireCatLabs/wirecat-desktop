@@ -7,7 +7,6 @@ import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { useReaders } from "@/shared/readers-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { useAddSource } from "./add-store"
 import { MemoryPage } from "./MemoryPage"
@@ -76,7 +75,6 @@ const openPanel = async (user: ReturnType<typeof userEvent.setup>) => {
 
 describe("Add to memory", () => {
   beforeEach(() => {
-    answerAtOnce()
     useAddSource.setState(useAddSource.getInitialState(), true)
     useReaders.setState(useReaders.getInitialState(), true)
     useMemory.setState(useMemory.getInitialState(), true)

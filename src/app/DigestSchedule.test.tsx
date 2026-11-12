@@ -10,7 +10,6 @@ import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
-import { answerAtOnce } from "@/testing/mock-speed"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -511,8 +510,6 @@ describe("what the page cannot do", () => {
 })
 
 describe("the agent that writes a digest", () => {
-  beforeEach(() => answerAtOnce())
-
   // Every tools read reports Drive and Bitrix24 installed as memo is; a write into the store would be undone by the next read.
   const withDriveAndCrm = async () => {
     const detect = platform.detectTools.bind(platform)
