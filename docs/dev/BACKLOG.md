@@ -84,6 +84,32 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 - **Needs memo first.** Decide what counts as mail exchange with a real person (NEED-2342).
 - **Needs cli-core first.** One free-mail list instead of two (`FREE_MAIL` and `FREE`, DEBT-63).
 
+## Meetings from other services
+
+- **Needs memo first.** Transcript files (`.vtt`, `.srt`) added to memory as documents. The memo change is in
+  progress (cli-memo PR pending).
+- **Desktop.** Google Meet saves a transcript as a Google Doc in the organizer's Drive
+  ([Meet API overview][meet-api]). The drive tool already imports Drive folders, so choosing the "Meet Recordings"
+  folder should make the transcripts searchable documents. Check this on a real Workspace account before promising
+  it. A reader for the Meet REST API, which keeps transcript entries for 30 days, is a later step.
+- **Unexplored.** Yandex Telemost's public API is for Yandex 360 for business only ([access][telemost-access]). It
+  creates meetings and reads the organization's settings. It has no method to read a summary, a transcript or a
+  recording ([OpenAPI specification][telemost-openapi]). Summaries and recording links arrive by email, which the
+  mail tool already stores. The owner's idea is to read the Telemost web app with the browser's cookies. Risks:
+  session cookies are secrets, so they go to the keyring only and are never printed; the reader breaks whenever
+  the web app changes.
+
+## Checks ([review 2026-11-12](review-2026-11-12.md))
+
+- **Needs cli-core first.** The `wirecat://` link fixture has drifted from cli-core's (FIND-13). Merge the cases in
+  cli-core first, then copy the file byte for byte and fail CI on a difference.
+- **Desktop.** In CI only, since they need Chrome: `scripts/scroll-hold.mjs` and `scripts/layout-shift.mjs` on the
+  preview build.
+- **Desktop.** jscpd with a 0.5 % threshold, and `cargo deny check advisories` in CI.
+- **Desktop.** knip in `pnpm check` (DEBT-17). knip 6.43.0 with `knip.json` still reports 14 unused exports and 18
+  unused types: drop `export` from names used only in their own file, ignore the generated `bindings.ts`, and decide
+  on the types nothing uses before it can run clean.
+
 [2026-11-06-windows-signing-flow]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-06-windows-signing-flow.md
 [2026-10-31-memory-page]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-10-31-memory-page.md
 [2026-11-01-memory-add]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-01-memory-add.md
@@ -99,3 +125,6 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 [2026-11-01-guides]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-01-guides.md
 [2026-11-08-own-tool-review-v2]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-08-own-tool-review-v2.md
 [2026-11-09-people-clients-digests]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-09-people-clients-digests.md
+[meet-api]: https://developers.google.com/workspace/meet/api/guides/overview
+[telemost-access]: https://yandex.ru/dev/telemost/doc/ru/access
+[telemost-openapi]: https://doc-static.yandex.net/dev/telemost/api-specification.yaml
