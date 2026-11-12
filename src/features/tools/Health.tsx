@@ -12,6 +12,7 @@ import {
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { terminalMessages } from "@/shared/messages-terminal"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -193,6 +194,7 @@ export function TerminalStatus({
   checking: boolean
 }) {
   const m = useMessages(toolsMessages).health
+  const terminal = useMessages(terminalMessages)
   const opened = useTerminal((s) => s.byTool[tool.id])
   if (!opened) return null
   if (profiles?.some((p) => p.name === opened.profile && p.signedIn === true))
@@ -208,13 +210,16 @@ export function TerminalStatus({
     <RefreshButton variant="secondary" busy={checking} onClick={onCheck} label={m.checkSignIn} busyLabel={m.checking} />
   )
   if (opened.state === "failed") {
-    const noTerminal = opened.error.startsWith("Could not open a terminal")
+    const why =
+      opened.reason === "automation"
+        ? terminal.automation
+        : opened.reason
+          ? m.noTerminal
+          : `${m.terminalFailed} ${opened.error}`
     return (
       <div role="status" className="reveal flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p className="min-w-0 flex-1 text-[0.9rem] text-ink-soft">
-            {noTerminal ? m.noTerminal : `${m.terminalFailed} ${opened.error}`}
-          </p>
+          <p className="min-w-0 flex-1 text-[0.9rem] text-ink-soft">{why}</p>
           <ReportThis what="Opening a terminal to sign in" tool={tool.id} command={command} error={opened.error} />
         </div>
         {command && <CopyField value={command} label={m.copySetup} />}

@@ -130,8 +130,8 @@ describe("App update", () => {
     })
     const terminal = vi
       .spyOn(platform, "openPackageTerminal")
-      .mockResolvedValueOnce()
-      .mockRejectedValueOnce(new Error("Could not open a terminal."))
+      .mockResolvedValueOnce({ started: true, reason: null, message: null })
+      .mockResolvedValueOnce({ started: false, reason: "terminal", message: "Could not open a terminal." })
     const user = userEvent.setup()
     render(<App />)
 

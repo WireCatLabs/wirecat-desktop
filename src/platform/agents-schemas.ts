@@ -76,14 +76,16 @@ export const ShellChoicesSchema = v.object({
 })
 export type ShellChoices = v.InferOutput<typeof ShellChoicesSchema>
 
-/** What `run_agent` did: the agent opened in a terminal with the prompt (saved to `file` too), or why it could not. */
-export const AgentRunSchema = v.object({
+/** What a terminal the app tried to open did; `message` is Rust's sentence, for a report, and the window words `reason`. */
+export const TerminalRunSchema = v.object({
   started: v.boolean(),
-  agent: v.string(),
-  file: v.string(),
   reason: v.nullable(v.picklist(["missing", "terminal", "automation"])),
   message: v.nullable(v.string()),
 })
+export type TerminalRun = v.InferOutput<typeof TerminalRunSchema>
+
+/** What `run_agent` did: the agent opened in a terminal with the prompt (saved to `file` too), or why it could not. */
+export const AgentRunSchema = v.object({ ...TerminalRunSchema.entries, agent: v.string(), file: v.string() })
 export type AgentRun = v.InferOutput<typeof AgentRunSchema>
 
 /** WireCat server names an agent has registered, and where that was read. */

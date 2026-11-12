@@ -294,6 +294,7 @@ export function tailscaleMock(
     },
     async tailscaleTerminal() {
       await delay(200)
+      return { started: true, reason: null, message: null }
     },
     async tailscaleLogin(onPage) {
       stopped = false

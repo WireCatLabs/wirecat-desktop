@@ -5,6 +5,7 @@ import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { UpdateFailure } from "@/platform/types"
 import { externalHref } from "@/shared/external-href"
+import { terminalMessages } from "@/shared/messages-terminal"
 import { OpenLink } from "@/shared/OpenLink"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -73,6 +74,7 @@ function Progress() {
 function Saved() {
   const m = useMessages(updateMessages)
   const saved = useUpdate((s) => s.saved)
+  const refused = useMessages(terminalMessages)
   const terminal = useUpdate((s) => s.terminal)
   if (!saved) return null
   return (
@@ -96,6 +98,7 @@ function Saved() {
           <div key={terminal} className="step-in">
             {terminal === "opened" && <p className="text-[0.9rem] text-ink">{m.terminalOpened}</p>}
             {terminal === "missing" && <p className="text-[0.9rem] text-ink">{m.terminalMissing}</p>}
+            {terminal === "automation" && <p className="text-[0.9rem] text-ink">{refused.automation}</p>}
           </div>
         </AutoHeight>
       </div>

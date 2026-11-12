@@ -16,6 +16,7 @@ import {
   SkillTextSchema,
   SkillWrittenSchema,
   TerminalReachSchema,
+  TerminalRunSchema,
 } from "./agents-schemas"
 import {
   AiCheckedSchema,
@@ -224,7 +225,7 @@ function createTauri(): Platform {
     mcpServerPublic: (id) => invoke("mcp_server_public", { id }),
     tailscaleStatus: () => call(TailscaleStatusSchema, "tailscale_status"),
     tailscaleDownload: (kind) => call(TailscaleDownloadSchema, "tailscale_download", { kind }),
-    tailscaleTerminal: (what) => invoke("tailscale_terminal", { what }),
+    tailscaleTerminal: (what) => call(TerminalRunSchema, "tailscale_terminal", { what }),
     tailscaleLogin: (onPage) => invoke("tailscale_login", { onEvent: pages(onPage) }),
     tailscaleStop: () => invoke("tailscale_stop"),
     tailscaleFunnelOpen: (id, port, onPage) =>
@@ -364,7 +365,7 @@ function createTauri(): Platform {
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),
-    openSetup: (id, profile) => invoke("open_setup", { id, profile }),
+    openSetup: (id, profile) => call(TerminalRunSchema, "open_setup", { id, profile }),
     signIn: (id, method, profile, onEvent, inputs) => {
       const channel = new Channel<unknown>()
       // An event that does not parse is never thrown: the error would carry the code into the window's error list.
@@ -481,7 +482,7 @@ function createTauri(): Platform {
       channel.onmessage = onProgress
       return invoke("update_download_package", { version, onEvent: channel })
     },
-    openPackageTerminal: () => invoke("update_package_terminal"),
+    openPackageTerminal: () => call(TerminalRunSchema, "update_package_terminal"),
     restart: () => relaunch(),
     listenLinks: async (onLink) => {
       const channel = new Channel<unknown>()

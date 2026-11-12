@@ -1,4 +1,6 @@
+use crate::agent_run::RunFailure;
 use crate::paths;
+use serde::Serialize;
 use std::ffi::OsString;
 use std::path::Path;
 #[cfg(not(target_os = "macos"))]
@@ -31,9 +33,30 @@ pub fn open_agent(bin: &Path, args: &[String], prompt_file: Option<&Path>) -> Re
     })
 }
 
-/// True when `open_agent` failed because macOS refused Terminal control.
+/// True when opening failed because macOS refused Terminal control.
 pub fn is_automation(message: &str) -> bool {
-    message == AUTOMATION
+    message.starts_with(AUTOMATION)
+}
+
+/// What a terminal the app tried to open did, in the shape of `agent_run::AgentRun`: the interface words `reason`;
+/// `message` is the sentence here, for a report.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Opened {
+    pub started: bool,
+    pub reason: Option<RunFailure>,
+    pub message: Option<String>,
+}
+
+pub fn opened(result: Result<(), String>) -> Opened {
+    match result {
+        Ok(()) => Opened { started: true, reason: None, message: None },
+        Err(m) => Opened { started: false, reason: Some(failure_of(&m)), message: Some(m) },
+    }
+}
+
+pub fn failure_of(message: &str) -> RunFailure {
+    if is_automation(message) { RunFailure::Automation } else { RunFailure::Terminal }
 }
 
 /// The line runs in the shell the user's own terminal runs, not `sh`, so their rc files apply (an agent's API key
@@ -255,6 +278,14 @@ fn launch(_shell: Option<&Path>, line: &str, _syntax: Syntax) -> std::io::Result
 mod tests {
     use super::*;
     use std::ffi::OsStr;
+
+    #[test]
+    fn a_refused_terminal_says_why_in_the_agent_run_s_words() {
+        let json = |r| serde_json::to_value(opened(r)).unwrap();
+        assert_eq!(json(Ok(())), serde_json::json!({"started": true, "reason": null, "message": null}));
+        assert_eq!(json(Err("Could not open a terminal. Run this yourself: tg setup".into()))["reason"], "terminal");
+        assert_eq!(json(Err(format!("{AUTOMATION} Or run this yourself: tg setup")))["reason"], "automation");
+    }
 
     fn words(list: &[&str]) -> Vec<String> {
         list.iter().map(ToString::to_string).collect()

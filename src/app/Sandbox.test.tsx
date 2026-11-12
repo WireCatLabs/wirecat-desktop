@@ -15,7 +15,7 @@ beforeEach(() => {
   useOnboarding.setState({ open: false })
   vi.spyOn(platform, "signIn").mockImplementation(() => new Promise(() => undefined))
   vi.spyOn(platform, "signInStop").mockResolvedValue()
-  vi.spyOn(platform, "openSetup").mockResolvedValue()
+  vi.spyOn(platform, "openSetup").mockResolvedValue({ started: true, reason: null, message: null })
 })
 
 afterEach(() => {

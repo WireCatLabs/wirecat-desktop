@@ -13,6 +13,7 @@ import type {
   SkillReport,
   SkillText,
   Target,
+  TerminalRun,
 } from "./agents-schemas"
 import type {
   AiChecked,
@@ -302,7 +303,7 @@ export type Platform = {
   /** Downloads Tailscale's official installer into Downloads, then opens it or shows it in the file manager. */
   tailscaleDownload(kind: NonNullable<TailscaleStatus["package"]>): Promise<TailscaleDownload>
   /** Opens a terminal running Tailscale's install commands for this Linux, which ask for the password themselves. */
-  tailscaleTerminal(what: "install"): Promise<void>
+  tailscaleTerminal(what: "install"): Promise<TerminalRun>
   /** `tailscale login` on a logged-out computer; the login page opens in the browser and `onPage` gets its link. */
   tailscaleLogin(onPage: (url: string) => void): Promise<void>
   /** Stops a waiting login or Funnel approval. */
@@ -543,7 +544,7 @@ export type Platform = {
   taskClaims(id: string, profile: string): Promise<Claims>
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>
-  openSetup(id: string, profile: string | null): Promise<void>
+  openSetup(id: string, profile: string | null): Promise<TerminalRun>
   /**
    * Signs the named profile in inside the window with one of the tool's own sign-ins (`signIn.methods` in the catalog);
    * steps arrive as events and the last one is `done`, `failed` or `stopped`. Never with a profile the owner did not
@@ -743,7 +744,7 @@ export type Platform = {
   /** A .deb or .rpm copy: downloads that version's package, signature checked, into Downloads and opens it. */
   downloadPackageUpdate(version: string, onProgress: (p: UpdateProgress) => void): Promise<PackageOutcome>
   /** Opens the user's terminal with the install command for the package just saved; they type their password there. */
-  openPackageTerminal(): Promise<void>
+  openPackageTerminal(): Promise<TerminalRun>
   restart(): Promise<void>
   /**
    * wirecat:// links the system hands the app, the one that started it first; `null` for a link Rust refused, whose

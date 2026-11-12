@@ -4,6 +4,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { TailscaleDownload, TailscaleLinux, TailscaleStatus } from "@/platform/tailscale-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { terminalMessages } from "@/shared/messages-terminal"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -110,12 +111,14 @@ function Note({ children }: { children: ReactNode }) {
 /** This Linux's commands from Tailscale, to copy or run in a terminal; the terminal gets them from Rust, not from here. */
 function Commands({ linux, label, m }: { linux: TailscaleLinux; label: string; m: Words }) {
   const [busy, setBusy] = useState(false)
+  const terminal = useMessages(terminalMessages)
   const [error, setError] = useState<string | null>(null)
   const open = async () => {
     setBusy(true)
     setError(null)
     try {
-      await platform.tailscaleTerminal("install")
+      const run = await platform.tailscaleTerminal("install")
+      if (!run.started) setError(run.reason === "automation" ? terminal.automation : terminal.terminal)
     } catch (e) {
       setError(message(e))
     }

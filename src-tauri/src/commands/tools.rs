@@ -211,7 +211,7 @@ pub async fn account_remove(
 
 // Async: finding a terminal waits a moment for each one tried, and macOS waits for its Automation answer.
 #[tauri::command]
-pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), AppError> {
+pub async fn open_setup(id: String, profile: Option<String>) -> Result<terminal::Opened, AppError> {
     crate::log::command("open_setup", async move {
         let tool = known_tool(&id)?;
         attempt(move || {
@@ -219,7 +219,7 @@ pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), AppEr
             let args = catalog::with_profile(args, profile.as_deref())?;
             let bin = crate::tools::program(&tool.bin)
                 .ok_or_else(|| AppError::NotInstalled("the tool is not installed".into()))?;
-            Ok::<_, AppError>(terminal::open(&bin, &args)?)
+            Ok::<_, AppError>(terminal::opened(terminal::open(&bin, &args)))
         })
         .await
     })

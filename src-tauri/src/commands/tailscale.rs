@@ -34,9 +34,9 @@ pub async fn tailscale_download(
 }
 
 #[tauri::command]
-pub async fn tailscale_terminal(what: String) -> Result<(), AppError> {
+pub async fn tailscale_terminal(what: String) -> Result<terminal::Opened, AppError> {
     crate::log::command("tailscale_terminal", async move {
-        attempt(move || terminal::open_line(&tailscale::terminal_line(&what)?)).await
+        attempt(move || Ok::<_, String>(terminal::opened(terminal::open_line(&tailscale::terminal_line(&what)?)))).await
     })
     .await
 }

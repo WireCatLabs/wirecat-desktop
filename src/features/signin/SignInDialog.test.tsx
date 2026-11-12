@@ -423,7 +423,7 @@ describe("answering what the tool asks", () => {
     expect(within(dialog).getByRole("alert")).toHaveTextContent("This version of MAX cannot sign in inside WireCat.")
     expect(within(dialog).getByRole("button", { name: "Open MAX to update" })).toBeInTheDocument()
     expect(within(dialog).queryByRole("textbox")).toBeNull()
-    const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue()
+    const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue({ started: true, reason: null, message: null })
     await userEvent.click(within(dialog).getByRole("button", { name: "Open terminal" }))
     expect(openSetup).toHaveBeenCalledWith("max", "personal")
     expect(screen.queryByRole("dialog")).toBeNull()

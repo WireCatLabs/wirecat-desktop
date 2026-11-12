@@ -36,7 +36,9 @@ const show = (status: TailscaleStatus) =>
 
 describe("Tailscale guide on Linux", () => {
   it("offers the package first, then Tailscale's commands for this release, which keep it updated", async () => {
-    const terminal = vi.spyOn(platform, "tailscaleTerminal").mockResolvedValue()
+    const terminal = vi
+      .spyOn(platform, "tailscaleTerminal")
+      .mockResolvedValue({ started: true, reason: null, message: null })
     show(MISSING)
     expect(screen.getByRole("button", { name: "Download Tailscale (.deb)" })).toBeVisible()
     expect(screen.getByText("Or install with Tailscale's commands for Ubuntu 24.04.3 LTS")).toBeVisible()

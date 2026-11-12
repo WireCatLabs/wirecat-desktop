@@ -11,8 +11,11 @@ export const CHECK_EVERY_MS = 6 * 60 * 60 * 1000
 /** `saved`: a .deb or .rpm is in Downloads and handed to the system; `rejected`: it failed the signature check. */
 type Phase = "available" | "downloading" | "restarting" | "saved" | "rejected" | "failed"
 type Saved = Extract<PackageOutcome, { result: "saved" }>
-/** The install command in the user's own terminal: `missing` when none opened, so they copy it instead. */
-type Terminal = "idle" | "opening" | "opened" | "missing"
+/**
+ * The install command in the user's own terminal: `missing` when none opened, `automation` when macOS refused it, so
+ * they copy it instead.
+ */
+type Terminal = "idle" | "opening" | "opened" | "missing" | "automation"
 /** A check the user asked for from the Help menu, shown in the dialog; the background check never sets it. */
 export type Asked = "idle" | "checking" | "latest" | "failed"
 
@@ -106,8 +109,8 @@ export const useUpdate = create<UpdateState>((set, get) => ({
     if (get().phase !== "saved" || get().terminal === "opening") return
     set({ terminal: "opening" })
     try {
-      await platform.openPackageTerminal()
-      set({ terminal: "opened" })
+      const run = await platform.openPackageTerminal()
+      set({ terminal: run.started ? "opened" : run.reason === "automation" ? "automation" : "missing" })
     } catch {
       set({ terminal: "missing" })
     }
