@@ -52,7 +52,8 @@ describe("Agents", () => {
     await foundTab(/^Gemini CLI.*Not found/)
 
     expect(within(pane()).getByRole("heading", { name: "Claude Code" })).toBeInTheDocument()
-    expect(await within(pane()).findAllByText(/Update MAX/)).toHaveLength(1)
+    // Right after loading the pane shows the line twice for a moment; it settles on one.
+    await waitFor(() => expect(within(pane()).getAllByText(/Update MAX/)).toHaveLength(1))
     expect(within(pane()).getAllByText(/Update Zoom/)).toHaveLength(1)
     await waitFor(() => expect(screen.getAllByRole("button", { name: /Check again|Checking/ })).toHaveLength(1))
   })
