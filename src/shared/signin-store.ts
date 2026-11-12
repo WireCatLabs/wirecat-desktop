@@ -1,5 +1,13 @@
 import { create } from "zustand"
-import { portalHost, type WebhookProblem, webhookParts, webhookProblem } from "@/domain/bitrix-signin"
+import {
+  type AppProblem,
+  appIdShaped,
+  appProblem,
+  portalHost,
+  type WebhookProblem,
+  webhookParts,
+  webhookProblem,
+} from "@/domain/bitrix-signin"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
 import type { FailedAt } from "@/domain/signin-failure"
@@ -72,16 +80,21 @@ type SignInState = {
   /** The own app id could not be saved, so the plan stays open with the tool's reason. */
   planError: string | null
   /** Start was pressed without what the method needs. */
-  planMissing: "address" | "password" | "client" | "portal" | "webhook" | null
+  planMissing: "address" | "password" | "client" | "portal" | "webhook" | "appId" | "appKey" | "update" | null
   /** Gmail's way in: the browser, with WireCat's Google app or the owner's own client, or an app password. */
   way: MailWay
   /**
    * The plan's own steps before the run. Mail: the provider (`choose`), then the app password. Bitrix24: the portal
-   * (`choose`), how to make the webhook, then the field it is pasted in.
+   * (`choose`) and the way in, then how to make the webhook and the field it is pasted in, or the local application's
+   * steps with its id and key (`app`).
    */
   planStep: PlanStep
   /** Bitrix24's portal host, as the owner typed it on the first step. */
   portal: string
+  /** The local application's Application ID (client_id); not a secret. Its key stays outside the store. */
+  appId: string
+  /** Why b24 refused the local application's sign-in; its form says it, with what to do. */
+  appProblem: AppProblem | null
   /** Why the pasted webhook cannot be used; the paste step says it, with what to do. */
   webhookProblem: WebhookProblem | null
   /** The window is asking the other profiles whether one already holds this webhook. */
@@ -139,16 +152,21 @@ const closed = {
   way: "browser" as MailWay,
   planStep: "choose" as PlanStep,
   portal: "",
+  appId: "",
+  appProblem: null as AppProblem | null,
   webhookProblem: null as WebhookProblem | null,
   comparing: false,
   passwordProblem: null as SignInState["passwordProblem"],
   hintPage: null as string | null,
 }
 
-export type PlanStep = "choose" | "password" | "webhook" | "paste"
+export type PlanStep = "choose" | "password" | "webhook" | "paste" | "app"
 
 /** Bitrix24's webhook is pasted in the window and checked there: the paste step stays while it runs. */
 export const BITRIX = "bitrix"
+/** Bitrix24's local application: its id and key are typed in the window, then b24 signs in in the browser. */
+export const BITRIX_APP = "app"
+export const isBitrixApp = (s: Pick<SignInState, "tool" | "method">) => s.tool === BITRIX && s.method === BITRIX_APP
 
 /** The first https link in a tool's hint, without the sentence's closing punctuation. */
 export const linkIn = (hint: string | null | undefined) =>
@@ -212,9 +230,10 @@ export const guidedProvider = (
 const WRONG_PASSWORD = new Set(["mail.app-password-required", "mail.login-refused"])
 
 /** What the plan keeps across a run, a new try and a way back to it. */
-const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "portal">) => ({
+const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "portal" | "appId">) => ({
   address: s.address,
   portal: s.portal,
+  appId: s.appId,
   ownFile: s.ownFile,
   ownId: s.ownId,
   way: s.way,
@@ -233,10 +252,26 @@ export const oauthTooOld = (tool: string | null, method: string | null, installs
   return need && version && isNewer(need, version) ? { version, need } : null
 }
 
-function inputsFor(tool: string, method: string, address: string, way: MailWay): SignInInputs {
+/** The installed version and the one needed, when it predates the method itself. */
+export const methodTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
+  const need = tool ? methodOf(tool, method)?.minVersion : undefined
+  const version = tool ? installs[tool]?.[0]?.version : null
+  return need && version && isNewer(need, version) ? { version, need } : null
+}
+
+function inputsFor(
+  tool: string,
+  method: string,
+  s: Pick<SignInState, "address" | "way" | "portal" | "appId">,
+): SignInInputs {
+  const { address, way } = s
   const m = methodOf(tool, method)
   if (!m) return {}
   const inputs: SignInInputs = {}
+  if (m.portal && m.appId) {
+    inputs.portal = s.portal
+    inputs.appId = s.appId.trim()
+  }
   if (m.address && address.trim()) inputs.address = address.trim()
   if (m.clientFile && typed.clientFile) inputs.clientFile = typed.clientFile
   else if (m.oauth && way === "browser") inputs.oauth = true
@@ -288,6 +323,8 @@ export const useSignIn = create<SignInState>()((set, get) => {
       case "openUrl":
         // Keys this run sends again by itself: drawing their page would look like a step back.
         if (get().reuse && bothKeys() && isTelegramAppsUrl(e.url)) return
+        // b24 opens the browser only at a terminal; under the app it only names the page.
+        if (isBitrixApp(get())) platform.openUrl(e.url).catch(() => {})
         return set({ ...next, phase: "browser", url: e, qr: null })
       case "needs": {
         const key = keys.get(e.field)
@@ -344,7 +381,21 @@ export const useSignIn = create<SignInState>()((set, get) => {
       case "failed": {
         const s = get()
         // A refused webhook keeps its address: after ticking a right in Bitrix24 it stays the same, so Check again works.
-        const refusal = s.tool === BITRIX ? webhookProblem(e) : null
+        const app = isBitrixApp(s) ? appProblem(e) : null
+        if (app)
+          return set({
+            ...closed,
+            ...kept(s),
+            tool: s.tool,
+            profile: s.profile,
+            method: s.method,
+            onFinish: s.onFinish,
+            run: s.run + 1,
+            phase: "plan",
+            planStep: "app",
+            appProblem: app,
+          })
+        const refusal = s.tool === BITRIX && !isBitrixApp(s) ? webhookProblem(e) : null
         if (refusal)
           return set({
             ...closed,
@@ -387,13 +438,16 @@ export const useSignIn = create<SignInState>()((set, get) => {
     }
   }
 
-  /** Portal, then the webhook's steps; the paste step's button runs the check through `begin`. */
+  /** Portal and the way in, then its steps; the paste step's and the application's button run through `begin`. */
   const bitrixNext = () => {
-    const { planStep, portal } = get()
+    const { planStep, portal, tool, method } = get()
     if (planStep === "choose") {
       const host = portalHost(portal)
       if (!host) return set({ planMissing: "portal" })
-      return set({ portal: host, planStep: "webhook", planMissing: null, webhookProblem: null })
+      // Before the owner makes the application in Bitrix24, not after: an older b24 cannot use it.
+      if (method === BITRIX_APP && methodTooOld(tool, method)) return set({ portal: host, planMissing: "update" })
+      const step = method === BITRIX_APP ? "app" : "webhook"
+      return set({ portal: host, planStep: step, planMissing: null, webhookProblem: null, appProblem: null })
     }
     set({ planStep: "paste", planMissing: null })
   }
@@ -453,7 +507,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
         // The step the run left from, so its copy fading out still shows it.
         planStep: same ? previous.planStep : "choose",
       })
-      const inputs = inputsFor(tool, chosen, get().address, get().way)
+      const inputs = inputsFor(tool, chosen, get())
       const mine = () => get().run === run && get().tool !== null
       // A stop sent before Rust registered the run is lost, so a word from a run nobody watches stops it again. Rust
       // sends the last word after the tool exited: from then on the next run may start, and a late word is ignored.
@@ -486,7 +540,12 @@ export const useSignIn = create<SignInState>()((set, get) => {
     begin() {
       const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
-      if (tool === BITRIX && planStep !== "paste") return bitrixNext()
+      if (tool === BITRIX && planStep !== "paste" && planStep !== "app") return bitrixNext()
+      if (tool === BITRIX && planStep === "app") {
+        if (!appIdShaped(get().appId)) return set({ planMissing: "appId", appProblem: null })
+        if (!typed.password?.trim()) return set({ planMissing: "appKey", appProblem: null })
+        set({ planMissing: null, appProblem: null })
+      }
       const chosen = methodOf(tool, method)
       if (guidedProvider(get())) {
         if (planStep === "choose") {
@@ -507,7 +566,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           .settingsSet(tool, profile, false, setting, ownId.trim())
           .then(run, (e) => set({ planError: message(e) }))
       }
-      const launch = tool === BITRIX ? () => void compareThenRun(go) : go
+      const launch = tool === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go
       if (!useSandbox.getState().name) return launch()
       const asked = get().run
       void useSandbox

@@ -70,3 +70,47 @@ export function webhookProblem(failure: {
     return { kind: "unreachable", message }
   return null
 }
+
+/**
+ * The local application's handler path: Bitrix24 sends the browser there, and the page passes the code back to b24 on
+ * this computer (bitrix24-cli `src/bitrix/oauth.ts` RELAY_URL).
+ */
+export const APP_HANDLER = "https://wirecat.dev/webhooks/apps/b24-callback"
+
+/** b24's sign-in guide on wirecat.dev, in Russian or else in English: the site has no Spanish pages. */
+export const appGuide = (lang: string) => `https://wirecat.dev/${lang === "ru" ? "ru" : "en"}/docs/b24/usage`
+
+/** Bitrix24 shows the Application ID as `local.<hex>.<digits>`; this only keeps out what b24 would refuse anyway. */
+export const appIdShaped = (typed: string) =>
+  /^[A-Za-z0-9._-]{1,128}$/.test(typed.trim()) && !typed.trim().startsWith("-")
+
+/** What the application's form says when b24 refused the sign-in; each kind has its own words and fix. */
+export type AppProblem = {
+  kind: "refused" | "payment" | "wrongPortal" | "unreachable" | "scope" | "invalid"
+  message: string
+}
+
+/**
+ * b24's refusals of a local application's sign-in (bitrix24-cli `src/bitrix/oauth.ts`, `src/commands/session.ts`).
+ * Null for what the general failure screen says better: a browser that never came back, a denial, a stop.
+ */
+export function appProblem(failure: {
+  message: string
+  code: string | null
+  reason?: string | null | undefined
+}): AppProblem | null {
+  const { message, code, reason } = failure
+  if (/PAYMENT_REQUIRED/.test(message)) return { kind: "payment", message }
+  if (reason === "oauth.mismatch" && /another portal/i.test(message)) return { kind: "wrongPortal", message }
+  if (reason === "oauth.expired" || /INVALID_CLIENT|code or key/i.test(message)) return { kind: "refused", message }
+  if (reason === "webhook.scope-missing" || /INSUFFICIENT_SCOPE/i.test(message)) return { kind: "scope", message }
+  if (
+    reason === "oauth.unavailable" ||
+    reason === "oauth.no-response" ||
+    code === "network_error" ||
+    /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|certificate/i.test(message)
+  )
+    return { kind: "unreachable", message }
+  if (code === "validation_error") return { kind: "invalid", message }
+  return null
+}

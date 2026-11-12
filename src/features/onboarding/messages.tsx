@@ -552,7 +552,7 @@ const ru: OnboardingText = {
       email:
         "Ваш адрес почты, затем вход Microsoft в браузере или пароль приложения — отдельный пароль только для этой программы.",
       bitrix:
-        "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов.",
+        "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов. Или ID и ключ локального приложения, вход в браузере.",
     },
   },
   done: {
@@ -867,7 +867,7 @@ const es: OnboardingText = {
       email:
         "Tu dirección de correo, y después el inicio de sesión de Microsoft en el navegador o una contraseña de aplicación: una contraseña solo para este programa.",
       bitrix:
-        "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos.",
+        "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
     },
   },
   done: {

@@ -87,13 +87,15 @@ export async function runMockScenario() {
     if (address) useSignIn.setState({ address })
   }
   // Bitrix24's steps up to the paste one, with a sample webhook pasted: `begin` then checks it as the button does.
-  const bitrixAt = (step: "webhook" | "paste", paste: boolean) => {
+  const bitrixAt = (step: "webhook" | "paste" | "app", paste: boolean) => {
     useSignIn.setState({ portal: "acme.bitrix24.ru", planStep: step })
-    if (paste) setPassword("https://acme.bitrix24.ru/rest/12/sample0webhook0key/")
+    if (step === "app") useSignIn.setState({ method: "app", appId: "local.0123abcd.45678901" })
+    if (paste) setPassword(step === "app" ? "sample0app0key" : "https://acme.bitrix24.ru/rest/12/sample0webhook0key/")
   }
   if (signIn === "bitrix" || failing?.[0] === "bitrix") {
     useSignIn.getState().start("bitrix", "personal")
-    bitrixAt("paste", true)
+    const app = signInMethod === "app" || failing?.[1]?.startsWith("app-")
+    bitrixAt(app ? "app" : "paste", true)
     useSignIn.getState().begin()
   } else if (signIn) {
     useSignIn.getState().start(signIn, "personal")
@@ -123,7 +125,8 @@ export async function runMockScenario() {
     if (planMethod) useSignIn.setState({ method: planMethod })
     mailPlan()
     const b24Step = params.get("b24-step")
-    if (plan === "bitrix" && (b24Step === "webhook" || b24Step === "paste")) bitrixAt(b24Step, false)
+    if (plan === "bitrix" && (b24Step === "webhook" || b24Step === "paste" || b24Step === "app"))
+      bitrixAt(b24Step, false)
   }
   const bot = params.get("bot") ?? params.get("bot-fail")
   if (bot) {

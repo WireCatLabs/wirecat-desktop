@@ -1,15 +1,18 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { portalHost, webhookPage, webhookParts, webhookProblem } from "@/domain/bitrix-signin"
+import { appProblem, portalHost, webhookPage, webhookParts, webhookProblem } from "@/domain/bitrix-signin"
 import { platform } from "@/platform/bridge"
-import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
+import type { SignInEvent } from "@/platform/signin-schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { act, render, screen, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { SignInDialog } from "./SignInDialog"
 
 const HOOK = "https://acme.bitrix24.ru/rest/12/s3cr3tk3y/"
+const APP_ID = "local.0123abcd.45678901"
+const APP_KEY = "s3cr3tAppK3y"
 const settled = () => act(() => new Promise((done) => setTimeout(done, MOTION.swap + 50)))
 
 describe("the portal and the webhook, read in the window", () => {
@@ -50,6 +53,23 @@ describe("the portal and the webhook, read in the window", () => {
         reason: "session.duplicate",
       }),
     ).toMatchObject({ kind: "duplicate", profile: "work" })
+  })
+
+  it("names the local application's refusals, and leaves a browser that never came back to the failure screen", () => {
+    const of = (reason: string | null, message = "x", code: string | null = null) =>
+      appProblem({ message, code, reason })?.kind ?? null
+    expect(of("oauth.expired", "Bitrix24 refused the application's code or key (INVALID_CLIENT)")).toBe("refused")
+    expect(of("oauth.expired", "Bitrix24 issues no tokens until the portal's plan is paid (PAYMENT_REQUIRED)")).toBe(
+      "payment",
+    )
+    expect(of("oauth.mismatch", "Bitrix24 signed in to another portal than acme.bitrix24.ru")).toBe("wrongPortal")
+    expect(of("oauth.mismatch", "the pasted sign-in result does not match this sign-in")).toBeNull()
+    expect(of("oauth.unavailable")).toBe("unreachable")
+    expect(of("oauth.no-response")).toBe("unreachable")
+    expect(of("webhook.scope-missing")).toBe("scope")
+    expect(of(null, "--portal takes the portal's https address", "validation_error")).toBe("invalid")
+    expect(of("oauth.timeout", "Bitrix24 sign-in timed out", "timeout")).toBeNull()
+    expect(of(null, "access_denied", "authentication_error")).toBeNull()
   })
 })
 
@@ -116,7 +136,9 @@ describe("Bitrix24's sign-in wizard", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
     expect(platform.signInOnPortal).toHaveBeenCalledWith("bitrix", "acme.bitrix24.ru")
     const [, method, profile, , inputs] = vi.mocked(platform.signIn).mock.calls[0] ?? []
-    expect([method, profile, (inputs as SignInInputs).password]).toEqual(["webhook", "work", HOOK])
+    expect([method, profile]).toEqual(["webhook", "work"])
+    // The webhook's run is as before the local application: the address on stdin, no portal or application flags.
+    expect(inputs).toEqual({ password: HOOK })
     expect(within(dialog).getByText("Checking the webhook with acme.bitrix24.ru…")).toBeInTheDocument()
 
     send({ event: "done", alreadyLinked: false, received: null })
@@ -166,5 +188,88 @@ describe("Bitrix24's sign-in wizard", () => {
     expect(within(dialog).getByLabelText("Webhook address")).toHaveValue(HOOK)
     await userEvent.click(within(dialog).getByRole("button", { name: "Check again" }))
     expect(platform.signIn).toHaveBeenCalledTimes(2)
+  })
+
+  const toApp = async (dialog: HTMLElement) => {
+    await userEvent.type(within(dialog).getByLabelText("Portal address"), "acme.bitrix24.ru")
+    await userEvent.click(within(dialog).getByRole("radio", { name: /Local application/ }))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    await settled()
+  }
+
+  it("offers the webhook first and the local application beside it", async () => {
+    const dialog = open()
+    expect(within(dialog).getByRole("radio", { name: /Incoming webhook/ })).toBeChecked()
+    expect(within(dialog).getByRole("radio", { name: /Local application/ })).not.toBeChecked()
+  })
+
+  it("leads through the local application's setup, then signs in in the browser with the key only in the inputs", async () => {
+    vi.spyOn(platform, "openUrl").mockResolvedValue()
+    const dialog = open()
+    await toApp(dialog)
+    expect(within(dialog).getByText("Make a local application")).toBeInTheDocument()
+    expect(within(dialog).getByText("https://wirecat.dev/webhooks/apps/b24-callback")).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Copy the handler path" })).toBeInTheDocument()
+    for (const code of ["crm", "user_basic", "department"])
+      expect(within(dialog).getByRole("button", { name: `Copy ${code}` })).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Full guide on wirecat.dev" })).toBeInTheDocument()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign in in the browser" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Paste the Application ID")
+    await userEvent.type(within(dialog).getByLabelText("Application ID (client_id)"), APP_ID)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign in in the browser" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Paste the Application key")
+    await userEvent.type(within(dialog).getByLabelText("Application key (client_secret)"), APP_KEY)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign in in the browser" }))
+
+    expect(platform.signInOnPortal).not.toHaveBeenCalled()
+    const [, method, profile, , inputs] = vi.mocked(platform.signIn).mock.calls[0] ?? []
+    expect([method, profile]).toEqual(["app", "work"])
+    expect(inputs).toEqual({ portal: "acme.bitrix24.ru", appId: APP_ID, password: APP_KEY })
+
+    const page = "https://acme.bitrix24.ru/oauth/authorize/?client_id=local.0123abcd.45678901"
+    send({ event: "openUrl", url: page, purpose: null })
+    await settled()
+    expect(platform.openUrl).toHaveBeenCalledWith(page)
+    expect(within(dialog).getByText("Continue on acme.bitrix24.ru.")).toBeInTheDocument()
+
+    send({ event: "done", alreadyLinked: false, received: null })
+    await settled()
+    expect(within(dialog).getByText("Bitrix24 is signed in as work.")).toBeInTheDocument()
+  })
+
+  it("brings a refused id or key back to the application's form, with the id kept", async () => {
+    const dialog = open()
+    await toApp(dialog)
+    await userEvent.type(within(dialog).getByLabelText("Application ID (client_id)"), APP_ID)
+    await userEvent.type(within(dialog).getByLabelText("Application key (client_secret)"), APP_KEY)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign in in the browser" }))
+    send({
+      event: "failed",
+      code: "authentication_error",
+      reason: "oauth.expired",
+      message: "Bitrix24 refused the application's code or key (INVALID_CLIENT): check both",
+    })
+    await settled()
+    expect(within(dialog).getByText("Bitrix24 refused the Application ID or key.")).toBeInTheDocument()
+    expect(within(dialog).getByLabelText("Application ID (client_id)")).toHaveValue(APP_ID)
+    expect(within(dialog).queryByText(APP_KEY)).toBeNull()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign in again" }))
+    expect(platform.signIn).toHaveBeenCalledTimes(2)
+  })
+
+  it("asks to update a b24 older than the local application before its setup", async () => {
+    useTools.setState({
+      installs: { bitrix: [{ path: "~/bin/b24", version: "0.13.0", manager: "npm", problem: null }] },
+    })
+    const dialog = open()
+    await toApp(dialog)
+    expect(within(dialog).getByText(/A local application needs 0.14.0 or newer/)).toBeInTheDocument()
+    expect(within(dialog).queryByText("Make a local application")).toBeNull()
+    await userEvent.click(within(dialog).getByRole("radio", { name: /Incoming webhook/ }))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    await settled()
+    expect(within(dialog).getByText("Make an incoming webhook")).toBeInTheDocument()
+    useTools.setState({ installs: {} })
   })
 })

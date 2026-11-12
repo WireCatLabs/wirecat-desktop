@@ -292,6 +292,20 @@ mod tests {
     }
 
     #[test]
+    fn reads_b24s_local_application_sign_in_as_one_browser_step() {
+        // b24 0.14.0's stderr for `session start --portal --client-id --json`, the key piped on stdin.
+        let url = "https://acme.example.org/oauth/authorize/?response_type=code&client_id=local.1&redirect_uri=https%3A%2F%2Fwirecat.dev%2Fwebhooks%2Fapps%2Fb24-callback&state=1.x";
+        let steps = err(&[
+            &serde_json::json!({ "event": "open_url", "url": url, "purpose": "Sign in to Bitrix24 and allow the application" })
+                .to_string(),
+            "",
+            &format!("Open the Bitrix24 sign-in: {url}"),
+        ]);
+        assert_eq!(steps.len(), 1, "{steps:?}");
+        assert!(matches!(&steps[0], SignInEvent::OpenUrl { url: u, .. } if u == url));
+    }
+
+    #[test]
     fn the_link_reaches_only_its_step_and_only_https_opens() {
         let url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=1&state=abc";
         let steps = err(&[

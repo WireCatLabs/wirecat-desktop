@@ -110,6 +110,10 @@ describe("explaining a failed sign-in", () => {
   it("explains Drive's signed-out, expired and rate-limited answers", () => {
     expect(explain({ tool: "drive", reason: "oauth.missing", message: "x" }).reason).toBe("signedOut")
     expect(explain({ tool: "drive", reason: "oauth.expired", message: "x" }).reason).toBe("signInExpired")
+    expect(
+      explain({ tool: "bitrix", reason: "oauth.timeout", code: "timeout", message: "Bitrix24 sign-in timed out" })
+        .reason,
+    ).toBe("browserNoReturn")
     expect(explain({ tool: "drive", reason: "provider.rate-limited", message: "x" }).reason).toBe("rateLimited")
   })
 })

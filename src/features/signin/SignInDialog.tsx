@@ -264,21 +264,32 @@ function Actions() {
   )
 }
 
-const BITRIX_BACK = { webhook: "choose", paste: "webhook" } as const
+const BITRIX_BACK = { webhook: "choose", paste: "webhook", app: "choose" } as const
 
-/** Bitrix24's own steps: Back to the one before, and the next, which on the paste step checks the webhook. */
+/** Bitrix24's own steps: Back to the one before, and the next, which checks the webhook or signs in with the app. */
 function BitrixActions() {
-  const { planStep, comparing, webhookProblem, close, begin } = useSignIn()
+  const { planStep, comparing, webhookProblem, appProblem, close, begin } = useSignIn()
   const m = useMessages(signinMessages)
   const mm = useMessages(mailMessages)
-  const bm = useMessages(bitrixMessages).paste
-  const back = planStep === "webhook" || planStep === "paste" ? BITRIX_BACK[planStep] : null
-  const paste = planStep === "paste"
+  const bm = useMessages(bitrixMessages)
+  const back = planStep === "webhook" || planStep === "paste" || planStep === "app" ? BITRIX_BACK[planStep] : null
+  const label =
+    planStep === "paste"
+      ? webhookProblem
+        ? bm.paste.checkAgain
+        : bm.paste.check
+      : planStep === "app"
+        ? appProblem
+          ? bm.app.again
+          : bm.app.signIn
+        : mm.next
   return (
     <>
       {back && (
         <BackButton
-          onClick={() => useSignIn.setState({ planStep: back, planMissing: null, webhookProblem: null })}
+          onClick={() =>
+            useSignIn.setState({ planStep: back, planMissing: null, webhookProblem: null, appProblem: null })
+          }
           reason={comparing ? m.back.busy : undefined}
         />
       )}
@@ -291,7 +302,7 @@ function BitrixActions() {
         disabled={comparing}
         icon={comparing ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : undefined}
       >
-        {paste ? (webhookProblem ? bm.checkAgain : bm.check) : mm.next}
+        {label}
       </Button>
     </>
   )

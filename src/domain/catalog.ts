@@ -92,8 +92,13 @@ const ToolSchema = v.object({
             clientId: v.optional(v.string()),
             oauth: v.optional(v.array(v.string())),
             oauthMinVersion: v.optional(v.string()),
-            /** The typed secret is the tool's whole stdin (b24's webhook address), sent in `password`. */
+            /** The typed secret is the tool's whole stdin (b24's webhook address or app key), sent in `password`. */
             stdin: v.optional(v.boolean()),
+            /** The flags for a local application's portal and id (b24's `--portal`, `--client-id`). */
+            portal: v.optional(v.string()),
+            appId: v.optional(v.string()),
+            /** The first release of the tool with this way in; an older one is asked to update before the steps. */
+            minVersion: v.optional(v.string()),
           }),
         ),
       ),

@@ -52,4 +52,7 @@ export type SignInInputs = {
   clientFile?: string
   /** The browser with the tool's own app, for a method whose new profile would otherwise ask a password. */
   oauth?: boolean
+  /** A local application's portal and Application ID; its key goes in `password`, on stdin. */
+  portal?: string
+  appId?: string
 }
