@@ -1,7 +1,7 @@
 use serde::ser::SerializeStruct;
 
-/// What a command hands the interface when it fails: `{ kind, message }`. The message is the same text the command
-/// returned before kinds existed; the kind lets the interface choose its own words later.
+/// What a command hands the interface when it fails: `{ kind, message }`. The message is a sentence the user can act
+/// on, shown as it is; the kind lets the interface choose its own words where it has them (`CommandError`).
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("unknown tool: {0}")]

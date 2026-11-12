@@ -218,7 +218,7 @@ mod tests {
     fn runs_each_messengers_own_images_read_and_none_is_released_yet() {
         for id in ["tg", "max", "wa"] {
             let src = crate::catalog::tool(id).unwrap().images_read.as_ref().unwrap();
-            // TODO(#350): cli-core 0.643.0's version of each messenger once it is on npm.
+            // No messenger on npm has cli-core 0.643.0's `images read` yet; its first version becomes the gate here.
             assert_eq!(src.min_version, None);
             assert_eq!(
                 read_args(src, "personal", REF, 2).join(" "),

@@ -226,8 +226,7 @@ function PROJECT_SET(): Project[] {
     : PROJECTS
 }
 
-// ---- A small reading of memo's query language: fields, OR, NOT, groups, ranges and plain words ----
-
+/** The mock reads a small part of memo's query language: fields, OR, NOT, groups, ranges and plain words. */
 type Node =
   | { op: "and" | "or"; parts: Node[] }
   | { op: "not"; part: Node }
@@ -416,8 +415,6 @@ const filter = (all: Task[], q: string) => {
   const node = parse(query)
   return all.filter((t) => matches(t, node))
 }
-
-// ---- The mock itself ----
 
 type TaskApi = Pick<
   Platform,

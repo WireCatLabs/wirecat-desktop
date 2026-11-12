@@ -216,8 +216,6 @@ function inRange(range: Range, iso: string, now = new Date()): boolean {
   return dayKey(iso) === range
 }
 
-// ---- The search words ----
-
 /** The words Memory's search reads. `kind`, `project`, `subject` and `scope` are memo's own; `by` and `when` are the page's. */
 const MEMORY_FIELDS = "subject|project|kind|scope|by|when"
 export type MemoryField = "subject" | "project" | "kind" | "scope" | "by" | "when"

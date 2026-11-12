@@ -12,8 +12,6 @@ type Step = Record<string, string>
 const byId = (pick: (t: CatalogTool) => string | null | undefined) =>
   Object.fromEntries(tools.flatMap((t) => (pick(t) ? [[t.id, pick(t) as string]] : [])))
 
-// ---------- English ----------
-
 const en = {
   page: {
     title: "Tools",
@@ -331,8 +329,6 @@ const en = {
 }
 
 export type ToolsText = typeof en
-
-// ---------- Russian ----------
 
 const RU_NOTE: Record<string, string> = {
   wa: "В WhatsApp нет синхронизации, которую можно запустить. Новые сообщения приходят, пока работает его фоновая служба: смотрите «Фоновая служба» ниже.",
@@ -677,8 +673,6 @@ const ru: typeof en = {
       `Инструменты оставили на этом компьютере ${size}: общее хранилище, сеансы, настройки и кэш. Оставьте их, если, возможно, установите инструменты снова; удалите, чтобы убрать всё. Токены входа в системном хранилище ключей не затрагиваются.`,
   },
 }
-
-// ---------- Spanish ----------
 
 const ES_NOTE: Record<string, string> = {
   wa: "WhatsApp no tiene una sincronización que iniciar. Los mensajes nuevos llegan mientras funciona su servicio en segundo plano: mira «Servicio en segundo plano» más abajo.",

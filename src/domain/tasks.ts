@@ -19,8 +19,6 @@ export function labelOf(priority: number | null): Label | null {
   return "low"
 }
 
-// ---- The search words ----
-
 /** Open work and what was closed in the last 14 days; memo's own default hides closed tasks altogether. */
 export const BOARD_DEFAULT = "(state:(open OR todo OR in_progress) OR closed:>=14d)"
 
@@ -126,8 +124,6 @@ export function boardQuery(q: string): string {
   return words ? `(${words}) ${BOARD_DEFAULT}` : BOARD_DEFAULT
 }
 
-// ---- Dates ----
-
 /** A due date is a day: memo keeps local midnight of it, so the day is read back in local time. */
 export const localDay = (iso: string) => isoDay(new Date(iso))
 
@@ -148,8 +144,6 @@ export function dueTone(iso: string, state: State, today = new Date()): DueTone 
 }
 
 export { isoDay }
-
-// ---- Board order ----
 
 /**
  * Where a card lands among the cards shown in its new column, as memo's `move` wants it: above the card that now
