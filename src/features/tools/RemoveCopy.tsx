@@ -72,7 +72,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
       actions={
         phase.step === "confirm" ? (
           <>
-            <Button variant="secondary" onClick={onClose} autoFocus>
+            <Button variant="secondary" onClick={onClose} data-autofocus>
               {m.keep}
             </Button>
             <Button variant="danger" onClick={run}>

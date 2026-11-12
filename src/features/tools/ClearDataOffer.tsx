@@ -33,7 +33,7 @@ export function ClearDataOffer() {
       onClose={close}
       actions={
         <>
-          <Button variant="secondary" onClick={close} autoFocus>
+          <Button variant="secondary" onClick={close} data-autofocus>
             {m.keep}
           </Button>
           <Button

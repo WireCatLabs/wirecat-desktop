@@ -6,7 +6,7 @@ export function Choice(props: {
   group: string
   checked: boolean
   onChange: () => void
-  autoFocus?: boolean
+  first?: boolean
   children: ReactNode
 }) {
   return (
@@ -16,7 +16,7 @@ export function Choice(props: {
         name={props.group}
         checked={props.checked}
         onChange={props.onChange}
-        data-autofocus={props.autoFocus || undefined}
+        data-autofocus={props.first || undefined}
         className="peer sr-only"
       />
       <span

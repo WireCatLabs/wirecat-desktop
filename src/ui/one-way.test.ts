@@ -56,6 +56,19 @@ describe("one component per job (docs/dev/ui-consistency.md)", () => {
     ).toEqual([])
   })
 
+  it("marks a dialog's first focus with data-autofocus, which Dialog focuses after showModal", () => {
+    // React's autoFocus runs before showModal, while the dialog is still closed, so it focuses nothing.
+    const dialogAutoFocus =
+      /from "(?:@\/ui|\.)\/Dialog"[\s\S]*\bautoFocus\b|\bautoFocus\b[\s\S]*from "(?:@\/ui|\.)\/Dialog"/
+    expect(
+      using(dialogAutoFocus, [
+        // Buttons of a later step mount inside the open dialog; React focuses them, data-autofocus would not.
+        "features/tools/RemoveAccount.tsx",
+        "features/tools/RemoveCopy.tsx",
+      ]),
+    ).toEqual([])
+  })
+
   it("repeats the page frame only in Page and in the first-run setup", () => {
     expect(using(/px-\[2\.1rem\]/, ["shared/Page.tsx", "features/onboarding/Onboarding.tsx"])).toEqual([])
   })

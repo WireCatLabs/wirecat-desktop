@@ -285,12 +285,7 @@ function Body(props: {
         <>
           <p>{m.lead(tool.name)}</p>
           <div className="grid gap-2">
-            <ChoiceButton
-              title={m.keepChoice}
-              note={m.keepChoiceNote(what)}
-              onClick={() => onChoose(false)}
-              autoFocus
-            />
+            <ChoiceButton title={m.keepChoice} note={m.keepChoiceNote(what)} onClick={() => onChoose(false)} first />
             <ChoiceButton
               title={m.deleteChoice}
               note={m.deleteChoiceNote(what)}
@@ -346,19 +341,13 @@ function Waiting({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ChoiceButton(props: {
-  title: string
-  note: string
-  onClick: () => void
-  danger?: boolean
-  autoFocus?: boolean
-}) {
-  const { title, note, onClick, danger = false, autoFocus } = props
+function ChoiceButton(props: { title: string; note: string; onClick: () => void; danger?: boolean; first?: boolean }) {
+  const { title, note, onClick, danger = false, first } = props
   return (
     <button
       type="button"
       onClick={onClick}
-      data-autofocus={autoFocus || undefined}
+      data-autofocus={first || undefined}
       className={cx(
         "flex flex-col gap-1 rounded-[0.45rem] border border-line bg-app px-3 py-2.5 text-left transition-colors duration-(--motion-fast)",
         "hover:border-brand/50 hover:bg-brand-soft/40 focus-visible:border-brand",

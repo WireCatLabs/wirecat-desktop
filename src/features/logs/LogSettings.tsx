@@ -67,7 +67,7 @@ export function LogSettings({ id }: { id: string }) {
         onClose={() => setAsk(null)}
         actions={
           <>
-            <Button variant="secondary" onClick={() => setAsk(null)} autoFocus>
+            <Button variant="secondary" onClick={() => setAsk(null)} data-autofocus>
               {m.leaveIt}
             </Button>
             <Button

@@ -46,7 +46,7 @@ export function ClearStorageDialog({ open, onClose }: { open: boolean; onClose: 
       onClose={working ? () => {} : onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={working} autoFocus>
+          <Button variant="secondary" onClick={onClose} disabled={working} data-autofocus>
             {m.keepStorage}
           </Button>
           <Button variant="danger" onClick={go} disabled={!ready}>

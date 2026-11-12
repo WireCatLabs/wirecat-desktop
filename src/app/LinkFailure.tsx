@@ -18,7 +18,7 @@ export function LinkFailure() {
       title={m.title}
       onClose={close}
       actions={
-        <Button variant="secondary" onClick={close} autoFocus>
+        <Button variant="secondary" onClick={close} data-autofocus>
           {m.close}
         </Button>
       }

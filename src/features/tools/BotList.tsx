@@ -181,7 +181,7 @@ function RemoveBotDialog(props: { tool: CatalogTool; name: string | null; onClos
       onClose={onClose}
       actions={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} data-autofocus>
             {m.cancel}
           </Button>
           <Button variant="danger" onClick={remove} aria-busy={busy || undefined}>

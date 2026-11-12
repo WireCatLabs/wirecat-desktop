@@ -262,7 +262,7 @@ function ConfirmDelete(props: {
       onClose={onCancel}
       actions={
         <>
-          <Button variant="secondary" onClick={onCancel} autoFocus>
+          <Button variant="secondary" onClick={onCancel} data-autofocus>
             {m.keepIt}
           </Button>
           <Button variant="danger" onClick={onConfirm} icon={<Trash2 className="size-4" aria-hidden />}>
