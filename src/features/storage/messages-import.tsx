@@ -7,7 +7,7 @@ const en = {
   intro:
     "Records from a spreadsheet or another system: invoices, payments, organizations and the rest. Choose a type, " +
     "download its template, fill it in, then check the file before it goes in.",
-  readingTypes: "Asking memo which records it takes",
+  readingTypes: "Asking Memo which records it takes",
   type: "Type",
   format: "Format",
   separator: "Separator",

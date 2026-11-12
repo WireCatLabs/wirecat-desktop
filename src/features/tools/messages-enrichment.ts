@@ -5,7 +5,7 @@ const en = {
   title: "Rewrite records for better search",
   what: "A hosted model reads each note, document and email and writes short facts and questions about it in other words. Search then finds a record even when you ask in words the record does not use.",
   measured: (rewordedOff: number, rewordedOn: number, ownOff: number, ownOn: number) =>
-    `In memo's tests, a question in other words found its record among the first ten results ${rewordedOn} times in 100 instead of ${rewordedOff}. A question in the record's own words put it first a little less often: ${ownOn} times in 100 instead of ${ownOff}.`,
+    `In Memo's tests, a question in other words found its record among the first ten results ${rewordedOn} times in 100 instead of ${rewordedOff}. A question in the record's own words put it first a little less often: ${ownOn} times in 100 instead of ${ownOff}.`,
   off: "Off. Nothing leaves this computer.",
   offCost: (records: string, provider: string, usd: string) =>
     `Turning it on would send ${records} to ${provider}, for about ${usd}.`,
@@ -14,7 +14,7 @@ const en = {
   modelLabel: "Model",
   offer: (provider: string, model: string) => `${provider} ${model}`,
   offerPrice: (input: string, output: string) => `${input} in, ${output} out per million tokens`,
-  memoDefault: "memo's default",
+  memoDefault: "Memo's default",
   ownOffer: "Another model at an address",
   ownOfferNote: "A server on this computer (Ollama, LM Studio) or an OpenAI-compatible service",
   ownModelHelp: "Name the model as the server names it, for example llama3.1:8b.",

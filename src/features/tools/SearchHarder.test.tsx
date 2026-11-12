@@ -43,7 +43,7 @@ it("says that no memo release can search harder yet", async () => {
   vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "old", version: "0.131.73", need: null })
   render(<SearchHarder tool={memo} />)
   expect(
-    await screen.findByText("Search harder comes with a memo update that is not released yet."),
+    await screen.findByText("Search harder comes with a Memo update that is not released yet."),
   ).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument()
 })
@@ -69,7 +69,7 @@ it("allows it only after showing what one search sends, where, its price and the
     await screen.findByText(/its first 30 results, each with its date, title and up to 400 characters/),
   ).toBeInTheDocument()
   expect(screen.getByText("They go to Anthropic (api.anthropic.com), model claude-haiku-5-5.")).toBeInTheDocument()
-  expect(screen.getByText(/No API key found \(memo also reads ANTHROPIC_API_KEY\)/)).toBeInTheDocument()
+  expect(screen.getByText(/No API key found \(Memo also reads ANTHROPIC_API_KEY\)/)).toBeInTheDocument()
   expect(preview).toHaveBeenLastCalledWith("memo", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
   expect(turnOn).not.toHaveBeenCalled()
 
