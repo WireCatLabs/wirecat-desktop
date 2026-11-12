@@ -777,11 +777,11 @@ mod tests {
     }
 
     #[test]
-    fn the_catalog_gates_the_agent_on_a_released_memo_and_the_new_sources_on_none_yet() {
+    fn the_catalog_gates_the_agent_and_the_new_sources_on_released_memos() {
         let src = crate::catalog::tool("memo").unwrap().digests.as_ref().unwrap();
         assert_eq!(src.agent.as_ref().unwrap().min_version.as_deref(), Some("0.131.85"));
-        assert!(src.more_sources.as_ref().unwrap().min_version.is_none());
-        assert!(src.agent_consent.as_ref().unwrap().min_version.is_none());
+        assert_eq!(src.more_sources.as_ref().unwrap().min_version.as_deref(), Some("0.131.86"));
+        assert_eq!(src.agent_consent.as_ref().unwrap().min_version.as_deref(), Some("0.131.86"));
     }
 
     #[test]

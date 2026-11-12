@@ -1836,7 +1836,7 @@
       "memory": {
         "minVersion": "0.131.83",
         "revokeMinVersion": "0.131.28",
-        "findingsEdit": { "minVersion": null }
+        "findingsEdit": { "minVersion": "0.131.86" }
       },
       "tasks": null,
       "taskBoard": {
@@ -1844,17 +1844,17 @@
       },
       "crmBoard": {
         "minVersion": "0.131.71",
-        "relatedTasks": { "minVersion": null }
+        "relatedTasks": { "minVersion": "0.131.86" }
       },
       "people": {
         "minVersion": "0.131.84",
-        "companyMailbox": { "minVersion": null }
+        "companyMailbox": { "minVersion": "0.131.86" }
       },
       "digests": {
         "minVersion": "0.131.75",
         "agent": { "minVersion": "0.131.85" },
-        "moreSources": { "minVersion": null },
-        "agentConsent": { "minVersion": null }
+        "moreSources": { "minVersion": "0.131.86" },
+        "agentConsent": { "minVersion": "0.131.86" }
       },
       "notesSetup": {
         "minVersion": "0.131.71",
@@ -1927,7 +1927,7 @@
         "off": ["models", "local-only", "set", "off", "--from-app", "--record", "--json"]
       },
       "pictureReading": {
-        "minVersion": null,
+        "minVersion": "0.131.86",
         "show": ["models", "picture-reading", "show", "--no-record", "--json"],
         "set": ["models", "picture-reading", "set", "{mode}", "{agent}", "{model}", "--from-app", "--record", "--json"]
       },
