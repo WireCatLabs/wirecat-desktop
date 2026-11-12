@@ -4,7 +4,7 @@ import { useMemory } from "@/features/memory"
 import { useSearch } from "@/features/search"
 import { useTasks } from "@/features/tasks"
 import type { Lang } from "@/i18n"
-import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
+import { BLANK_ENTRY, type MemoryEntry, type MemorySource } from "@/platform/memory-schemas"
 import type { SearchAnswer } from "@/platform/search-schemas"
 import type { Person, Task } from "@/platform/task-schemas"
 import { markStale } from "@/shared/fresh"
@@ -69,30 +69,6 @@ const NAMES: Record<Lang, { kai: string; ana: string }> = {
   es: { kai: "Kai Moreno", ana: "Ana Ruiz" },
 }
 
-const blank = {
-  summary: null,
-  verb: null,
-  targetName: null,
-  chatName: null,
-  counts: null,
-  subject: null,
-  subjectName: null,
-  subjectIsOwner: false,
-  scope: "work",
-  project: null,
-  projectName: null,
-  supersedes: null,
-  reason: null,
-  account: null,
-  target: null,
-  updatedAt: null,
-  findings: null,
-  task: null,
-  model: null,
-  confidence: null,
-  sourceReview: null,
-} as const
-
 const bot = (name: string) => ({ type: "bot", name })
 
 export function demoMemory(lang: Lang): MemoryEntry[] {
@@ -100,7 +76,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
   const n = NAMES[lang]
   return [
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "memory:example-1",
       type: "memory",
       kind: "preference",
@@ -113,7 +89,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(2 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "action:example-2",
       type: "action",
       kind: "create_task",
@@ -132,7 +108,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(3 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "fact:example-3",
       type: "fact",
       kind: "promise",
@@ -145,7 +121,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(5 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "fact:example-4",
       type: "fact",
       kind: "decision",
@@ -160,7 +136,7 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
       createdAt: ago(26 * HOUR),
     },
     {
-      ...blank,
+      ...BLANK_ENTRY,
       ref: "memory:example-5",
       type: "memory",
       kind: "preference",

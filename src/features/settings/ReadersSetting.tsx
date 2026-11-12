@@ -18,6 +18,7 @@ import { Pill } from "@/ui/Pill"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { useMemoGap } from "./memo-gap"
 import { readersMessages } from "./messages-readers"
 
 /** Readers that read with an API key: the one key is set in «AI model», never here. */
@@ -28,10 +29,7 @@ const KEYED = new Set(["key", "openai", "anthropic"])
  * even when only one reader exists. memo's `ai-model` reader uses the model and key set in «AI model».
  */
 export function ReadersSetting() {
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  // Known missing only from a finished detection (kept from the last run): Settings starts no scan of its own.
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   if (!memo && !gap) return null
   // Without memo there is nothing to choose, and asking would start a failing run on every visit.
   return <Readers gap={memo ? null : gap} />

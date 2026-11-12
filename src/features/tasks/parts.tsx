@@ -54,16 +54,16 @@ export function PriorityMark({ label }: { label: Label | null }) {
   const m = useMessages(taskMessages)
   if (!label) return null
   const filled = label === "critical" ? 3 : label === "high" ? 2 : label === "medium" ? 1 : 0
-  const said = m.priorityIs(m.labels[label])
+  const tone = label === "critical" ? "text-bad" : label === "high" ? "text-warn" : "text-ink-dim"
+  return <Bars filled={filled} tone={tone} label={m.priorityIs(m.labels[label])} />
+}
+
+/** Three rising bars, `filled` of them solid; with a `label` they are an image that says it, else decoration. */
+export function Bars({ filled, tone, label }: { filled: number; tone: string; label?: string }) {
   return (
     <span
-      role="img"
-      aria-label={said}
-      title={said}
-      className={cx(
-        "inline-flex h-[0.8rem] shrink-0 items-end gap-[2px]",
-        label === "critical" ? "text-bad" : label === "high" ? "text-warn" : "text-ink-dim",
-      )}
+      {...(label ? { role: "img", "aria-label": label, title: label } : { "aria-hidden": true })}
+      className={cx("inline-flex h-[0.8rem] shrink-0 items-end gap-[2px]", tone)}
     >
       {[0, 1, 2].map((b) => (
         <span

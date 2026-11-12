@@ -8,25 +8,11 @@ import { fieldFocus } from "@/ui/field"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
 import { PersonFinder } from "./PersonFinder"
-import { DueText, personName, priorityLabel, StateLamp } from "./parts"
+import { Bars, DueText, personName, priorityLabel, StateLamp } from "./parts"
 import { useTasks } from "./store"
 
 // A cell reads as text and takes a wash on hover; it is a Select underneath, so keys and screen readers work as there.
 const BARE = "w-full border-transparent! bg-transparent! hover:bg-app-3! -ml-[0.45rem] pl-[0.45rem]!"
-
-function Bars({ filled, tone }: { filled: number; tone: string }) {
-  return (
-    <span aria-hidden className={cx("inline-flex h-[0.8rem] items-end gap-[2px]", tone)}>
-      {[0, 1, 2].map((b) => (
-        <span
-          key={b}
-          className={cx("w-[3px] rounded-[1px] bg-current", b >= filled && "opacity-25")}
-          style={{ height: `${(b + 1) * 33}%` }}
-        />
-      ))}
-    </span>
-  )
-}
 
 const BAR: Record<string, [number, string]> = {
   critical: [3, "text-bad"],

@@ -17,6 +17,7 @@ import { updateMessages, useUpdate } from "@/features/update"
 import { useMessages } from "@/i18n"
 import { useSystem } from "@/shared/system-store"
 import { cx } from "@/ui/cx"
+import { MOVES } from "@/ui/SplitButton"
 import { onboardingMessages } from "./messages"
 
 export type HelpActions = {
@@ -49,13 +50,6 @@ export const useHelpMenu = create<{
 
 /** Marks a button outside the menu that toggles it, so the press on it is not taken for a click outside. */
 export const HELP_OPENER = "data-help-opener"
-
-const MOVES: Record<string, (at: number, count: number) => number> = {
-  ArrowDown: (at, n) => (at + 1) % n,
-  ArrowUp: (at, n) => (at - 1 + n) % n,
-  Home: () => 0,
-  End: (_, n) => n - 1,
-}
 
 /** The Help button and its copy of the menu. WireCat's Node.js dialog lives here, whichever copy opened it. */
 export function HelpMenu(actions: HelpActions) {

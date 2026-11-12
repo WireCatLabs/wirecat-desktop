@@ -38,7 +38,8 @@ const enabled = (menu: HTMLElement | null) => [
   ...(menu?.querySelectorAll<HTMLButtonElement>("[role=menuitem]:not(:disabled)") ?? []),
 ]
 
-const MOVES: Record<string, (at: number, count: number) => number> = {
+/** Where each menu key moves the focus among `count` items (WAI-ARIA menu). */
+export const MOVES: Record<string, (at: number, count: number) => number> = {
   ArrowDown: (at, n) => (at + 1) % n,
   ArrowUp: (at, n) => (at - 1 + n) % n,
   Home: () => 0,

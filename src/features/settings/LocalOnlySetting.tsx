@@ -1,6 +1,5 @@
 import { useEffect, useId } from "react"
 import { hostOfOrigin } from "@/domain/ai-model"
-import type { Gap } from "@/domain/needs"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { LocalOnlyStatus } from "@/platform/ai-model-schemas"
 import { useAiModel } from "@/shared/ai-model-store"
@@ -14,6 +13,7 @@ import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
 import { useLocalOnly } from "./local-only-store"
+import { useMemoGap } from "./memo-gap"
 import { localOnlyMessages, PLACES, type Place } from "./messages-local-only"
 
 const isPlace = (where: string): where is Place => (PLACES as readonly string[]).includes(where)
@@ -21,9 +21,7 @@ const isPlace = (where: string): where is Place => (PLACES as readonly string[])
 /** Settings, "Only this computer": memo's one switch for every model call, and where each feature sends data now. */
 export function LocalOnlySetting() {
   const m = useMessages(localOnlyMessages)
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   const head = useId()
   if (!memo && !gap) return null
   return (

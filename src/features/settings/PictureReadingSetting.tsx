@@ -1,6 +1,5 @@
 import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import type { Gap } from "@/domain/needs"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { PictureAgent, PictureReadingSetting as Setting } from "@/platform/ai-model-schemas"
 import { ToolNeeded } from "@/shared/ToolNeeded"
@@ -13,6 +12,7 @@ import { fieldClass } from "@/ui/field"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
+import { useMemoGap } from "./memo-gap"
 import { pictureReadingMessages } from "./messages-picture-reading"
 import { usePictureReading } from "./picture-reading-store"
 
@@ -23,9 +23,7 @@ const AGENTS: readonly PictureAgent[] = ["claude", "codex"]
 /** Settings, "Reading pictures": whether the owner's coding agent may read a picture they choose, and which one. */
 export function PictureReadingSetting() {
   const m = useMessages(pictureReadingMessages)
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   const head = useId()
   if (!memo && !gap) return null
   return (

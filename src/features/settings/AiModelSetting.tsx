@@ -2,7 +2,6 @@ import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { hostOfOrigin, isLocalHost, modelOnThisComputer, providerHost, staysHere } from "@/domain/ai-model"
 import { REFUSED, tooOldFor } from "@/domain/memory-add"
-import type { Gap } from "@/domain/needs"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
@@ -23,6 +22,7 @@ import { SecretField } from "@/ui/SecretField"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { useMemoGap } from "./memo-gap"
 import { aiModelMessages, SAVE_REASONS, type SaveReason } from "./messages-ai-model"
 
 export const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
@@ -70,10 +70,7 @@ const draftOf = (m: AiModel): Draft => ({
 /** Settings, "AI model": one model for reading sources and pictures. A key goes to memo once and is never shown back. */
 export function AiModelSetting() {
   const m = useMessages(aiModelMessages)
-  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
-  // Known missing only from a finished detection (kept from the last run): Settings starts no scan of its own.
-  const known = useTools((s) => s.installs.memo !== undefined)
-  const gap: Gap | null = known && !memo ? { kind: "missing", tool: "memo", others: [] } : null
+  const { memo, gap } = useMemoGap()
   const head = useId()
   if (!memo && !gap) return null
   return (
