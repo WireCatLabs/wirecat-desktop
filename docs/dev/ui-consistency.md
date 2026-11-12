@@ -50,12 +50,15 @@ Ids are local to this page. "Owner" is who is editing that area now; "free" mean
 
 ## Where the owner's rules stand
 
-- **A button is never disabled for a missing or wrong value** (CLAUDE.md rule 10): holds. A click says what is
+- **A button is never disabled for a missing or wrong value** (CLAUDE.md rule 10): the buttons hold; field errors partly. A click says what is
   missing at the field through `useFieldError`; its `live` option keeps an error that follows the value as it is typed.
   Buttons stay disabled only while busy, or for what cannot be done at all (an older memo, no agent, nothing to undo).
   A field's error goes through `FieldError`; `src/ui/one-way.test.ts` refuses a red line a field points at by id
   outside it. Four live lines still write their own (QueryBar, QueryDraft, BackupPassword, ScheduleCard's day), listed
-  in that test.
+  in that test. Other forms still mark the field by hand (NewTask, CloudflareGuide, AnswerForm, SearchPage), and a red
+  `<span role="alert">` inside a field's hint line (BotSteps, BitrixSteps, the mail app password, the sign-in plan,
+  AnswerForm) is a shape the test does not catch. Reading pictures' agent choice moves focus but sets no
+  `aria-invalid`, because `Segmented` takes no field props.
 - **Creation presets above lists** (rule 11): holds; Digests puts its templates above the table, and no other page
   creates from presets.
 - **Every list pages on the server** (rule 12): see C15.
