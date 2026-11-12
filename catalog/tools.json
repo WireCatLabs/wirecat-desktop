@@ -1848,7 +1848,9 @@
         "minVersion": "0.131.84"
       },
       "digests": {
-        "minVersion": "0.131.75"
+        "minVersion": "0.131.75",
+        "agent": { "minVersion": "0.131.85" },
+        "moreSources": { "minVersion": null }
       },
       "notesSetup": {
         "minVersion": "0.131.71",

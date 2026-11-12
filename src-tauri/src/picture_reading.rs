@@ -70,7 +70,7 @@ fn gate(src: &PictureReadingSource, version: Option<&str>) -> bool {
 }
 
 /// cli-core's `PICTURE_MODEL`: the name goes into the agent's argv, so it never starts with a dash.
-fn checked_model(model: &str) -> Result<&str, String> {
+pub(crate) fn checked_model(model: &str) -> Result<&str, String> {
     let ok = model.len() <= MAX_MODEL
         && model.starts_with(|c: char| c.is_ascii_alphanumeric())
         && model.chars().all(|c| c.is_ascii_alphanumeric() || "._:/-".contains(c));

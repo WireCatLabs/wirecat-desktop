@@ -24,6 +24,7 @@ import { LinkButton } from "@/ui/LinkButton"
 import { NumberField } from "@/ui/NumberField"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
+import { AgentFields, draftAgent, refusalOf } from "./DigestAgent"
 import { area, card } from "./editor-state"
 import { bookMessages, SOURCES, type Source, WEEKDAYS } from "./messages-book"
 import { type ScheduleText, scheduleMessages } from "./messages-schedule"
@@ -55,7 +56,7 @@ export type Problem = "title" | "time" | "day"
 export const focusProblem = (form: HTMLElement | null) =>
   requestAnimationFrame(() => form?.querySelector<HTMLElement>("[aria-invalid='true'], [data-problem]")?.focus())
 
-/** Why a draft cannot be saved yet, or null. */
+/** Why a draft cannot be saved yet, or null. A draft with no agent is written by the agent for background jobs. */
 export function problemOf(spec: DigestSpec, onDays: boolean): Problem | null {
   if (!spec.title.trim()) return "title"
   if (spec.times.length === 0 || spec.times.some((t) => !CLOCK.test(t))) return "time"
@@ -63,8 +64,11 @@ export function problemOf(spec: DigestSpec, onDays: boolean): Problem | null {
   return null
 }
 
-/** What an older memo, with one digest kept as a schedule, can be asked. */
-export type Can = { named: boolean }
+/**
+ * What the installed memo can be asked: digests by name (else one digest kept as a schedule), the agent and its
+ * model, and Drive, Calendar and a CRM as sources.
+ */
+export type Can = { named: boolean; agent: boolean; moreSources: boolean }
 
 /** An older memo keeps one digest at one time a day: what the update brings, and the update itself. */
 export function OlderMemo() {
@@ -91,7 +95,7 @@ export function DigestFields({
   can,
   creating,
   shown = null,
-  costed = true,
+  savedModel = false,
 }: {
   spec: DigestSpec
   onChange: (spec: DigestSpec) => void
@@ -103,13 +107,14 @@ export function DigestFields({
   creating: boolean
   /** The problem a click on Save or Create found; it is said at its field until the draft is fixed. */
   shown?: Problem | null
-  /** The agent reports what a run costs: only then can a cap stop it, and memo takes one. */
-  costed?: boolean
+  /** memo holds a model for this digest now. */
+  savedModel?: boolean
 }) {
   const m = useMessages(bookMessages).form
   const b = useMessages(bookMessages)
   const s = useMessages(scheduleMessages)
   const lang = useLang()
+  const agents = useAgentsLoaded()
   const ids = {
     title: useId(),
     times: useId(),
@@ -252,7 +257,7 @@ export function DigestFields({
               label={m.sourceList}
               empty={m.allConnected}
               search
-              options={sourceOptions(installed, spec.sources, b.sources)}
+              options={sourceOptions(installed, spec.sources, b.sources, can.moreSources)}
               selected={spec.sources}
               onChange={(sources) => set({ sources })}
             />
@@ -277,7 +282,17 @@ export function DigestFields({
         </Field>
       )}
 
-      {costed && (
+      {can.agent && (
+        <AgentFields
+          spec={spec}
+          set={set}
+          creating={creating}
+          saved={savedModel}
+          field={({ children, ...props }) => <Field {...props}>{children}</Field>}
+        />
+      )}
+
+      {costed(agents, draftAgent(spec, agents)) ? (
         <Field label={m.caps} hint={m.perDayHint}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Usd
@@ -293,6 +308,10 @@ export function DigestFields({
               onChange={(maxCostPerDayUsd) => set({ maxCostPerDayUsd })}
             />
           </div>
+        </Field>
+      ) : (
+        <Field label={m.caps}>
+          <p className="max-w-[36rem] text-[0.88rem] text-ink-dim">{m.capsUnknown}</p>
         </Field>
       )}
 
@@ -347,10 +366,7 @@ function Usd(props: { label: string; value: number; min: number; onChange: (v: n
   )
 }
 
-/**
- * The tools that feed each source memo's digest reads (cli-memo `DIGEST_SOURCES`). Drive, Calendar and a CRM are not
- * among them: memo's agenda has no part for documents, events or deals yet, so they are not offered.
- */
+/** The tools that feed each source memo's digest reads (cli-memo `DIGEST_SOURCES`). */
 const FEEDS: Record<Source, readonly string[]> = {
   telegram: ["tg"],
   max: ["max"],
@@ -358,25 +374,36 @@ const FEEDS: Record<Source, readonly string[]> = {
   mail: ["email"],
   meetings: ["zm"],
   tasks: ["memo"],
+  drive: ["drive"],
+  calendar: ["gcal"],
+  crm: ["bitrix"],
 }
 
-/** The sources whose tools are installed, and any already picked, so a saved choice never vanishes from the list. */
+/** Read from `digests.moreSources.minVersion` on. */
+const MORE_SOURCES: ReadonlySet<Source> = new Set(["drive", "calendar", "crm"])
+
+/**
+ * The sources whose tools are installed and this memo reads, and any already picked, so a saved choice never vanishes
+ * from the list.
+ */
 export function sourceOptions(
   installs: Readonly<Record<string, readonly unknown[] | undefined>>,
   picked: readonly string[],
   names: Readonly<Record<Source, string>>,
+  more: boolean,
 ): FilterOption[] {
-  return SOURCES.filter(
-    (src) => src === "tasks" || picked.includes(src) || FEEDS[src].some((t) => (installs[t]?.length ?? 0) > 0),
-  ).map((src) => {
-    const tools = FEEDS[src].map((t) => findTool(t)?.name ?? t)
-    return {
-      value: src,
-      label: names[src],
-      terms: tools.join(" "),
-      icon: <ToolIcon id={FEEDS[src][0] ?? "memo"} className="size-4 text-ink-soft" />,
-    }
-  })
+  const offered = (src: Source) => src === "tasks" || FEEDS[src].some((t) => (installs[t]?.length ?? 0) > 0)
+  return SOURCES.filter((src) => picked.includes(src) || ((more || !MORE_SOURCES.has(src)) && offered(src))).map(
+    (src) => {
+      const tools = FEEDS[src].map((t) => findTool(t)?.name ?? t)
+      return {
+        value: src,
+        label: names[src],
+        terms: tools.join(" "),
+        icon: <ToolIcon id={FEEDS[src][0] ?? "memo"} className="size-4 text-ink-soft" />,
+      }
+    },
+  )
 }
 
 const NO_CHOICES: RouteChoices = { bots: [], ownChats: [], mailboxes: [] }
@@ -586,7 +613,6 @@ export function ScheduleCard({
       {!harness && <NoHarness />}
       <div ref={form}>
         <DigestFields
-          costed={paid}
           key={item.name}
           spec={draft}
           onChange={setDraft}
@@ -595,6 +621,7 @@ export function ScheduleCard({
           can={can}
           creating={false}
           shown={tried ? problem : null}
+          savedModel={start.model !== null}
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 border-line border-t pt-3">
@@ -635,8 +662,8 @@ export function ScheduleCard({
       </div>
       {unchanged.hint}
       {failed?.name === item.name && failed.what === "save" && (
-        <ErrorNotice raw={failed.message} inline>
-          {m.form.failedSave}
+        <ErrorNotice raw={refusalOf(failed.message, m.form) ? null : failed.message} inline>
+          {refusalOf(failed.message, m.form) ?? m.form.failedSave}
         </ErrorNotice>
       )}
     </section>

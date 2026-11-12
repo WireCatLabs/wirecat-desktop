@@ -9,9 +9,12 @@ import type { Platform } from "./types"
 // (`none`: no digest and no day yet; `new`: a newer day lands after 3 s).
 // The book: the morning digest (every day at 08:30, to a Telegram bot and a mailbox), an evening one twice a day and a
 // weekly one off schedule. `?digest-memo=old` (a memo without `digest list`: the morning digest as its one row),
-// `resting` (the morning digest taken off schedule the old way: past days, no row), `tooold`, `nomemo`;
-// `?digest-claude=none`; `?digest-fail=1` makes saving fail with memo's words; `?digest-run=failed`
-// (the morning digest's last run failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). Backfill: `?backfill=old` (this memo has no `digest backfill`),
+// `resting` (the morning digest taken off schedule the old way: past days, no row), `agentless` (0.131.84: by name, no
+// `--model` and no Drive, Calendar or CRM source), `tooold`, `nomemo`; `?digest-claude=none`; `?digest-agent=other`
+// (the evening digest runs an agent this computer does not list); `?digest-fail=1` makes saving fail with memo's
+// words, `unchosen` and `cost` with memo's agent refusals; `?digest-run=failed` (the morning digest's last run
+// failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). Backfill: `?backfill=old` (this memo
+// has no `digest backfill`),
 // `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
 
 const iso = (d: Date) =>
@@ -232,6 +235,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
   const built = new Set<string>()
   const memo = params.get("digest-memo") ?? memoDefault({ missing: "nomemo", old: "tooold" })
   const named = memo !== "old"
+  const agent = named && memo !== "agentless"
   const item = (spec: DigestSpec, over: Partial<DigestItem> = {}): DigestItem => ({
     name: spec.name,
     title: named ? spec.title : null,
@@ -241,6 +245,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     routes: spec.routes.map(routeOf),
     brief: spec.brief,
     scheduled: spec.scheduled,
+    model: agent ? spec.model || null : null,
     maxCostUsd: spec.maxCostUsd,
     maxCostPerDayUsd: spec.maxCostPerDayUsd,
     spentTodayUsd: null,
@@ -264,6 +269,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
               sources: [],
               routes: ROUTES,
               brief: "Projects HRB and the warehouse first; skip newsletters.",
+              agent: null,
+              model: null,
               maxCostUsd: 0.5,
               maxCostPerDayUsd: 1,
               scheduled: true,
@@ -292,6 +299,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
                     sources: ["telegram", "mail"],
                     routes: [ROUTES[0] ?? ""],
                     brief: null,
+                    agent: params.get("digest-agent") === "other" ? "grok" : null,
+                    model: null,
                     maxCostUsd: 0.4,
                     maxCostPerDayUsd: 1,
                     scheduled: true,
@@ -306,6 +315,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
                   sources: ["mail", "meetings", "tasks"],
                   routes: [ROUTES[1] ?? ""],
                   brief: null,
+                  agent: null,
+                  model: "sonnet",
                   maxCostUsd: 1,
                   maxCostPerDayUsd: 2,
                   scheduled: false,
@@ -324,6 +335,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       others,
       harness: params.get("digest-claude") !== "none",
       named,
+      agent,
+      moreSources: agent,
       morningRests,
     }
   }
@@ -407,7 +420,10 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     },
     async digestSave(spec, create) {
       await delay(900)
-      if (params.get("digest-fail")) throw new Error("unknown option '--on'")
+      const fail = params.get("digest-fail")
+      if (fail === "unchosen") throw new Error("digest.agent-unchosen")
+      if (fail === "cost") throw new Error("agent.cost-unknown")
+      if (fail) throw new Error("unknown option '--on'")
       if (!named && (spec.name !== "morning-digest" || spec.times.length !== 1))
         throw new Error("this needs a newer Memo")
       const old = book.find((d) => d.name === spec.name)

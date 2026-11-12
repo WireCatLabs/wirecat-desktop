@@ -397,6 +397,10 @@ export type DigestBook = { state: "noMemo" } | { state: "old"; version: string |
  *  `harness`: an agent for background jobs is ready, so a new digest can be written.
  */
 { state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean; 
+/**  This memo takes the agent's model (`--model`). */
+agent: boolean; 
+/**  This memo reads Drive, Calendar and a CRM too. */
+moreSources: boolean; 
 /**
  *  memo lists a digest only while its schedule exists: a morning digest taken off schedule the old way has
  *  past days and no row, and the daily template brings it back by its name.
@@ -415,6 +419,8 @@ export type DigestItem = {
 	routes: Route[],
 	brief: string | null,
 	scheduled: boolean,
+	/**  The model named on the agent's command line; `None` for the agent's own default. */
+	model: string | null,
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
 	spentTodayUsd: number | null,
@@ -442,6 +448,8 @@ export type DigestSpec = {
 	sources: string[],
 	routes: string[],
 	brief: string | null,
+	/**  `None` keeps the model; `""` is the agent's own default. */
+	model: string | null,
 	maxCostUsd: number | null,
 	maxCostPerDayUsd: number | null,
 	scheduled: boolean,

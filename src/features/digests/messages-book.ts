@@ -2,8 +2,18 @@ import { type Messages, plural } from "@/i18n"
 
 export type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
 export const WEEKDAYS: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-export type Source = "telegram" | "max" | "whatsapp" | "mail" | "meetings" | "tasks"
-export const SOURCES: readonly Source[] = ["telegram", "mail", "meetings", "tasks", "max", "whatsapp"]
+export type Source = "telegram" | "max" | "whatsapp" | "mail" | "meetings" | "tasks" | "drive" | "calendar" | "crm"
+export const SOURCES: readonly Source[] = [
+  "telegram",
+  "mail",
+  "meetings",
+  "tasks",
+  "max",
+  "whatsapp",
+  "drive",
+  "calendar",
+  "crm",
+]
 
 const WORKWEEK = ["mon", "tue", "wed", "thu", "fri"]
 const WEEKEND = ["sat", "sun"]
@@ -65,6 +75,9 @@ const en = {
     mail: "Mail",
     meetings: "Meetings",
     tasks: "Tasks",
+    drive: "Google Drive",
+    calendar: "Google Calendar",
+    crm: "CRM",
   } satisfies Record<Source, string>,
   onlyHere: "Only here",
   never: "Not yet",
@@ -113,6 +126,19 @@ const en = {
     perRun: "A run, at most",
     perDay: "A day, at most",
     perDayHint: "0 is no daily limit.",
+    capsUnknown: "This agent does not say what a run costs, so a cost limit cannot stop it.",
+    agent: "Agent",
+    agentHint: "The coding agent that writes the digest. Each run is a paid call to its provider.",
+    agentPick: "Choose an agent",
+    agentNone: "No agent on this computer can write digests. The agents are listed in Settings.",
+    agentOther: "Another agent, set in a terminal",
+    agentOtherHint: "This computer does not list it. Choose another agent to switch, or leave it as it is.",
+    model: "Model",
+    modelHint: "An alias such as sonnet or a model id. Empty is the agent's own default.",
+    modelPlaceholder: "Agent's default",
+    agentUnchosen: "Memo asks which agent writes this digest. Choose one under Agent and save again.",
+    costUnknown:
+      "This agent does not say what a run costs, so Memo takes no cost limit for it. Choose Claude Code to keep the limits.",
     schedule: "Run it on schedule",
     save: "Save",
     saving: "Saving…",
@@ -223,6 +249,9 @@ const ru: typeof en = {
     mail: "Почта",
     meetings: "Встречи",
     tasks: "Задачи",
+    drive: "Google Диск",
+    calendar: "Google Календарь",
+    crm: "CRM",
   },
   onlyHere: "Только здесь",
   never: "Ещё не было",
@@ -271,6 +300,20 @@ const ru: typeof en = {
     perRun: "За запуск, не больше",
     perDay: "За день, не больше",
     perDayHint: "0 — без дневного лимита.",
+    capsUnknown: "Этот агент не сообщает, сколько стоит запуск, поэтому лимит расходов его не остановит.",
+    agent: "Агент",
+    agentHint: "Агент, который пишет сводку. Каждый запуск оплачивается у его провайдера.",
+    agentPick: "Выберите агента",
+    agentNone: "Ни один агент на этом компьютере не может писать сводки. Список агентов в настройках.",
+    agentOther: "Другой агент, выбран в терминале",
+    agentOtherHint:
+      "Этого агента нет в списке на этом компьютере. Выберите другого, чтобы сменить, или оставьте как есть.",
+    model: "Модель",
+    modelHint: "Короткое имя, например sonnet, или id модели. Пусто: модель агента по умолчанию.",
+    modelPlaceholder: "По умолчанию",
+    agentUnchosen: "Memo спрашивает, какой агент пишет эту сводку. Выберите его в поле «Агент» и сохраните снова.",
+    costUnknown:
+      "Этот агент не сообщает стоимость запуска, поэтому Memo не принимает для него лимит расходов. Выберите Claude Code, чтобы лимиты остались.",
     schedule: "Запускать по расписанию",
     save: "Сохранить",
     saving: "Сохраняю…",
@@ -381,6 +424,9 @@ const es: typeof en = {
     mail: "Correo",
     meetings: "Reuniones",
     tasks: "Tareas",
+    drive: "Google Drive",
+    calendar: "Google Calendar",
+    crm: "CRM",
   },
   onlyHere: "Solo aquí",
   never: "Aún no",
@@ -430,6 +476,20 @@ const es: typeof en = {
     perRun: "Por ejecución, como mucho",
     perDay: "Por día, como mucho",
     perDayHint: "0 es sin límite diario.",
+    capsUnknown: "Este agente no dice cuánto cuesta una ejecución, así que un límite de gasto no puede pararlo.",
+    agent: "Agente",
+    agentHint:
+      "El agente de programación que escribe el resumen. Cada ejecución es una llamada de pago a su proveedor.",
+    agentPick: "Elige un agente",
+    agentNone: "Ningún agente de este ordenador puede escribir resúmenes. Los agentes están en Ajustes.",
+    agentOther: "Otro agente, elegido en una terminal",
+    agentOtherHint: "Este ordenador no lo tiene en la lista. Elige otro para cambiar, o deja el que tiene.",
+    model: "Modelo",
+    modelHint: "Un alias como sonnet o el id de un modelo. Vacío es el modelo por defecto del agente.",
+    modelPlaceholder: "Por defecto",
+    agentUnchosen: "Memo pregunta qué agente escribe este resumen. Elige uno en Agente y guarda de nuevo.",
+    costUnknown:
+      "Este agente no dice cuánto cuesta una ejecución, así que Memo no acepta un límite de gasto para él. Elige Claude Code para mantener los límites.",
     schedule: "Ejecutar según el horario",
     save: "Guardar",
     saving: "Guardando…",

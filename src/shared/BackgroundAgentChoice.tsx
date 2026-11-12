@@ -44,7 +44,7 @@ export function useAgentsLoaded(): BackgroundAgents | null {
   return agents
 }
 
-const stateOf = (m: BackgroundAgentText, a: BackgroundAgent) =>
+export const agentState = (m: BackgroundAgentText, a: BackgroundAgent) =>
   a.state === "ready" && a.signedIn === false
     ? m.notSignedIn
     : a.state === "ready" && a.needsAck && !a.acknowledged
@@ -173,7 +173,7 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
         }}
         options={agents.agents.map((a) => ({
           value: a.id,
-          label: `${a.name} · ${stateOf(m, a)}`,
+          label: `${a.name} · ${agentState(m, a)}`,
           disabled: a.state !== "ready",
         }))}
       />

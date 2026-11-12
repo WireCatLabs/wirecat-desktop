@@ -71,6 +71,9 @@ pub struct Tool {
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
+    /// Only memo: what its `digest add|edit` take from which version on (`digest_book.rs`).
+    #[serde(default)]
+    pub digests: Option<crate::digest_book::DigestsSource>,
     /// Only memo: its own `models consents`, which turn search rewriting by a hosted model on and off (`enrichment.rs`).
     #[serde(default)]
     pub enrichment: Option<crate::enrichment::EnrichmentSource>,

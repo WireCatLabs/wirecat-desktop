@@ -46,6 +46,7 @@ const morning: DigestItem = {
   ],
   brief: null,
   scheduled: true,
+  model: null,
   maxCostUsd: 0.5,
   maxCostPerDayUsd: 1,
   spentTodayUsd: 0.27,
@@ -71,6 +72,8 @@ const ready = (digests: DigestItem[], over: Partial<Extract<DigestBook, { state:
   others: [],
   harness: true,
   named: true,
+  agent: true,
+  moreSources: true,
   morningRests: false,
   ...over,
 })
@@ -502,6 +505,122 @@ describe("what the page cannot do", () => {
     expect(screen.getByRole("button", { name: "Add a time" })).toBeDisabled()
     expect(screen.queryByRole("button", { name: "Other ways to get it now" })).not.toBeInTheDocument()
   }, 20000)
+})
+
+describe("the agent that writes a digest", () => {
+  // Once the tools are read, so the read does not replace them: Drive and Bitrix24 installed as memo is.
+  const withDriveAndCrm = async () => {
+    await waitFor(() => expect(useTools.getState().installs.memo?.length).toBeGreaterThan(0))
+    act(() =>
+      useTools.setState((s) => {
+        const copy = s.installs.memo?.[0]
+        return copy ? { installs: { ...s.installs, drive: [copy], bitrix: [copy] } } : s
+      }),
+    )
+  }
+
+  it("offers the agents for background jobs, Claude Code chosen on a new digest, greyed ones off, with its model", async () => {
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "gemini", "codex"], "gemini"))
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
+    const user = await openPage(ready([morning]))
+    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    await user.click(within(presets).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    const agent = within(dialog).getByRole("combobox", { name: "Agent" })
+    await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
+    await user.click(agent)
+    expect(await screen.findByRole("option", { name: "Gemini CLI" })).toBeEnabled()
+    expect(screen.getByRole("option", { name: /^Cursor · / })).toHaveAttribute("aria-disabled", "true")
+    await user.keyboard("{Escape}")
+    await user.type(within(dialog).getByRole("textbox", { name: "Model" }), "opus")
+    expect(within(dialog).getByRole("spinbutton", { name: "A run, at most" })).toBeInTheDocument()
+    await user.click(within(dialog).getByRole("button", { name: "Create" }))
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ agent: "claude", model: "opus" }), true),
+    )
+  }, 15000)
+
+  it("keeps an agent set in a terminal, with no cost limits, until a listed one is chosen", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
+    await openMorning(ready([{ ...morning, agent: "grok", model: "grok-4" }]))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    const agent = within(settings).getByRole("combobox", { name: "Agent" })
+    await waitFor(() => expect(agent).toHaveTextContent("Another agent, set in a terminal"))
+    expect(within(settings).queryByRole("spinbutton", { name: "A run, at most" })).not.toBeInTheDocument()
+    expect(settings).toHaveTextContent("This agent does not say what a run costs")
+    const user = userEvent.setup()
+    await user.type(within(settings).getByRole("textbox", { name: "Model" }), "-mini")
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ agent: "grok", model: "grok-4-mini" }), false),
+    )
+    await user.click(agent)
+    await user.click(await screen.findByRole("option", { name: "Claude Code" }))
+    expect(within(settings).getByRole("textbox", { name: "Model" })).toHaveValue("")
+    expect(within(settings).getByRole("spinbutton", { name: "A run, at most" })).toBeInTheDocument()
+  }, 15000)
+
+  it("clears a saved model with an empty field, and leaves memo's default alone when none was saved", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
+    const user = await openMorning(ready([{ ...morning, model: "sonnet" }]))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.clear(within(settings).getByRole("textbox", { name: "Model" }))
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ model: "" }), false))
+    await user.click(screen.getByRole("button", { name: "All digests" }))
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    const again = await screen.findByRole("region", { name: "Settings" })
+    const model = within(again).getByRole("textbox", { name: "Model" })
+    await user.type(model, "opus")
+    await user.clear(model)
+    await user.click(within(again).getByRole("radio", { name: "On days" }))
+    await user.click(within(again).getByRole("button", { name: /^tue/i }))
+    await user.click(within(again).getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ model: null }), false))
+  }, 20000)
+
+  it("says no agent can write digests when none for background jobs is ready", async () => {
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture([]))
+    const user = await openPage(ready([], { harness: false }))
+    const starter = await screen.findByRole("region", { name: "No digests yet" }, { timeout: 4000 })
+    await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    expect(await within(dialog).findByText(/No agent on this computer can write digests/)).toBeInTheDocument()
+    expect(within(dialog).queryByRole("combobox", { name: "Agent" })).not.toBeInTheDocument()
+  }, 15000)
+
+  it("words memo's agent refusals", async () => {
+    vi.spyOn(platform, "digestSave").mockRejectedValueOnce(new Error("digest.agent-unchosen"))
+    const user = await openMorning(ready([morning]))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.type(within(settings).getByRole("textbox", { name: "Model" }), "opus")
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    expect(await within(settings).findByText(/Memo asks which agent writes this digest/)).toBeInTheDocument()
+  }, 15000)
+
+  it("asks an older memo for no agent and offers Drive, Calendar and a CRM only on a memo that reads them", async () => {
+    const user = await openMorning(ready([morning], { agent: false, moreSources: false }))
+    await withDriveAndCrm()
+    const settings = screen.getByRole("region", { name: "Settings" })
+    expect(within(settings).queryByRole("combobox", { name: "Agent" })).not.toBeInTheDocument()
+    await user.click(within(settings).getByRole("button", { name: "Sources: All connected sources" }))
+    expect(screen.queryByRole("option", { name: "Google Drive" })).not.toBeInTheDocument()
+    await user.keyboard("{Escape}")
+  }, 15000)
+
+  it("offers Drive and a CRM as sources once memo reads them, where their tools are installed", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
+    const user = await openMorning(ready([morning]))
+    await withDriveAndCrm()
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.click(within(settings).getByRole("button", { name: "Sources: All connected sources" }))
+    expect(await screen.findByRole("option", { name: "CRM" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Google Calendar" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("option", { name: "Google Drive" }))
+    await user.keyboard("{Escape}")
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ sources: ["drive"] }), false))
+  }, 15000)
 })
 
 describe("the digest history", () => {

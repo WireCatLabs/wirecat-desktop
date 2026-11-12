@@ -73,6 +73,7 @@ export function specOf(item: DigestItem, title: string, remembered: Remembered |
     sources: item.sources,
     routes: old ? old.routes : item.routes.map((r) => r.value),
     brief: item.brief,
+    model: item.model,
     maxCostUsd: item.maxCostUsd ?? old?.maxCostUsd ?? DEFAULT_CAPS.maxCostUsd,
     maxCostPerDayUsd: item.maxCostPerDayUsd ?? old?.maxCostPerDayUsd ?? DEFAULT_CAPS.maxCostPerDayUsd,
     scheduled: item.scheduled,
