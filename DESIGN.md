@@ -72,7 +72,7 @@ typography:
     fontWeight: 500
   button:
     fontFamily: '"Onest Variable", "Onest", system-ui, sans-serif'
-    fontSize: "1rem"
+    fontSize: "0.95rem"
     fontWeight: 500
   mono-value:
     fontFamily: '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace'
@@ -206,7 +206,7 @@ The machine is a patch rack. Each tool is one module row: a status lamp, an icon
 
 The world is the WireCat brand from wirecat.dev, made into a desktop tool. A warm, slightly yellow wall (the site's grounds since 2026-10-29) carries one white rack panel with hairline row dividers. Round lamps carry state. Versions, commands and paths are set in mono, because they are what the machine reports. Purple is the brand and the "do something" colour, so it appears on the logo, the active section marker, text links and at most one primary action per row. Unbounded is the page title and nothing else; Onest does the rest.
 
-The interface scales with the window, as a native app's content does on different displays: the root font size is fluid and every size is in rem. The surface is flat and quiet. Depth exists only where something floats above the page (a dialog) or is picked out of a group (the selected theme option).
+The interface scales with the window, as a native app's content does on different displays: the root font size is fluid and every size is in rem. The surface is flat and quiet. Depth exists only where something floats above the page (a dialog, a menu) or is picked out of a group (the selected theme option).
 
 These words come from the surface's direction contract ([the Tools surface brief](.impeccable/surfaces/src-features-tools-toolspage-tsx.md)); they were not re-confirmed with the owner for this file.
 
@@ -259,7 +259,7 @@ Warm neutral grounds and green-tinted text greys (both as on wirecat.dev), with 
 The app follows the site's purple, wall, ink and `app-3` values exactly in light mode. It deviates on purpose in these places:
 
 - **Dark purple** is `#6b72ff`, not the site's `#4b53f0`.
-- **Dark surfaces are lifted**: `app` is `#181c1e` (the site's is `#0d0f10`), so the rack sits a step above the wall instead of sinking below it.
+- **Dark surfaces are lifted**: `app` is `#1b1a18` (the site's is `#0d0f10`), so the rack sits a step above the wall instead of sinking below it.
 - **Two line weights** (`line`, `line-strong`) where the site has one `app-line`. `line-strong` in light mode is the site's `app-line`.
 - **Text links are purple.** The site keeps content links in ink; in the app a link is always an action, so it takes the action colour.
 - **Status colours** (`ok`, `warn`, `warn-ink`, `bad`, `idle`) are the app's own; the site's DESIGN.md does not record them.
@@ -268,7 +268,7 @@ The app follows the site's purple, wall, ink and `app-3` values exactly in light
 
 **The Amber Ink Rule.** `warn` is for lamps, icons and tint fills; any amber text uses `warn-ink`. Light-mode `warn` is too pale to read as text on white.
 
-**The One Purple Action Rule.** A rack row and the panel open under it carry at most one primary (filled purple) button: Install, Update to x, or the panel's Done. Manage, Fix and Cancel are outlined. Dialogs have no primary at all; they pair a ghost "Keep it" with an outlined danger action. A page's main action may be purple in the page header ("Add to memory", owner, NEED-209 A), but only one purple button shows at a time: while the panel it opens is on screen, the header button turns outlined and the panel's own action is the purple one.
+**The One Purple Action Rule.** A rack row and the panel open under it carry at most one primary (filled purple) button: Install, Update to x, or the panel's Done. Manage, Fix and Cancel are outlined. Dialogs have no primary at all; they pair a secondary "Keep it" with an outlined danger action. A page's main action may be purple in the page header ("Add to memory", owner, NEED-209 A), but only one purple button shows at a time: while the panel it opens is on screen, the header button turns outlined and the panel's own action is the purple one.
 
 **The Semantic Theme Rule.** Bind every colour through the semantic tokens (`bg-app`, `text-ink-soft`, `border-line`); never a raw hex in a component, so both themes switch together.
 
@@ -289,7 +289,7 @@ The app follows the site's purple, wall, ink and `app-3` values exactly in light
 - **Body**: taglines, tool descriptions, instructions, notices, panel prose; `text-body` (1rem), relaxed line-height, prose capped at 70ch. Secondary text keeps this size and steps back by colour (`ink-soft`) and weight; only mono values, captions and pills go smaller. Raised from 0.95rem and 0.9rem on 2026-11-05: at the 960px minimum window the root is 13px, and the descriptions under each tool were too small to read.
 - **Section title**: the heading of a block on a page, `SectionTitle` (`src/ui/SectionTitle.tsx`), the Title size.
 - **Label**: small panel sub-headings ("Install from a terminal", "Installed at", "Profiles") in `ink-dim`, sentence case, never uppercase.
-- **Button**: medium weight, 1rem (0.875rem in the small size).
+- **Button**: medium weight, 0.95rem (1.02rem in the large size, 0.875rem in the small).
 - **Mono value**: installed versions, readiness values, byte counts. Tabular figures so columns line up.
 - **Mono small**: install paths, folder lists, the raw log, the profile-name input.
 
@@ -313,11 +313,11 @@ A row expands in place: the panel under it opens by animating grid rows from 0fr
 
 ## Elevation & Depth
 
-The system is flat. Structure comes from the wall-to-panel tonal step, hairline borders, and the `app-2` wash on expanded panels. The shadow token exists for two things only: the selected thumb of the theme segmented control, and dialogs. Neither the rack, nor rows, nor banners, nor buttons cast a shadow.
+The system is flat. Structure comes from the wall-to-panel tonal step, hairline borders, and the `app-2` wash on expanded panels. The panel shadow is the only shadow: for what floats over the page (dialogs, menus, lists, tooltips, the card that follows the pointer) and what is lifted out of a group (the selected segmented option, a held card, a board's sticky column). Neither the rack, nor rows, nor banners, nor buttons cast a shadow.
 
 ### Shadow Vocabulary
 
-- **Panel** (`--shadow`, light `0 1px 2px rgb(24 40 34 / 6%), 0 8px 24px rgb(24 40 34 / 5%)`; dark uses black at 30% and 25%): dialogs, and the selected segmented option.
+- **Panel** (`--shadow`, light `0 1px 2px rgb(24 40 34 / 6%), 0 8px 24px rgb(24 40 34 / 5%)`; dark uses black at 30% and 25%): what floats or is lifted, as above. `src/ui/one-way.test.ts` refuses Tailwind's stock `shadow-sm` to `shadow-2xl`.
 
 The busy lamp's pulse animates a purple ring with `box-shadow`; that is motion, not elevation.
 
@@ -327,7 +327,7 @@ The busy lamp's pulse animates a purple ring with `box-shadow`; that is motion, 
 
 ## Shapes
 
-Corners are nearly square and grow slightly with how "detached" an element is: the rack and banners at 0.2rem, pills at 0.3rem, small controls and inputs at 0.35rem, regular buttons and copy fields at 0.4rem, inner containers (profile list, health result, segmented track) at 0.45rem, dialogs at 0.6rem. Lamps and stepper dots are full circles; the sidebar's active marker is a 4px bar rounded on its outer side. Borders are 1px hairlines; the idle lamp is a 1.5px inset ring. Nothing uses the site's 999px pill controls.
+Corners are nearly square and grow slightly with how "detached" an element is: the rack and banners at 0.2rem, pills at 0.3rem, small controls and inputs at 0.35rem, regular buttons and copy fields at 0.4rem, inner containers (profile list, health result, segmented track) at 0.45rem, dialogs at 0.6rem. Lamps and stepper dots are full circles; the sidebar's active marker is a 4px bar rounded on its outer side. Borders are 1px hairlines; the idle lamp is a 1.5px inset ring. Nothing uses the site's 999px pill controls. In code each step is a token with the frontmatter's name (`rounded-rack`, `rounded-pill`, `rounded-control`, `rounded-button`, `rounded-inset`, `rounded-dialog`, from `@theme` in `src/styles/index.css`); a few off-scale corners are still written raw.
 
 ## Components
 
@@ -423,7 +423,7 @@ Rule 9 (CLAUDE.md) uses five shared pieces, never ad hoc CSS:
 
 - **Do** put a tool, a storage area or any list of machine things in the rack: one flat panel, one row per thing, hairlines between rows.
 - **Do** give every row exactly one action, and make it primary only when it installs or updates something.
-- **Do** say state with the six lamp tones and plain words beside them, never with colour alone.
+- **Do** say state with the seven lamp tones and plain words beside them, never with colour alone.
 - **Do** set versions, commands, paths and sizes in mono with tabular figures.
 - **Do** write sizes in rem so they follow the fluid root size.
 - **Do** let content select with the mouse (text, logs, paths, errors) and keep chrome from selecting: buttons, labels, tabs, menus, the title bar and sidebar (`@layer base` in `index.css`). Text inside a `<button>` can never be selected in WebKit, so a clickable row whose text is worth copying is a `div role="button"` that ignores the click ending a drag (`selectsTextIn`). `.selectable` lets content inside chrome select. Write every `user-select` with its `-webkit-` twin: WebKitGTK reads only that, and the dev server does not add it.
@@ -435,7 +435,7 @@ Rule 9 (CLAUDE.md) uses five shared pieces, never ad hoc CSS:
   exception, the owner's choice (2026-10-25): the Agents page is a list of agents beside one agent's pane, because it
   is about one agent at a time and everything about that agent (its skills, what else stops it, its sessions, its
   tasks) belongs in one place. Below about 52rem of page width the two stack.
-- **Don't** add a shadow to the rack, a row, a banner or a button. The panel shadow belongs to dialogs and the selected segmented option.
+- **Don't** add a shadow to the rack, a row, a banner or a button. The panel shadow belongs to what floats or is lifted.
 - **Don't** use Unbounded below the page title.
 - **Don't** fill a button red. Danger actions are outlined; the only red fill is the window close control on hover.
 - **Don't** put two purple buttons in one row or one dialog.
