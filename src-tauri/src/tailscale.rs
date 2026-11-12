@@ -7,7 +7,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
 
-// Tailscale Funnel in front of the tools' MCP servers (step 4 of `docs/dev/plans/2026-10-26-mcp-full-commands.md`).
+// Tailscale Funnel in front of the tools' MCP servers (`docs/dev/mcp-server-api.md`, "The public address").
 // The tools share one public address, a path each (`/tg`), so Funnel's three public ports are not a limit (TASK-26).
 // Desktop reads Tailscale's state, starts its login, and turns Funnel on and off only for the paths it set up
 // itself, recorded in `tailscale-funnels.json`. It never runs `sudo`, `tailscale up`, `funnel reset` or turns a

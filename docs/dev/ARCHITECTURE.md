@@ -612,7 +612,7 @@ agent's recent sessions and the tasks it holds.
 - **Skill preview** shows `skill show --json`, the SKILL.md the installed version ships, beside the installed copies'
   versions. The app does not read an installed SKILL.md, so what an update changes waits for a CLI that prints it.
 
-- **Hermes and OpenClaw** (plan `docs/dev/plans/2026-10-25-agents-openclaw-hermes.md`). Found by program, or by
+- **Hermes and OpenClaw**. Found by program, or by
   their settings file (`~/.hermes/config.yaml` or `$HERMES_HOME`, `~/.openclaw/openclaw.json` or
   `$OPENCLAW_STATE_DIR`); a bare `skills` folder is left by other installers and does not count. OpenClaw reads
   `~/.agents/skills`. Hermes is its own target, `hermes`, which only a tool whose `skill status` lists it can write
@@ -708,8 +708,8 @@ check, backup, reset) passes `--record`, so the Logs page shows it whether it wo
 
 ## Signing in inside the window
 
-Each tool with `signIn.methods` in the catalog signs in without a terminal (step 2 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`): tg (QR or phone), max (QR or a token from web.max.ru), wa (QR), zm, drive and gcal (the
+Each tool with `signIn.methods` in the catalog signs in without a terminal
+([signin-api.md](signin-api.md)): tg (QR or phone), max (QR or a token from web.max.ru), wa (QR), zm, drive and gcal (the
 browser), and Email (Microsoft in the browser, Gmail or another server with an app password). "Sign in here" opens a
 dialog, and `sign_in(id, method, profile, inputs)` runs that method's words for the profile the owner named. With `--json` the tool prints each step as a JSON line on stderr, from cli-core's `signInSteps` (0.443) and
 `loginQr`: `qr`, `pairing_code`, `open_url`, `needs` and `progress`. `signin_steps.rs` reads them, the tool's notes and
@@ -820,8 +820,8 @@ Mock scenarios: `?bot=<tool>`, `?bot-step=token`, `?bot-fail=<tool>|old|ids`, `?
 
 ## The MCP server for browser apps
 
-ChatGPT and Claude in the browser reach a tool through its HTTP MCP server behind the owner's tunnel (step 3 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`). The Manage panel has a "Connect an AI app" section, closed by
+ChatGPT and Claude in the browser reach a tool through its HTTP MCP server behind the owner's tunnel
+([mcp-server-api.md](mcp-server-api.md)). The Manage panel has a "Connect an AI app" section, closed by
 default because agents on this computer use the tools directly. One server serves every profile; the app names one in
 each call. Zoom serves no HTTP MCP and Email is part of memo, so neither has the section.
 
@@ -868,8 +868,8 @@ owner needs them as they are. They are never logged and never put in a report. A
 
 ## Tailscale Funnel for the MCP server
 
-The guide's address step offers Tailscale Funnel, set up by the app, or a tunnel the owner runs (step 4 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`). Tailscale's part has three steps, each with Check (the fourth below,
+The guide's address step offers Tailscale Funnel, set up by the app, or a tunnel the owner runs
+([mcp-server-api.md](mcp-server-api.md#the-public-address)). Tailscale's part has three steps, each with Check (the fourth below,
 a free public port, is checked there and done by the start step); the window re-checks when
 it regains focus. All of it is `tailscale.rs` running the `tailscale` CLI found on PATH (or inside the Mac app with
 `TAILSCALE_BE_CLI=1`, or in Program Files):
@@ -908,8 +908,8 @@ they are never logged or put in a report. The raw `tailscale status` never leave
 
 ## Cloudflare tunnel for the MCP server
 
-The second choice in the guide's address step, for when Tailscale cannot give an address (plan
-`docs/dev/plans/2026-10-27-cloudflare-fallback.md`). The choice's card says, before it is picked, that Cloudflare
+The second choice in the guide's address step, for when Tailscale cannot give an address
+([mcp-server-api.md](mcp-server-api.md#the-public-address)). The choice's card says, before it is picked, that Cloudflare
 decrypts the traffic and can read what the tools send back (NEED-102). The shape is Funnel's: one name on the owner's
 domain, the three paths of each tool to its local port, everything else 404. `cloudflare.rs`:
 
@@ -936,7 +936,7 @@ reach a bug report the owner sends from it (RISK-32).
 
 ## Syncing from the app
 
-Plan: `docs/dev/plans/2026-10-27-desktop-sync.md`. The catalog's `sync` block holds each tool's own words: tg and max
+Contract: [sync-api.md](sync-api.md). The catalog's `sync` block holds each tool's own words: tg and max
 `<profile> messages sync --all`, zm `<profile> meetings sync`, drive `<profile> sync`, memo `sync` and Email `sync --only
 mail` (one lock for both, so one running key). WhatsApp has none to start: it syncs while `wa <profile> serve` runs,
 and its `note` says so. Every sync gets `--record`, so the tool's own `runs list` holds the run and answers "last

@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 // A Cloudflare Tunnel on the owner's own Cloudflare account and domain, the fallback when Tailscale Funnel cannot give
-// an address (NEED-101 A; plan `docs/dev/plans/2026-10-27-cloudflare-fallback.md`). One locally managed tunnel, one
+// an address (NEED-101 A; `docs/dev/mcp-server-api.md`, "The public address"). One locally managed tunnel, one
 // hostname, a path per tool as with Funnel. cloudflared is cloudflared's own release in the app's data folder, run as
 // the user. Secrets live in the OS keyring only: the login certificate until the tunnel exists, then the tunnel's
 // credentials, handed to cloudflared in its environment (`TUNNEL_CRED_CONTENTS`), never in an argument.

@@ -3,7 +3,7 @@
 Research for BUG-15 and NEED-100 (journal `docs/journal/2026-10-25-desktop-mvp.md`). Question: Tailscale did not
 publish the owner's Funnel name for 2+ hours, so ChatGPT and claude.ai could not reach the server. What other ways give
 `127.0.0.1:<port>` a public HTTPS address that a non-technical user can set up from Desktop, with no administrator
-rights (rule 6), and that fit the shape of plan `2026-10-27-one-mcp-entry.md` sections 9–10: one public address,
+rights (rule 6), and that fit the shape in [mcp-server-api.md](../mcp-server-api.md#the-public-address): one public address,
 `/tg/mcp`, `/max/mcp`…, and OAuth metadata under `/.well-known/oauth-protected-resource/<tool>` and
 `/.well-known/oauth-authorization-server/<tool>`, with no WireCat process routing between tools.
 
