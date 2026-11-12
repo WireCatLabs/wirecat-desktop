@@ -1853,7 +1853,8 @@
       "digests": {
         "minVersion": "0.131.75",
         "agent": { "minVersion": "0.131.85" },
-        "moreSources": { "minVersion": null }
+        "moreSources": { "minVersion": null },
+        "agentConsent": { "minVersion": null }
       },
       "notesSetup": {
         "minVersion": "0.131.71",

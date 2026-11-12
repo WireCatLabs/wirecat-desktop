@@ -13,9 +13,13 @@ import type { Platform } from "./types"
 // `--model` and no Drive, Calendar or CRM source), `tooold`, `nomemo`; `?digest-claude=none`; `?digest-agent=other`
 // (the evening digest runs an agent this computer does not list); `?digest-fail=1` makes saving fail with memo's
 // words, `unchosen` and `cost` with memo's agent refusals; `?digest-run=failed` (the morning digest's last run
-// failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). Backfill: `?backfill=old` (this memo
-// has no `digest backfill`),
+// failed), `?digest-run=nocredit` (it failed because Claude Code has no credit). `?digest-agents=old` is a memo that
+// takes no consent for an agent it cannot limit, `?digest-needs=codex` puts the evening digest on a Codex that waits for
+// the owner's consent. Backfill: `?backfill=old` (this memo has no `digest backfill`),
 // `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
+
+const CODEX_NEEDS =
+  "codex runs on a schedule only with your consent: `memo digest edit evening-wrap --agent codex --allow-dangerous`"
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -253,8 +257,11 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     nextAt: spec.scheduled ? nextAt(spec.times[0] ?? "08:30") : null,
     agent: named ? (spec.agent ?? params.get("agent") ?? "claude") : null,
     trouble: null,
+    needs: null,
     ...over,
   })
+  const consent = agent && params.get("digest-agents") !== "old"
+  const waits = params.get("digest-needs") === "codex"
   const failed = params.get("digest-run") === "failed" || params.get("digest-run") === "nocredit"
   let book: DigestItem[] =
     mode === "none"
@@ -299,13 +306,16 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
                     sources: ["telegram", "mail"],
                     routes: [ROUTES[0] ?? ""],
                     brief: null,
-                    agent: params.get("digest-agent") === "other" ? "grok" : null,
+                    agent: params.get("digest-agent") === "other" ? "grok" : waits ? "codex" : null,
                     model: null,
                     maxCostUsd: 0.4,
                     maxCostPerDayUsd: 1,
                     scheduled: true,
                   },
-                  { last: { at: new Date(Date.now() - 18 * 3_600_000).toISOString(), ok: true, costUsd: 0.19 } },
+                  {
+                    last: { at: new Date(Date.now() - 18 * 3_600_000).toISOString(), ok: true, costUsd: 0.19 },
+                    needs: waits ? CODEX_NEEDS : null,
+                  },
                 ),
                 item({
                   name: "weekly-digest",
@@ -337,6 +347,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       named,
       agent,
       moreSources: agent,
+      agentConsent: consent,
       morningRests,
     }
   }
@@ -424,6 +435,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       if (fail === "unchosen") throw new Error("digest.agent-unchosen")
       if (fail === "cost") throw new Error("agent.cost-unknown")
       if (fail) throw new Error("unknown option '--on'")
+      // The mock's Codex is the agent memo runs only with the owner's consent.
+      if (spec.agent === "codex" && !(consent && spec.allowDangerous)) throw new Error("agent.unrestricted")
       if (!named && (spec.name !== "morning-digest" || spec.times.length !== 1))
         throw new Error("this needs a newer Memo")
       const old = book.find((d) => d.name === spec.name)

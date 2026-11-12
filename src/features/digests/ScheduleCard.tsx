@@ -5,6 +5,7 @@ import { findTool } from "@/domain/catalog"
 import { dailyCap, formatUsd, type runOutcome } from "@/domain/mail-agent"
 import { ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
+import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { DigestItem, DigestSpec, Route, RouteChoices } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { costed, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
@@ -24,7 +25,7 @@ import { LinkButton } from "@/ui/LinkButton"
 import { NumberField } from "@/ui/NumberField"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
-import { AgentFields, draftAgent, refusalOf } from "./DigestAgent"
+import { AgentFields, draftAgent, needsConsent, refusalOf } from "./DigestAgent"
 import { area, card } from "./editor-state"
 import { bookMessages, SOURCES, type Source, WEEKDAYS } from "./messages-book"
 import { type ScheduleText, scheduleMessages } from "./messages-schedule"
@@ -50,25 +51,29 @@ export const TONE: Record<ReturnType<typeof runOutcome>, LampTone> = { ok: "ok",
 
 const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/
 
-export type Problem = "title" | "time" | "day"
+export type Problem = "title" | "time" | "day" | "consent"
 
 /** After a click found a problem: moves the focus to the field that holds it, once the error is painted. */
 export const focusProblem = (form: HTMLElement | null) =>
   requestAnimationFrame(() => form?.querySelector<HTMLElement>("[aria-invalid='true'], [data-problem]")?.focus())
 
-/** Why a draft cannot be saved yet, or null. A draft with no agent is written by the agent for background jobs. */
-export function problemOf(spec: DigestSpec, onDays: boolean): Problem | null {
+/**
+ * Why a draft cannot be saved yet, or null. A draft with no agent is written by the agent for background jobs; one
+ * memo runs only with the owner's consent waits for his tick.
+ */
+export function problemOf(spec: DigestSpec, onDays: boolean, agents: BackgroundAgents | null): Problem | null {
   if (!spec.title.trim()) return "title"
   if (spec.times.length === 0 || spec.times.some((t) => !CLOCK.test(t))) return "time"
   if (onDays && spec.weekdays.length === 0) return "day"
+  if (needsConsent(spec, agents)) return "consent"
   return null
 }
 
 /**
- * What the installed memo can be asked: digests by name (else one digest kept as a schedule), the agent and its
- * model, and Drive, Calendar and a CRM as sources.
+ * What the installed memo can be asked: digests by name (else one digest kept as a schedule), the agent's model,
+ * Drive, Calendar and a CRM as sources, and an agent it runs only with the owner's consent.
  */
-export type Can = { named: boolean; agent: boolean; moreSources: boolean }
+export type Can = { named: boolean; agent: boolean; moreSources: boolean; agentConsent: boolean }
 
 /** An older memo keeps one digest at one time a day: what the update brings, and the update itself. */
 export function OlderMemo() {
@@ -287,6 +292,8 @@ export function DigestFields({
           spec={spec}
           set={set}
           creating={creating}
+          consent={can.agentConsent}
+          problem={shown === "consent"}
           saved={savedModel}
           field={({ children, ...props }) => <Field {...props}>{children}</Field>}
         />
@@ -580,7 +587,8 @@ export function ScheduleCard({
   const lang = useLang()
   const titleId = useId()
   const { busy, failed, remembered, save } = useDigestBook()
-  const start = specOf(item, title, remembered)
+  const agents = useAgentsLoaded()
+  const start = specOf(item, title, remembered, agents)
   const [draft, setDraft] = useState(start)
   const [savedOnce, setSavedOnce] = useState(false)
   const key = JSON.stringify(start)
@@ -589,7 +597,7 @@ export function ScheduleCard({
   const [onDays, setOnDays] = useState(start.weekdays.length > 0)
   // biome-ignore lint/correctness/useExhaustiveDependencies: as the draft, from memo's answer only
   useEffect(() => setOnDays(start.weekdays.length > 0), [key])
-  const problem = problemOf(draft, onDays)
+  const problem = problemOf(draft, onDays, agents)
   const [tried, setTried] = useState(false)
   const form = useRef<HTMLDivElement>(null)
   const dirty = JSON.stringify(draft) !== key
@@ -599,7 +607,6 @@ export function ScheduleCard({
   })
   const working = busy[item.name] === "save"
   const cap = dailyCap(item.maxCostPerDayUsd)
-  const agents = useAgentsLoaded()
   const paid = costed(agents, item.agent ?? "claude")
 
   return (

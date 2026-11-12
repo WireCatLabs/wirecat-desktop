@@ -139,6 +139,13 @@ const en = {
     agentUnchosen: "Memo asks which agent writes this digest. Choose one under Agent and save again.",
     costUnknown:
       "This agent does not say what a run costs, so Memo takes no cost limit for it. Choose Claude Code to keep the limits.",
+    agentsRefused: "Memo runs these agents on no schedule:",
+    consentLead: (name: string) => `${name}'s own limits do not hold it to WireCat's commands.`,
+    consent: (name: string) =>
+      `I agree: ${name} may run any program on this computer while it writes this digest. Memo then saves it with --allow-dangerous.`,
+    needConsent: "Tick the box to let this agent write the digest, or choose another one.",
+    agentRefused:
+      "Memo does not run this agent on a schedule. Choose another one under Agent, or tick the consent where it is offered.",
     schedule: "Run it on schedule",
     save: "Save",
     saving: "Saving…",
@@ -155,6 +162,10 @@ const en = {
   },
   one: {
     back: "All digests",
+    needs: "Waits for you",
+    needsLead: "This digest does not run on its schedule until you act. Memo says:",
+    needsConsent:
+      "To give the consent here, choose the agent under Agent in the settings below, tick the box and save.",
     settings: "Settings",
     latest: "Latest",
     getNow: "Get now",
@@ -314,6 +325,13 @@ const ru: typeof en = {
     agentUnchosen: "Memo спрашивает, какой агент пишет эту сводку. Выберите его в поле «Агент» и сохраните снова.",
     costUnknown:
       "Этот агент не сообщает стоимость запуска, поэтому Memo не принимает для него лимит расходов. Выберите Claude Code, чтобы лимиты остались.",
+    agentsRefused: "Этих агентов Memo не запускает по расписанию:",
+    consentLead: (name: string) => `Собственные ограничения ${name} не удерживают его в командах WireCat.`,
+    consent: (name: string) =>
+      `Я согласен: ${name} может запускать любые программы на этом компьютере, пока пишет эту сводку. Memo сохранит сводку с --allow-dangerous.`,
+    needConsent: "Отметьте согласие, чтобы этот агент писал сводку, или выберите другого.",
+    agentRefused:
+      "Memo не запускает этого агента по расписанию. Выберите другого в поле «Агент» или отметьте согласие, если оно предложено.",
     schedule: "Запускать по расписанию",
     save: "Сохранить",
     saving: "Сохраняю…",
@@ -330,6 +348,10 @@ const ru: typeof en = {
   },
   one: {
     back: "Все сводки",
+    needs: "Ждет вас",
+    needsLead: "Эта сводка не запустится по расписанию, пока вы не ответите. Memo пишет:",
+    needsConsent:
+      "Чтобы дать согласие здесь, выберите агента в поле «Агент» в настройках ниже, отметьте согласие и сохраните.",
     settings: "Настройки",
     latest: "Последняя",
     getNow: "Получить сейчас",
@@ -490,6 +512,13 @@ const es: typeof en = {
     agentUnchosen: "Memo pregunta qué agente escribe este resumen. Elige uno en Agente y guarda de nuevo.",
     costUnknown:
       "Este agente no dice cuánto cuesta una ejecución, así que Memo no acepta un límite de gasto para él. Elige Claude Code para mantener los límites.",
+    agentsRefused: "Memo no ejecuta estos agentes según un horario:",
+    consentLead: (name: string) => `Los límites propios de ${name} no lo ciñen a los comandos de WireCat.`,
+    consent: (name: string) =>
+      `Acepto: ${name} puede ejecutar cualquier programa en este ordenador mientras escribe este resumen. Memo lo guarda entonces con --allow-dangerous.`,
+    needConsent: "Marca la casilla para que este agente escriba el resumen, o elige otro.",
+    agentRefused:
+      "Memo no ejecuta este agente según un horario. Elige otro en Agente, o marca el consentimiento donde se ofrece.",
     schedule: "Ejecutar según el horario",
     save: "Guardar",
     saving: "Guardando…",
@@ -507,6 +536,10 @@ const es: typeof en = {
   },
   one: {
     back: "Todos los resúmenes",
+    needs: "Te espera",
+    needsLead: "Este resumen no se ejecuta según su horario hasta que actúes. Memo dice:",
+    needsConsent:
+      "Para dar el consentimiento aquí, elige el agente en Agente en los ajustes de abajo, marca la casilla y guarda.",
     settings: "Ajustes",
     latest: "El último",
     getNow: "Obtener ahora",

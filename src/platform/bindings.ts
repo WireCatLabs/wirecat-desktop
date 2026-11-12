@@ -403,6 +403,8 @@ export type DigestBook = { state: "noMemo" } | { state: "old"; version: string |
 agent: boolean; 
 /**  This memo reads Drive, Calendar and a CRM too. */
 moreSources: boolean; 
+/**  This memo writes a digest in an agent that needs the owner's consent, once he gives it on the digest. */
+agentConsent: boolean; 
 /**
  *  memo lists a digest only while its schedule exists: a morning digest taken off schedule the old way has
  *  past days and no row, and the daily template brings it back by its name.
@@ -432,6 +434,8 @@ export type DigestItem = {
 	agent: string | null,
 	/**  Why its last run failed, when the agent's own words say: no credit, a limit, signed out. */
 	trouble: AgentTrouble | null,
+	/**  Why its timer will not start it until the owner acts, with memo's command that fixes it. */
+	needs: string | null,
 };
 
 /**  The last run, without its output: the output quotes messages and the page reads the day itself. */
@@ -460,6 +464,8 @@ export type DigestSpec = {
 	 *  agent for background jobs.
 	 */
 	agent?: string | null,
+	/**  The owner ticked his consent to an agent memo cannot limit ([`background_agent::ACK_FLAG`]). */
+	allowDangerous?: boolean,
 };
 
 export type DigestTemplate = { state: "noMemo" } | 

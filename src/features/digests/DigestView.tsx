@@ -1,9 +1,10 @@
-import { ArrowLeft, CalendarCheck, CalendarX, LoaderCircle, Play, Trash2 } from "lucide-react"
+import { ArrowLeft, CalendarCheck, CalendarX, LoaderCircle, Play, Trash2, TriangleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
 import { dayTitle } from "@/domain/digest"
 import { formatUsd } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestItem, SendTo } from "@/platform/bindings"
+import { useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { useDigestDay } from "@/shared/digest-day"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
@@ -12,6 +13,7 @@ import { Dialog } from "@/ui/Dialog"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
+import { noticeBox } from "@/ui/notice"
 import { Skeleton } from "@/ui/Skeleton"
 import { SplitButton } from "@/ui/SplitButton"
 import { BriefCard } from "./BriefCard"
@@ -70,6 +72,7 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
         {/* Get now and Put on schedule wait for an agent: the reason stands beside them, not only in the settings. */}
         {!harness && <NoHarness />}
         <DigestAgent item={item} title={title} />
+        {item.needs && <DigestNeeds item={item} can={can} />}
         {working === "run" && (
           <p className="flex items-center gap-2 text-[0.92rem] text-ink-soft" aria-live="polite">
             <LoaderCircle className="size-4 animate-spin" aria-hidden /> {m.one.running}
@@ -334,6 +337,23 @@ function Day({ date }: { date: string }) {
           <pre className="mt-3 font-sans text-[0.95rem] whitespace-pre-wrap text-ink-soft">{shown.text}</pre>
         </>
       )}
+    </div>
+  )
+}
+
+/** memo's words for why the digest waits for the owner, and where he gives a consent from here. */
+function DigestNeeds({ item, can }: { item: DigestItem; can: Can }) {
+  const m = useMessages(bookMessages)
+  const agents = useAgentsLoaded()
+  const consent = can.agentConsent && agents?.agents.some((a) => a.id === item.agent && a.needsAck)
+  return (
+    <div className={cx(noticeBox("warn"), "flex max-w-[48rem] gap-2.5")}>
+      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
+      <div className="flex min-w-0 flex-col gap-1 text-[0.92rem] text-ink-soft">
+        <p>{m.one.needsLead}</p>
+        <p className="font-mono text-[0.85rem] text-ink [overflow-wrap:anywhere]">{item.needs}</p>
+        {consent && <p>{m.one.needsConsent}</p>}
+      </div>
     </div>
   )
 }

@@ -198,6 +198,14 @@ pub fn check(id: &str) -> Result<Pick, String> {
     allow(id, &supported().0, &load_from(file().as_deref()).acknowledged)
 }
 
+/// As [`check`], for a job the owner consented to on its own form (a digest's box): memo keeps that consent with the
+/// job, so the warning in Settings is not asked again.
+pub fn check_consented(id: &str) -> Result<Pick, String> {
+    let mut acknowledged = load_from(file().as_deref()).acknowledged;
+    acknowledged.push(id.to_string());
+    allow(id, &supported().0, &acknowledged)
+}
+
 fn allow(id: &str, supported: &[Runnable], acknowledged: &[String]) -> Result<Pick, String> {
     let refused = || format!("not an agent for background jobs: {id}");
     if !id_word(id) {

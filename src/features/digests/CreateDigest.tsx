@@ -2,6 +2,7 @@ import { CalendarDays, Plus, Sun } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
 import { type Lang, useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec } from "@/platform/bindings"
+import { useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
@@ -194,7 +195,8 @@ export function CreateDialog({
     setTried(false)
   }
   const working = draft !== null && busy[draft.name] === "save"
-  const problem = draft && problemOf(draft, onDays)
+  const agents = useAgentsLoaded()
+  const problem = draft && problemOf(draft, onDays, agents)
 
   return (
     <Dialog

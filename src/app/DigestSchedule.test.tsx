@@ -54,6 +54,7 @@ const morning: DigestItem = {
   agent: "claude",
   trouble: null,
   nextAt: null,
+  needs: null,
 }
 const weekly: DigestItem = {
   ...morning,
@@ -74,6 +75,7 @@ const ready = (digests: DigestItem[], over: Partial<Extract<DigestBook, { state:
   named: true,
   agent: true,
   moreSources: true,
+  agentConsent: true,
   morningRests: false,
   ...over,
 })
@@ -620,6 +622,98 @@ describe("the agent that writes a digest", () => {
     await user.keyboard("{Escape}")
     await user.click(within(settings).getByRole("button", { name: "Save" }))
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ sources: ["drive"] }), false))
+  }, 15000)
+})
+
+describe("the agents memo lets a schedule start", () => {
+  const CODEX_WHY = "runs any program and reads your files"
+  const withKimi = () => {
+    const agents = agentsFixture(["claude", "gemini", "codex"])
+    agents.agents.push({
+      id: "kimi",
+      name: "Kimi CLI",
+      state: "unrestricted",
+      signedIn: null,
+      reportsCost: false,
+      reason: "no allow list",
+      needsAck: false,
+      acknowledged: false,
+    })
+    return agents
+  }
+  beforeEach(() => {
+    vi.spyOn(platform, "backgroundAgents").mockResolvedValue(withKimi())
+  })
+  const newDigest = async (book: DigestBook) => {
+    const user = await openPage(book)
+    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    await user.click(within(presets).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    return { user, dialog, agent: within(dialog).getByRole("combobox", { name: "Agent" }) }
+  }
+
+  it("starts with Claude Code and greys out the agent memo refuses, with memo's reason", async () => {
+    const { user, dialog, agent } = await newDigest(ready([morning]))
+    await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
+    expect(dialog).toHaveTextContent("Memo runs these agents on no schedule:")
+    expect(dialog).toHaveTextContent("Kimi CLI: no allow list")
+    await user.click(agent)
+    expect(await screen.findByRole("option", { name: /^Kimi CLI · / })).toHaveAttribute("aria-disabled", "true")
+    expect(screen.getByRole("option", { name: /^Codex/ })).not.toHaveAttribute("aria-disabled", "true")
+    await user.click(screen.getByRole("option", { name: "Gemini CLI" }))
+    expect(dialog).toHaveTextContent("This agent does not say what a run costs")
+  }, 15000)
+
+  it("offers no agent that needs consent before memo takes the consent", async () => {
+    const { user, agent } = await newDigest(ready([morning], { agentConsent: false }))
+    await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
+    await user.click(agent)
+    expect(await screen.findByRole("option", { name: /^Codex/ })).toHaveAttribute("aria-disabled", "true")
+  }, 15000)
+
+  it("saves Codex only with the owner's ticked consent, and passes it on", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
+    const { user, dialog, agent } = await newDigest(ready([morning]))
+    await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
+    await user.click(agent)
+    await user.click(await screen.findByRole("option", { name: /^Codex/ }))
+    expect(dialog).toHaveTextContent(CODEX_WHY)
+    const consent = within(dialog).getByRole("checkbox", { name: /I agree: Codex may run any program/ })
+    expect(consent).not.toBeChecked()
+    await user.click(within(dialog).getByRole("button", { name: "Create" }))
+    expect(await within(dialog).findByText(/Tick the box to let this agent write the digest/)).toBeInTheDocument()
+    expect(save).not.toHaveBeenCalled()
+    await user.click(consent)
+    await user.click(within(dialog).getByRole("button", { name: "Create" }))
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ agent: "codex", allowDangerous: true }), true),
+    )
+  }, 15000)
+
+  it("marks a digest that waits for the owner on its row and says on its page what memo asks", async () => {
+    const needs = "codex runs on a schedule only with your consent: `memo digest edit morning-digest --agent codex`"
+    const waiting = { ...morning, agent: "codex", needs }
+    const user = await openPage(ready([waiting, weekly]))
+    const row = (await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 })).closest(
+      "[role=row]",
+    ) as HTMLElement
+    expect(within(row).getByText("Waits for you")).toBeInTheDocument()
+    expect(screen.getAllByText("Waits for you")).toHaveLength(1)
+    await user.click(within(row).getByRole("button", { name: "Open Morning digest" }))
+    expect(await screen.findByText(/does not run on its schedule until you act/)).toBeInTheDocument()
+    expect(screen.getByText(needs)).toBeInTheDocument()
+    expect(await screen.findByText(/To give the consent here, choose the agent under Agent/)).toBeInTheDocument()
+    const settings = screen.getByRole("region", { name: "Settings" })
+    expect(within(settings).getByRole("checkbox", { name: /I agree: Codex/ })).not.toBeChecked()
+  }, 15000)
+
+  it("words memo's refusal of an agent no schedule may start", async () => {
+    vi.spyOn(platform, "digestSave").mockRejectedValueOnce(new Error("agent.unrestricted"))
+    const user = await openMorning(ready([morning]))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.type(within(settings).getByRole("textbox", { name: "Model" }), "opus")
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    expect(await within(settings).findByText(/Memo does not run this agent on a schedule/)).toBeInTheDocument()
   }, 15000)
 })
 

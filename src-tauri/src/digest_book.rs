@@ -24,7 +24,7 @@ const SOURCES: [&str; 9] = ["telegram", "max", "whatsapp", "mail", "meetings", "
 /// The sources a memo reads only from `digests.moreSources.minVersion` on.
 const MORE_SOURCES: [&str; 3] = ["drive", "calendar", "crm"];
 /// memo's refusals of a save the window words itself.
-const WORDED: [&str; 2] = ["digest.agent-unchosen", "agent.cost-unknown"];
+const WORDED: [&str; 3] = ["digest.agent-unchosen", "agent.cost-unknown", "agent.unrestricted"];
 const WEEKDAYS: [&str; 7] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const MAX_TIMES: usize = 6;
 const MAX_ROUTES: usize = 4;
@@ -46,6 +46,9 @@ pub struct DigestsSource {
     /// `--source drive|calendar|crm`.
     #[serde(default)]
     pub more_sources: Option<Gate>,
+    /// `--allow-dangerous` on `digest add|edit`: an agent memo starts only with the owner's consent writes a digest.
+    #[serde(default)]
+    pub agent_consent: Option<Gate>,
 }
 
 /// What the installed memo's `digest add|edit` take beyond the digests by name.
@@ -53,6 +56,7 @@ pub struct DigestsSource {
 struct Opened {
     agent: bool,
     more_sources: bool,
+    agent_consent: bool,
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
@@ -75,6 +79,8 @@ pub enum DigestBook {
         agent: bool,
         /// This memo reads Drive, Calendar and a CRM too.
         more_sources: bool,
+        /// This memo writes a digest in an agent that needs the owner's consent, once he gives it on the digest.
+        agent_consent: bool,
         /// memo lists a digest only while its schedule exists: a morning digest taken off schedule the old way has
         /// past days and no row, and the daily template brings it back by its name.
         morning_rests: bool,
@@ -106,6 +112,8 @@ pub struct DigestItem {
     pub agent: Option<String>,
     /// Why its last run failed, when the agent's own words say: no credit, a limit, signed out.
     pub trouble: Option<AgentTrouble>,
+    /// Why its timer will not start it until the owner acts, with memo's command that fixes it.
+    pub needs: Option<String>,
 }
 
 /// The last run, without its output: the output quotes messages and the page reads the day itself.
@@ -137,6 +145,9 @@ pub struct DigestSpec {
     /// agent for background jobs.
     #[serde(default)]
     pub agent: Option<String>,
+    /// The owner ticked his consent to an agent memo cannot limit ([`background_agent::ACK_FLAG`]).
+    #[serde(default)]
+    pub allow_dangerous: bool,
 }
 
 /// Where a run made now goes: everywhere the schedule sends it, only into the app, or to some of its routes.
@@ -253,6 +264,10 @@ fn save_args(spec: &DigestSpec, create: bool, agent: Option<&Pick>, open: Opened
     args.extend(options);
     if let Some(agent) = agent {
         args.extend(["--agent".to_string(), agent.id.clone()]);
+        // Only a pick the owner consented to on this digest needs it (`agent_for`).
+        if agent.ack {
+            args.push(background_agent::ACK_FLAG.into());
+        }
     }
     // An open digest's brief has its own card and memo verb; an edit that sent it would undo that card's save.
     if create {
@@ -316,15 +331,23 @@ fn memo() -> Result<Result<&'static Tool, DigestBook>, String> {
 }
 
 /// The agent to name: one this memo starts and limits (Claude Code for a memo that cannot list its own), the agent for
-/// background jobs on a new digest, none on an edit that keeps the digest's own.
-fn agent_for(spec: &DigestSpec, create: bool) -> Result<Option<Pick>, String> {
+/// background jobs on a new digest, none on an edit that keeps the digest's own. One memo cannot limit writes a digest
+/// only on a memo that takes the owner's consent with it, and only once he ticked it on this digest.
+fn agent_for(spec: &DigestSpec, create: bool, open: Opened) -> Result<Option<Pick>, String> {
     if spec.agent.is_none() && !create {
         return Ok(None);
     }
-    let pick = background_agent::pick(spec.agent.as_deref())?;
-    // `digest add|edit` takes no `--allow-dangerous`, so memo would refuse it; said here, in words, before memo.
-    if pick.ack {
-        return Err(format!("Memo cannot write digests in {} yet. Choose another agent for them.", pick.id));
+    let consent = open.agent_consent && spec.allow_dangerous;
+    let pick = match spec.agent.as_deref() {
+        Some(id) if consent => background_agent::check_consented(id)?,
+        agent => background_agent::pick(agent)?,
+    };
+    if pick.ack && !consent {
+        return Err(if open.agent_consent {
+            format!("Memo cannot limit what {} runs: tick your consent on the digest first.", pick.id)
+        } else {
+            format!("Memo cannot write digests in {} yet. Choose another agent for them.", pick.id)
+        });
     }
     Ok(Some(pick))
 }
@@ -342,7 +365,7 @@ fn opened(memo: &Tool) -> Opened {
     let Some(src) = memo.digests.as_ref() else { return Opened::default() };
     let version = tools::detect(memo, false).installs.first().and_then(|i| i.version.clone());
     let open = |gate: &Option<Gate>| gate.as_ref().is_some_and(|g| g.open(version.as_deref()));
-    Opened { agent: open(&src.agent), more_sources: open(&src.more_sources) }
+    Opened { agent: open(&src.agent), more_sources: open(&src.more_sources), agent_consent: open(&src.agent_consent) }
 }
 
 fn text(v: &Value) -> Option<String> {
@@ -381,6 +404,7 @@ fn item_of(i: &Value, schedules: &[OtherSchedule]) -> Option<DigestItem> {
         agent: text(&i["harness"]).or_else(|| schedule.and_then(|s| s.harness.clone())),
         trouble: background_agent::trouble_of_run(last, i["harness"].as_str())
             .or_else(|| schedule.and_then(|s| s.trouble.clone())),
+        needs: text(&i["needs"]),
     })
 }
 
@@ -406,6 +430,7 @@ fn read_named(
         named: true,
         agent: open.agent,
         more_sources: open.more_sources,
+        agent_consent: open.agent_consent,
         morning_rests,
     }
 }
@@ -433,6 +458,7 @@ fn read_old(schedules: DigestSchedules, has_days: bool) -> DigestBook {
             next_at: None,
             agent: None,
             trouble: None,
+            needs: None,
         }),
         None if has_days => Some(DigestItem {
             name: MORNING.into(),
@@ -451,6 +477,7 @@ fn read_old(schedules: DigestSchedules, has_days: bool) -> DigestBook {
             next_at: None,
             agent: None,
             trouble: None,
+            needs: None,
         }),
         None => None,
     };
@@ -461,6 +488,7 @@ fn read_old(schedules: DigestSchedules, has_days: bool) -> DigestBook {
         named: false,
         agent: false,
         more_sources: false,
+        agent_consent: false,
         morning_rests: false,
     }
 }
@@ -512,12 +540,13 @@ fn write(memo: &Tool, args: &[String], timeout: Duration) -> Result<Option<Value
 
 /// `create` adds a new digest; otherwise memo replaces the settings of the one named.
 pub fn save(spec: &DigestSpec, create: bool) -> Result<DigestBook, String> {
-    let agent = agent_for(spec, create)?;
     let memo = match memo()? {
         Ok(memo) => memo,
         Err(shown) => return Ok(shown),
     };
-    let args = save_args(spec, create, agent.as_ref(), opened(memo))?;
+    let open = opened(memo);
+    let agent = agent_for(spec, create, open)?;
+    let args = save_args(spec, create, agent.as_ref(), open)?;
     let json = match write(memo, &args, CALL) {
         Err(said) if said.contains("unknown option '--agent'") => {
             let plain =
@@ -626,11 +655,12 @@ mod tests {
             max_cost_per_day_usd: 1.0,
             scheduled: true,
             agent: None,
+            allow_dangerous: false,
         }
     }
 
-    const OLD: Opened = Opened { agent: false, more_sources: false };
-    const NEW: Opened = Opened { agent: true, more_sources: true };
+    const OLD: Opened = Opened { agent: false, more_sources: false, agent_consent: false };
+    const NEW: Opened = Opened { agent: true, more_sources: true, agent_consent: true };
 
     #[test]
     fn builds_digest_add_with_every_time_once_and_in_order() {
@@ -727,7 +757,7 @@ mod tests {
         for source in MORE_SOURCES {
             let reads = DigestSpec { sources: vec![source.into()], ..spec() };
             assert!(save_args(&reads, false, None, OLD).is_err(), "{source}");
-            let opened = Opened { agent: false, more_sources: true };
+            let opened = Opened { more_sources: true, ..OLD };
             assert!(save_args(&reads, false, None, opened).unwrap().contains(&format!("--source={source}")));
         }
     }
@@ -742,6 +772,7 @@ mod tests {
         };
         assert_eq!(refused("digest.agent-unchosen"), "digest.agent-unchosen");
         assert_eq!(refused("agent.cost-unknown"), "agent.cost-unknown");
+        assert_eq!(refused("agent.unrestricted"), "agent.unrestricted");
         assert_ne!(refused("digest.not-found"), "digest.not-found");
     }
 
@@ -750,6 +781,16 @@ mod tests {
         let src = crate::catalog::tool("memo").unwrap().digests.as_ref().unwrap();
         assert_eq!(src.agent.as_ref().unwrap().min_version.as_deref(), Some("0.131.85"));
         assert!(src.more_sources.as_ref().unwrap().min_version.is_none());
+        assert!(src.agent_consent.as_ref().unwrap().min_version.is_none());
+    }
+
+    #[test]
+    fn passes_the_owners_consent_only_for_an_agent_that_needs_it() {
+        let codex = Pick { id: "codex".into(), costed: false, ack: true };
+        let args = save_args(&spec(), true, Some(&codex), NEW).unwrap();
+        assert!(args.windows(3).any(|w| w == ["--agent", "codex", "--allow-dangerous"]), "{args:?}");
+        let claude = Pick { id: "claude".into(), costed: true, ack: false };
+        assert!(!save_args(&spec(), true, Some(&claude), NEW).unwrap().iter().any(|a| a == "--allow-dangerous"));
     }
 
     #[test]
@@ -792,7 +833,8 @@ mod tests {
              "last": {"at": "2026-11-09T07:30:00Z", "ok": true, "cost_usd": 0.27, "output": "Anna wrote…"}},
             {"name": "weekly", "title": "", "times": ["09:00", "25:00"], "weekdays": ["mon", "someday"],
              "sources": ["mail"], "routes": [], "scheduled": false, "last": null, "next_at": null,
-             "harness": "codex", "model": "gpt-5"},
+             "harness": "codex", "model": "gpt-5",
+             "needs": "codex runs on a schedule only with your consent: `memo digest edit weekly --agent codex`"},
             {"name": "../bad", "times": ["09:00"]}
         ]});
         let schedules = DigestSchedules::Ready {
@@ -819,8 +861,9 @@ mod tests {
             named: true,
             agent: true,
             more_sources: false,
+            agent_consent: false,
             morning_rests: false,
-        } = read_named(&list, schedules, false, Opened { agent: true, more_sources: false }, || {
+        } = read_named(&list, schedules, false, Opened { agent: true, ..OLD }, || {
             panic!("the morning digest is listed: its days are not looked at")
         })
         else {
@@ -840,6 +883,8 @@ mod tests {
         assert_eq!((digests[0].agent.as_deref(), digests[0].model.as_deref()), (None, None));
         assert_eq!((digests[1].agent.as_deref(), digests[1].model.as_deref()), (Some("codex"), Some("gpt-5")));
         assert_eq!(others.iter().map(|o| o.name.as_str()).collect::<Vec<_>>(), ["mail-triage"]);
+        assert_eq!(digests[0].needs, None);
+        assert!(digests[1].needs.as_deref().is_some_and(|n| n.starts_with("codex runs on a schedule")));
     }
 
     #[test]

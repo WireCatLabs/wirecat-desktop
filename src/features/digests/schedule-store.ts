@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Backfill, DigestBook, DigestItem, DigestSpec, SendTo } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { safeStorage } from "@/shared/safe-storage"
@@ -62,8 +63,16 @@ const rememberedOf = (book: DigestBook): Remembered | null => {
   }
 }
 
-/** The settings of a digest as the form edits them. */
-export function specOf(item: DigestItem, title: string, remembered: Remembered | null): DigestSpec {
+/**
+ * The settings of a digest as the form edits them. An agent that runs only with the owner's consent, on a digest that
+ * waits for nothing, already has it: memo keeps the consent while the agent stays.
+ */
+export function specOf(
+  item: DigestItem,
+  title: string,
+  remembered: Remembered | null,
+  agents: BackgroundAgents | null = null,
+): DigestSpec {
   const old = item.times.length === 0 ? remembered : null
   return {
     name: item.name,
@@ -79,6 +88,7 @@ export function specOf(item: DigestItem, title: string, remembered: Remembered |
     scheduled: item.scheduled,
     // memo keeps the digest's agent when it is named again; naming it lets Rust leave out the caps it refuses.
     agent: item.agent,
+    allowDangerous: item.needs === null && (agents?.agents.some((a) => a.id === item.agent && a.needsAck) ?? false),
   }
 }
 
