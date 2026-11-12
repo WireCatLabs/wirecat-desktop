@@ -52,7 +52,14 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
   const [confirming, setConfirming] = useState<NotesFolder | null>(null)
 
   const load = useCallback(() => {
-    platform.notesSetupStatus(tool.id).then(setSetup, (e) => setLoadError(errorText(e)))
+    let current = true
+    platform.notesSetupStatus(tool.id).then(
+      (s) => current && setSetup(s),
+      (e) => current && setLoadError(errorText(e)),
+    )
+    return () => {
+      current = false
+    }
   }, [tool.id])
   useEffect(load, [load])
 

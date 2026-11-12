@@ -33,11 +33,15 @@ export function SkillPreview() {
 
   useEffect(() => {
     if (!id) return
+    let current = true
     setText({ state: "loading" })
     platform.skillShow(id).then(
-      (t) => setText({ state: "ready", content: t.content }),
-      (e) => setText({ state: "error", error: errorText(e) }),
+      (t) => current && setText({ state: "ready", content: t.content }),
+      (e) => current && setText({ state: "error", error: errorText(e) }),
     )
+    return () => {
+      current = false
+    }
   }, [id])
 
   const copies = SKILL_TARGETS.map((target) => ({
