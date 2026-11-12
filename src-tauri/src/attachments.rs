@@ -125,7 +125,7 @@ fn read_of(v: &Value) -> Option<PictureRead> {
 
 fn refusal(out: &run::Output, json: Option<&Value>) -> String {
     let error = json.map(|v| &v["error"]);
-    match error.and_then(|e| e["reason"].as_str()) {
+    match crate::skills::reason(json) {
         // cli-core says "Claude Code is not installed" or "Codex CLI is not installed".
         Some("picture-reading.unavailable") => {
             let codex = error.and_then(|e| e["message"].as_str()).is_some_and(|m| m.starts_with("Codex"));
@@ -148,7 +148,7 @@ pub fn read_picture(reference: &str, attachment: u32) -> Result<PictureRead, Str
     let place = checked(reference, attachment)?;
     let (tool, profile) = messenger_of(&place)?;
     let src = tool.images_read.as_ref().ok_or_else(|| format!("{} reads no pictures", tool.name))?;
-    let version = tools::detect(tool, false).installs.first().and_then(|i| i.version.clone());
+    let version = tools::installed_version(tool);
     if src.min_version.as_deref().is_none_or(|need| tools::older(version.as_deref(), need)) {
         return Ok(PictureRead::Old { tool: tool.id.clone(), version, need: src.min_version.clone() });
     }

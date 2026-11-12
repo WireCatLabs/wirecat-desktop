@@ -186,7 +186,7 @@ fn with(words: &[String], key: &str, value: &str) -> Vec<String> {
 /// The problem a memo failure means, from its error envelope. Text is read here and dropped.
 pub fn problem_of(out: &run::Output, json: Option<&Value>) -> NotesProblem {
     let code = json.and_then(|v| v["error"]["code"].as_str()).unwrap_or_default();
-    let reason = json.and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
+    let reason = crate::skills::reason(json).unwrap_or_default();
     let text = json
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| format!("{}\n{}", out.stderr, out.stdout), str::to_string)

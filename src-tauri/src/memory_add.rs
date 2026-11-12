@@ -31,19 +31,8 @@ fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration, wor
         return panel_answer(&out, false, worded);
     };
     let cmd = run::command(bin, &refs, Some(&paths::search_path()));
-    let (mut stdout, mut stderr) = (String::new(), String::new());
-    let code = run::stream_with_input(
-        cmd,
-        Some(input),
-        timeout,
-        || false,
-        |line| match line {
-            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
-            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
-        },
-    )
-    .map_err(|e| e.to_string())?;
-    panel_answer(&run::Output { code, stdout, stderr }, true, worded)
+    let out = run::run_with_input(cmd, Some(input), timeout, || false).map_err(|e| e.to_string())?;
+    panel_answer(&out, true, worded)
 }
 
 /// memo's refusals of a source or a reader, which the panel words in the owner's language.

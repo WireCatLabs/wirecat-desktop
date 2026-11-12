@@ -52,9 +52,9 @@ fn decision(parts: &[&str]) -> Vec<String> {
 /// refusal back bare: elsewhere `input.invalid` is a real refusal and keeps memo's words.
 fn answer(out: &run::Output, listing: bool, resolving: bool) -> Result<Value, String> {
     let json = out.json();
-    let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
+    let reason = crate::skills::reason(json.as_ref()).unwrap_or_default();
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        Some(v) if crate::skills::ok(out, &v) => Ok(v),
         // `resolve_with` needs memo's reason and its words both: the refs of an ambiguous company are only in the words.
         Some(v) if resolving && !reason.is_empty() => Ok(v),
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),

@@ -272,28 +272,10 @@ fn validate_answer(answer: &str) -> Result<String, Failure> {
 fn run_with_input(program: &Path, args: &[&str], input: &str, timeout: Duration) -> Result<run::Output, Failure> {
     let path = paths::search_path();
     let cmd = run::command(program, args, Some(&path));
-    let (mut stdout, mut stderr) = (String::new(), String::new());
-    let code = run::stream_with_input(
-        cmd,
-        Some(input.as_bytes()),
-        timeout,
-        || false,
-        |line| match line {
-            run::Line::Out(l) => {
-                stdout.push_str(&l);
-                stdout.push('\n');
-            }
-            run::Line::Err(l) => {
-                stderr.push_str(&l);
-                stderr.push('\n');
-            }
-        },
-    )
-    .map_err(|e| match e {
+    run::run_with_input(cmd, Some(input.as_bytes()), timeout, || false).map_err(|e| match e {
         run::RunError::TimedOut => Failure::TimedOut,
         e => other(&e.to_string()),
-    })?;
-    Ok(run::Output { code, stdout, stderr })
+    })
 }
 
 pub fn user_message(request: &str, today: chrono::NaiveDate) -> String {

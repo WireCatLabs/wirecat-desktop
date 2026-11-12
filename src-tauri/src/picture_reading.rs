@@ -61,10 +61,6 @@ fn memo() -> Result<(&'static Tool, &'static PictureReadingSource), String> {
     Ok((tool, src))
 }
 
-fn installed_version(tool: &Tool) -> Option<String> {
-    tools::detect(tool, false).installs.first().and_then(|i| i.version.clone())
-}
-
 fn gate(src: &PictureReadingSource, version: Option<&str>) -> bool {
     src.min_version.as_deref().is_some_and(|need| !tools::older(version, need))
 }
@@ -124,7 +120,7 @@ fn setting_of(v: &Value) -> Option<PictureReadingSetting> {
 }
 
 fn refusal(out: &run::Output, json: Option<&Value>) -> String {
-    match json.and_then(|v| v["error"]["reason"].as_str()) {
+    match crate::skills::reason(json) {
         Some(reason) if WORDED.contains(&reason) => reason.to_string(),
         _ => failure(out, json),
     }
@@ -140,7 +136,7 @@ fn ask(tool: &Tool, args: &[String]) -> Result<PictureReadingSetting, String> {
 
 pub fn status() -> Result<PictureReading, String> {
     let (tool, src) = memo()?;
-    let version = installed_version(tool);
+    let version = tools::installed_version(tool);
     if !gate(src, version.as_deref()) {
         return Ok(PictureReading::Old { version, need: src.min_version.clone() });
     }
@@ -150,7 +146,7 @@ pub fn status() -> Result<PictureReading, String> {
 /// The owner chose in Settings; memo's answer is the whole new setting.
 pub fn set(mode: &str, agent: Option<&str>, model: Option<&str>) -> Result<PictureReadingSetting, String> {
     let (tool, src) = memo()?;
-    if !gate(src, installed_version(tool).as_deref()) {
+    if !gate(src, tools::installed_version(tool).as_deref()) {
         return Err("This memo cannot read pictures yet. It comes with a memo update.".into());
     }
     ask(tool, &set_args(src, mode, agent, model)?)

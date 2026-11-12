@@ -58,13 +58,9 @@ fn answer(out: Result<run::Output, run::RunError>) -> Result<Value, Failure> {
     let out = out.map_err(|e| Failure::plain(e.to_string()))?;
     let json = out.json();
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(v),
         j => Err(Failure {
-            // memo puts the reason on the error itself; its notes name `details.reason` as well.
-            reason: j
-                .as_ref()
-                .and_then(|v| v["error"]["reason"].as_str().or_else(|| v["error"]["details"]["reason"].as_str()))
-                .map(str::to_string),
+            reason: crate::skills::reason(j.as_ref()).map(str::to_string),
             details: j.as_ref().map_or(Value::Null, |v| v["error"]["details"].clone()),
             message: failure(&out, j.as_ref()),
         }),

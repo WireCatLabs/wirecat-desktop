@@ -70,10 +70,6 @@ fn memo() -> Result<(&'static Tool, &'static LocalOnlySource), String> {
     Ok((tool, src))
 }
 
-fn installed_version(tool: &Tool) -> Option<String> {
-    tools::detect(tool, false).installs.first().and_then(|i| i.version.clone())
-}
-
 fn gate(src: &LocalOnlySource, version: Option<&str>) -> bool {
     src.min_version.as_deref().is_some_and(|need| !tools::older(version, need))
 }
@@ -108,7 +104,7 @@ fn status_of(v: &Value) -> Option<LocalOnlyStatus> {
 
 /// memo's refusal: one of `WORDED` as its id, anything else in memo's own words, masked.
 fn refusal(out: &run::Output, json: Option<&Value>) -> String {
-    match json.and_then(|v| v["error"]["reason"].as_str()) {
+    match crate::skills::reason(json) {
         Some(reason) if WORDED.contains(&reason) => reason.to_string(),
         _ => failure(out, json),
     }
@@ -124,7 +120,7 @@ fn ask(tool: &Tool, args: &[String]) -> Result<LocalOnlyStatus, String> {
 
 pub fn status() -> Result<LocalOnly, String> {
     let (tool, src) = memo()?;
-    let version = installed_version(tool);
+    let version = tools::installed_version(tool);
     if !gate(src, version.as_deref()) {
         return Ok(LocalOnly::Old { version, need: src.min_version.clone() });
     }
@@ -134,7 +130,7 @@ pub fn status() -> Result<LocalOnly, String> {
 /// The owner moved the switch in Settings; memo's answer is the whole new state.
 pub fn set(on: bool) -> Result<LocalOnlyStatus, String> {
     let (tool, src) = memo()?;
-    if !gate(src, installed_version(tool).as_deref()) {
+    if !gate(src, tools::installed_version(tool).as_deref()) {
         return Err("This memo has no local only yet. It comes with a memo update.".into());
     }
     ask(tool, if on { &src.on } else { &src.off })
@@ -144,6 +140,13 @@ pub fn set(on: bool) -> Result<LocalOnlyStatus, String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn a_reason_memo_puts_only_in_the_details_is_read() {
+        let out = run::Output { code: Some(1), stdout: String::new(), stderr: String::new() };
+        let json = json!({"error": {"message": "refused", "details": {"reason": "local-only.refused"}}});
+        assert_eq!(refusal(&out, Some(&json)), "local-only.refused");
+    }
 
     // Written from cli-core 0.642.0's `src/cli/local-only-command.ts` (memo 0.131.85), not captured from a run.
     fn answer(on: bool, since: Option<&str>) -> Value {

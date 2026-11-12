@@ -199,7 +199,7 @@ fn answer(out: &crate::run::Output, json: Option<&Value>) -> AccountRemoval {
     }
     let message = skills::failure(out, json);
     let error = json.map(|v| &v["error"]);
-    let reason = error.and_then(|e| e["reason"].as_str().or_else(|| e["details"]["reason"].as_str()));
+    let reason = skills::reason(json);
     let unknown = format!("{message}\n{}", out.stderr).to_lowercase();
     if crate::memo_cli::unknown_to_cli(&unknown) {
         return AccountRemoval::TooOld;

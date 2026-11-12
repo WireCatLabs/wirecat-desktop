@@ -343,7 +343,7 @@ pub(crate) fn ask(tool: &Tool, template: Template, timeout: Duration) -> Result<
     let json = out.json();
     match json {
         Some(v) if v["error"]["message"].as_str().is_some_and(crate::memo_cli::unknown_to_cli) => Ok(Answer::Unknown),
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(Answer::Envelope(v)),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(Answer::Envelope(v)),
         Some(v) if v["error"]["message"].is_string() => Err(redact::text(v["error"]["message"].as_str().unwrap_or(""))),
         _ => {
             let line = out.stderr.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("the tool gave no answer");

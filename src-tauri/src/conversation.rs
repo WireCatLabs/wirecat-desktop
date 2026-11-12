@@ -359,7 +359,7 @@ fn call_program(bin: &std::path::Path, args: &[String]) -> Result<Value, Failure
     let out = run::run(bin, &refs, Some(&paths::search_path()), READ).map_err(|e| Failure::Other(e.to_string()))?;
     let json = out.json();
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        Some(v) if crate::skills::ok(&out, &v) => Ok(v),
         Some(v) if v["error"]["code"].as_str() == Some("not_found") => Err(Failure::NotFound),
         j => {
             let message = failure(&out, j.as_ref());

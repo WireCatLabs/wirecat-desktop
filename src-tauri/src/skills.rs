@@ -191,19 +191,7 @@ pub(crate) fn call_with_input(
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(&bin, &refs, Some(&paths::search_path()));
-    let (mut stdout, mut stderr) = (String::new(), String::new());
-    let code = run::stream_with_input(
-        cmd,
-        Some(input.as_bytes()),
-        timeout,
-        || false,
-        |line| match line {
-            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
-            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
-        },
-    )
-    .map_err(|e| e.to_string())?;
-    let out = run::Output { code, stdout, stderr };
+    let out = run::run_with_input(cmd, Some(input.as_bytes()), timeout, || false).map_err(|e| e.to_string())?;
     let json = out.json();
     Ok((out, json))
 }
@@ -211,6 +199,17 @@ pub(crate) fn call_with_input(
 /// Some commands wrap their answer in `item`, others print it bare.
 pub(crate) fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
+}
+
+/// A run that ended well: exit 0 and no `error` in its answer.
+pub(crate) fn ok(out: &run::Output, v: &Value) -> bool {
+    out.code == Some(0) && v.get("error").is_none()
+}
+
+/// A refusal's reason id. memo puts it on the error itself; its notes name `details.reason` as well.
+pub(crate) fn reason(json: Option<&Value>) -> Option<&str> {
+    let error = &json?["error"];
+    error["reason"].as_str().or_else(|| error["details"]["reason"].as_str())
 }
 
 pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {

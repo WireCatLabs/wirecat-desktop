@@ -49,7 +49,7 @@ fn worded(out: &Output, json: Option<&Value>) -> String {
 
 fn answered(out: &Output, json: Option<Value>) -> Result<Value, String> {
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(body(&v).clone()),
+        Some(v) if crate::skills::ok(out, &v) => Ok(body(&v).clone()),
         j => Err(worded(out, j.as_ref())),
     }
 }

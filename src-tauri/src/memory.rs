@@ -743,9 +743,9 @@ fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Stri
 
 pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
     let json = out.json();
-    let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
+    let reason = crate::skills::reason(json.as_ref()).unwrap_or_default();
     match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        Some(v) if crate::skills::ok(out, &v) => Ok(v),
         // `review confirm|reject` exits 2 when it refuses and prints its whole answer: the caller reads `refused`.
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
         // The batch changed since the window read it (an agent restaged it, or another edit): the page reads it again.

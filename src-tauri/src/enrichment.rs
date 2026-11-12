@@ -47,7 +47,7 @@ const WORDED: [&str; 2] = ["model.address-refused", "local-only.refused"];
 
 /// memo's refusal: one of `WORDED` as its id, anything else in memo's own words, masked.
 pub(crate) fn refusal_of(out: &run::Output, json: Option<&Value>) -> String {
-    match json.and_then(|v| v["error"]["reason"].as_str()) {
+    match crate::skills::reason(json) {
         Some(reason) if WORDED.contains(&reason) => reason.to_string(),
         _ => failure(out, json),
     }
@@ -267,10 +267,6 @@ fn ask(tool: &Tool, args: &[String], timeout: Duration) -> Result<Result<Enrichm
     json.as_ref().and_then(status_of).map(Ok).ok_or_else(|| "memo gave an answer the app cannot read".to_string())
 }
 
-fn installed_version(tool: &Tool) -> Option<String> {
-    tools::detect(tool, false).installs.first().and_then(|i| i.version.clone())
-}
-
 fn too_old(tool: &Tool) -> String {
     format!("{} is too old to rewrite records for search", too_old_name(tool))
 }
@@ -315,7 +311,7 @@ fn choice_words(
         offered(tool, &c.provider, &c.model)?;
         return Ok(with_choice(words, &c.provider, &c.model, None));
     };
-    if !src.base_url.open(installed_version(tool).as_deref()) {
+    if !src.base_url.open(tools::installed_version(tool).as_deref()) {
         return Err("This memo cannot use a model address yet. It comes with a memo update.".into());
     }
     if c.provider != "openai" {
@@ -338,7 +334,7 @@ fn offered(tool: &Tool, provider: &str, model: &str) -> Result<(), String> {
 
 fn with_keys(tool: &Tool, src: &EnrichmentSource, mut status: EnrichmentStatus) -> EnrichmentStatus {
     status.keys = call(tool, &src.keys_probe, CALL).is_ok_and(|(out, _)| knows_keys(&out));
-    status.addresses = src.base_url.open(installed_version(tool).as_deref());
+    status.addresses = src.base_url.open(tools::installed_version(tool).as_deref());
     status
 }
 
@@ -350,7 +346,7 @@ pub fn status(tool: &Tool) -> Result<Enrichment, String> {
     let src = source(tool)?;
     Ok(match ask(tool, &src.show, CALL)? {
         Ok(status) => Enrichment::Ready { status: Box::new(with_keys(tool, src, status)) },
-        Err(()) => Enrichment::Old { version: installed_version(tool) },
+        Err(()) => Enrichment::Old { version: tools::installed_version(tool) },
     })
 }
 
@@ -406,19 +402,9 @@ pub fn set_key(tool: &Tool, provider: &str, key: &str) -> Result<EnrichmentStatu
     let args = with_choice(&src.key_set, provider, "", None);
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(&bin, &refs, Some(&crate::paths::search_path()));
-    let (mut stdout, mut stderr) = (String::new(), String::new());
-    let code = run::stream_with_input(
-        cmd,
-        Some(format!("{key}\n").as_bytes()),
-        CALL,
-        || false,
-        |line| match line {
-            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
-            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
-        },
-    )
-    .map_err(|e| format!("Could not run memo: {e}."))?;
-    let out = run::Output { code, stdout, stderr };
+    let out = run::run_with_input(cmd, Some(format!("{key}\n").as_bytes()), CALL, || false)
+        .map_err(|e| format!("Could not run memo: {e}."))?;
+    let code = out.code;
     let json = out.json();
     if code != Some(0) {
         if unknown_command(&out, json.as_ref()) {
@@ -449,7 +435,7 @@ fn after_key(tool: &Tool, src: &EnrichmentSource) -> Result<EnrichmentStatus, St
 }
 
 fn too_old_name(tool: &Tool) -> String {
-    installed_version(tool).map_or("This memo".into(), |v| format!("memo {v}"))
+    tools::installed_version(tool).map_or("This memo".into(), |v| format!("memo {v}"))
 }
 
 /// Turns it off and deletes what the model wrote.
@@ -683,6 +669,6 @@ mod e2e {
         assert!(on.on && on.consented_at.is_some());
         let off = turn_off(memo).unwrap();
         assert_eq!((off.on, off.deleted), (false, Some(0)));
-        println!("memo {:?}: show, preview, refused pair, on and off all read", installed_version(memo));
+        println!("memo {:?}: show, preview, refused pair, on and off all read", tools::installed_version(memo));
     }
 }

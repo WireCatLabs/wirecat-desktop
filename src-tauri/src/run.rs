@@ -281,6 +281,25 @@ pub fn stream_with_input(
     stream_inner(cmd, input.map_or(Stdin::Closed, Stdin::Bytes), timeout, cancelled, None, on_line)
 }
 
+/// `stream_with_input` collected into an `Output`, for a run whose lines nobody watches as they come.
+pub fn run_with_input(
+    cmd: Command,
+    input: Option<&[u8]>,
+    timeout: Duration,
+    cancelled: impl Fn() -> bool,
+) -> Result<Output, RunError> {
+    let (mut stdout, mut stderr) = (String::new(), String::new());
+    let code = stream_with_input(cmd, input, timeout, cancelled, |line| {
+        let (to, l) = match line {
+            Line::Out(l) => (&mut stdout, l),
+            Line::Err(l) => (&mut stderr, l),
+        };
+        to.push_str(&l);
+        to.push('\n');
+    })?;
+    Ok(Output { code, stdout, stderr })
+}
+
 /// `stream`, where a stop asks before it kills: SIGTERM to the program alone, then `grace` for it to finish and give
 /// its answer, whose lines still arrive; only then the whole group is killed. The program's own children (the
 /// `WhatsApp` engine) are left to it, so it closes them cleanly. `Ok` with the exit code when it ended within the grace.
