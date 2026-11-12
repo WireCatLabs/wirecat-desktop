@@ -47,6 +47,7 @@ describe("a conversation a link opens", () => {
     link({ type: "chat", provider: "telegram", account: "1001", chat: "4004" })
     const list = await messages()
     expect(screen.getByRole("heading", { level: 1, name: "Book club" })).toBeInTheDocument()
+    expect(screen.getByText("Telegram · personal, work")).toBeInTheDocument()
     expect(within(list).getAllByRole("listitem")).toHaveLength(30)
     await user.click(screen.getByRole("button", { name: "Show earlier messages" }))
     await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(60))

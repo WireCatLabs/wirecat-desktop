@@ -31,7 +31,7 @@ function Header({ chat, target }: { chat: ChatHeader | null | undefined; target:
   useEffect(() => focusInPlace(heading.current), [])
   const canBack = useNav((s) => s.past.length > 0)
   const place = chat?.place ?? providerName(target.provider)
-  const account = chat?.email ? null : (chat?.profile ?? target.account)
+  const account = chat?.email ? null : chat?.profiles.join(", ") || target.account
   return (
     <PageHeader
       headingRef={heading}

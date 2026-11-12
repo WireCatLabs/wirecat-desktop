@@ -141,8 +141,8 @@ export type ChatHeader = {
 	title: string | null,
 	/**  memo's `in`: the messenger's name for a chat, the mailbox for a mail thread. */
 	place: string | null,
-	/**  The profile signed in to the link's account, as the account's label. */
-	profile: string | null,
+	/**  Every profile signed in to the link's account, as the account's labels: the page shows them all. */
+	profiles: string[],
 	email: boolean,
 };
 

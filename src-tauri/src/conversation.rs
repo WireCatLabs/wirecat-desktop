@@ -78,8 +78,8 @@ pub struct ChatHeader {
     pub title: Option<String>,
     /// memo's `in`: the messenger's name for a chat, the mailbox for a mail thread.
     pub place: Option<String>,
-    /// The profile signed in to the link's account, as the account's label.
-    pub profile: Option<String>,
+    /// Every profile signed in to the link's account, as the account's labels: the page shows them all.
+    pub profiles: Vec<String>,
     pub email: bool,
 }
 
@@ -230,12 +230,17 @@ pub(crate) struct Shown {
 
 pub(crate) fn shown(v: &Value, email: bool) -> Option<Shown> {
     let item = v["items"].as_array()?.first()?;
-    let profile = item["open"]["profiles"].as_array().and_then(|p| p.first()).and_then(Value::as_str);
+    let profiles = item["open"]["profiles"].as_array().map(Vec::as_slice).unwrap_or_default();
     Some(Shown {
         chat: ChatHeader {
             title: text(item, "title"),
             place: text(item, "in"),
-            profile: profile.filter(|p| catalog::validate_profile(p).is_ok()).map(str::to_string),
+            profiles: profiles
+                .iter()
+                .filter_map(Value::as_str)
+                .filter(|p| catalog::validate_profile(p).is_ok())
+                .map(str::to_string)
+                .collect(),
             email,
         },
         available: text(item, "state").as_deref() == Some("available"),
@@ -279,7 +284,7 @@ fn open(call: &Call, place: &ChatPlace) -> Conversation {
         return Conversation::Failed { message: "memo did not name the chat".into() };
     };
     if !shown.available {
-        let signed_in = shown.chat.profile.is_some() || place.email();
+        let signed_in = !shown.chat.profiles.is_empty() || place.email();
         return Conversation::Missing { what: if signed_in { ChatMissing::Stored } else { ChatMissing::Account } };
     }
     let chat = Some(shown.chat.clone());
@@ -308,7 +313,8 @@ fn open(call: &Call, place: &ChatPlace) -> Conversation {
 }
 
 fn latest(call: &Call, chat_ref: &str, shown: &Shown, chat: Option<ChatHeader>) -> Conversation {
-    let (Some(tool), Some(profile)) = (shown.tool.as_deref(), shown.chat.profile.as_deref()) else {
+    // Every listed profile is signed in to the same account, so any of them reads the same chat.
+    let (Some(tool), Some(profile)) = (shown.tool.as_deref(), shown.chat.profiles.first()) else {
         return Conversation::Missing { what: ChatMissing::Account };
     };
     if !LISTS.contains(&tool) {
@@ -497,8 +503,8 @@ mod tests {
         let Conversation::Found { chat, messages, older, newer } = got else { panic!("{got:?}") };
         let chat = chat.unwrap();
         assert_eq!(
-            (chat.title.as_deref(), chat.place.as_deref(), chat.profile.as_deref()),
-            (Some("Book club"), Some("Telegram"), Some("personal"))
+            (chat.title.as_deref(), chat.place.as_deref(), chat.profiles.as_slice()),
+            (Some("Book club"), Some("Telegram"), ["personal".to_string()].as_slice())
         );
         assert_eq!(messages.len(), 21);
         assert_eq!(messages.iter().filter(|m| m.anchor).map(|m| m.id.as_str()).collect::<Vec<_>>(), ["30"]);
@@ -523,6 +529,12 @@ mod tests {
             &ChatPage::Open,
         );
         assert!(matches!(got, Conversation::Found { older: false, newer: true, .. }), "{got:?}");
+    }
+
+    #[test]
+    fn the_header_names_every_profile_signed_in_to_the_account_and_drops_unsafe_ones() {
+        let v = shown_chat("available", &["personal", "--all", "work"], "tg");
+        assert_eq!(shown(&v, false).unwrap().chat.profiles, ["personal", "work"]);
     }
 
     #[test]

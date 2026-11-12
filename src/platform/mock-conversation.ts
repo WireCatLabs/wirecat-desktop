@@ -89,14 +89,19 @@ function emails(mailbox: string, thread: string, start: number): ChatMessage[] {
 function threadOf(provider: string, account: string, chat: string, start: number): Thread | null {
   if (provider === "email")
     return {
-      header: { title: "Warehouse lease", place: account, profile: null, email: true },
+      header: { title: "Warehouse lease", place: account, profiles: [], email: true },
       messages: emails(account, chat, start),
     }
   if (!["telegram", "max", "whatsapp"].includes(provider)) return null
   const place = provider === "telegram" ? "Telegram" : provider === "max" ? "MAX" : "WhatsApp"
   const count = chat === "4004" ? 64 : 120
   return {
-    header: { title: chat === "4004" ? "Book club" : "Lease team", place, profile: "personal", email: false },
+    header: {
+      title: chat === "4004" ? "Book club" : "Lease team",
+      place,
+      profiles: chat === "4004" ? ["personal", "work"] : ["personal"],
+      email: false,
+    },
     messages: chatMessages(account, chat, count, start),
   }
 }
