@@ -8,7 +8,7 @@ related_targets: ["src/app/sections.tsx"]
 # Memory page
 
 Scope: the Memory section, `src/features/memory/MemoryPage.tsx` (not built yet). Mode: Operate.
-Plan: `docs/dev/plans/2026-10-31-memory-page.md`. Mock-ups: `.impeccable/mocks/memory/`.
+How it works: `docs/dev/ARCHITECTURE.md` ("The Memory page"). Mock-ups: `.impeccable/mocks/memory/`.
 
 Audience and job: the owner, a few times a week, after agents worked. Sees what agents concluded about them and their
 contacts, checks each against its sources, and confirms, corrects or forgets it. Real content: Memo's memories and

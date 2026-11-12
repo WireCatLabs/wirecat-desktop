@@ -1,8 +1,8 @@
 # Windows signing: the owner's setup
 
 What is left before a release tag signs the Windows installer with Certum SimplySign. The design and its reasons are
-in [the first-release plan](2026-10-29-first-release.md#windows-certum) and
-[the signing flow and decisions](2026-11-06-windows-signing-flow.md); the security review of the signing tool is
+in [the first-release plan](2026-10-29-first-release.md#windows-certum) and the comments of
+[release.yml](../../../.github/workflows/release.yml); the security review of the signing tool is
 [ssign review](../research/2026-11-05-ssign-review.md).
 
 **Order (decisions D1 and D3).** The seed goes in only after two things have landed: the split of build and signing

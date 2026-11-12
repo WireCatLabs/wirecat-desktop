@@ -1,5 +1,5 @@
 // cspell:words Northbridge Ortiz Becker
-// Design prototype for docs/dev/plans/2026-11-01-memory-add.md. Made-up data, no platform calls, outside `src`.
+// Design prototype for the Add to memory panel. Made-up data, no platform calls, outside `src`.
 // `?add=<state>` opens the panel at one state: source, file, link, link-reading, text, image, audio, about, picker,
 // extracting, facts, done, and the failures too-big, unreadable, link-fail, no-reader, extract-fail, old.
 // `?add=closed` shows the page with the panel closed. The page around the panel is a stand-in for the Memory page

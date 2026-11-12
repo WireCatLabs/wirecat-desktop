@@ -1,5 +1,5 @@
 // cspell:words Ortiz Harbour Agrúpalo Muéstralos regístralo prepárame
-// The shape proposed for guides.json in docs/dev/plans/2026-11-01-guides.md. Commands checked against the live
+// The shape proposed for guides.json. Commands checked against the live
 // command pages on wirecat.dev (2026-11-01); names and chats are made up.
 import type { Lang } from "@/i18n"
 import { MORE_GUIDES } from "./guides-more"

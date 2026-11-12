@@ -1,5 +1,5 @@
 // cspell:words hermes
-// Design prototype for the Tasks page plan (docs/dev/plans/2026-10-31-tasks-page.md). Made-up data, no platform calls.
+// Design prototype for the Tasks page. Made-up data, no platform calls.
 // `?view=table|kanban` picks the view. `?tasks=<state>` picks what it shows: default, loading, none, nomatch, missing,
 // old, fail, write-fail, conflict. The query box stands in for `src/features/query/QueryBar` (PR #34, not on main yet);
 // the real page sends the query to `memo tasks list <query> --json` and filters nothing itself. Here a tiny parser

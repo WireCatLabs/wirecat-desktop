@@ -433,8 +433,7 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 
 ## The Memory page
 
-What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.82 or newer (`memory.minVersion` in the catalog: 0.131.80 and 0.131.81 crash on
+What agents concluded about the owner and the people around them, read from memo. memo 0.131.82 or newer (`memory.minVersion` in the catalog: 0.131.80 and 0.131.81 crash on
 `relationships list include:ended`, which the page calls); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`,
 `actions list status:proposed --brief` (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list.
@@ -480,7 +479,7 @@ stdout; Rust reads it, so the page words memo's reason (`proposal.wrong-state`),
 
 ### Adding to memory
 
-The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-add.md`), four steps on one surface:
+The Memory page's Add to memory panel, four steps on one surface:
 
 1. **Source**: pasted text (`memo sources add -`, the text on stdin), a link (`sources add <url>`, read once by memo
    from this computer) or a file chosen in the system's file window (`memory_pick_file`). Rust keeps the picked path
@@ -982,7 +981,7 @@ memo's store (never files on disk). The id is checked first (`checked_folder_id`
 
 ## The Tasks page
 
-Plan: `docs/dev/plans/2026-10-31-tasks-page.md`. memo's project tasks only (`project:*`); tasks made from messages stay
+memo's project tasks only (`project:*`); tasks made from messages stay
 on the Agents page. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
 `tasks comments list|add`, `people list|add` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
 memo's run log). The owner's search goes last, after `--`, since memo reads every word after it as the query; the page

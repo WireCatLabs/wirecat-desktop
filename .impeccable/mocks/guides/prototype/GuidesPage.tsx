@@ -1,4 +1,4 @@
-// Design prototype for docs/dev/plans/2026-11-01-guides.md. Outside `src`, no new platform calls: it reads the
+// Design prototype for the Guides page. Outside `src`, no new platform calls: it reads the
 // installed tools from the app's own store, so `?state=one` and `?state=mixed` change which guides are ready.
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
