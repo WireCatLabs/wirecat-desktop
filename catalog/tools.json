@@ -1846,7 +1846,8 @@
       },
       "people": {
         "minVersion": "0.131.84",
-        "companyMailbox": { "minVersion": "0.131.86" }
+        "companyMailbox": { "minVersion": "0.131.86" },
+        "oneCompany": { "minVersion": "0.131.87" }
       },
       "digests": {
         "minVersion": "0.131.75",
@@ -2272,7 +2273,7 @@
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": {
-          "minVersion": null,
+          "minVersion": "0.15.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
           "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
           "dryRun": "--dry-run",

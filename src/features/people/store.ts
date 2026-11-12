@@ -42,6 +42,11 @@ export type MailboxDone = {
   refused: MailboxRefusal | null
   /** On a match by name, the address the owner said is the company's. */
   asked: string | null
+  /** `organization`: the card's people were the company's own mailboxes, and `mailboxes` are its addresses now. */
+  via: "mailbox" | "organization"
+  /** The company's name as memo has it, when memo gave one. */
+  name: string | null
+  mailboxes: string[]
 }
 /** What joining some of a group did: who was joined, in order, and why the rest were not, if a join failed. */
 export type GroupDone = { joined: string[]; stopped: string | null }
@@ -73,6 +78,8 @@ type PeopleState = {
   kinded: boolean
   /** This memo gives a company one of the two people's addresses on a match by name. */
   companyMailbox: boolean
+  /** This memo makes the people of a match one company's own mailboxes. */
+  oneCompany: boolean
   /** People of each kind, for the tabs; read apart from the list and empty until it comes. */
   kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
   /** Whether each person read so far is the owner, and their tasks: a match may name someone from another tab. */
@@ -153,6 +160,11 @@ type PeopleState = {
     ids: readonly string[],
     to: { organization?: string; name?: string; mailbox?: string },
   ): Promise<boolean>
+  /**
+   * The card's people are one company's own mailboxes: memo gives their addresses to the company, match by match until
+   * none is left, and they leave the list. Stops at memo's first refusal.
+   */
+  resolveCompany(key: string, ids: readonly string[], to: { organization?: string; name?: string }): Promise<boolean>
   /** Records the chosen people of a card as contacts of the organization its mailbox went to; stops at a refusal. */
   saveMailboxUsers(key: string, organization: string, refs: readonly string[]): Promise<boolean>
   /** Joins the chosen people of a group into one; `ids` are the group's matches, kept in place as decided. */
@@ -246,6 +258,11 @@ export const usePeople = create<PeopleState>((set, get) => {
       details[asked] = { state: "ready", person: answer }
       return { details }
     })
+    return relist(keep)
+  }
+
+  /** Both lists read again after a write; decided matches and the `keep` ones stay in place until the next full read. */
+  const relist = async (keep: readonly string[] = []): Promise<Set<string> | null> => {
     const kind = get().kind
     try {
       const read = await platform.peopleRead(kind)
@@ -255,11 +272,13 @@ export const usePeople = create<PeopleState>((set, get) => {
       set((s) => ({
         ...(s.kind === kind && !read.kinded ? { people: read.people, peopleMore: read.peopleMore } : {}),
         seen: seenWith(s.seen, read.people),
+        // As the splits: a decided match keeps its place, so its card does not jump to the end of the list (rule 9).
         matches: [
-          ...read.matches,
-          ...s.matches.filter(
-            (m) => (s.decided[m.id] || keep.includes(m.id)) && !read.matches.some((r) => r.id === m.id),
-          ),
+          ...s.matches.flatMap((m) => {
+            const fresh = read.matches.find((r) => r.id === m.id)
+            return fresh ? [fresh] : s.decided[m.id] || keep.includes(m.id) ? [m] : []
+          }),
+          ...read.matches.filter((r) => !s.matches.some((m) => m.id === r.id)),
         ],
         matchesMore: read.matchesMore,
         // A decided split keeps its place; one memo lists for the first time goes after the rest.
@@ -291,6 +310,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     kind: "person",
     kinded: false,
     companyMailbox: false,
+    oneCompany: false,
     kinds: {},
     seen: {},
     matches: [],
@@ -367,6 +387,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           splitDecided: {},
           kinded,
           companyMailbox: ready?.companyMailbox ?? false,
+          oneCompany: ready?.oneCompany ?? false,
           decided: {},
           joinedGroup: {},
           company: {},
@@ -518,6 +539,7 @@ export const usePeople = create<PeopleState>((set, get) => {
               refused = r
               break
             }
+            if (r.kind !== "done") continue
             closed.push(id)
             last = r.person
             organization = r.organization ?? organization
@@ -535,7 +557,65 @@ export const usePeople = create<PeopleState>((set, get) => {
             await settle(answer, answer.ref, persons, ids)
           }
         }
-        return { organization: closed.length ? organization : null, mailbox, refused, asked: asked ?? null }
+        return {
+          organization: closed.length ? organization : null,
+          mailbox,
+          refused,
+          asked: asked ?? null,
+          via: "mailbox" as const,
+          name: null,
+          mailboxes: [],
+        }
+      })
+      if (!done) return false
+      set((s) => ({ company: { ...s.company, [key]: done } }))
+      return done.refused === null
+    },
+    async resolveCompany(key, ids, to) {
+      const done = await run(key, "reject", async () => {
+        let organization = to.organization ?? null
+        let name: string | null = null
+        let refused: MailboxRefusal | null = null
+        const mailboxes: string[] = []
+        const moved: string[] = []
+        const closed: string[] = []
+        try {
+          for (const id of ids) {
+            const m = get().matches.find((x) => x.id === id)
+            if (!m || get().decided[id] || closed.includes(id) || m.persons.every((p) => moved.includes(p))) continue
+            const r = await platform.peopleOneCompany(id, organization ? { organization } : to)
+            if (r.kind === "refused") {
+              if (r.reason === "proposal.wrong-state") continue
+              refused = r
+              break
+            }
+            if (r.kind !== "organized") continue
+            organization = r.organization
+            name = r.name ?? name
+            for (const a of r.mailboxes) if (!mailboxes.includes(a)) mailboxes.push(a)
+            for (const p of r.people) if (!moved.includes(p)) moved.push(p)
+            for (const c of r.closed) closed.push(c)
+          }
+        } finally {
+          // memo closes every match of the people it moved; a pair of two of them is gone even when it was not named.
+          const gone = ids.filter(
+            (id) =>
+              closed.includes(id) ||
+              get().matches.some((m) => m.id === id && m.persons.every((p) => moved.includes(p))),
+          )
+          // Their details stay: the card keeps showing who went to the company, though memo no longer has them as people.
+          set((s) => ({ decided: { ...s.decided, ...Object.fromEntries(gone.map((id) => [id, "reject" as const])) } }))
+          if (moved.length > 0) await relist(ids)
+        }
+        return {
+          organization: moved.length ? organization : null,
+          mailbox: null,
+          refused,
+          asked: null,
+          via: "organization" as const,
+          name,
+          mailboxes,
+        }
       })
       if (!done) return false
       set((s) => ({ company: { ...s.company, [key]: done } }))

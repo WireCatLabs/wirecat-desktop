@@ -258,3 +258,107 @@ describe("A match by name", () => {
     expect(screen.queryByRole("button", { name: "Company address" })).not.toBeInTheDocument()
   })
 })
+
+describe("One company", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    usePeople.setState(usePeople.getInitialState(), true)
+    useProfiles.getState().clear()
+  })
+
+  const withOneCompany = (oneCompany: boolean) => {
+    const read = platform.peopleRead.bind(platform)
+    vi.spyOn(platform, "peopleRead").mockImplementation(async (kind) => {
+      const out = await read(kind)
+      return out.kind === "ready" ? { ...out, oneCompany } : out
+    })
+  }
+  const sergey = async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+    return { user, card: await screen.findByRole("article", { name: "Сергей · 2 people" }, { timeout: 4000 }) }
+  }
+  const organized = (id: string) => ({
+    kind: "organized" as const,
+    organization: "organization:5",
+    name: "Northstar Logistics",
+    mailboxes: ["pro@northstar.example", "b2b@northstar.example"],
+    people: usePeople.getState().matches.find((m) => m.id === id)?.persons ?? [],
+    closed: [id],
+  })
+
+  it("gives the card's people to the company and says which addresses went to it", async () => {
+    withOneCompany(true)
+    const resolve = vi.spyOn(platform, "peopleOneCompany").mockImplementation(async (id) => organized(id))
+    const { user, card } = await sergey()
+    await user.click(within(card).getByRole("button", { name: "One company" }))
+    expect(
+      await within(card).findByText(
+        "pro@northstar.example and b2b@northstar.example now belong to Northstar Logistics. They left the contacts.",
+        {},
+        { timeout: 4000 },
+      ),
+    ).toBeInTheDocument()
+    expect(within(card).queryByRole("button", { name: "Same person" })).not.toBeInTheDocument()
+    expect(resolve).toHaveBeenCalledTimes(1)
+    expect(resolve.mock.calls[0]?.[1]).toEqual({})
+  })
+
+  it("asks for the company's name when memo cannot tell it, and sends the name back the same way", async () => {
+    withOneCompany(true)
+    const mailbox = vi.spyOn(platform, "peopleResolve")
+    const resolve = vi
+      .spyOn(platform, "peopleOneCompany")
+      .mockResolvedValueOnce({
+        kind: "refused",
+        reason: "organization.unnamed",
+        message: "name the company or its organization",
+        organizations: [],
+      })
+      .mockImplementation(async (id) => organized(id))
+    const { user, card } = await sergey()
+    await user.click(within(card).getByRole("button", { name: "One company" }))
+    await user.type(await within(card).findByLabelText("Company name", {}, { timeout: 4000 }), "Northstar Logistics")
+    await user.click(within(card).getByRole("button", { name: "Give it to this company" }))
+    expect(
+      await within(card).findByText(/now belong to Northstar Logistics/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    expect(resolve.mock.calls.map(([, to]) => to)).toEqual([{}, { name: "Northstar Logistics" }])
+    expect(mailbox).not.toHaveBeenCalled()
+  })
+
+  it("says the people went to the company when memo moved no mail address", async () => {
+    withOneCompany(true)
+    vi.spyOn(platform, "peopleOneCompany").mockImplementation(async (id) => ({ ...organized(id), mailboxes: [] }))
+    const { user, card } = await sergey()
+    await user.click(within(card).getByRole("button", { name: "One company" }))
+    expect(
+      await within(card).findByText(
+        "They now belong to Northstar Logistics and left the contacts.",
+        {},
+        { timeout: 4000 },
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("says plainly when one of them is the owner", async () => {
+    withOneCompany(true)
+    vi.spyOn(platform, "peopleOneCompany").mockResolvedValue({
+      kind: "refused",
+      reason: "identity.owner",
+      message: "person:1 is the owner",
+      organizations: [],
+    })
+    const { user, card } = await sergey()
+    await user.click(within(card).getByRole("button", { name: "One company" }))
+    expect(await within(card).findByText(/One of them is you/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(within(card).queryByLabelText("Company name")).not.toBeInTheDocument()
+  })
+
+  it("is not offered before a memo that makes people one company's", async () => {
+    withOneCompany(false)
+    const { card } = await sergey()
+    expect(within(card).queryByRole("button", { name: "One company" })).not.toBeInTheDocument()
+  })
+})

@@ -11,6 +11,7 @@ import { CompanyAddress, CompanyButton, CompanyFollowUp } from "./Company"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
+import { sortMessages } from "./messages-sort"
 import { Refusal } from "./Refusal"
 import { usePeople } from "./store"
 
@@ -43,6 +44,7 @@ export function MatchActions({
   addresses?: readonly string[]
 }) {
   const m = useMessages(peopleMessages)
+  const sm = useMessages(sortMessages)
   const lang = useLang()
   const name = usePersonName()
   const decided = usePeople((s) => s.decided)
@@ -51,8 +53,9 @@ export function MatchActions({
   const joined = usePeople((s) => s.joinedGroup[group.key])
   const company = usePeople((s) => s.company[group.key])
   const offersAddress = usePeople((s) => s.companyMailbox)
+  const offersCompany = usePeople((s) => s.oneCompany)
   const [addressing, setAddressing] = useState(false)
-  const { decide, joinGroup, rejectGroup } = usePeople.getState()
+  const { decide, joinGroup, rejectGroup, resolveCompany } = usePeople.getState()
   const open = group.matches.filter((x) => !decided[x.id])
   const first = open[0] ?? group.matches[0]
   const people = group.people
@@ -180,6 +183,24 @@ export function MatchActions({
             <Button size="sm" disabled={!!busy} onClick={() => (tooFew ? few.fail() : setAsking(true))}>
               {m.reject}
             </Button>
+            {offersCompany && (
+              <Button
+                size="sm"
+                disabled={!!busy}
+                icon={busy === "reject" ? spin : <Building2 className="size-4" aria-hidden />}
+                onClick={() =>
+                  tooFew
+                    ? few.fail()
+                    : void resolveCompany(
+                        group.key,
+                        (picking ? among : open).map((x) => x.id),
+                        {},
+                      )
+                }
+              >
+                {sm.oneCompany}
+              </Button>
+            )}
             {group.mailbox && <CompanyButton group={group} />}
             {companyAddress && (
               <Button

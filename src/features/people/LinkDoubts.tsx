@@ -15,6 +15,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { looksLikeEmail } from "./contacts"
 import { useIdentifier, useKnownName } from "./labels"
 import { peopleMessages } from "./messages"
+import { doubtMessages } from "./messages-doubts"
 import { Refusal } from "./Refusal"
 import { SourceIcon, sourceOf } from "./sources"
 import { DOUBTS_PAGE, usePeople } from "./store"
@@ -125,6 +126,7 @@ function accountLabel(i: Doubt["identities"][number]) {
 /** `onDone` gets the sentence that says what the owner's answer did: the card itself leaves with the next read. */
 function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => void }) {
   const m = useMessages(peopleMessages)
+  const dm = useMessages(doubtMessages)
   const { reveal, need, askSplit, askUndo, keep, markTest } = usePeople.getState()
   const known = useKnownName()
   const identifier = useIdentifier()
@@ -144,6 +146,7 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
     identifier(doubt.person) ??
     (doubt.reason === "test-data" ? m.doubtTestTitle : m.noName)
   const test = doubt.reason === "test-data"
+  const owner = doubt.reason === "owner-other-name"
   // memo lists only the test accounts: the person may hold real ones too, and those stay when the test ones leave.
   useEffect(() => {
     if (test) need(doubt.person)
@@ -164,7 +167,9 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
         >
           {name}
         </button>
-        <p className="mt-[0.1rem] text-[0.92rem]">{m.doubtReasons[doubt.reason] ?? m.doubtOther}</p>
+        <p className="mt-[0.1rem] text-[0.92rem]">
+          {owner ? dm.ownerReason : (m.doubtReasons[doubt.reason] ?? m.doubtOther)}
+        </p>
       </div>
       {doubt.identities.length > 0 && (
         <ul className="flex flex-wrap gap-x-[0.9rem] gap-y-[0.3rem]">
@@ -179,6 +184,9 @@ function DoubtCard({ doubt, onDone }: { doubt: Doubt; onDone: (said: string) => 
             )
           })}
         </ul>
+      )}
+      {owner && (
+        <p className="text-[0.9rem] text-ink-soft">{dm.ownerHelp(m.doubtKeep, unlink ? m.doubtSplit : m.doubtOpen)}</p>
       )}
       {test && (
         <p className="text-[0.9rem] text-ink-soft">
