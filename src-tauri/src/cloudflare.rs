@@ -499,6 +499,9 @@ fn start(r: &mut Record, credentials: &str) -> Result<(), String> {
     // `--no-autoupdate`: a binary not from a package updates itself and exits with 11 for something else to restart.
     let args = ["tunnel", "--no-autoupdate", "--config", &config_arg, "--metrics", &metrics_arg, "run", &r.tunnel_id];
     let mut cmd = run::command(&program()?, &args, None);
+    // Not `--credentials-file`, which `tunnel run` also takes: cloudflared outlives the app, so the file would have to
+    // stay on disk, outside the keyring, for the tunnel's whole life. Its 0600 mode would keep out the same readers
+    // as `/proc/<pid>/environ` (this user only), and backups and file sync would copy it too.
     cmd.stdout(Stdio::null()).stderr(log).env("TUNNEL_CRED_CONTENTS", credentials);
     let mut child = cmd.spawn().map_err(|e| format!("Could not start cloudflared: {e}"))?;
     r.pid = Some(child.id());
