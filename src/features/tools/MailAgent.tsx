@@ -35,8 +35,8 @@ const TONE: Record<RunOutcome, LampTone> = { ok: "ok", skipped: "warn", failed: 
 type Pending = { on: boolean; every?: string } | null
 type Failure = { on: boolean | null; every?: string; message: string } | null
 
-const skipWhy = (m: MailAgentText, { reason, why }: Skipped) =>
-  (reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined) ?? why
+const skipWhy = (m: MailAgentText, { reason }: Skipped) =>
+  reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined
 
 /**
  * memo's mail agent for Email: the switch is memo's own `schedule agent` and `schedule remove`, so the timer it
@@ -267,12 +267,16 @@ function Status({ state, m, effective, agents, busy, onRun, onResave }: StatusPr
   const cap = dailyCap(state.maxCostPerDayUsd)
   return (
     <div className="flex flex-col gap-1 text-[0.9rem] text-ink-soft" aria-live="polite">
-      {last && outcome ? (
+      {last?.skipped && !skipWhy(m, last.skipped) ? (
+        <ErrorNotice inline tone="warn" raw={last.skipped.why}>
+          {m.skippedUnknown(ago(last.skipped.at))}
+        </ErrorNotice>
+      ) : last && outcome ? (
         <p className="flex items-center gap-2">
           <Lamp tone={TONE[outcome]} size="sm" />
           <span>
             {last.skipped
-              ? m.skipped(ago(last.skipped.at), skipWhy(m, last.skipped))
+              ? m.skipped(ago(last.skipped.at), skipWhy(m, last.skipped) ?? "")
               : `${m.lastRun(ago(last.at))} · ${outcome === "ok" ? m.ok : m.failed(last.failures)}`}
           </span>
         </p>

@@ -106,7 +106,7 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
       ? m.ownerOnly
       : actionError === "picture-reading.agent-missing"
         ? m.agentMissing
-        : actionError && m.setFailed(actionError)
+        : actionError && m.setFailed
   const when = setting.since ? formatDate(setting.since, { dateStyle: "medium", timeStyle: "short" }, lang) : null
 
   return (
@@ -182,7 +182,9 @@ function PictureReadingForm({ setting }: { setting: Setting }) {
         </div>
       </Collapse>
       <Collapse open={Boolean(said)}>
-        <ErrorNotice inline>{said}</ErrorNotice>
+        <ErrorNotice inline raw={said === m.setFailed ? actionError : null}>
+          {said}
+        </ErrorNotice>
       </Collapse>
     </div>
   )

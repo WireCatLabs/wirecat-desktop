@@ -1,11 +1,12 @@
 import { Building2, Check, LoaderCircle } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { type PeopleReason, reasonOf } from "@/domain/people"
+import { reasonOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
 import type { MatchAnswer } from "@/platform/people-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { CompanyAddress, CompanyButton, CompanyFollowUp } from "./Company"
 import type { MatchGroup } from "./groups"
@@ -108,9 +109,9 @@ export function MatchActions({
         <p role="status" className="reveal flex flex-wrap items-center gap-2 text-[0.95rem] text-ink-soft">
           <Check className="size-4 shrink-0 text-ok" aria-hidden />
           {m.joinedSome(formatList(joined.joined.map(said), lang))}
-          {joined.stopped && <span className="text-bad">{m.stoppedAt(stoppedWords(joined.stopped, m.reasons))}</span>}
         </p>
       )}
+      {joined?.stopped && <Stopped error={joined.stopped} />}
       <AutoHeight swap={done ? "done" : String(asking)}>
         {done ? (
           (joined && !last) || (company && !company.refused) ? null : (
@@ -227,7 +228,13 @@ export function MatchActions({
   )
 }
 
-const stoppedWords = (error: string, reasons: Record<PeopleReason, string>) => {
+/** Why a join stopped part way: memo's known reasons in words, anything else under Details. */
+function Stopped({ error }: { error: string }) {
+  const m = useMessages(peopleMessages)
   const reason = reasonOf(error)
-  return reason ? reasons[reason] : error
+  return (
+    <ErrorNotice inline raw={reason ? null : error}>
+      {reason ? m.stoppedAt(m.reasons[reason]) : m.stopped}
+    </ErrorNotice>
+  )
 }

@@ -81,6 +81,22 @@ describe("Reading pictures", () => {
     expect(screen.queryByText(reason)).toBeNull()
   })
 
+  it("says an unknown refusal in its own words and folds memo's text under Details", async () => {
+    vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
+    vi.spyOn(platform, "pictureReadingSet").mockRejectedValue(new Error("store.busy: another process holds it"))
+    const user = userEvent.setup()
+    render(<PictureReadingSetting />)
+
+    await user.click(await screen.findByRole("radio", { name: "On request" }))
+    await user.click(screen.getByRole("radio", { name: "Claude Code" }))
+    await user.click(screen.getByRole("button", { name: "Turn on" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/^Could not change it\./)
+    expect(screen.queryByText(/store\.busy/)).toBeNull()
+    await user.click(screen.getByRole("button", { name: "Details" }))
+    expect(screen.getByText("store.busy: another process holds it")).toBeInTheDocument()
+  })
+
   it("asks for a memo update while no memo with it is released", async () => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "old", version: "0.131.85", need: null })
     render(<PictureReadingSetting />)

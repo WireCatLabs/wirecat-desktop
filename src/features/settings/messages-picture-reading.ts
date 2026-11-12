@@ -21,7 +21,7 @@ const en = {
   ownerOnly:
     "Only you can turn this on, and WireCat was started from an AI agent's terminal. Open WireCat from the app menu and turn it on there.",
   agentMissing: "Choose the agent that reads: Claude Code or Codex.",
-  setFailed: (message: string) => `Could not change it: ${message}`,
+  setFailed: "Could not change it.",
   readFailed: "Could not read the picture reading setting.",
   looking: "Looking at the picture reading setting…",
 }
@@ -47,7 +47,7 @@ const ru: typeof en = {
   ownerOnly:
     "Включить это можете только вы, а WireCat запущен из терминала ИИ-агента. Откройте WireCat из меню приложений и включите там.",
   agentMissing: "Выберите агента, который читает: Claude Code или Codex.",
-  setFailed: (message) => `Не удалось изменить: ${message}`,
+  setFailed: "Не удалось изменить.",
   readFailed: "Не удалось прочитать настройку чтения картинок.",
   looking: "Смотрим настройку чтения картинок…",
 }
@@ -73,7 +73,7 @@ const es: typeof en = {
   ownerOnly:
     "Solo tú puedes activarlo, y WireCat se abrió desde la terminal de un agente de IA. Abre WireCat desde el menú de aplicaciones y actívalo allí.",
   agentMissing: "Elige el agente que lee: Claude Code o Codex.",
-  setFailed: (message) => `No se pudo cambiar: ${message}`,
+  setFailed: "No se pudo cambiar.",
   readFailed: "No se pudo leer el ajuste de lectura de imágenes.",
   looking: "Mirando el ajuste de lectura de imágenes…",
 }

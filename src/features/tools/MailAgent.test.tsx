@@ -219,7 +219,7 @@ it("offers Memo instead of a switch when memo is not installed", async () => {
   expect(screen.queryByRole("switch")).not.toBeInTheDocument()
 })
 
-it("says when a run was skipped at the day's cost cap, in memo's words", async () => {
+it("says when a run was skipped at the day's cost cap, memo's words under Details", async () => {
   const why = "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow"
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
     ...on,
@@ -228,11 +228,13 @@ it("says when a run was skipped at the day's cost cap, in memo's words", async (
   })
   render(<MailAgent tool={email} />)
 
-  expect(await screen.findByText(`Last start skipped just now: ${why}`)).toBeInTheDocument()
+  expect(await screen.findByText("Last start skipped just now.")).toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Details" }))
+  expect(await screen.findByText(why)).toBeInTheDocument()
   expect(screen.getByText("Spent today: $5.02 of $5.00")).toBeInTheDocument()
 })
 
-it("translates a skip by its reason id and shows memo's sentence for an id it does not know", async () => {
+it("translates a skip by its reason id and folds memo's sentence for an id it does not know under Details", async () => {
   const skipped = (reason: string) => ({ at: new Date().toISOString(), why: "memo's english", reason })
   const status = vi.spyOn(platform, "mailAgentStatus")
   status.mockResolvedValue({ ...on, last: { ...ran, skipped: skipped("mail.none-new") } })
@@ -247,7 +249,9 @@ it("translates a skip by its reason id and shows memo's sentence for an id it do
 
   status.mockResolvedValue({ ...on, last: { ...ran, skipped: skipped("schedule.unheard-of") } })
   render(<MailAgent tool={email} />)
-  expect(await screen.findByText("Last start skipped just now: memo's english")).toBeInTheDocument()
+  expect(await screen.findByText("Last start skipped just now.")).toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Details" }))
+  expect(await screen.findByText("memo's english")).toBeInTheDocument()
 })
 
 it("leaves the cap out when there is none or memo is too old to report it", async () => {

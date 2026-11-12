@@ -30,7 +30,8 @@ const en = {
   ok: "finished",
   failed: (times: number | null) => (times && times > 1 ? `failed ${times} times in a row` : "failed"),
   skipped: (ago: string, why: string) => `Last start skipped ${ago}: ${why}`,
-  // Keyed by the reason id memo sends with a skip; an id missing here shows memo's own English sentence.
+  skippedUnknown: (ago: string) => `Last start skipped ${ago}.`,
+  // Keyed by the reason id memo sends with a skip; an id missing here shows memo's own sentence under Details.
   skipReasons: {
     "cost.day-cap": "the daily cost limit is reached; it runs again tomorrow",
     "mail.none-new": "no new mail since the last check",
@@ -86,6 +87,7 @@ const ru: typeof en = {
         })
       : "не удался",
   skipped: (ago, why) => `Запуск пропущен ${ago}: ${why}`,
+  skippedUnknown: (ago) => `Запуск пропущен ${ago}.`,
   skipReasons: {
     "cost.day-cap": "дневной лимит расходов исчерпан; завтра запуск продолжится",
     "mail.none-new": "с прошлой проверки новой почты нет",
@@ -139,6 +141,7 @@ const es: typeof en = {
   ok: "terminó bien",
   failed: (times) => (times && times > 1 ? `falló ${times} veces seguidas` : "falló"),
   skipped: (ago, why) => `Ejecución omitida ${ago}: ${why}`,
+  skippedUnknown: (ago) => `Ejecución omitida ${ago}.`,
   skipReasons: {
     "cost.day-cap": "se alcanzó el límite diario de gasto; mañana se ejecuta de nuevo",
     "mail.none-new": "no hay correo nuevo desde la última revisión",

@@ -6,6 +6,7 @@ import { ToolIcon } from "@/shared/ToolIcon"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
@@ -50,10 +51,14 @@ export function LogSettings({ id }: { id: string }) {
         ))}
       </ul>
       {refused.map(([tool, error]) => (
-        <p key={tool} role="alert" className="flex flex-wrap items-center gap-x-3 text-[0.9rem]">
-          <span className="selectable text-bad">{m.refused(toolName(tool), error)}</span>
-          <ReportThis what={`Changing whether ${toolName(tool)} keeps runs`} tool={tool} error={error} />
-        </p>
+        <ErrorNotice
+          key={tool}
+          inline
+          raw={error}
+          action={<ReportThis what={`Changing whether ${toolName(tool)} keeps runs`} tool={tool} error={error} />}
+        >
+          {m.refused(toolName(tool))}
+        </ErrorNotice>
       ))}
 
       <Dialog

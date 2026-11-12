@@ -78,11 +78,7 @@ function LocalOnlyForm({ status }: { status: LocalOnlyStatus }) {
   const refused = status.features.filter((f) => f.refused).length
   const refusal = actionError ? modelRefusalOf(actionError) : null
   const said =
-    actionError === "local-only.owner-only"
-      ? m.ownerOnly
-      : refusal
-        ? refusals[refusal]
-        : actionError && m.setFailed(actionError)
+    actionError === "local-only.owner-only" ? m.ownerOnly : refusal ? refusals[refusal] : actionError && m.setFailed
   const when = status.since ? formatDate(status.since, { dateStyle: "medium", timeStyle: "short" }, lang) : null
 
   return (
@@ -107,7 +103,9 @@ function LocalOnlyForm({ status }: { status: LocalOnlyStatus }) {
         </div>
       </div>
       <Collapse open={Boolean(said)}>
-        <ErrorNotice inline>{said}</ErrorNotice>
+        <ErrorNotice inline raw={said === m.setFailed ? actionError : null}>
+          {said}
+        </ErrorNotice>
       </Collapse>
       <div className="flex flex-col gap-1.5">
         <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.listTitle}</h4>
