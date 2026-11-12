@@ -30,9 +30,11 @@ export function ImportPanel() {
   const sourceHelpId = useId()
   const fileId = useId()
   const importId = useId()
+  const typeId = useId()
   const noSource = useFieldError(sourceId)
   const noFile = useFieldError(fileId)
   const noImport = useFieldError(importId)
+  const noType = useFieldError(typeId)
 
   useEffect(() => {
     load()
@@ -49,6 +51,10 @@ export function ImportPanel() {
     if (!sourceOk) return noSource.fail(s.account.trim() === "" ? m.sourceNeeded : m.sourceInvalid)
     if (!s.file) return noFile.fail(m.fileNeeded)
     check()
+  }
+  const askTemplate = () => {
+    if (!s.kind) return noType.fail(m.typeNeeded)
+    saveTemplate()
   }
   const askImport = () => {
     if (!canImport) return noImport.fail(s.checked ? m.nothingToImport : m.checkFirst)
@@ -76,10 +82,15 @@ export function ImportPanel() {
             <div className="flex flex-wrap items-end gap-3">
               <Labelled label={m.type}>
                 <Select
+                  id={typeId}
                   aria-label={m.type}
+                  {...noType.field}
                   size="sm"
                   value={s.kind ?? ""}
-                  onChange={(kind) => choose({ kind })}
+                  onChange={(kind) => {
+                    choose({ kind })
+                    noType.clear()
+                  }}
                   options={s.types.map((t) => ({ value: t.type, label: t.type }))}
                   className="min-w-[11rem]"
                 />
@@ -112,13 +123,14 @@ export function ImportPanel() {
               )}
               <Button
                 size="sm"
-                onClick={() => saveTemplate()}
-                disabled={!s.kind || s.busy !== null}
+                onClick={askTemplate}
+                disabled={s.busy !== null}
                 icon={<Download className="size-4" aria-hidden />}
               >
                 {m.download}
               </Button>
             </div>
+            {noType.hint}
             {s.saved && (
               <p role="status" className="selectable text-[0.9rem] text-ink-soft">
                 {m.saved(s.saved)}

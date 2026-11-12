@@ -27,7 +27,7 @@ describe("Reading pictures", () => {
     })
   })
 
-  it("turns on only once the owner picks an agent, with the warning shown and memo's answer kept", async () => {
+  it("turns on only once the owner picks an agent, saying so at the agents when pressed before, with the warning shown and memo's answer kept", async () => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
     const set = vi.spyOn(platform, "pictureReadingSet").mockResolvedValue(codex)
     const user = userEvent.setup()
@@ -40,7 +40,10 @@ describe("Reading pictures", () => {
     expect(screen.getByText(/goes to Claude Code or Codex and from there to its provider/)).toBeVisible()
     expect(screen.getByText(/“Only this computer” setting does not stop it/)).toBeInTheDocument()
     const turnOn = screen.getByRole("button", { name: "Turn on" })
-    expect(turnOn).toBeDisabled()
+    expect(turnOn).toBeEnabled()
+    await user.click(turnOn)
+    expect(screen.getByRole("alert")).toHaveTextContent("Choose the agent that reads")
+    expect(screen.getByRole("radio", { name: "Claude Code" })).toHaveFocus()
     expect(screen.getByRole("radio", { name: "Claude Code" })).not.toBeChecked()
     expect(set).not.toHaveBeenCalled()
 
