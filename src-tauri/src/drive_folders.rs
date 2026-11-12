@@ -189,7 +189,7 @@ pub fn remove(tool: &Tool, profile: &str, folder: &str) -> Result<FolderRemoved,
 fn failure(out: &crate::run::Output, json: Option<&Value>) -> (String, Option<String>, Option<String>) {
     let message = skills::failure(out, json);
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
-    if text.contains("unknown command") || text.contains("unknown option") {
+    if crate::memo_cli::unknown_to_cli(&text) {
         return (
             "This version cannot list Drive folders yet. Update it on the Tools page.".into(),
             Some(NEEDS_UPDATE.into()),

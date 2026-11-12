@@ -213,12 +213,6 @@ pub(crate) fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
 }
 
-/// Whether an installed version is below `need`; an unknown version counts as too old, an unreadable `need` as met.
-pub(crate) fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
-}
-
 pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {
     if let Some(m) = json.and_then(|v| v["error"]["message"].as_str()) {
         return redact::text(m);
@@ -343,7 +337,8 @@ pub struct SkillRefresh {
     pub failed: Option<String>,
 }
 
-fn older(installed: &str, version: &str) -> bool {
+/// Unlike `tools::older`, a copy whose stamp cannot be read is left alone: it may be somebody's own.
+fn stamped_before(installed: &str, version: &str) -> bool {
     match (semver::Version::parse(installed), semver::Version::parse(version)) {
         (Ok(installed), Ok(version)) => installed < version,
         _ => false,
@@ -361,7 +356,7 @@ fn refresh_targets(report: &SkillReport, version: &str) -> Vec<String> {
         .filter(|t| match t.state.as_deref() {
             Some("stale") => true,
             // `memo doctor` reports the version only.
-            None => t.installed.as_deref().is_some_and(|i| older(i, version)),
+            None => t.installed.as_deref().is_some_and(|i| stamped_before(i, version)),
             _ => false,
         })
         .map(|t| t.target.clone())

@@ -61,14 +61,10 @@ pub fn list(tool: &Tool, query: Option<&str>, limit: u32, page: u32) -> Result<V
         return Err(refusal);
     }
     call(tool, &args).inspect_err(|e| {
-        if too_old(e) {
+        if crate::memo_cli::unknown_to_cli(e) {
             REFUSED.remember(&tool.id, LIST, &bin, e);
         }
     })
-}
-
-fn too_old(error: &str) -> bool {
-    error.starts_with("unknown command 'runs'") || error.starts_with("unknown command 'list'")
 }
 
 pub fn show(tool: &Tool, run: &str) -> Result<Value, String> {
@@ -149,9 +145,9 @@ mod tests {
 
     #[test]
     fn only_an_unknown_command_is_remembered() {
-        assert!(too_old("unknown command 'runs'"));
-        assert!(too_old("unknown command 'list' (Did you mean last?)"));
-        assert!(!too_old("database is locked"));
+        assert!(crate::memo_cli::unknown_to_cli("unknown command 'runs'"));
+        assert!(crate::memo_cli::unknown_to_cli("unknown command 'list' (Did you mean last?)"));
+        assert!(!crate::memo_cli::unknown_to_cli("database is locked"));
     }
 
     #[test]

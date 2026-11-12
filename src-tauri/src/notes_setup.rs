@@ -4,7 +4,6 @@
 
 use crate::catalog::Tool;
 use crate::run::{self, Line, RunError};
-use crate::skills::too_old;
 use crate::sync::{CountUnit, counted_of, is_label};
 use crate::{paths, tools};
 use serde::{Deserialize, Serialize};
@@ -197,7 +196,7 @@ pub fn problem_of(out: &run::Output, json: Option<&Value>) -> NotesProblem {
 
 fn classify(code: &str, reason: &str, text: &str) -> NotesProblem {
     let has = |words: &[&str]| words.iter().any(|w| text.contains(w));
-    if has(&["unknown command", "unknown option"]) {
+    if crate::memo_cli::unknown_to_cli(text) {
         NotesProblem::TooOld
     } else if has(&["enospc", "no space left", "disk full", "not enough space"]) {
         NotesProblem::DiskFull
@@ -291,7 +290,7 @@ pub fn status(tool: &Tool) -> Result<NotesSetup, String> {
     let src = source(tool)?;
     let state = tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(NotesSetup::NoMemo) };
-    if too_old(first.version.as_deref(), &src.min_version) {
+    if crate::tools::older(first.version.as_deref(), &src.min_version) {
         return Ok(NotesSetup::Old { version: first.version.clone(), need: src.min_version.clone() });
     }
     let (out, json) = crate::skills::call(tool, &src.folders, CALL)?;

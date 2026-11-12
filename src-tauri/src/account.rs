@@ -201,7 +201,7 @@ fn answer(out: &crate::run::Output, json: Option<&Value>) -> AccountRemoval {
     let error = json.map(|v| &v["error"]);
     let reason = error.and_then(|e| e["reason"].as_str().or_else(|| e["details"]["reason"].as_str()));
     let unknown = format!("{message}\n{}", out.stderr).to_lowercase();
-    if unknown.contains("unknown command") || unknown.contains("unknown option") {
+    if crate::memo_cli::unknown_to_cli(&unknown) {
         return AccountRemoval::TooOld;
     }
     let refusal = match reason.unwrap_or_default() {

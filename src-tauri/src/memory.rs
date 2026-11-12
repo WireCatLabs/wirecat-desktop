@@ -4,7 +4,7 @@
 //! and a failed correction would keep the owner's text in Memo's run log.
 
 use crate::catalog::{self, Tool};
-use crate::skills::{body, failure, too_old};
+use crate::skills::{body, failure};
 use crate::{redact, run, tools};
 use serde::Serialize;
 use serde_json::Value;
@@ -585,7 +585,7 @@ pub(crate) fn role(v: &Value) -> Option<Role> {
 
 /// A memo from before a list, or before one of its words, says so; anything else (a busy store) is a real failure.
 fn unsupported(e: &str) -> bool {
-    e.starts_with("unknown command") || e.starts_with("unknown option") || e.contains("query.unknown-field")
+    crate::memo_cli::unknown_to_cli(e) || e.contains("query.unknown-field")
 }
 
 fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String> {
@@ -771,7 +771,10 @@ fn can_edit_findings(tool: &Tool, version: Option<&str>) -> bool {
 
 /// Whether the installed memo has `facts revoke`.
 fn can_revoke(tool: &Tool, version: Option<&str>) -> bool {
-    tool.memory.as_ref().and_then(|m| m.revoke_min_version.as_deref()).is_some_and(|min| !too_old(version, min))
+    tool.memory
+        .as_ref()
+        .and_then(|m| m.revoke_min_version.as_deref())
+        .is_some_and(|min| !crate::tools::older(version, min))
 }
 
 pub(crate) fn memo() -> Result<&'static Tool, String> {
@@ -783,7 +786,7 @@ pub fn read(page: u32) -> Result<Read, String> {
     let need = tool.memory.as_ref().ok_or("Memo has no memory commands in the catalog")?.min_version.clone();
     let state = tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(Read::Missing) };
-    if too_old(first.version.as_deref(), &need) {
+    if crate::tools::older(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
@@ -2510,10 +2513,10 @@ mod tests {
 
     #[test]
     fn a_memo_before_the_minimum_or_one_that_cannot_say_is_too_old() {
-        assert!(too_old(Some("0.127.0"), "0.128.0"));
-        assert!(too_old(None, "0.128.0"));
-        assert!(!too_old(Some("0.128.0"), "0.128.0"));
-        assert!(!too_old(Some("0.130.2"), "0.128.0"));
+        assert!(crate::tools::older(Some("0.127.0"), "0.128.0"));
+        assert!(crate::tools::older(None, "0.128.0"));
+        assert!(!crate::tools::older(Some("0.128.0"), "0.128.0"));
+        assert!(!crate::tools::older(Some("0.130.2"), "0.128.0"));
     }
 
     /// Against a real memo with a throwaway store: `MEMO_BIN=<memo> cargo test memory -- --ignored`. It writes to that

@@ -342,9 +342,7 @@ pub(crate) fn ask(tool: &Tool, template: Template, timeout: Duration) -> Result<
     let out = run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
     let json = out.json();
     match json {
-        Some(v) if v["error"]["message"].as_str().is_some_and(|m| m.starts_with("unknown command")) => {
-            Ok(Answer::Unknown)
-        }
+        Some(v) if v["error"]["message"].as_str().is_some_and(crate::memo_cli::unknown_to_cli) => Ok(Answer::Unknown),
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(Answer::Envelope(v)),
         Some(v) if v["error"]["message"].is_string() => Err(redact::text(v["error"]["message"].as_str().unwrap_or(""))),
         _ => {

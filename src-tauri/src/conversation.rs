@@ -354,10 +354,6 @@ pub fn read_with(call: &Call, place: &ChatPlace, ask: &ChatPage) -> Result<Conve
     })
 }
 
-fn too_old(message: &str) -> bool {
-    message.starts_with("unknown command") || message.starts_with("unknown option")
-}
-
 fn call_program(bin: &std::path::Path, args: &[String]) -> Result<Value, Failure> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(bin, &refs, Some(&paths::search_path()), READ).map_err(|e| Failure::Other(e.to_string()))?;
@@ -367,7 +363,7 @@ fn call_program(bin: &std::path::Path, args: &[String]) -> Result<Value, Failure
         Some(v) if v["error"]["code"].as_str() == Some("not_found") => Err(Failure::NotFound),
         j => {
             let message = failure(&out, j.as_ref());
-            Err(if too_old(&message) { Failure::Old(message) } else { Failure::Other(message) })
+            Err(if crate::memo_cli::unknown_to_cli(&message) { Failure::Old(message) } else { Failure::Other(message) })
         }
     }
 }

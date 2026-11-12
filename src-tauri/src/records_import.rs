@@ -44,7 +44,7 @@ fn call(args: &[String], timeout: Duration) -> Result<(Output, Option<Value>), S
 fn worded(out: &Output, json: Option<&Value>) -> String {
     let message = failure(out, json);
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
-    if text.contains("unknown command") || text.contains("unknown option") { TOO_OLD.into() } else { message }
+    if crate::memo_cli::unknown_to_cli(&text) { TOO_OLD.into() } else { message }
 }
 
 fn answered(out: &Output, json: Option<Value>) -> Result<Value, String> {

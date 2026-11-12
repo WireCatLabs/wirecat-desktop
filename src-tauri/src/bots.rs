@@ -203,7 +203,7 @@ fn answer(name: &str, out: &Output, token: &str) -> BotResult {
 fn failure(name: &str, out: &Output, token: &str) -> BotResult {
     let masked = |s: &str| redact::text(&mask(s, token));
     let all = format!("{}\n{}", out.stdout, out.stderr);
-    if all.contains("unknown command") || all.contains("unknown option") {
+    if crate::memo_cli::unknown_to_cli(&all) {
         return failed(
             format!("This {name} cannot connect a bot from the app yet. Update it on the Tools page."),
             Some(NEEDS_UPDATE.into()),

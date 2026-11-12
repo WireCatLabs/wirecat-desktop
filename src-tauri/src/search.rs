@@ -136,9 +136,9 @@ pub fn args(
 /// `--exact` for a version older than `below`, or one that cannot say: a filter that does not hold is worse than no
 /// search by meaning.
 fn with_exact(mut args: Vec<String>, below: Option<&str>, version: Option<&str>) -> Vec<String> {
-    let Some(below) = below.and_then(|b| semver::Version::parse(b).ok()) else { return args };
-    let old = version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < below);
-    if old && let Some(at) = args.iter().position(|a| a == "--no-record") {
+    if below.is_some_and(|below| crate::tools::older(version, below))
+        && let Some(at) = args.iter().position(|a| a == "--no-record")
+    {
         args.insert(at, "--exact".into());
     }
     args
@@ -379,7 +379,7 @@ fn error_of(stderr: &str, stdout: &str) -> Answer {
         .find_map(|l| serde_json::from_str::<Value>(l.trim()).ok().filter(|v| v["error"].is_object()));
     let Some(error) = error else {
         let message = last_line(stderr, stdout);
-        return if too_old(&message) {
+        return if crate::memo_cli::unknown_to_cli(&message) {
             Answer::Old { message }
         } else {
             Answer::Failed { message, candidates: Vec::new() }
@@ -396,7 +396,7 @@ fn error_of(stderr: &str, stdout: &str) -> Answer {
         let span = span_of(&e["details"]["span"]);
         return Answer::QueryError { reason: reason.to_string(), message, span };
     }
-    if too_old(&message) {
+    if crate::memo_cli::unknown_to_cli(&message) {
         Answer::Old { message }
     } else {
         Answer::Failed { message, candidates: candidates_of(&e["details"]["candidates"]) }
@@ -444,12 +444,6 @@ fn refused_note(note: &str) -> Option<Answer> {
         .and_then(|p| p.parse::<u32>().ok())
         .map(|p| Span { start: p.saturating_sub(1), end: p.saturating_sub(1) });
     Some(Answer::QueryError { reason, message: note.to_string(), span })
-}
-
-fn too_old(message: &str) -> bool {
-    message.starts_with("unknown command")
-        || message.starts_with("unknown option")
-        || message.starts_with("too many arguments")
 }
 
 #[cfg(test)]

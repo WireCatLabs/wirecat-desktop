@@ -72,7 +72,7 @@ pub fn run_step(tool: &Tool, index: usize) -> Result<(), String> {
 }
 
 fn unknown_command(v: &Value) -> bool {
-    v["error"]["message"].as_str().is_some_and(|m| m.starts_with("unknown command"))
+    v["error"]["message"].as_str().is_some_and(crate::memo_cli::unknown_to_cli)
 }
 
 fn damage_of(v: &Value) -> Option<&Value> {

@@ -179,7 +179,7 @@ fn source(tool: &Tool) -> Result<&EnrichmentSource, String> {
 
 fn unknown_command(out: &run::Output, json: Option<&Value>) -> bool {
     let message = json.and_then(|v| v["error"]["message"].as_str()).unwrap_or(&out.stderr);
-    message.contains("unknown command")
+    crate::memo_cli::unknown_to_cli(message)
 }
 
 fn count(v: &Value) -> u64 {

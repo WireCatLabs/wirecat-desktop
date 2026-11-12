@@ -3,7 +3,7 @@
 //! Every decision is the owner's: it passes `--from-app`, and memo refuses an agent the same moves.
 
 use crate::catalog::{self, Tool};
-use crate::skills::{body, failure, too_old};
+use crate::skills::{body, failure};
 use crate::{run, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -419,7 +419,7 @@ pub fn read(kind: &str) -> Result<Read, String> {
     let need = tool.people.as_ref().ok_or("Memo has no People commands in the catalog")?.min_version.clone();
     let state = tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(Read::Missing) };
-    if too_old(first.version.as_deref(), &need) {
+    if crate::tools::older(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
     let mut read = with_memo(|call| read_with(call, kind))?;
@@ -814,7 +814,7 @@ fn organization_name(call: &Call, reference: &str) -> Option<String> {
 fn refusal(call: &Call, v: &Value) -> Option<Resolved> {
     let reason = v["error"]["reason"].as_str()?;
     let message = text(&v["error"], "message").unwrap_or_default();
-    let reason = if message.starts_with("unknown command") { OLD_MEMO } else { reason };
+    let reason = if crate::memo_cli::unknown_to_cli(&message) { OLD_MEMO } else { reason };
     let organizations = if reason == "organization.ambiguous" {
         named_organizations(&message)
             .into_iter()
@@ -956,7 +956,7 @@ pub struct Kept {
 fn keep_with(call: &Call, reference: &str) -> Result<Kept, String> {
     let reference = person_ref(reference)?;
     let v = call(&decision(&["people", "links", "resolve", reference, "keep"]))
-        .map_err(|e| if e.contains("unknown command") { KEEP_TOO_OLD.to_string() } else { e })?;
+        .map_err(|e| if crate::memo_cli::unknown_to_cli(&e) { KEEP_TOO_OLD.to_string() } else { e })?;
     let item = body(&v);
     Ok(Kept {
         person: person_of(&item["person"]).unwrap_or_else(|| reference.to_string()),
@@ -971,7 +971,7 @@ pub fn keep(reference: &str) -> Result<Kept, String> {
 fn test_data_with(call: &Call, reference: &str) -> Result<(), String> {
     let reference = person_ref(reference)?;
     call(&decision(&["people", "links", "resolve", reference, "test"]))
-        .map_err(|e| if e.contains("unknown command") { KEEP_TOO_OLD.to_string() } else { e })?;
+        .map_err(|e| if crate::memo_cli::unknown_to_cli(&e) { KEEP_TOO_OLD.to_string() } else { e })?;
     Ok(())
 }
 
@@ -1962,8 +1962,8 @@ mod tests {
     fn needs_the_catalogs_memo() {
         let tool = catalog::tool("memo").unwrap();
         let need = &tool.people.as_ref().unwrap().min_version;
-        assert!(too_old(Some("0.131.64"), need));
-        assert!(!too_old(Some(need), need));
+        assert!(crate::tools::older(Some("0.131.64"), need));
+        assert!(!crate::tools::older(Some(need), need));
     }
 
     /// memo on one group of three that share a phone: each confirm joins the pair into its second person and folds the

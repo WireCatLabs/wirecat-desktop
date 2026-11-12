@@ -548,7 +548,11 @@ fn run_aggregate(tool: &Tool, bin: &std::path::Path, args: &[String]) -> Result<
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
     let code = json.as_ref().and_then(|v| v["error"]["code"].as_str()).map(str::to_string);
-    Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message, code } })
+    Ok(if crate::memo_cli::unknown_to_cli(&message) {
+        Aggregate::Old { message }
+    } else {
+        Aggregate::Failed { message, code }
+    })
 }
 
 /// The answer sits under `item`; an older envelope put it first in `items`.
@@ -583,18 +587,12 @@ fn read(out: &run::Output) -> Counts {
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
     let code = json.as_ref().and_then(|v| v["error"]["code"].as_str()).map(str::to_string);
-    if too_old(&message) { Counts::Old { message } } else { Counts::Failed { message, code } }
+    if crate::memo_cli::unknown_to_cli(&message) { Counts::Old { message } } else { Counts::Failed { message, code } }
 }
 
 fn last_line(stderr: &str, stdout: &str) -> String {
     let text = if stderr.trim().is_empty() { stdout } else { stderr };
     text.lines().rev().map(str::trim).find(|l| !l.is_empty()).unwrap_or("the tool gave no answer").to_string()
-}
-
-fn too_old(message: &str) -> bool {
-    message.starts_with("unknown command")
-        || message.starts_with("unknown option")
-        || message.starts_with("too many arguments")
 }
 
 #[cfg(test)]

@@ -9,7 +9,7 @@
 //! itself, and are never logged.
 
 use crate::catalog::{self, Tool};
-use crate::skills::{body, call, failure, too_old};
+use crate::skills::{body, call, failure};
 use crate::{redact, tools};
 use serde::Serialize;
 use serde_json::Value;
@@ -140,7 +140,7 @@ pub(crate) fn memo() -> Result<Result<&'static Tool, DigestSchedules>, String> {
     let memo = catalog::tool("memo")?;
     let state = tools::detect(memo, false);
     let Some(first) = state.installs.first() else { return Ok(Err(DigestSchedules::NoMemo)) };
-    if too_old(first.version.as_deref(), MIN_MEMO) {
+    if crate::tools::older(first.version.as_deref(), MIN_MEMO) {
         return Ok(Err(DigestSchedules::Old { version: first.version.clone(), need: MIN_MEMO.into() }));
     }
     Ok(Ok(memo))

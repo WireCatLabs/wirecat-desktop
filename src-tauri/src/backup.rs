@@ -321,7 +321,7 @@ fn run_backup(
     // Masked before anything reads it: redacting first could split the password so the mask no longer finds it.
     let output = run::Output { code, stdout: masked(&lines.0, password), stderr: masked(&lines.1, password) };
     let failure = masked(&failure_of(&output), password);
-    if password.is_some() && failure.contains("unknown option") {
+    if password.is_some() && crate::memo_cli::unknown_to_cli(&failure) {
         return Err(Stop::Failed(format!(
             "Backups with a password need a newer {name}. Update {name} on the Tools page, or back up without one."
         )));
@@ -495,7 +495,7 @@ pub fn reset_preview() -> Result<Option<ResetPreview>, String> {
 fn older_than_preview(json: Option<&Value>) -> bool {
     let message = json.and_then(|v| v["error"]["message"].as_str()).unwrap_or("");
     let preview = json.is_some_and(|v| v.get("error").is_none());
-    preview || message.starts_with("name a profile") || message.contains("unknown option")
+    preview || message.starts_with("name a profile") || crate::memo_cli::unknown_to_cli(message)
 }
 
 fn preview_of(tool: &Tool, item: Option<&Value>) -> ResetPreview {
