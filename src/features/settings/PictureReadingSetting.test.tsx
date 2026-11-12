@@ -8,7 +8,6 @@ import { useTools } from "@/shared/tools-store"
 import { render, screen } from "@/testing/render"
 import { pictureReadingMessages } from "./messages-picture-reading"
 import { PictureReadingSetting } from "./PictureReadingSetting"
-import { usePictureReading } from "./picture-reading-store"
 
 const never: Setting = { mode: "never", agent: null, model: null, extractor: null, since: null }
 const codex: Setting = {
@@ -21,7 +20,6 @@ const codex: Setting = {
 
 describe("Reading pictures", () => {
   beforeEach(() => {
-    usePictureReading.setState(usePictureReading.getInitialState(), true)
     useTools.setState({
       installs: { memo: [{ path: "/bin/memo", version: "0.131.86", manager: "npm", problem: null }] },
     })

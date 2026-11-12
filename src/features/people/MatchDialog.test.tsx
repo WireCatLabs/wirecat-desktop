@@ -21,7 +21,6 @@ const openSergey = async () => {
 describe("Match details", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
     useProfiles.getState().clear()
   })
 
@@ -198,7 +197,6 @@ describe("what the people share", () => {
 describe("A match by name", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
     useProfiles.getState().clear()
   })
 
@@ -260,7 +258,6 @@ describe("A match by name", () => {
 describe("One company", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
     useProfiles.getState().clear()
   })
 

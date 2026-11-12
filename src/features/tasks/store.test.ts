@@ -1,14 +1,12 @@
 import { waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
-import { resetQueryClient } from "@/shared/query"
 import { useTasks } from "./store"
 
 const never = <T>() => new Promise<T>(() => {})
 
 beforeEach(() => {
-  resetQueryClient()
-  useTasks.setState({ ...useTasks.getInitialState(), view: "table" }, true)
+  useTasks.setState({ view: "table" })
 })
 afterEach(() => vi.restoreAllMocks())
 

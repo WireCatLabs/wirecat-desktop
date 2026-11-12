@@ -1,6 +1,5 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useDigestBook, useDigests } from "@/features/digests"
 import { editorMessages } from "@/features/digests/messages-editors"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -9,16 +8,6 @@ import { App } from "./App"
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })
-  useDigestBook.setState({
-    book: null,
-    error: null,
-    busy: {},
-    failed: null,
-    remembered: null,
-    open: null,
-    backfill: null,
-  })
-  useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
 })
 

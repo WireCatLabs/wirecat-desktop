@@ -61,7 +61,6 @@ describe("Memory", () => {
       text: `Long list fact ${i}`,
     }))
     vi.spyOn(platform, "memoryRead").mockResolvedValueOnce({ ...read, entries: many })
-    useMemory.setState(useMemory.getInitialState(), true)
     render(<MemoryPage />)
     const region = await rack()
     expect(within(region).getAllByText(/^Long list fact/)).toHaveLength(20)
@@ -86,7 +85,6 @@ describe("Memory", () => {
       text: `Loose ${i}`,
     }))
     vi.spyOn(platform, "memoryRead").mockResolvedValueOnce({ ...read, entries: [ana, ...loose] })
-    useMemory.setState(useMemory.getInitialState(), true)
     render(<MemoryPage />)
     await rack()
     expect(screen.getByText("1–20 of 61")).toBeInTheDocument()

@@ -11,7 +11,7 @@ import { pageOf } from "./TaskBoard"
 import { TasksPage } from "./TasksPage"
 
 beforeEach(() => {
-  useTasks.setState({ ...useTasks.getInitialState(), view: "table" }, true)
+  useTasks.setState({ view: "table" })
   useSource.setState({ source: null })
 })
 afterEach(() => vi.restoreAllMocks())

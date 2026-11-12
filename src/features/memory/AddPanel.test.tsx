@@ -1,16 +1,13 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import { CommandError, TOO_OLD } from "@/platform/command-error"
 import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
-import { useReaders } from "@/shared/readers-store"
 import { render, screen, waitFor, within } from "@/testing/render"
-import { useAddSource } from "./add-store"
 import { MemoryPage } from "./MemoryPage"
-import { useMemory } from "./store"
 
 const ADDED: AddedSource = {
   ref: "document:42",
@@ -74,12 +71,6 @@ const openPanel = async (user: ReturnType<typeof userEvent.setup>) => {
 }
 
 describe("Add to memory", () => {
-  beforeEach(() => {
-    useAddSource.setState(useAddSource.getInitialState(), true)
-    useReaders.setState(useReaders.getInitialState(), true)
-    useMemory.setState(useMemory.getInitialState(), true)
-  })
-
   afterEach(() => vi.restoreAllMocks())
 
   it("says a wrong address while it is typed, before any click", async () => {

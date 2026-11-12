@@ -6,7 +6,6 @@ import { platform } from "@/platform/bridge"
 import { useTools } from "@/shared/tools-store"
 import { render, screen, within } from "@/testing/render"
 import { LocalOnlySetting } from "./LocalOnlySetting"
-import { useLocalOnly } from "./local-only-store"
 import { FEATURES, localOnlyMessages, PLACES } from "./messages-local-only"
 
 const feature = (id: string, where: string, address: string | null = null, refused = false) => ({
@@ -34,7 +33,6 @@ const on: LocalOnlyStatus = {
 
 describe("Only this computer", () => {
   beforeEach(() => {
-    useLocalOnly.setState(useLocalOnly.getInitialState(), true)
     useTools.setState({
       installs: { memo: [{ path: "/bin/memo", version: "0.131.86", manager: "npm", problem: null }] },
     })

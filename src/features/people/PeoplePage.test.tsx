@@ -39,7 +39,6 @@ const older = {
 describe("People", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    usePeople.setState(usePeople.getInitialState(), true)
   })
 
   // Before the match tests: they merge this person into another.

@@ -4,7 +4,6 @@ import { LANGS } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import { CommandError, TOO_OLD } from "@/platform/command-error"
-import { useAiModel } from "@/shared/ai-model-store"
 import { useTools } from "@/shared/tools-store"
 import { render, screen, waitFor } from "@/testing/render"
 import { AiModelSetting } from "./AiModelSetting"
@@ -45,7 +44,6 @@ const choose = async (user: ReturnType<typeof userEvent.setup>, name: string) =>
 
 describe("AI model", () => {
   beforeEach(() => {
-    useAiModel.setState(useAiModel.getInitialState(), true)
     useTools.setState({
       installs: { memo: [{ path: "/bin/memo", version: "0.131.86", manager: "npm", problem: null }] },
     })

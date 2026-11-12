@@ -4,7 +4,6 @@ import { platform } from "@/platform/bridge"
 import type { MemoryEntry, SourceReview } from "@/platform/memory-schemas"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { MemoryPage } from "./MemoryPage"
-import { useMemory } from "./store"
 
 const entry = (over: Partial<MemoryEntry>): MemoryEntry => ({
   ref: "memory:3",
@@ -80,7 +79,6 @@ const opened = async (user: ReturnType<typeof userEvent.setup>) => {
 
 describe("A memory whose source changed", () => {
   beforeEach(() => {
-    useMemory.setState(useMemory.getInitialState(), true)
     vi.spyOn(platform, "memoryReviewShow").mockResolvedValue(REVIEW)
     vi.spyOn(platform, "memorySources").mockResolvedValue([])
   })

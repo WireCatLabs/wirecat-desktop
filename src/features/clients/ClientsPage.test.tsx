@@ -33,7 +33,7 @@ function freshMemo(writer: CrmWriter = "none", crmCliOld = false) {
 const PROMPTED = ["deal", "lead"].flatMap((k) => [`${k}:bitrix24:northstar.example`, `${k}:amocrm:acme.example`])
 
 beforeEach(() => {
-  useClients.setState({ ...useClients.getInitialState(), view: "board", prompted: PROMPTED }, true)
+  useClients.setState({ view: "board", prompted: PROMPTED })
   useTools.setState({ checked: true })
 })
 afterEach(() => vi.restoreAllMocks())
