@@ -85,7 +85,7 @@ const REFUSALS = {
 
 /** memo's refusals of a save in plain words, or null for the rest. */
 export const refusalOf = (message: string, m: BookText["form"]) =>
-  message in REFUSALS ? m[REFUSALS[message as keyof typeof REFUSALS]] : null
+  Object.hasOwn(REFUSALS, message) ? m[REFUSALS[message as keyof typeof REFUSALS]] : null
 
 /** The owner's choice: a new digest is written by Claude Code where it may run. */
 const PREFERRED = "claude"

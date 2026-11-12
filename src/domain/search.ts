@@ -1,4 +1,5 @@
 import { toolOfProvider } from "./links"
+import { knownReason } from "./reasons"
 /** What the Search page shows of one hit. Every value is the tool's own text, shown as plain text only. */
 export type HitRow = {
   key: string
@@ -91,8 +92,7 @@ export const QUERY_REASONS = [
 export type QueryReason = (typeof QUERY_REASONS)[number]
 
 export function queryReason(reason: string): QueryReason | null {
-  const short = reason.startsWith("query.") ? reason.slice("query.".length) : reason
-  return (QUERY_REASONS as readonly string[]).includes(short) ? (short as QueryReason) : null
+  return knownReason(QUERY_REASONS, reason.startsWith("query.") ? reason.slice("query.".length) : reason)
 }
 
 /** "no field \"bogus\"" after the reason's own words: the part of the tool's message that names what was wrong. */

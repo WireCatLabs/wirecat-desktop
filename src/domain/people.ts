@@ -1,3 +1,5 @@
+import { knownReason } from "./reasons"
+
 /** The Contacts page's rules: how a person's accounts are grouped and what a split may take. */
 
 type Seen = { account: string; scope: string | null }
@@ -212,5 +214,4 @@ export const PEOPLE_REASONS = [
   "memo.too-old",
 ] as const
 export type PeopleReason = (typeof PEOPLE_REASONS)[number]
-export const reasonOf = (error: string): PeopleReason | null =>
-  (PEOPLE_REASONS as readonly string[]).includes(error) ? (error as PeopleReason) : null
+export const reasonOf = (error: string) => knownReason(PEOPLE_REASONS, error)
