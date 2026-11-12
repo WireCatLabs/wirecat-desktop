@@ -1,10 +1,9 @@
 import type { ReactNode } from "react"
 import type { RangeId } from "@/domain/runs"
-import { formatList, type Messages, plural } from "@/i18n"
+import { formatList, type Messages, plural, pluralRu } from "@/i18n"
 
 const ruCount = (n: number, one: string, few: string, many: string) =>
-  plural("ru", n, { one: `# ${one}`, few: `# ${few}`, many: `# ${many}`, other: `# ${few}` })
-const ruWord = (n: number, one: string, few: string, many: string) => plural("ru", n, { one, few, many, other: few })
+  pluralRu(n, [`# ${one}`, `# ${few}`, `# ${many}`])
 
 const enDays = (n: number) => plural("en", n, { one: "# day", other: "# days" })
 const ruDays = (n: number) => ruCount(n, "день", "дня", "дней")
@@ -325,12 +324,12 @@ const ru: typeof en = {
 
   matches: (n, count) => (
     <>
-      {ruWord(n, "Подходит", "Подходят", "Подходят")} {count} {ruWord(n, "запуск", "запуска", "запусков")}
+      {pluralRu(n, ["Подходит", "Подходят", "Подходят"])} {count} {pluralRu(n, ["запуск", "запуска", "запусков"])}
     </>
   ),
   matchesInConversations: (n, count, groups) => (
     <>
-      {ruWord(n, "Подходит", "Подходят", "Подходят")} {count} {ruWord(n, "запуск", "запуска", "запусков")},{" "}
+      {pluralRu(n, ["Подходит", "Подходят", "Подходят"])} {count} {pluralRu(n, ["запуск", "запуска", "запусков"])},{" "}
       {plural("ru", groups, {
         one: "в # разговоре",
         few: "в # разговорах",
@@ -341,7 +340,7 @@ const ru: typeof en = {
   ),
   matchesInGroups: (n, count, groups) => (
     <>
-      {ruWord(n, "Подходит", "Подходят", "Подходят")} {count} {ruWord(n, "запуск", "запуска", "запусков")},{" "}
+      {pluralRu(n, ["Подходит", "Подходят", "Подходят"])} {count} {pluralRu(n, ["запуск", "запуска", "запусков"])},{" "}
       {plural("ru", groups, { one: "в # группе", few: "в # группах", many: "в # группах", other: "в # группах" })}
     </>
   ),

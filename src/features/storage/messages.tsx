@@ -3,7 +3,7 @@ import type { ArchiveWords, Counted, Dimension, TotalKey } from "@/domain/archiv
 import type { DatabaseWords } from "@/domain/database"
 import type { EntryKey } from "@/domain/files"
 import type { TableGroup } from "@/domain/table-groups"
-import { formatDate, formatNumber, type Lang, type Messages, plural } from "@/i18n"
+import { formatDate, formatNumber, type Lang, type Messages, plural, pluralRu } from "@/i18n"
 import type { StorageFolder } from "@/platform/schemas"
 
 type FolderKind = StorageFolder["kind"]
@@ -86,7 +86,7 @@ const en = {
     sessions: "Sign-in sessions. Credentials: size only, never opened.",
     profiles: "Sign-in state for each profile. Credentials: size only, never opened.",
     googleClient: "Google sign-in app credentials. Size only, never opened.",
-    config: "Settings, the ones the Config page shows",
+    config: "Settings, the ones the Settings page shows",
     configCopy: "An older copy of the settings, kept before a change",
     runs: "Run logs, the ones the Logs page shows",
     backfill: "History sync jobs and how far each got",
@@ -309,9 +309,6 @@ const ruCount: Record<Counted, [string, string, string]> = {
   meetings: ["встреча", "встречи", "встреч"],
 }
 
-const ruForms = (n: number, [one, few, many]: [string, string, string]) =>
-  plural("ru", n, { one, few, many, other: few })
-
 const ruAttachment: Record<string, string> = {
   photo: "Фото",
   video: "Видео",
@@ -329,7 +326,7 @@ const ruOwner: Record<string, string> = {
 }
 
 const ruWhen = (days: number) =>
-  days <= 0 ? "сегодня" : days === 1 ? "вчера" : ruForms(days, ["# день назад", "# дня назад", "# дней назад"])
+  days <= 0 ? "сегодня" : days === 1 ? "вчера" : pluralRu(days, ["# день назад", "# дня назад", "# дней назад"])
 
 const ru: typeof en = {
   title: "Хранилище",
@@ -439,10 +436,10 @@ const ru: typeof en = {
   },
   unit: (dim, n) =>
     dim === "provider" || dim === "account"
-      ? ruForms(n, ["запись", "записи", "записей"])
+      ? pluralRu(n, ["запись", "записи", "записей"])
       : dim === "attachment"
-        ? ruForms(n, ["файл", "файла", "файлов"])
-        : ruForms(n, ["сообщение", "сообщения", "сообщений"]),
+        ? pluralRu(n, ["файл", "файла", "файлов"])
+        : pluralRu(n, ["сообщение", "сообщения", "сообщений"]),
   breakdownsLater: (tool) =>
     `Разбивка по источникам, типам чатов, аккаунтам и годам появится со следующим обновлением ${tool}.`,
   readingStorage: "Читаем хранилище",
@@ -477,7 +474,7 @@ const ru: typeof en = {
   ),
   unusedSpace: (size, free, total) => (
     <>
-      {size} в {ruForms(free, ["# свободной странице", "# свободных страницах", "# свободных страницах"])} из{" "}
+      {size} в {pluralRu(free, ["# свободной странице", "# свободных страницах", "# свободных страницах"])} из{" "}
       {formatNumber(total, "ru")}; очистка (VACUUM) вернёт это место
     </>
   ),
@@ -493,7 +490,7 @@ const ru: typeof en = {
   checkFailed: (error) => `Проверка не завершилась: ${error}`,
   notChecked: "Ещё не проверялось. Проверка читает весь файл: минуту-две, если хранилище большое.",
   noProblems: "Проблем не найдено",
-  problems: (n) => ruForms(n, ["Найдена # проблема", "Найдено # проблемы", "Найдено # проблем"]),
+  problems: (n) => pluralRu(n, ["Найдена # проблема", "Найдено # проблемы", "Найдено # проблем"]),
   checkedIn: (time) => `проверено за ${time}`,
   copyCommand: "Скопировать команду",
   duration: (ms) => duration(ms, "с", "мин"),
@@ -512,7 +509,7 @@ const ru: typeof en = {
       `Хранилище на схеме ${schema}, ему нужен инструмент, который знает хотя бы схему ${needs ?? "—"}; ${bin} знает ${speaks}.`,
     damaged: (details) => `SQLite нашёл повреждения в файле: ${details}. Восстановите резервную копию.`,
     danglingRows: (n) =>
-      ruForms(n, [
+      pluralRu(n, [
         "# строка ссылается на строку, которой нет.",
         "# строки ссылаются на строки, которых нет.",
         "# строк ссылаются на строки, которых нет.",
@@ -523,13 +520,13 @@ const ru: typeof en = {
       `На диске свободно только ${free}; для резервной копии или очистки нужно около ${needed}.`,
     toolSuggests: "Инструмент предлагает:",
     chatsBehind: (n) =>
-      ruForms(n, [
+      pluralRu(n, [
         "В # чате есть сообщения новее, чем в хранилище.",
         "В # чатах есть сообщения новее, чем в хранилище.",
         "В # чатах есть сообщения новее, чем в хранилище.",
       ]),
     orphans: (n) =>
-      ruForms(n, [
+      pluralRu(n, [
         "# тег или ссылка указывает на удалённое.",
         "# тега или ссылки указывают на удалённое.",
         "# тегов или ссылок указывают на удалённое.",

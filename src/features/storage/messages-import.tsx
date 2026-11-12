@@ -1,7 +1,5 @@
-import { type Messages, plural } from "@/i18n"
+import { type Messages, plural, pluralRu } from "@/i18n"
 
-const ruForms = (n: number, [one, few, many]: [string, string, string]) =>
-  plural("ru", n, { one, few, many, other: few })
 const esForms = (n: number, [one, other]: [string, string]) => plural("es", n, { one, other })
 
 const en = {
@@ -98,7 +96,7 @@ const ru: typeof en = {
   checkFirst: "Сначала проверьте файл. До импорта ничего не записывается.",
   checkedClean: "Проверка ошибок не нашла. Импорт запишет эти записи.",
   checkedRefused: (n) =>
-    `${ruForms(n, ["# запись не принята", "# записи не приняты", "# записей не принято"])} и будут пропущены. ` +
+    `${pluralRu(n, ["# запись не принята", "# записи не приняты", "# записей не принято"])} и будут пропущены. ` +
     "Исправьте файл и проверьте снова или импортируйте остальное.",
   failed: (why) => `memo не смог прочитать файл: ${why}`,
   done: "Импортировано.",
@@ -118,7 +116,7 @@ const ru: typeof en = {
   waitingList: "Сохранены, ждут то, на что ссылаются",
   waitingFor: (missing) => `нужно: ${missing}`,
   proposed: (n) =>
-    `${ruForms(n, ["# изменение ждёт", "# изменения ждут", "# изменений ждут"])} вашей проверки в разделе «Память».`,
+    `${pluralRu(n, ["# изменение ждёт", "# изменения ждут", "# изменений ждут"])} вашей проверки в разделе «Память».`,
   truncated: "Список обрезан; счётчики учитывают весь файл.",
 }
 

@@ -1,6 +1,4 @@
-import type { Messages } from "@/i18n"
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
+import { type Messages, plural } from "@/i18n"
 
 const en = {
   picker: {
@@ -14,13 +12,17 @@ const en = {
     sharedWithMe: "Folders others shared with you. Open it to choose them.",
     added: "Added",
     subfolders: (n: number | null) =>
-      n === null ? "" : n === 0 ? "No folders inside" : `${n} ${plural(n, "folder", "folders")} inside`,
+      n === null
+        ? ""
+        : n === 0
+          ? "No folders inside"
+          : `${plural("en", n, { one: "# folder", other: "# folders" })} inside`,
     partial: "Google searched only some of your shared drives, so a few folders may be missing here.",
     chosen: (n: number) => `${n} chosen`,
-    add: (n: number) => (n === 0 ? "Add folders" : `Add ${n} ${plural(n, "folder", "folders")}`),
+    add: (n: number) => (n === 0 ? "Add folders" : `Add ${plural("en", n, { one: "# folder", other: "# folders" })}`),
     adding: "Adding…",
     noneChosen: "Tick at least one folder to add.",
-    done: (n: number) => `${n} ${plural(n, "folder", "folders")} added. Sync to copy their files.`,
+    done: (n: number) => `${plural("en", n, { one: "# folder", other: "# folders" })} added. Sync to copy their files.`,
     notAdded: (names: string) => `Not added: ${names}. Try again in a minute.`,
     retry: "Try again",
     kind: { my_drive: "Your files", shared_drive: "Shared drive", shared_with_me: "" } as Record<string, string>,
@@ -103,13 +105,18 @@ const es: DriveText = {
     sharedWithMe: "Carpetas que otros compartieron contigo. Ábrela para elegirlas.",
     added: "Añadida",
     subfolders: (n) =>
-      n === null ? "" : n === 0 ? "Sin carpetas dentro" : `${n} ${plural(n, "carpeta", "carpetas")} dentro`,
+      n === null
+        ? ""
+        : n === 0
+          ? "Sin carpetas dentro"
+          : `${plural("es", n, { one: "# carpeta", other: "# carpetas" })} dentro`,
     partial: "Google buscó solo en algunas de tus unidades compartidas, así que pueden faltar algunas carpetas.",
-    chosen: (n) => `${n} ${plural(n, "elegida", "elegidas")}`,
-    add: (n) => (n === 0 ? "Añadir carpetas" : `Añadir ${n} ${plural(n, "carpeta", "carpetas")}`),
+    chosen: (n) => `${plural("es", n, { one: "# elegida", other: "# elegidas" })}`,
+    add: (n) => (n === 0 ? "Añadir carpetas" : `Añadir ${plural("es", n, { one: "# carpeta", other: "# carpetas" })}`),
     adding: "Añadiendo…",
     noneChosen: "Marca al menos una carpeta.",
-    done: (n) => `${n} ${plural(n, "carpeta añadida", "carpetas añadidas")}. Sincroniza para copiar sus archivos.`,
+    done: (n) =>
+      `${plural("es", n, { one: "# carpeta añadida", other: "# carpetas añadidas" })}. Sincroniza para copiar sus archivos.`,
     notAdded: (names) => `No añadidas: ${names}. Vuelve a intentarlo en un minuto.`,
     retry: "Reintentar",
     kind: { my_drive: "Tus archivos", shared_drive: "Unidad compartida", shared_with_me: "" },

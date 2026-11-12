@@ -69,6 +69,13 @@ export function plural(lang: Lang, n: number, forms: PluralForms): string {
   return form.replaceAll("#", formatNumber(n, lang))
 }
 
+/**
+ * Russian counts take all three forms, so none is forgotten: `pluralRu(5, ["# версия", "# версии", "# версий"])` →
+ * "5 версий". A fraction takes `few`, as Russian does.
+ */
+export const pluralRu = (n: number, [one, few, many]: readonly [string, string, string]) =>
+  plural("ru", n, { one, few, many, other: few })
+
 export const formatNumber = (n: number, lang: Lang = currentLang()) => n.toLocaleString(lang)
 
 export const formatList = (items: readonly string[], lang: Lang = currentLang()) =>

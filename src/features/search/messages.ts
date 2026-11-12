@@ -436,7 +436,7 @@ const ru: typeof en = {
   searched: (messages, chats) => {
     const n = groupDigits(messages)
     const c = groupDigits(chats)
-    return `Просмотрено ${plural("ru", messages, { one: `${n} сообщение`, few: `${n} сообщения`, many: `${n} сообщений`, other: `${n} сообщения` })} в ${plural("ru", chats, { one: `${c} чате`, other: `${c} чатах` })}`
+    return `Просмотрено ${plural("ru", messages, { one: `${n} сообщение`, few: `${n} сообщения`, many: `${n} сообщений`, other: `${n} сообщения` })} в ${plural("ru", chats, { one: `${c} чате`, few: `${c} чатах`, other: `${c} чатах` })}`
   },
   bestOnly: (n) => `Лучшие ${n}; у этого поиска нет следующих страниц. Уточните запрос, чтобы увидеть другие.`,
   harder: "Искать тщательнее",

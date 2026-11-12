@@ -1,4 +1,4 @@
-import type { Messages } from "@/i18n"
+import { type Messages, pluralRu } from "@/i18n"
 
 const durationEn = (every: string) => {
   const n = Number.parseInt(every, 10)
@@ -47,7 +47,7 @@ const ru: typeof en = {
   lastOk: (ago) => `последний запуск ${ago}, успешно`,
   lastFailed: (ago, why) => `последний запуск ${ago} не удался${why ? ` (${why})` : ""}`,
   failingSince: (since, times) =>
-    `Синхронизация по расписанию не удаётся с ${since}${times && times > 1 ? `, ${times} раз подряд` : ""}.`,
+    `Синхронизация по расписанию не удаётся с ${since}${times && times > 1 ? `, ${pluralRu(times, ["# раз", "# раза", "# раз"])} подряд` : ""}.`,
   noRunYet: "запусков ещё не было",
   setUp: "Синхронизировать по расписанию",
   change: "Изменить расписание",

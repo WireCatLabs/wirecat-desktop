@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { type Lang, type Messages, plural } from "@/i18n"
+import { type Messages, plural, pluralRu } from "@/i18n"
 
 type Attached = { runs: number; tools: string; logLines: number; errors: number }
 
@@ -67,9 +67,6 @@ const en = {
   reportThisTitle: "Open a report about this, filled in. You can read and change it before sending.",
 }
 
-const ruPlural = (lang: Lang, n: number, one: string, few: string, many: string) =>
-  plural(lang, n, { one, few, many, other: few })
-
 const ru: typeof en = {
   title: "Сообщить о проблеме",
   sentTitle: "Отчёт отправлен",
@@ -107,17 +104,15 @@ const ru: typeof en = {
   seeIssue: "Посмотреть открытое обсуждение",
   attached: ({ runs, tools, logLines, errors }) =>
     `${[
-      ruPlural("ru", runs, "# неудачный запуск", "# неудачных запуска", "# неудачных запусков") +
+      pluralRu(runs, ["# неудачный запуск", "# неудачных запуска", "# неудачных запусков"]) +
         (tools ? ` (${tools})` : ""),
-      logLines ? `журнал установки (${ruPlural("ru", logLines, "# строка", "# строки", "# строк")})` : "",
+      logLines ? `журнал установки (${pluralRu(logLines, ["# строка", "# строки", "# строк"])})` : "",
       errors
-        ? ruPlural(
-            "ru",
-            errors,
+        ? pluralRu(errors, [
             "# недавняя ошибка этого окна",
             "# недавние ошибки этого окна",
             "# недавних ошибок этого окна",
-          )
+          ])
         : "",
     ]
       .filter(Boolean)

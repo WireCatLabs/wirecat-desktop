@@ -1,5 +1,5 @@
 import type { AdviceKind, SyncProgress, SyncSummary, SyncWhat } from "@/domain/sync"
-import { formatDate, formatNumber, type Messages, plural } from "@/i18n"
+import { formatDate, formatNumber, type Messages, plural, pluralRu } from "@/i18n"
 
 /** The wait a service asked for: whole minutes, and the time after which the next sync may start. */
 type SlowDown = { minutes: number; at: number } | null
@@ -21,7 +21,7 @@ const EN_WHAT: Record<SyncWhat, { one: string; other: string; place: [string, st
 const enCount = (n: number, [one, other]: [string, string]) => plural("en", n, { one: `# ${one}`, other: `# ${other}` })
 const enNew = (what: SyncWhat, n: number) => enCount(n, [EN_WHAT[what].one, EN_WHAT[what].other])
 type RuForms = { one: string; few: string; many: string }
-const ru3 = (n: number, f: RuForms) => plural("ru", n, { ...f, other: f.few })
+const ru3 = (n: number, f: RuForms) => pluralRu(n, [f.one, f.few, f.many])
 const RU_WHAT: Record<
   SyncWhat,
   { new: RuForms; place: RuForms; from: [string, string]; noun: RuForms; none: string; failed: string }
