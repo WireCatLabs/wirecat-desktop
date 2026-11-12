@@ -1,6 +1,6 @@
 use super::{attempt, blocking};
 use crate::error::AppError;
-use crate::{ai_model, memory, memory_add, memory_edit, memory_preview, memory_review};
+use crate::{memory, memory_add, memory_edit, memory_preview, memory_review};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -215,32 +215,6 @@ pub async fn memory_reader_choose(id: String) -> Result<Vec<memory_add::Reader>,
     crate::log::command("memory_reader_choose", async move { attempt(move || memory_add::choose(&id)).await }).await
 }
 
-#[tauri::command]
-pub async fn ai_model_show() -> Result<ai_model::AiModel, AppError> {
-    crate::log::command("ai_model_show", async move { attempt(ai_model::show).await }).await
-}
-
-/// The key arrives from the Settings field and leaves only on memo's stdin; it is never answered back or logged.
-#[tauri::command]
-pub async fn ai_model_set(choice: ai_model::SetModel) -> Result<ai_model::AiModel, AppError> {
-    crate::log::command("ai_model_set", async move { attempt(move || ai_model::set(&choice)).await }).await
-}
-
-#[tauri::command]
-pub async fn ai_model_off() -> Result<ai_model::AiOff, AppError> {
-    crate::log::command("ai_model_off", async move { attempt(ai_model::off).await }).await
-}
-
-#[tauri::command]
-pub async fn ai_model_check() -> Result<ai_model::AiChecked, AppError> {
-    crate::log::command("ai_model_check", async move { attempt(ai_model::check).await }).await
-}
-
-#[tauri::command]
-pub async fn ai_model_list(source: String) -> Result<Vec<String>, AppError> {
-    crate::log::command("ai_model_list", async move { attempt(move || ai_model::list(&source)).await }).await
-}
-
 /// Only the file chosen in the system's file window is read, as `memory_source_add` does.
 #[tauri::command]
 pub async fn memory_file_preview(
@@ -257,35 +231,6 @@ pub async fn memory_file_preview(
 #[tauri::command]
 pub async fn memory_link_preview(url: String) -> Result<Option<memory_preview::LinkPreview>, AppError> {
     crate::log::command("memory_link_preview", async move { attempt(move || memory_preview::link(&url)).await }).await
-}
-
-#[tauri::command]
-pub async fn local_only_status() -> Result<crate::local_only::LocalOnly, AppError> {
-    crate::log::command("local_only_status", async move { attempt(crate::local_only::status).await }).await
-}
-
-/// Sent only from the Settings switch the owner moved; memo answers with the whole new state.
-#[tauri::command]
-pub async fn local_only_set(on: bool) -> Result<crate::local_only::LocalOnlyStatus, AppError> {
-    crate::log::command("local_only_set", async move { attempt(move || crate::local_only::set(on)).await }).await
-}
-
-#[tauri::command]
-pub async fn picture_reading_status() -> Result<crate::picture_reading::PictureReading, AppError> {
-    crate::log::command("picture_reading_status", async move { attempt(crate::picture_reading::status).await }).await
-}
-
-/// Sent only from Settings, where the owner chose; memo answers with the whole new setting.
-#[tauri::command]
-pub async fn picture_reading_set(
-    mode: String,
-    agent: Option<String>,
-    model: Option<String>,
-) -> Result<crate::picture_reading::PictureReadingSetting, AppError> {
-    crate::log::command("picture_reading_set", async move {
-        attempt(move || crate::picture_reading::set(&mode, agent.as_deref(), model.as_deref())).await
-    })
-    .await
 }
 
 /// Sent only when the owner pressed "Read the picture" on that one picture.
