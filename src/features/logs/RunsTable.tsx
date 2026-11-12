@@ -260,8 +260,8 @@ export function RunsTable({
     )
   }
 
-  // 56rem fits the page at the 960 px minimum window (13 px root, sidebar and gutters), so the chevron at the right
-  // edge stays on screen; only a narrower window scrolls sideways.
+  // 56rem fits the page at the 960 px minimum window (13 px root, sidebar and gutters) with the filter column folded,
+  // so the chevron at the right edge stays on screen. LogsPage shows that column only where both fit.
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[56rem] table-fixed border-collapse text-[0.95rem] [&_td]:pr-[0.7rem] [&_th]:pr-[0.7rem] [&_td:first-child]:pl-[0.8rem] [&_th:first-child]:pl-[0.8rem]">

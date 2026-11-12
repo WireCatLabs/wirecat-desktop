@@ -193,7 +193,8 @@ export function LogsPage() {
   const trouble = settingsTone(sources, keeping)
 
   return (
-    <Page>
+    // Measured on the page, not the window: the filter column shows only where the runs table still fits beside it.
+    <Page className="@container">
       {/* One box for the header and the panel under it, so the page's gap does not appear at once as it opens. */}
       <div>
         <PageHeader
@@ -268,7 +269,7 @@ export function LogsPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="mt-[0.4rem] lg:hidden"
+              className="mt-[0.4rem] @min-[71rem]:hidden"
               aria-expanded={facetsOpen}
               onClick={() => setFacetsOpen(!facetsOpen)}
               icon={<SlidersHorizontal className="size-4" aria-hidden />}
@@ -285,8 +286,8 @@ export function LogsPage() {
               newest={newest}
             />
           ) : (
-            <div className="grid gap-[1.5rem] lg:grid-cols-[13.5rem_minmax(0,1fr)]">
-              <div className={cx(facetsOpen ? "block" : "hidden", "lg:block")}>
+            <div className="grid gap-[1.5rem] @min-[71rem]:grid-cols-[13.5rem_minmax(0,1fr)]">
+              <div className={cx(facetsOpen ? "block" : "hidden", "@min-[71rem]:block")}>
                 <Facets
                   counts={counts}
                   terms={parsed.terms}
@@ -401,8 +402,8 @@ function Loading(props: { reading: string[]; total: number; facetsOpen: boolean;
   const m = useMessages(logsMessages)
   const done = total - reading.length
   return (
-    <div className="grid gap-[1.5rem] lg:grid-cols-[13.5rem_minmax(0,1fr)]">
-      <div className={cx(facetsOpen ? "flex" : "hidden", "flex-col gap-[1.1rem] lg:flex")}>
+    <div className="grid gap-[1.5rem] @min-[71rem]:grid-cols-[13.5rem_minmax(0,1fr)]">
+      <div className={cx(facetsOpen ? "flex" : "hidden", "flex-col gap-[1.1rem] @min-[71rem]:flex")}>
         <Skeleton className="h-[2.6rem] w-full" />
         {FACETS.map((f) => (
           <Skeleton key={f} className="h-[9rem] w-full" />
