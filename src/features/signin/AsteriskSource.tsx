@@ -10,12 +10,10 @@ import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
+import { wideFieldClass } from "@/ui/field"
 import { SecretField } from "@/ui/SecretField"
 import { Numbered } from "./MailSteps"
 import { type AsteriskText, asteriskMessages } from "./messages-asterisk"
-
-const FIELD =
-  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 const typeIn = (field: SourceField, value: string) =>
   useSignIn.setState((s) => ({ source: { ...s.source, [field]: value }, planMissing: null, planError: null }))
@@ -151,7 +149,7 @@ function SourceInput({ field, m }: { field: SourceField; m: AsteriskText }) {
           onChange={(e) => typeIn(field, e.target.value)}
           {...need.field}
           aria-describedby={need.field["aria-describedby"] ?? `${id}-hint`}
-          className={FIELD}
+          className={wideFieldClass}
         />
         {field === "recordings_path" && <PickFolder field={field} label={m.chooseFolder} />}
       </div>

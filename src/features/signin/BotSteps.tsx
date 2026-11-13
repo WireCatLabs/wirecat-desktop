@@ -13,6 +13,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FieldError } from "@/ui/FieldError"
+import { wideFieldClass } from "@/ui/field"
 import { focusInPlace } from "@/ui/motion"
 import { noticeBox } from "@/ui/notice"
 import { SecretField } from "@/ui/SecretField"
@@ -20,9 +21,6 @@ import { Tab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 
 export const NAME_FORM = "bot-name-form"
 export const TOKEN_FORM = "bot-token-form"
-
-const FIELD =
-  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 const toolKey = (id: string): BotTool => (id === "max" || id === "wa" ? id : "tg")
 
@@ -62,7 +60,7 @@ export function NameStep({ tool }: { tool: CatalogTool }) {
         autoComplete="off"
         aria-invalid={problem !== null}
         aria-describedby={`${id}-hint`}
-        className={FIELD}
+        className={wideFieldClass}
       />
       <p id={`${id}-hint`} className="min-h-[2.6rem] text-[0.9rem] leading-snug">
         {problem ? (
@@ -171,7 +169,7 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
                 autoComplete="off"
                 aria-invalid={error !== undefined}
                 aria-describedby={error ? `${fid}-error` : undefined}
-                className={FIELD}
+                className={wideFieldClass}
               />
               <FieldError id={`${fid}-error`}>{error}</FieldError>
             </div>

@@ -471,6 +471,17 @@ describe("Telegram's own app keys", () => {
     expect(platform.signInStop).not.toHaveBeenCalled()
   })
 
+  it("warns before the app form that one refused try locks my.telegram.org for hours, and to wait, not retry", async () => {
+    const dialog = await openTg()
+    const guide = within(dialog).getByRole("region", { name: "Your own Telegram app keys" })
+    const note = within(guide)
+      .getByText("Fill in the form carefully: Telegram blocks quickly")
+      .closest("[data-create-warning]")
+    expect(note).toHaveTextContent('"Too many attempts. Please try again later."')
+    expect(note).toHaveTextContent(/from a few hours to about a day/)
+    expect(note).toHaveTextContent(/every new try can make the wait longer/)
+  })
+
   const keyField = (dialog: HTMLElement, name: string) => within(dialog).getByRole("textbox", { name })
   const hashField = (dialog: HTMLElement) => within(dialog).getByLabelText("App api_hash", { selector: "input" })
 

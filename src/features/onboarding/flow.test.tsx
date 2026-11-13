@@ -101,6 +101,17 @@ describe("walking the setup", () => {
     expect(currentStep()).toBe("agents")
   })
 
+  it("keeps Back beside Skip and Continue at the right of the footer, as every wizard does", async () => {
+    startOnboarding({ step: "choose" })
+    const back = await screen.findByRole("button", { name: m.flow.back })
+    const footer = back.parentElement as HTMLElement
+    const spacer = footer.querySelector(":scope > .flex-1") as HTMLElement
+    // The spacer pushes what follows it to the right edge; Back used to sit before it, alone at the left.
+    expect(spacer.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const buttons = [...footer.querySelectorAll(":scope > button")]
+    expect(buttons.map((b) => b.textContent)).toEqual([m.flow.back, m.flow.skip, m.flow.continue])
+  })
+
   it("offers Skip only where a step can be left out", async () => {
     startOnboarding()
     for (const step of ["welcome", "computer", "choose", "install", "agents", "signin", "done"] as const) {

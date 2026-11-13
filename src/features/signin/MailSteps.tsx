@@ -13,11 +13,9 @@ import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
+import { wideFieldClass } from "@/ui/field"
 import { mailMessages } from "./messages-mail"
 import { telegramMessages } from "./messages-telegram"
-
-const FIELD =
-  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 export function Numbered({ i }: { i: number }) {
   return (
@@ -125,7 +123,7 @@ export function AppPasswordStep({ provider }: { provider: AppPasswordProvider })
             }}
             aria-invalid={missing}
             aria-describedby={`${id}-hint`}
-            className={cx(FIELD, "pr-12")}
+            className={cx(wideFieldClass, "pr-12")}
           />
           <Button
             variant="ghost"
@@ -245,7 +243,7 @@ export function GoogleClient({
           }}
           {...idNeed.field}
           aria-describedby={idNeed.field["aria-describedby"] ?? `${id}-id-hint`}
-          className={FIELD}
+          className={wideFieldClass}
         />
         {idNeed.hint}
         {idNeed.error === null && (
@@ -268,7 +266,7 @@ export function GoogleClient({
               update(clientId, e.target.value)
             }}
             aria-describedby={`${id}-secret-hint`}
-            className={cx(FIELD, "pr-12")}
+            className={cx(wideFieldClass, "pr-12")}
           />
           <Button
             variant="ghost"

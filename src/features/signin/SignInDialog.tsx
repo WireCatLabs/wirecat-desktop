@@ -199,7 +199,6 @@ function Actions() {
     const reason = receivingHistory(s) ? m.back.history : phase === "progress" || stopping ? m.back.busy : undefined
     return (
       <>
-        <BackButton onClick={s.toPlan} reason={reason} stops={m.back.stops} />
         {others.map((method) =>
           tool && profile && phase !== "progress" ? (
             <Button
@@ -211,6 +210,7 @@ function Actions() {
             </Button>
           ) : null,
         )}
+        <BackButton onClick={s.toPlan} reason={reason} stops={m.back.stops} />
         {/* Cancel closes at once; only "Stop and keep" waits, to say what the phone sent before the stop. */}
         <Button variant="secondary" onClick={receivingHistory(s) ? stop : close} disabled={stopping}>
           <Steady

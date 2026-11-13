@@ -328,11 +328,6 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
         ) : (
           // Pinned to the bottom of the window, so a step's content loading or growing never moves it.
           <div className="sticky bottom-0 mt-auto flex items-center gap-2 border-line border-t bg-wall pt-[1.2rem] pb-[2.2rem]">
-            {back && (
-              <Button variant="ghost" onClick={() => go(back)}>
-                {m.flow.back}
-              </Button>
-            )}
             {/* Crossfade keeps the old reason on screen while it fades, so the description lives outside it, once. */}
             {blocked && (
               <span id={blockedId} hidden>
@@ -350,6 +345,12 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
                 stillInstalling && <StillInstalling />
               )}
             </Crossfade>
+            {/* Back sits with the other actions on the right, as in every wizard's footer (owner, 2026-11-13). */}
+            {back && (
+              <Button variant="ghost" onClick={() => go(back)}>
+                {m.flow.back}
+              </Button>
+            )}
             {skip && (
               <Button variant="ghost" onClick={skip}>
                 {m.flow.skip}

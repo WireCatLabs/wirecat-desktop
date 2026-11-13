@@ -1,10 +1,13 @@
 import { Clock, Info, LoaderCircle, ShieldCheck } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
+import rightsShot from "@/assets/signin/bitrix-webhook-rights.webp"
 import {
   APP_HANDLER,
   type AppProblem,
   appGuide,
+  portalHost,
+  portalProblem,
   WEBHOOK_SCOPES,
   type WebhookProblem,
   webhookPage,
@@ -18,12 +21,11 @@ import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FieldError } from "@/ui/FieldError"
+import { wideFieldClass } from "@/ui/field"
 import { SecretField } from "@/ui/SecretField"
 import { Numbered } from "./MailSteps"
 import { type BitrixText, bitrixMessages } from "./messages-bitrix"
-
-const FIELD =
-  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+import { ShotButton } from "./TelegramGuide"
 
 /**
  * Bitrix24's sign-in before b24 runs: the portal and the way in, then how to make the webhook there and the field to
@@ -50,6 +52,8 @@ function Portal() {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const missing = planMissing === "portal"
+  const problem = missing ? portalProblem(portal) : null
+  const host = portalHost(portal)
   // biome-ignore lint/correctness/useExhaustiveDependencies: focus on arrival and on each refused Next
   useEffect(() => input.current?.focus(), [missing])
   return (
@@ -77,12 +81,12 @@ function Portal() {
           }}
           aria-invalid={missing}
           aria-describedby={`${id}-hint`}
-          className={FIELD}
+          className={wideFieldClass}
         />
         <p id={`${id}-hint`} className="min-h-[2.75em] text-[0.9rem] leading-snug text-ink-soft">
           {missing ? (
             <span role="alert" className="text-bad">
-              {m.missing}
+              {problem === "path" && host ? m.path(host) : problem === "notDomain" ? m.notDomain : m.missing}
             </span>
           ) : (
             m.hint
@@ -136,10 +140,11 @@ function Ways() {
 function MakeWebhook() {
   const m = useMessages(bitrixMessages).webhook
   const { portal } = useSignIn(useShallow((s) => ({ portal: s.portal })))
+  const shot = { src: rightsShot, width: 730, height: 714, bottom: true, ...m.shot }
   const steps = [
     { text: m.steps.open(portal), open: true },
     { text: m.steps.other },
-    { text: m.steps.rights, scopes: true },
+    { text: m.steps.rights, scopes: true, shot },
     { text: m.steps.save(portal) },
   ]
   return (
@@ -151,14 +156,17 @@ function MakeWebhook() {
           {steps.map((step, i) => (
             <li key={step.text} className="flex items-start gap-3">
               <Numbered i={i} />
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span className="text-body leading-snug text-ink">{step.text}</span>
-                {step.open && (
-                  <div className="self-start">
-                    <OpenLink url={webhookPage(portal)}>{m.open}</OpenLink>
-                  </div>
-                )}
-                {step.scopes && <Scopes m={m} />}
+              <div className="flex min-w-0 flex-1 flex-wrap items-start gap-x-4 gap-y-2">
+                <div className="flex min-w-[16rem] flex-1 flex-col gap-1.5">
+                  <span className="text-body leading-snug text-ink">{step.text}</span>
+                  {step.open && (
+                    <div className="self-start">
+                      <OpenLink url={webhookPage(portal)}>{m.open}</OpenLink>
+                    </div>
+                  )}
+                  {step.scopes && <Scopes m={m} />}
+                </div>
+                {step.shot && <ShotButton shot={step.shot} enlarge={m.enlarge(step.shot.caption)} />}
               </div>
             </li>
           ))}
@@ -271,7 +279,7 @@ function LocalApp() {
           onChange={(e) => useSignIn.setState({ appId: e.target.value, planMissing: null, appProblem: null })}
           aria-invalid={planMissing === "appId" || appProblem?.kind === "refused"}
           aria-describedby={planMissing === "appId" ? `${id}-id-hint` : undefined}
-          className={FIELD}
+          className={wideFieldClass}
         />
         <FieldError id={`${id}-id-hint`}>{planMissing === "appId" && m.missingId}</FieldError>
         <label htmlFor={`${id}-key`} className="mt-1 text-[1.05rem] font-medium text-ink">

@@ -20,6 +20,10 @@ const en = {
     'Open Development Tools and create an app. App title: at least 5 characters. Short name: 5 to 32 letters and digits. Platform: Desktop, for example. URL and description can stay empty. Do not use the word "Telegram" in the title or the short name. If you already have an app, skip this step.',
     "Copy App api_id and App api_hash and paste them here. The api_hash is a secret: keep it private. With these keys the tool reaches your account through your own app.",
   ],
+  createWarning: {
+    title: "Fill in the form carefully: Telegram blocks quickly",
+    body: 'One refused attempt can lock you out of my.telegram.org/apps with "Too many attempts. Please try again later." Nothing can undo it but waiting. Telegram does not say for how long; people report from a few hours to about a day. Check each field against the rules above before you press Create application. If you see that error, close the page and come back later: every new try can make the wait longer.',
+  },
   guideTitle: "Your own Telegram app keys",
   shots: {
     create: {
@@ -191,6 +195,10 @@ const ru: typeof en = {
     "Откройте Development Tools и создайте приложение. App title — не короче 5 символов. Short name — от 5 до 32 латинских букв и цифр. Platform — например, Desktop. URL и описание можно не заполнять. Не используйте слово «Telegram» в названии и в коротком имени. Если приложение уже есть, пропустите этот шаг.",
     "Скопируйте App api_id и App api_hash и вставьте их сюда. api_hash — секрет, никому его не показывайте. С этими ключами инструмент входит в ваш аккаунт через ваше собственное приложение.",
   ],
+  createWarning: {
+    title: "Заполняйте форму внимательно: Telegram блокирует быстро",
+    body: "Одна отклонённая попытка может закрыть доступ к my.telegram.org/apps с ошибкой «Too many attempts. Please try again later.» Исправить это нельзя, остаётся только ждать. Telegram не сообщает сколько: по отзывам, от нескольких часов до суток. Перед «Create application» сверьте каждое поле с правилами выше. Если увидели эту ошибку, закройте страницу и вернитесь позже: каждая новая попытка может продлить ожидание.",
+  },
   guideTitle: "Ваши собственные ключи приложения Telegram",
   shots: {
     create: {
@@ -370,6 +378,10 @@ const es: typeof en = {
     "Abre Development Tools y crea una app. App title: al menos 5 caracteres. Short name: de 5 a 32 letras y cifras. Platform: por ejemplo, Desktop. La URL y la descripción pueden quedar vacías. No uses la palabra «Telegram» en el título ni en el nombre corto. Si ya tienes una app, salta este paso.",
     "Copia App api_id y App api_hash y pégalos aquí. El api_hash es secreto: no lo compartas. Con estas claves la herramienta entra en tu cuenta a través de tu propia app.",
   ],
+  createWarning: {
+    title: "Rellena el formulario con cuidado: Telegram bloquea enseguida",
+    body: "Un solo intento rechazado puede bloquearte my.telegram.org/apps con el error «Too many attempts. Please try again later.» No hay forma de deshacerlo: solo queda esperar. Telegram no dice cuánto; quienes lo han visto hablan de unas horas a un día. Revisa cada campo con las reglas de arriba antes de pulsar Create application. Si ves ese error, cierra la página y vuelve más tarde: cada nuevo intento puede alargar la espera.",
+  },
   guideTitle: "Tus propias claves de app de Telegram",
   shots: {
     create: {

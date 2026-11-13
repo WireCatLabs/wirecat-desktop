@@ -1,6 +1,13 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { appProblem, portalHost, webhookPage, webhookParts, webhookProblem } from "@/domain/bitrix-signin"
+import {
+  appProblem,
+  portalHost,
+  portalProblem,
+  webhookPage,
+  webhookParts,
+  webhookProblem,
+} from "@/domain/bitrix-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent } from "@/platform/signin-schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -23,6 +30,15 @@ describe("the portal and the webhook, read in the window", () => {
     expect(portalHost("crm.example.com:8443")).toBe("crm.example.com")
     for (const bad of ["", "acme", "acme bitrix24.ru", "http://", "1.2.3.4", "-acme.ru"])
       expect(portalHost(bad)).toBeNull()
+  })
+
+  it("asks for the domain alone: a scheme and a closing slash pass, a path is refused rather than cut", () => {
+    for (const ok of ["acme.bitrix24.ru", " https://Acme.bitrix24.ru/ ", "crm.example.com"])
+      expect(portalProblem(ok)).toBeNull()
+    expect(portalProblem("  ")).toBe("empty")
+    expect(portalProblem("acme")).toBe("notDomain")
+    for (const path of ["acme.bitrix24.ru/crm/", "https://acme.bitrix24.ru/crm/deal/list/?x=1", "acme.bitrix24.ru?x=1"])
+      expect(portalProblem(path)).toBe("path")
   })
 
   it("links to the portal's own Developer resources", () => {
@@ -105,7 +121,7 @@ describe("Bitrix24's sign-in wizard", () => {
   }
 
   const toPaste = async (dialog: HTMLElement) => {
-    await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/crm/")
+    await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
@@ -121,9 +137,43 @@ describe("Bitrix24's sign-in wizard", () => {
     expect(field).toHaveFocus()
   })
 
+  it("refuses a portal address with a path at the field and says what to remove", async () => {
+    const dialog = open()
+    expect(within(dialog).getByText(/Only the domain, such as mycompany\.bitrix24\.ru/)).toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/crm/deal/")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    const field = within(dialog).getByLabelText("Portal address")
+    expect(field).toHaveAttribute("aria-invalid", "true")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Remove everything after acme.bitrix24.ru")
+    expect(field).toHaveFocus()
+    expect(within(dialog).queryByText("Open Developer resources on acme.bitrix24.ru.")).not.toBeInTheDocument()
+  })
+
+  it("keeps Back beside Cancel and Continue in the footer", async () => {
+    const dialog = open()
+    await userEvent.type(within(dialog).getByLabelText("Portal address"), "acme.bitrix24.ru")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    await settled()
+    const back = within(dialog).getByRole("button", { name: "Back" })
+    const footer = back.parentElement as HTMLElement
+    expect([...footer.children].map((b) => b.textContent)).toEqual(["Back", "Cancel", "Continue"])
+    // An auto margin is what used to push Back alone to the far left of the right-aligned footer.
+    for (const button of footer.children) expect(button.className).not.toMatch(/\bm[lrx]-auto\b/)
+  })
+
+  it("names the rights section as Bitrix24 does and shows it in a picture that opens large", async () => {
+    const dialog = open()
+    await userEvent.type(within(dialog).getByLabelText("Portal address"), "acme.bitrix24.ru")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    await settled()
+    expect(within(dialog).getByText(/under Assign permissions, press the \+ link/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Enlarge: The three permissions, chosen" }))
+    expect(screen.getByRole("dialog", { name: "The three permissions, chosen" })).toBeInTheDocument()
+  })
+
   it("leads to the portal's own webhook page with the rights to tick, then signs in with the webhook on stdin", async () => {
     const dialog = open()
-    await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/crm/")
+    await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()
     expect(within(dialog).getByText("Open Developer resources on acme.bitrix24.ru.")).toBeInTheDocument()

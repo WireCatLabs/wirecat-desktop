@@ -5,6 +5,7 @@ import {
   appIdShaped,
   appProblem,
   portalHost,
+  portalProblem,
   type WebhookProblem,
   webhookParts,
   webhookProblem,
@@ -465,7 +466,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
     const { planStep, portal, tool, method } = get()
     if (planStep === "choose") {
       const host = portalHost(portal)
-      if (!host) return set({ planMissing: "portal" })
+      if (!host || portalProblem(portal)) return set({ planMissing: "portal" })
       // Before the owner makes the application in Bitrix24, not after: an older b24 cannot use it.
       if (method === BITRIX_APP && methodTooOld(tool, method)) return set({ portal: host, planMissing: "update" })
       const step = method === BITRIX_APP ? "app" : "webhook"

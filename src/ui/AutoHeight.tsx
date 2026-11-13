@@ -1,6 +1,8 @@
 import { type ReactNode, useLayoutEffect, useRef } from "react"
 import { keepRoom, PANEL_MS, reducedMotion } from "./motion"
 
+const CLIP_BOTTOM = "inset(-0.5rem -0.5rem 0 -0.5rem)"
+
 /**
  * Follows its content's height with a transition, so a step or a message that swaps for a taller or shorter one
  * slides what is below it instead of shoving it. The box always holds an explicit height: when the content shrinks,
@@ -42,15 +44,17 @@ export function AutoHeight(props: {
       // A window resize re-wraps the text, and inner content animates itself; trailing either would only look slow.
       if (resized || !swapped || reducedMotion()) {
         box.style.transition = ""
-        box.style.overflow = ""
+        box.style.clipPath = ""
         box.style.height = `${next}px`
         return
       }
-      box.style.overflow = "hidden"
+      // Clips only the bottom, where the content outgrows the moving height. `overflow: hidden` also cut the sides off
+      // a field's focus border at the box's edge for the whole transition (owner, 2026-11-13).
+      box.style.clipPath = CLIP_BOTTOM
       box.style.transition = `height ${PANEL_MS}ms var(--ease-out-quart)`
       box.style.height = `${next}px`
       settle = setTimeout(() => {
-        box.style.overflow = ""
+        box.style.clipPath = ""
         box.style.transition = ""
       }, PANEL_MS)
     })
