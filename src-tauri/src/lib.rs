@@ -31,6 +31,7 @@ mod digest_schedule;
 mod digests;
 #[cfg(target_os = "linux")]
 mod dock_badge;
+mod documents;
 mod drive_folders;
 mod enrichment;
 mod error;
@@ -374,6 +375,10 @@ pub fn run() {
             commands::memory::memory_source_context,
             commands::memory::memory_open_source,
             commands::people::people_read,
+            commands::documents::documents_read,
+            commands::documents::documents_list,
+            commands::documents::documents_show,
+            commands::documents::documents_reveal,
             commands::people::people_split_decide,
             commands::people::people_doubts,
             commands::people::people_keep,

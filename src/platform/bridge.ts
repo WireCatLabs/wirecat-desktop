@@ -280,6 +280,10 @@ function createTauri(): Platform {
     clientsMapConfirm: (kind, pipeline) => invoke("clients_map_confirm", { kind, pipeline }),
     clientsMapSuggest: (kind) => invoke("clients_map_suggest", { kind }),
     clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
+    documentsRead: () => invoke("documents_read"),
+    documentsList: (query, page, limit) => invoke("documents_list", { query, page, limit }),
+    documentsShow: (ref, cursor) => invoke("documents_show", { reference: ref, cursor }),
+    documentsReveal: (ref) => invoke("documents_reveal", { reference: ref }),
     peopleRead: (kind) => call(PeopleReadSchema, "people_read", { kind: kind ?? null }),
     peopleKinds: () => call(KindCountsSchema, "people_kinds"),
     peoplePage: ({ kind, page, size, query, sort }) =>

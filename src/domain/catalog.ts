@@ -167,6 +167,8 @@ const ToolSchema = v.object({
     null,
   ),
   people: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
+  /** Only memo: the Documents page's lowest memo, the first with `documents tree|list|show`. */
+  documents: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /**
    * Only memo: the first with digests by name (`digest list|add|edit`). The page finds out by asking memo; this is
    * the version an older memo is told to update to.

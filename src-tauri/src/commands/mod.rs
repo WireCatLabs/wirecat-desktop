@@ -5,6 +5,7 @@ pub mod clients;
 pub mod cloudflare;
 pub mod community;
 pub mod digests;
+pub mod documents;
 pub mod enrichment;
 pub mod groups;
 pub mod mail_agent;

@@ -1853,6 +1853,9 @@
         "minVersion": "0.131.71",
         "relatedTasks": { "minVersion": "0.131.86" }
       },
+      "documents": {
+        "minVersion": "0.133.0"
+      },
       "people": {
         "minVersion": "0.131.84",
         "companyMailbox": { "minVersion": "0.131.86" },
