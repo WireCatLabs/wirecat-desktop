@@ -25,7 +25,7 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   memo: NotebookText,
   email: Mail,
   funnel: Globe,
-  asterisk: Phone,
+  pbx: Phone,
 }
 
 /** Telegram's terms forbid its official logo in another app (API terms 2.4): a plain paper plane on a blue disc. */

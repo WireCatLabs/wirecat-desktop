@@ -29,7 +29,7 @@ import type { Platform } from "./types"
 // The local application (`?signin=bitrix:app`, `?signin-plan=bitrix:app&b24-step=app`): the portal's page opens in the
 // browser, then it is saved; `?signin-fail=bitrix:app-refused|app-payment|app-portal|app-timeout` fails with b24's
 // reasons, the first three back on the application's form.
-// Asterisk (`?signin-plan=asterisk:mysql`): the source is saved as settings, then checked; `?signin-fail=asterisk:network`.
+// Asterisk (`?signin-plan=pbx:mysql`): the source is saved as settings, then checked; `?signin-fail=pbx:network`.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -108,7 +108,7 @@ const GOOGLE_URL = `https://accounts.google.com/o/oauth2/v2/auth?${MOCK_CLIENT}`
 const ZOOM_REDIRECT = "https://wirecat.dev/zoom-callback"
 
 const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
-  async asterisk(s) {
+  async pbx(s) {
     if (await s.wait(1500)) return STOPPED
     return signedIn
   },

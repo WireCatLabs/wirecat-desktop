@@ -37,29 +37,26 @@ const en = {
   what: "What happens",
   steps: {
     csv: [
-      "asterisk reads the newest hour of Master.csv to check the path. It changes nothing.",
+      "pbx reads the newest hour of Master.csv to check the path. It changes nothing.",
       "Sync then brings in the calls of the last 30 days as meetings, with their recordings.",
     ],
     db: [
-      "asterisk connects with this user and reads the newest hour of calls. It changes nothing.",
+      "pbx connects with this user and reads the newest hour of calls. It changes nothing.",
       "The password is kept only once that check works.",
       "Sync then brings in the calls of the last 30 days as meetings, with their recordings.",
     ],
   },
   kept: {
-    csv: [
-      "Read only: asterisk never changes Master.csv or the recordings.",
-      "The calls are copied to this computer only.",
-    ],
+    csv: ["Read only: pbx never changes Master.csv or the recordings.", "The calls are copied to this computer only."],
     db: [
-      "The password goes straight to asterisk and is kept in your system's password store, or in the tool's own folder when there is none.",
-      "Read only: asterisk never writes to the database.",
+      "The password goes straight to pbx and is kept in your system's password store, or in the tool's own folder when there is none.",
+      "Read only: pbx never writes to the database.",
       "The calls are copied to this computer only.",
     ],
   },
   more: "The time zone of the records, the country of local numbers and the recordings' file names are on the Settings page.",
   transcribe: (profile: string) =>
-    `To turn recordings into text, run in a terminal once: asterisk models download gigaam-v3, then asterisk ${profile} meetings transcribe. WAV and GSM recordings need ffmpeg.`,
+    `To turn recordings into text, run in a terminal once: pbx models download gigaam-v3, then pbx ${profile} meetings transcribe. WAV and GSM recordings need ffmpeg.`,
 }
 
 export type AsteriskText = typeof en
@@ -102,26 +99,26 @@ const ru: AsteriskText = {
   what: "Что произойдёт",
   steps: {
     csv: [
-      "asterisk прочитает последний час Master.csv, чтобы проверить путь. Он ничего не меняет.",
+      "pbx прочитает последний час Master.csv, чтобы проверить путь. Он ничего не меняет.",
       "Затем синхронизация загрузит звонки за последние 30 дней как встречи, вместе с записями.",
     ],
     db: [
-      "asterisk подключится под этим пользователем и прочитает звонки за последний час. Он ничего не меняет.",
+      "pbx подключится под этим пользователем и прочитает звонки за последний час. Он ничего не меняет.",
       "Пароль сохраняется только после успешной проверки.",
       "Затем синхронизация загрузит звонки за последние 30 дней как встречи, вместе с записями.",
     ],
   },
   kept: {
-    csv: ["Только чтение: asterisk не меняет Master.csv и записи.", "Звонки копируются только на этот компьютер."],
+    csv: ["Только чтение: pbx не меняет Master.csv и записи.", "Звонки копируются только на этот компьютер."],
     db: [
-      "Пароль передаётся прямо в asterisk и хранится в системном хранилище паролей, а если его нет — в папке инструмента.",
-      "Только чтение: asterisk ничего не пишет в базу.",
+      "Пароль передаётся прямо в pbx и хранится в системном хранилище паролей, а если его нет — в папке инструмента.",
+      "Только чтение: pbx ничего не пишет в базу.",
       "Звонки копируются только на этот компьютер.",
     ],
   },
   more: "Часовой пояс записей, страна местных номеров и имена файлов записей — на странице «Настройки».",
   transcribe: (profile) =>
-    `Чтобы превратить записи в текст, один раз выполните в терминале: asterisk models download gigaam-v3, затем asterisk ${profile} meetings transcribe. Для записей WAV и GSM нужен ffmpeg.`,
+    `Чтобы превратить записи в текст, один раз выполните в терминале: pbx models download gigaam-v3, затем pbx ${profile} meetings transcribe. Для записей WAV и GSM нужен ffmpeg.`,
 }
 
 const es: AsteriskText = {
@@ -162,29 +159,29 @@ const es: AsteriskText = {
   what: "Qué pasará",
   steps: {
     csv: [
-      "asterisk lee la última hora de Master.csv para comprobar la ruta. No cambia nada.",
+      "pbx lee la última hora de Master.csv para comprobar la ruta. No cambia nada.",
       "Después, la sincronización trae las llamadas de los últimos 30 días como reuniones, con sus grabaciones.",
     ],
     db: [
-      "asterisk se conecta con este usuario y lee las llamadas de la última hora. No cambia nada.",
+      "pbx se conecta con este usuario y lee las llamadas de la última hora. No cambia nada.",
       "La contraseña se guarda solo cuando esa comprobación funciona.",
       "Después, la sincronización trae las llamadas de los últimos 30 días como reuniones, con sus grabaciones.",
     ],
   },
   kept: {
     csv: [
-      "Solo lectura: asterisk nunca cambia Master.csv ni las grabaciones.",
+      "Solo lectura: pbx nunca cambia Master.csv ni las grabaciones.",
       "Las llamadas se copian solo a este equipo.",
     ],
     db: [
-      "La contraseña va directa a asterisk y se guarda en el almacén de contraseñas del sistema, o en la carpeta de la herramienta si no hay ninguno.",
-      "Solo lectura: asterisk nunca escribe en la base de datos.",
+      "La contraseña va directa a pbx y se guarda en el almacén de contraseñas del sistema, o en la carpeta de la herramienta si no hay ninguno.",
+      "Solo lectura: pbx nunca escribe en la base de datos.",
       "Las llamadas se copian solo a este equipo.",
     ],
   },
   more: "La zona horaria de los registros, el país de los números locales y los nombres de archivo de las grabaciones están en la página Ajustes.",
   transcribe: (profile) =>
-    `Para pasar las grabaciones a texto, ejecuta una vez en un terminal: asterisk models download gigaam-v3, y después asterisk ${profile} meetings transcribe. Las grabaciones WAV y GSM necesitan ffmpeg.`,
+    `Para pasar las grabaciones a texto, ejecuta una vez en un terminal: pbx models download gigaam-v3, y después pbx ${profile} meetings transcribe. Las grabaciones WAV y GSM necesitan ffmpeg.`,
 }
 
 export const asteriskMessages: Messages<AsteriskText> = { en, ru, es }

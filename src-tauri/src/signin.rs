@@ -530,7 +530,7 @@ mod tests {
 
     #[test]
     fn a_database_password_goes_only_to_stdin_and_a_csv_file_needs_none() {
-        let asterisk = catalog::tool("asterisk").unwrap();
+        let asterisk = catalog::tool("pbx").unwrap();
         let typed = |text: &str| Inputs { password: Some(text.into()), ..Inputs::default() };
         for method in ["mysql", "postgres"] {
             let prepared = args(asterisk, method, "office", typed("pa ss;word")).unwrap();

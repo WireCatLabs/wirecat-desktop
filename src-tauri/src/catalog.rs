@@ -184,7 +184,7 @@ pub struct SignInMethod {
     #[serde(default)]
     pub oauth: Option<Vec<String>>,
     /// The typed secret is the tool's whole stdin, closed after it: b24 reads its webhook address, or its local
-    /// application's key, until EOF; asterisk reads a CDR database's password.
+    /// application's key, until EOF; pbx reads a CDR database's password.
     #[serde(default)]
     pub stdin: bool,
     /// The flag that takes the portal a local application signs in to (b24's `--portal`).

@@ -2295,10 +2295,10 @@
       }
     },
     {
-      "id": "asterisk",
+      "id": "pbx",
       "name": "Asterisk",
       "tagline": "Phone calls and recordings · transcripts",
-      "bin": "asterisk",
+      "bin": "pbx",
       "package": "@wirecat/asterisk-cli",
       "summary": "Import your Asterisk PBX's call records and recordings as meetings, transcribe the calls on this computer and give your agent what was said.",
       "docs": "https://github.com/WireCatLabs/asterisk-cli#readme",
@@ -2345,7 +2345,7 @@
       "storeReset": null,
       "storage": {
         "app": "asterisk-cli",
-        "env": "ASTERISK"
+        "env": "PBX"
       },
       "settings": {
         "show": ["{profile}", "config", "show", "--no-record", "--json"],

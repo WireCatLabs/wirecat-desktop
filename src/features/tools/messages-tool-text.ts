@@ -10,7 +10,7 @@ export const RU_TAGLINE: Record<string, string> = {
   memo: "Заметки, люди и воспоминания\u00a0· поиск по всему",
   email: "Gmail, Outlook и IMAP\u00a0· поиск\u00a0· переписка целиком",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
-  asterisk: "Звонки и записи разговоров\u00a0· расшифровки",
+  pbx: "Звонки и записи разговоров\u00a0· расшифровки",
 }
 
 export const RU_SUMMARY: Record<string, string> = {
@@ -26,8 +26,7 @@ export const RU_SUMMARY: Record<string, string> = {
     "Gmail, Outlook и другая почта IMAP, скопированная на ваш компьютер: ищите по ней без сети, читайте переписку целиком и смотрите, докуда дошла каждая синхронизация. Синхронизация никогда не меняет ваш ящик.",
   bitrix:
     "Читайте и меняйте CRM портала Битрикс24 — сделки, лиды, контакты и компании — со страницы «Клиенты» и через вашего агента.",
-  asterisk:
-    "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
+  pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
 }
 
 export const ES_TAGLINE: Record<string, string> = {
@@ -40,7 +39,7 @@ export const ES_TAGLINE: Record<string, string> = {
   memo: "Notas, personas y memorias\u00a0· búsqueda en todo",
   email: "Gmail, Outlook e IMAP\u00a0· búsqueda\u00a0· hilos completos",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
-  asterisk: "Llamadas y grabaciones\u00a0· transcripciones",
+  pbx: "Llamadas y grabaciones\u00a0· transcripciones",
 }
 
 export const ES_SUMMARY: Record<string, string> = {
@@ -56,6 +55,5 @@ export const ES_SUMMARY: Record<string, string> = {
     "Gmail, Outlook y otro correo IMAP copiado a tu equipo: búscalo sin conexión, lee hilos enteros y mira hasta dónde llegó cada sincronización. La sincronización nunca cambia tu buzón.",
   bitrix:
     "Lee y cambia el CRM de un portal de Bitrix24 —negociaciones, prospectos, contactos y empresas— desde la página Clientes y con tu agente.",
-  asterisk:
-    "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
+  pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
 }

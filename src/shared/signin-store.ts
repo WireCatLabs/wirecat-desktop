@@ -107,7 +107,7 @@ type SignInState = {
   planStep: PlanStep
   /** Bitrix24's portal host, as the owner typed it on the first step. */
   portal: string
-  /** asterisk's source settings by key, saved with `config set` before the run; never the password. */
+  /** pbx's source settings by key, saved with `config set` before the run; never the password. */
   source: Record<string, string>
   /** The local application's Application ID (client_id); not a secret. Its key stays outside the store. */
   appId: string

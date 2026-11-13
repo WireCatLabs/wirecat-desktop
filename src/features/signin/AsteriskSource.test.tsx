@@ -54,7 +54,7 @@ describe("asterisk's sign-in plan", () => {
 
   const open = () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("asterisk", "office"))
+    act(() => useSignIn.getState().start("pbx", "office"))
     return screen.getByRole("dialog", { name: "Sign in to Asterisk" })
   }
 
@@ -70,8 +70,8 @@ describe("asterisk's sign-in plan", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     expect(vi.mocked(platform.settingsSet).mock.calls).toEqual([
-      ["asterisk", "office", false, "cdr_source", "csv"],
-      ["asterisk", "office", false, "cdr_csv_path", "/srv/pbx/Master.csv"],
+      ["pbx", "office", false, "cdr_source", "csv"],
+      ["pbx", "office", false, "cdr_csv_path", "/srv/pbx/Master.csv"],
     ])
     const [, method, profile, , inputs] = vi.mocked(platform.signIn).mock.calls[0] ?? []
     expect([method, profile, inputs]).toEqual(["csv", "office", {}])

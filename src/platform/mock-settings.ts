@@ -99,7 +99,7 @@ export function recordOn(id: string, profile: string | undefined): boolean {
 const ENV_PREFIX: Record<string, string> = { tg: "TG", max: "MAX", wa: "WA" }
 const ENVIRONMENT: Record<string, Layer> = { tg: { requests_per_minute: 12 } }
 
-const asterisk: Layer = {}
+const pbx: Layer = {}
 
 const zoom: Layer = { "zoom.client_id": "•••", source: "api", "files.folder": null, "files.timezone": "Europe/Madrid" }
 
@@ -225,8 +225,8 @@ export const settingsMock: Pick<Platform, "settingsShow" | "settingsSet" | "sett
       if (setting === "zoom.client_id") saveMockClientId()
       return
     }
-    if (id === "asterisk") {
-      asterisk[setting] = value
+    if (id === "pbx") {
+      pbx[setting] = value
       return
     }
     if (id === "drive") {

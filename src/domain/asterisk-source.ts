@@ -1,9 +1,9 @@
 /**
- * asterisk reads a profile's calls from where `config set` points it: Master.csv on this computer, or a CDR database.
- * The plan saves these settings before `session start` checks them (asterisk-cli `src/config.ts`, 0.1.0). The method
+ * pbx (asterisk-cli) reads a profile's calls from where `config set` points it: Master.csv on this computer, or a CDR database.
+ * The plan saves these settings before `session start` checks them (asterisk-cli `src/config.ts`, 0.3.0). The method
  * is `cdr_source` itself; only a database takes a password, on stdin.
  */
-export const ASTERISK = "asterisk"
+export const ASTERISK = "pbx"
 
 export type SourceField = "cdr_csv_path" | "db_host" | "db_port" | "db_name" | "db_user" | "db_tls" | "recordings_path"
 

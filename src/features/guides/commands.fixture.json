@@ -2429,8 +2429,8 @@
       "upgrade --check"
     ]
   },
-  "asterisk": {
-    "version": "0.1.0",
+  "pbx": {
+    "version": "0.3.0",
     "profile": true,
     "global": [
       "--brief",

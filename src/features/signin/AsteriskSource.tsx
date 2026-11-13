@@ -187,7 +187,7 @@ function PickFolder({ field, label }: { field: SourceField; label: string }) {
   )
 }
 
-/** The password stays outside the store and reaches asterisk only on its stdin. */
+/** The password stays outside the store and reaches pbx only on its stdin. */
 function Password({ m }: { m: AsteriskText }) {
   const id = useId()
   const missing = useSignIn((s) => s.planMissing === "password")
