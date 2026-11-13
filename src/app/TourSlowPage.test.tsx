@@ -28,7 +28,9 @@ it("keeps a stop whose page takes longer to load than a stop waits", async () =>
   await user.click(screen.getByRole("button", { name: "Help" }))
   await user.click(screen.getByRole("menuitem", { name: "Take the tour" }))
   await screen.findByRole("dialog", { name: "Tools" })
-  for (const title of ["Status lamps", "One action per tool", "Agents", "How it works with your agent", "Search"]) {
+  const before = ["Status lamps", "One action per tool", "Agents", "How it works with your agent"]
+  const tasksAndMemory = ["Tasks", "Table or board", "Who, how urgent, by when", "Memory", "Approve or correct"]
+  for (const title of [...before, ...tasksAndMemory, "Where it came from", "Search"]) {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Next" }))
     await screen.findByRole("dialog", { name: title })
   }

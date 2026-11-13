@@ -68,7 +68,7 @@ async function openPage(book?: DigestBook) {
   if (book) vi.spyOn(platform, "digestBook").mockResolvedValue(book)
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole("button", { name: /Digests/ }))
+  await user.click(screen.getByRole("tab", { name: /^Agents/ }))
   return user
 }
 
@@ -201,6 +201,8 @@ describe("creating a digest", () => {
     await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("Daily digest")
+    // The new digest opens on the archive, which reads the list again.
+    vi.spyOn(platform, "digestBook").mockResolvedValue(ready([morning]))
     await user.click(within(dialog).getByRole("button", { name: "Create" }))
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(

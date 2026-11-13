@@ -44,3 +44,4 @@
 - `/home/leemour/Projects/AI/wirecat-desktop/.claude/worktrees/dock-badge` (worktree) and branch `feat/dock-badge-dbus`: the dock badge (TASK-155). Remove both after the PR merges. 2026-11-13
 - `/home/leemour/.cache/wirecat-sandbox/dockbadge`: sandbox used to check that the interface reaches `dock_badge`. Remove when no longer needed. 2026-11-13
 - `/home/leemour/Projects/AI/wirecat-desktop/.claude/worktrees/meet-transcripts` (branch `feat/meet-transcripts`): worktree for the Meeting transcripts step; remove after its PR merges. Its Rust build went to the session scratchpad (`CARGO_TARGET_DIR`), nothing under `src-tauri/target`. 2026-11-13
+- `/home/leemour/Projects/AI/wirecat-desktop/.claude/worktrees/nav` (branch `feat/navigation-tabs`): worktree for the navigation tabs (TASK-156); remove both after its PR merges. Its before/after screenshots and an export of `origin/main` are in `/var/tmp/claude/claude-1000/nav/`, remove with it. 2026-11-13

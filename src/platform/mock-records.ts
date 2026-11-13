@@ -1,4 +1,4 @@
-// The Storage page's import in the browser build. `?records=` picks a state: old (memo has no templates), errors (the
+// The Storage tab's import in the browser build. `?records=` picks a state: old (memo has no templates), errors (the
 // file has refused lines), fail (memo cannot read the file).
 import { delay } from "./mock-delay"
 import type { ImportOutcome, Receipt, RecordColumn, RecordType } from "./records-schemas"

@@ -1,4 +1,4 @@
-// The storage file, shaped for the Storage page: its facts, its tables and its health in plain words.
+// The storage file, shaped for the Storage tab: its facts, its tables and its health in plain words.
 
 export type TableLike = { name: string; kind: string; rows: number | null; bytes: number | null }
 export type TableSort = { key: "name" | "kind" | "rows" | "bytes"; descending: boolean }

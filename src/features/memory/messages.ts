@@ -180,7 +180,7 @@ const en = {
   forgetNow: "Erase",
   emptyTitle: "No memories yet.",
   emptyBody:
-    'An agent connected to WireCat saves what it learns here, for example "Kai prefers Friday calls", with the messages that show it. Ask your agent to remember something, or connect one on the Agents page.',
+    'An agent connected to WireCat saves what it learns here, for example "Kai prefers Friday calls", with the messages that show it. Ask your agent to remember something, or connect one on the Agents tab of Tools.',
   goAgents: "Open Agents",
   nothing: {
     review: "Nothing waits for you.",
@@ -443,7 +443,7 @@ const ru: typeof en = {
   forgetNow: "Стереть",
   emptyTitle: "Записей пока нет.",
   emptyBody:
-    "Агент, подключённый к WireCat, сохраняет сюда то, что узнал, например «Kai удобнее созваниваться по пятницам», вместе с сообщениями, где это видно. Попросите агента что-нибудь запомнить или подключите его на странице «Агенты».",
+    "Агент, подключённый к WireCat, сохраняет сюда то, что узнал, например «Kai удобнее созваниваться по пятницам», вместе с сообщениями, где это видно. Попросите агента что-нибудь запомнить или подключите его на вкладке «Агенты» в «Инструментах».",
   goAgents: "Открыть «Агенты»",
   nothing: {
     review: "Ничего не ждёт решения.",
@@ -706,7 +706,7 @@ const es: typeof en = {
   forgetNow: "Borrar",
   emptyTitle: "Aún no hay memorias.",
   emptyBody:
-    "Un agente conectado a WireCat guarda aquí lo que aprende, por ejemplo «Kai prefiere las llamadas los viernes», con los mensajes que lo muestran. Pide a tu agente que recuerde algo o conecta uno en la página Agentes.",
+    "Un agente conectado a WireCat guarda aquí lo que aprende, por ejemplo «Kai prefiere las llamadas los viernes», con los mensajes que lo muestran. Pide a tu agente que recuerde algo o conecta uno en la pestaña Agentes de Herramientas.",
   goAgents: "Abrir Agentes",
   nothing: {
     review: "No hay nada pendiente.",

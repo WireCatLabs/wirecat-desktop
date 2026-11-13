@@ -13,13 +13,14 @@ import { App } from "./App"
 async function openAgents() {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole("button", { name: /Agents/ }))
+  await user.click(screen.getByRole("tab", { name: /^Agents/ }))
   return user
 }
 
 // A found agent's tab replaces its placeholder, so it is looked up by the text only a found tab has.
 const foundTab = (name: RegExp) => screen.findByRole("tab", { name })
-const pane = () => screen.getByRole("tabpanel")
+// The innermost panel: the agent's, inside the Tools page's Agents tab.
+const pane = () => screen.getAllByRole("tabpanel").at(-1) as HTMLElement
 
 // Mock: Claude Code reads ~/.claude, Codex ~/.agents, Cursor both; Gemini CLI and OpenCode are not found. Telegram's
 // ~/.agents copy is old, WhatsApp has none, MAX and Zoom are too old to report, Telegram's "work" profile is signed
@@ -35,8 +36,8 @@ describe("Agents", () => {
     useLanguage.setState({ choice: "ru" })
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("button", { name: /Агенты/ }))
-    expect(await screen.findByRole("heading", { name: "Агенты" })).toBeInTheDocument()
+    await user.click(screen.getByRole("tab", { name: /^Агенты/ }))
+    expect(screen.getByRole("tab", { name: /^Агенты/ })).toHaveAttribute("aria-selected", "true")
     expect(await foundTab(/^Claude Code.*Настроить: 2/)).toBeInTheDocument()
     expect(
       await within(pane()).findByText("Для Claude Code нужно настроить 2 навыка: не хватает — 1, устарело — 1"),
@@ -97,8 +98,9 @@ describe("Agents", () => {
     const user = await openAgents()
     await user.click(await foundTab(/^Cursor.*to set up/))
     const sections = screen.getByRole("navigation", { name: "Sections" })
+    await user.click(within(sections).getByRole("button", { name: /Analytics/ }))
     await user.click(within(sections).getByRole("button", { name: /Tools/ }))
-    await user.click(within(sections).getByRole("button", { name: /Agents/ }))
+    await user.click(screen.getByRole("tab", { name: /^Agents/ }))
     expect(await foundTab(/^Cursor/)).toHaveAttribute("aria-selected", "true")
     expect(within(pane()).getByRole("heading", { name: "Cursor" })).toBeInTheDocument()
   })

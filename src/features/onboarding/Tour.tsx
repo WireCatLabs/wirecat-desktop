@@ -31,11 +31,9 @@ const STOPS: readonly Stop[] = [
   { key: "action", anchor: '[data-tour="tool-action"]', section: "tools" },
   // Passed over when no installed tool syncs from here.
   { key: "sync", anchor: '[data-tour="tool-sync"]', section: "tools" },
-  { key: "agents", anchor: '[data-tour="nav-agents"]', side: "right", section: "agents" },
+  // Agents is a tab of Tools: the stop points at the tab, under the page's title.
+  { key: "agents", anchor: '[data-tour="tab-agents"]', side: "bottom", section: "agents" },
   { key: "how", anchor: null, section: "agents" },
-  { key: "search", anchor: '[data-tour="nav-search"]', side: "right", section: "search", demo: "search" },
-  { key: "searchAsk", anchor: '[data-tour="search-ask"]', section: "search", demo: "search" },
-  { key: "searchHit", anchor: '[data-tour="search-hit"]', section: "search", demo: "search", scene: "hit" },
   { key: "tasks", anchor: '[data-tour="nav-tasks"]', side: "right", section: "tasks", demo: "tasks" },
   { key: "tasksView", anchor: '[data-tour="tasks-view"]', section: "tasks", demo: "tasks" },
   { key: "tasksRow", anchor: '[data-row="EX-3"]', section: "tasks", demo: "tasks" },
@@ -53,7 +51,10 @@ const STOPS: readonly Stop[] = [
     demo: "memory",
     scene: "sources",
   },
-  { key: "system", anchor: '[data-tour="nav-system"]', side: "right", section: "storage" },
+  { key: "search", anchor: '[data-tour="nav-search"]', side: "right", section: "search", demo: "search" },
+  { key: "searchAsk", anchor: '[data-tour="search-ask"]', section: "search", demo: "search" },
+  { key: "searchHit", anchor: '[data-tour="search-hit"]', section: "search", demo: "search", scene: "hit" },
+  { key: "system", anchor: '[data-tour="nav-system"]', side: "right", section: "logs" },
   { key: "help", anchor: '[data-tour="help"]' },
   // With no guide the tools can run yet there is no "Start here"; the page's own heading stands in.
   { key: "guide", anchor: '[data-tour="guide-start"]', fallback: '[data-tour="guides"]', section: "guides" },

@@ -20,7 +20,7 @@ type AgentsState = {
   refreshing: boolean
   /** Every tool answered once this session; the page asks for logs and claims only after, so skills come first. */
   answered: boolean
-  /** When `load` last asked, and for which tools; the Agents page opened again within a minute asks nothing. */
+  /** When `load` last asked, and for which tools; the Agents tab opened again within a minute asks nothing. */
   answeredAt: number | null
   answeredFor: string
   /** Finds the agents only, once; for pages that start an agent and need no skills. */

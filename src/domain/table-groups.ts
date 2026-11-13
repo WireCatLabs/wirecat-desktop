@@ -1,4 +1,4 @@
-// What each table of the shared store holds, for the Storage page's table list. `store tables` says only whether a
+// What each table of the shared store holds, for the Storage tab's table list. `store tables` says only whether a
 // table is data, internal or a search index, so the grouping is by name: the store's own tables as of schema 33, plus
 // patterns for the families that grow (`*_index_pending`, `vector_index_*`). A table no rule names is "other".
 

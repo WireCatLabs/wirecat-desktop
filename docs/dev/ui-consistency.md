@@ -14,7 +14,7 @@ on 2026-11-10 and 2026-11-11. A row is removed once its fix is merged; a row hal
 | Read again / Check again | `RefreshButton` (`src/ui/RefreshButton.tsx`; `variant`, `iconOnly`) | a `Button` with its own `RefreshCw` and spinner |
 | Search field with filter chips | `FilterBar`, `FilterMenu`, `ToggleChip` | — (all four pages already use it) |
 | A one-of-few switch: view, status tab, range, "by people / by chats" | `Segmented` (`size="md"` with labels; `count` per option) | a hand `fieldset` of radios or `aria-pressed` buttons |
-| Content tabs (panels under them) | `Tabs`/`TabList`/`Tab` (React Aria) | — |
+| Content tabs (panels under them) | `Tabs`/`TabList` with `LineTab` (`src/ui/Tabs.tsx`): `md` in a panel (a tool's settings and JSON), `lg` for a page's tabs (`app/TabbedPage.tsx`: Tools and Agents, Data and Storage) | a tab styled by hand; a `Segmented` for content tabs |
 | Table | `DataTable` | a `<table>` for a list of records (a key–value list or a chart legend may stay a table) |
 | Pager | `Pager` with `PAGE_SIZES` (Memory's taller rows: `MEMORY_PAGE_SIZES`, 20 first), pages from the server | slicing a list loaded whole |
 | Empty state and "nothing matches" | `EmptyState` (`src/ui/EmptyState.tsx`) | a bordered `div` per page |

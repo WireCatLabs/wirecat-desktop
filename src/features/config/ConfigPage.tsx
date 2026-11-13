@@ -11,7 +11,6 @@ import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
-import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
@@ -20,7 +19,7 @@ import { Monogram } from "@/ui/Logo"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
-import { Tab as TabButton, TabList, TabPanel, Tabs } from "@/ui/Tabs"
+import { LineTab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { CategoriesEditor, CategoriesPlaceholder } from "./CategoriesEditor"
 import { JsonActions, JsonTab } from "./JsonTab"
 import { configMessages } from "./messages"
@@ -362,34 +361,20 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-[1.3rem]">
           <TabList aria-label={m.tabs} className="flex gap-5">
             {tabs.map((t) => (
-              <TabButton
+              <LineTab
                 key={t.id}
                 id={t.id}
-                className={({ isSelected }) =>
-                  cx(
-                    "relative flex h-[2.9rem] items-center text-[0.95rem] transition-colors duration-(--motion-fast)",
-                    isSelected ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
+                extra={
+                  t.id === "json" &&
+                  dirty && (
+                    <span className="ml-1.5 text-brand">
+                      ●<span className="sr-only"> {m.unsaved}</span>
+                    </span>
                   )
                 }
               >
-                {({ isSelected }) => (
-                  <>
-                    {t.label}
-                    {t.id === "json" && dirty && (
-                      <span className="ml-1.5 text-brand">
-                        ●<span className="sr-only"> {m.unsaved}</span>
-                      </span>
-                    )}
-                    <span
-                      aria-hidden
-                      className={cx(
-                        "absolute inset-x-0 bottom-0 h-[2px] rounded-t-full bg-brand transition-transform duration-(--motion-fast)",
-                        isSelected ? "scale-x-100" : "scale-x-0",
-                      )}
-                    />
-                  </>
-                )}
-              </TabButton>
+                {t.label}
+              </LineTab>
             ))}
           </TabList>
           {st.tab === "settings" ? (

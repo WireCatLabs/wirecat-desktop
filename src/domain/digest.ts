@@ -1,4 +1,4 @@
-// The Digests page's plain logic: a `wirecat.report/1` document laid out as cli-core's renderer lays it out
+// The digests archive's plain logic: a `wirecat.report/1` document laid out as cli-core's renderer lays it out
 // (`src/background/report/view.ts`): sections in a fixed order, one emoji per item type, dates relative to now.
 
 import { type DeepLinkTarget, formatLink, linkTargetOf, parseLink } from "./links"

@@ -17,7 +17,8 @@ const claude = agent("claude-code", "Claude Code")
 const setupNav = () => screen.queryByRole("navigation", { name: m.flow.stepsNav })
 const homeLink = () =>
   within(screen.getByRole("navigation", { name: am.sectionsNav })).getByRole("button", {
-    name: am.nav[HOME_SECTION] ?? HOME_SECTION,
+    // The dot of a tab's news joins the page's name.
+    name: new RegExp(`^${am.nav[HOME_SECTION] ?? HOME_SECTION}`),
   })
 
 describe("resuming the setup from what the computer has", () => {

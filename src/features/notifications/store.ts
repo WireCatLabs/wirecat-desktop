@@ -6,9 +6,16 @@ import { safeStorage } from "@/shared/safe-storage"
 
 export const CHECK_EVERY_MS = 60 * 60 * 1000
 
+/** A digest that arrived on this computer: its Open reads it (owner, NEED-32 A). Never sent by the server. */
+export type DigestNotice = { id: string; severity: "digest"; date: string; title: string; body: string; at: string }
+
+const KEEP_DIGESTS = 10
+
 type NotificationsState = {
   /** The last list the server sent, kept so the bell still works offline. */
   items: Notification[]
+  /** The last digests that arrived, newest first. */
+  digests: DigestNotice[]
   read: string[]
   dismissed: string[]
   /** The server answered at least once since the app started. */
@@ -22,13 +29,20 @@ type NotificationsState = {
   close(): void
   toggle(): void
   dismiss(id: string): void
+  /** `stamp` is memo's run stamp, one per digest written; `at` is when WireCat saw it arrive. */
+  addDigest(notice: { date: string; stamp: string; title: string; body: string }): void
 }
 
 export const visible = (s: Pick<NotificationsState, "items" | "dismissed">, now = Date.now()) =>
   s.items.filter((n) => !s.dismissed.includes(n.id) && (!n.expiresAt || Date.parse(n.expiresAt) > now))
 
-export const unread = (s: Pick<NotificationsState, "items" | "dismissed" | "read">, now = Date.now()) =>
-  visible(s, now).filter((n) => !s.read.includes(n.id))
+export const visibleDigests = (s: Pick<NotificationsState, "dismissed"> & { digests?: DigestNotice[] }) =>
+  (s.digests ?? []).filter((n) => !s.dismissed.includes(n.id))
+
+export const unread = (
+  s: Pick<NotificationsState, "items" | "dismissed" | "read"> & { digests?: DigestNotice[] },
+  now = Date.now(),
+): (Notification | DigestNotice)[] => [...visibleDigests(s), ...visible(s, now)].filter((n) => !s.read.includes(n.id))
 
 let checking = false
 
@@ -36,6 +50,7 @@ export const useNotifications = create<NotificationsState>()(
   persist(
     (set, get) => ({
       items: [],
+      digests: [],
       read: [],
       dismissed: [],
       checked: false,
@@ -48,8 +63,9 @@ export const useNotifications = create<NotificationsState>()(
         checking = true
         try {
           const items = await platform.notifications()
-          // Ids the server no longer sends are forgotten, so the stored lists stay as short as the feed.
-          const ids = new Set(items.map((n) => n.id))
+          // Ids the server no longer sends are forgotten, so the stored lists stay as short as the feed; a digest's
+          // id is this computer's own and stays while the digest is kept.
+          const ids = new Set([...items.map((n) => n.id), ...get().digests.map((n) => n.id)])
           set((s) => ({
             items,
             read: s.read.filter((id) => ids.has(id)),
@@ -72,11 +88,20 @@ export const useNotifications = create<NotificationsState>()(
       close: () => set({ open: false, fresh: [] }),
       toggle: () => (get().open ? get().close() : get().show()),
       dismiss: (id) => set((s) => ({ dismissed: [...new Set([...s.dismissed, id])] })),
+      addDigest: ({ date, stamp, title, body }) =>
+        set((s) => {
+          const id = `digest:${stamp}`
+          if (s.digests.some((n) => n.id === id)) return s
+          const notice: DigestNotice = { id, severity: "digest", date, title, body, at: new Date().toISOString() }
+          const digests = [notice, ...s.digests].slice(0, KEEP_DIGESTS)
+          const kept = new Set([...s.items.map((n) => n.id), ...digests.map((n) => n.id)])
+          return { digests, read: s.read.filter((x) => kept.has(x)), dismissed: s.dismissed.filter((x) => kept.has(x)) }
+        }),
     }),
     {
       name: "wirecat.notifications",
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ items: s.items, read: s.read, dismissed: s.dismissed }),
+      partialize: (s) => ({ items: s.items, digests: s.digests, read: s.read, dismissed: s.dismissed }),
     },
   ),
 )

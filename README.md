@@ -59,19 +59,22 @@ The app looks for updates while it runs and offers a new version when there is o
 
 ## Pages
 
-The sidebar has these pages:
+The sidebar has these pages, top to bottom:
 
 | Page | What it does |
 | --- | --- |
-| Tools | Shows every WireCat CLI tool, which are installed and in which version. Installs, updates and uninstalls them, runs a tool's own health check, and signs in to an account. |
-| Agents | Finds the AI agents on this computer and gives them each tool's skill and MCP server. Also connects ChatGPT and Claude in the browser through a tool's MCP server. |
-| Search | Searches what one tool keeps on this computer, for one account. It reads the local copy only and never asks the service. Your agent can write the query from a plain sentence. |
+| Tools | Two tabs. **Tools** shows every WireCat CLI tool, which are installed and in which version, and installs, updates and uninstalls them, runs a tool's own health check and signs in to an account. **Agents** finds the AI agents on this computer and gives them each tool's skill and MCP server, connects ChatGPT and Claude in the browser through a tool's MCP server, and holds **Schedules and digests**: the digests an agent writes on a schedule, with the presets to make one. **All digests** there opens the archive of every digest. |
 | Tasks | One task list for you and your agents, as a table or a board. Memo keeps it, and agents read and change the same list. |
-| Guides | Ready prompts for your agent, such as a catch-up on what you missed or a brief before a call. Each one says which tools and commands it uses. |
+| Clients | Deals and leads from your CRM and messages, as a table or a board by stage. |
+| Contacts | Who is who across your sources, and the matches to confirm. |
 | Memory | What your agents concluded about you and the people you talk to, and what they propose to do. Nothing counts until you approve it. Memo keeps it. |
-| Storage | Shows the data folders of each tool and the shared archive. Makes a backup of the shared archive (with an optional password) and clears it. |
+| Guides | Ready prompts for your agent, such as a catch-up on what you missed or a brief before a call. Each one says which tools and commands it uses. |
+| Analytics | Two tabs. **Data** counts your messages, chats and projects over time. **Storage** shows the data folders of each tool and the shared archive, makes a backup of the shared archive (with an optional password) and clears it. |
+| Search | Searches what one tool keeps on this computer, for one account. It reads the local copy only and never asks the service. Your agent can write the query from a plain sentence. |
 | Logs | Shows every run of every tool, read from the tool's own run log. |
 | Settings | Shows and changes each tool's settings, and the app's own language and interface size. The app has a light and a dark theme. |
+
+A digest that arrives shows in the bell at the top; its **Open the digest** reads it.
 
 The app has three languages: English, Russian and Spanish. It follows your system language.
 
@@ -202,7 +205,7 @@ What the warning means:
 #### Use it with your AI agent
 
 An added tool works like any other. Open **Manage** on its row to sign in, sync and run its health check. If it has
-instructions for AI agents or an MCP server, the **Agents** page gives them to your agents.
+instructions for AI agents or an MCP server, the **Agents** tab of **Tools** gives them to your agents.
 
 #### Update it
 
@@ -298,7 +301,7 @@ The agent runs the tools. The app only prepares them.
 - **An install stops:** the install panel names the reason and keeps the raw log one click away. Open **Report a
   problem** in the app to send it.
 - **WireCat refuses a tool you add:** see [When WireCat refuses a tool](#when-wirecat-refuses-a-tool).
-- **Hermes or OpenClaw cannot run a tool:** they start commands from their own PATH. The Agents page shows the exact
+- **Hermes or OpenClaw cannot run a tool:** they start commands from their own PATH. The Agents tab of Tools shows the exact
   folders to add.
 
 ## Documentation
