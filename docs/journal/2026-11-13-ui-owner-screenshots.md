@@ -74,6 +74,12 @@
 - Моки `?documents=empty|many|capped|fail|old|missing`, `?documents-fail=show|reveal`; тесты: `src/domain/documents.test.ts`,
   `src/ui/TreeList.test.tsx`, `src/app/Documents.test.tsx`, Rust `documents::tests`.
 - Не проверено: настоящий memo (команды на `main`, но не выпущены).
+- Ревью свежим агентом: исправлены сдвиг текста после эмодзи (курсор считает Rust, в символах, как SQLite memo),
+  `folder:` от прошлого аккаунта при смене чипа, дерево по `depth` вместо `/`, вложенность `group` внутри
+  `treeitem`, фокус при сворачивании, одна кнопка повтора при ошибке, «Прочитать снова» без перечитывания текста.
+  Ссылка «Руководство» убрана: страницы `memo/documents` на wirecat.dev нет.
+- Найдено в cli-core: `has_more` у `documents show` сравнивает `text.length` (UTF-16) с длиной SQLite (символы) и
+  может остановиться раньше конца после эмодзи. Не исправлено здесь, это cli-core.
 
 ## 2. Вопросы Славы
 
@@ -140,3 +146,10 @@ Telegram Desktop (`count` int64, `count-visible` bool). Не проверено:
 - Варианты: **A** показывать любой путь из ответа `memo documents show`, только в папке (`reveal_item_in_dir`) · **B**
   открывать файл, только если он внутри папок memo, как на «Памяти».
 - Решено: **A** — путь Rust берет из ответа memo, не из интерфейса, и файл не запускается.
+
+**NEED-2359 · Контакт из карточки документа открывается через `openPerson`, не через `openTarget`**
+- Сейчас: в плане «Встреч» есть случай `person` в `openTarget` (`src/features/links/open.ts`). Но `features/people`
+  уже импортирует `features/links`, и обратный импорт даёт цикл, который запрещает `no-cycles.test.ts`.
+- Варианты: **A** `openPerson` в `features/people/index.ts`, его зовут Документы и Встречи · **B** вынести открытие
+  человека в `src/shared`, тогда `openTarget` получит `person` и ссылки `wirecat://…/person/…` тоже заработают.
+- Решено: **A** — меньше кода сейчас. **B** понадобится, когда cli-core начнёт писать ссылки на людей.

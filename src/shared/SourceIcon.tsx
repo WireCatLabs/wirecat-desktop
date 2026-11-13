@@ -25,7 +25,7 @@ export function SourceIcon({
   className?: string
   labelled?: boolean
   /** The name hover and screen readers say, when the source's own is too general (an account's label). */
-  label?: string
+  label?: string | undefined
 }) {
   const { tool, name } = sourceOf(provider)
   const size = cx("size-4 shrink-0", className)

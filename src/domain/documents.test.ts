@@ -17,9 +17,20 @@ const notes = {
 describe("the documents tree", () => {
   it("nests each account's folders under the folder whose path they extend", () => {
     const [account] = branches([notes])
-    expect([account?.label, account?.service]).toEqual(["Synthetic notes", "Notes · Synthetic notes"])
+    expect([account?.label, account?.provider]).toEqual(["Synthetic notes", "notes"])
     expect(account?.children.map((c) => c.label)).toEqual(["Projects", "Reviews"])
     expect(account?.children[0]?.children.map((c) => [c.label, c.count])).toEqual([["Acme", 1]])
+  })
+
+  it("nests by depth, so a Drive folder whose own name holds a slash stays one folder", () => {
+    const folders = [
+      { path: "Q3/Q4 plans", name: "Q3/Q4 plans", depth: 1, count: 1 },
+      { path: "Q3/Q4 plans/Drafts", name: "Drafts", depth: 2, count: 1 },
+    ]
+    const [account] = branches([{ ...notes, folders }])
+    expect(account?.children.map((c) => [c.label, c.children.map((d) => d.label)])).toEqual([
+      ["Q3/Q4 plans", ["Drafts"]],
+    ])
   })
 
   it("keeps a folder whose parent is deeper than memo listed at the top", () => {

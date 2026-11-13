@@ -160,6 +160,7 @@ function show(ref: string, cursor: number): DocumentDetails {
     document,
     text,
     textOffset: Math.min(cursor, whole.length),
+    nextCursor: Math.min(cursor + PART, whole.length),
     textLength: whole.length,
     hasMore: r.hasText && cursor + PART < whole.length,
     extractionError: r.hasText ? null : "no text layer: the file is a picture",
@@ -171,9 +172,11 @@ function show(ref: string, cursor: number): DocumentDetails {
       kind: "person",
     })),
     meetings: meeting
+      ? [{ ref: "meeting:ana@example.org/91", title: "Board review", at: "2026-11-12T11:00:00.000Z", role: null }]
+      : [],
+    events: meeting
       ? [{ ref: "event:665", title: "Board review", at: "2026-11-12T11:00:00.000Z", role: "attachment" }]
       : [],
-    events: [],
   }
 }
 

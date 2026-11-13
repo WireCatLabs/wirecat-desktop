@@ -14,9 +14,8 @@ export type Branch = {
   id: string
   label: string
   count: number
-  /** The account's provider, for its icon, and memo's whole label, said on hover; absent on folders. */
+  /** The account's provider, for its logo; absent on folders. */
   provider?: string
-  service?: string
   children: Branch[]
 }
 
@@ -25,17 +24,20 @@ export const ALL = "all"
 const sourceId = (source: string) => `source:${source}`
 const folderId = (source: string, path: string) => `folder:${source}\u0000${path}`
 
-/** memo lists folders parents first with their depth; the tree nests them under the folder whose path they extend. */
+/**
+ * memo lists folders parents first with their depth; each nests under the last folder one level up. By depth, not by
+ * splitting the path: a Drive folder's own name may hold a "/".
+ */
 function nest(source: string, folders: TreeSource["folders"]): Branch[] {
   const top: Branch[] = []
-  const byPath = new Map<string, Branch>()
+  const open: Branch[] = []
   for (const f of folders) {
     const node: Branch = { id: folderId(source, f.path), label: f.name, count: f.count, children: [] }
-    byPath.set(f.path, node)
-    const cut = f.path.lastIndexOf("/")
-    const parent = cut > 0 ? byPath.get(f.path.slice(0, cut)) : undefined
-    if (parent) parent.children.push(node)
+    open.length = Math.max(0, f.depth - 1)
+    const parent = open.at(-1)
+    if (parent && open.length === f.depth - 1) parent.children.push(node)
     else top.push(node)
+    open.push(node)
   }
   return top
 }
@@ -45,7 +47,6 @@ export const branches = (sources: readonly TreeSource[]): Branch[] =>
   sources.map((s) => ({
     id: sourceId(s.source),
     label: s.name ?? s.label,
-    service: s.label,
     count: s.count,
     provider: s.provider,
     children: nest(s.source, s.folders),

@@ -26,7 +26,6 @@ const en = {
   intro:
     "Every document WireCat keeps, from every account: Google Drive files, your notes folders, files you added and " +
     "imports. Read the text here, or open the file where it lives.",
-  guide: "Guide",
   readAgain: "Read again",
   reading: "Reading documents",
   readingNow: "Reading…",
@@ -68,21 +67,18 @@ const en = {
   revealFailed: "Could not show the file in its folder.",
   detailsFailed: "Could not read this document.",
   tryAgain: "Try again",
-  close: "Close",
   text: "Text",
   noText: "WireCat keeps no text of this document.",
   extractionFailed: "Its text could not be read from the file.",
   showMore: "Show more",
-  textPart: (shown: string, total: string) => `${shown} of ${total} characters`,
+  textPart: (shown: string, total: string, n: number) =>
+    `${shown} of ${total} ${plural("en", n, { one: "character", other: "characters" })}`,
   tags: "Tags",
   people: "People",
   meetings: "Meetings",
   events: "Calendar events",
   nobody: "No people linked.",
   changedAt: "Changed",
-  storedAt: "Stored",
-  path: "Path",
-  sizeLabel: "Size",
   openPerson: (name: string) => `Open ${name} on Contacts`,
 }
 
@@ -91,7 +87,6 @@ const ru: typeof en = {
   intro:
     "Все документы, которые хранит WireCat, из всех аккаунтов: файлы Google Диска, ваши папки заметок, добавленные " +
     "файлы и импорт. Читайте текст здесь или откройте файл там, где он лежит.",
-  guide: "Руководство",
   readAgain: "Прочитать заново",
   reading: "Читаем документы",
   readingNow: "Читаем…",
@@ -133,21 +128,18 @@ const ru: typeof en = {
   revealFailed: "Не удалось показать файл в папке.",
   detailsFailed: "Не удалось прочитать документ.",
   tryAgain: "Попробовать снова",
-  close: "Закрыть",
   text: "Текст",
   noText: "WireCat не хранит текст этого документа.",
   extractionFailed: "Текст не удалось извлечь из файла.",
   showMore: "Показать ещё",
-  textPart: (shown: string, total: string) => `${shown} из ${total} символов`,
+  textPart: (shown: string, total: string, n: number) =>
+    `${shown} из ${total} ${pluralRu(n, ["символа", "символов", "символов"])}`,
   tags: "Теги",
   people: "Люди",
   meetings: "Встречи",
   events: "События календаря",
   nobody: "Люди не связаны.",
   changedAt: "Изменён",
-  storedAt: "Сохранён",
-  path: "Путь",
-  sizeLabel: "Размер",
   openPerson: (name: string) => `Открыть ${name} в Контактах`,
 }
 
@@ -156,7 +148,6 @@ const es: typeof en = {
   intro:
     "Todos los documentos que guarda WireCat, de todas las cuentas: archivos de Google Drive, tus carpetas de notas, " +
     "archivos que añadiste e importaciones. Lee el texto aquí o abre el archivo donde está.",
-  guide: "Guía",
   readAgain: "Leer de nuevo",
   reading: "Leyendo documentos",
   readingNow: "Leyendo…",
@@ -198,21 +189,18 @@ const es: typeof en = {
   revealFailed: "No se pudo mostrar el archivo en su carpeta.",
   detailsFailed: "No se pudo leer este documento.",
   tryAgain: "Intentar de nuevo",
-  close: "Cerrar",
   text: "Texto",
   noText: "WireCat no guarda el texto de este documento.",
   extractionFailed: "No se pudo leer el texto del archivo.",
   showMore: "Mostrar más",
-  textPart: (shown: string, total: string) => `${shown} de ${total} caracteres`,
+  textPart: (shown: string, total: string, n: number) =>
+    `${shown} de ${total} ${plural("es", n, { one: "carácter", other: "caracteres" })}`,
   tags: "Etiquetas",
   people: "Personas",
   meetings: "Reuniones",
   events: "Eventos del calendario",
   nobody: "No hay personas vinculadas.",
   changedAt: "Cambiado",
-  storedAt: "Guardado",
-  path: "Ruta",
-  sizeLabel: "Tamaño",
   openPerson: (name: string) => `Abrir a ${name} en Contactos`,
 }
 

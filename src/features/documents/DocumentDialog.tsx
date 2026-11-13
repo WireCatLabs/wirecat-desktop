@@ -146,8 +146,7 @@ function Text({ read, pages }: { read: Read; pages: InfiniteData<DocumentDetails
   const lang = useLang()
   const first = pages.pages[0] as DocumentDetails
   const text = pages.pages.map((p) => p.text ?? "").join("")
-  const last = pages.pages.at(-1) as DocumentDetails
-  const shown = last.textOffset + (last.text?.length ?? 0)
+  const shown = (pages.pages.at(-1) as DocumentDetails).nextCursor
   return (
     <section className="flex min-w-0 flex-col gap-[0.6rem]">
       <h3 className="font-medium">{m.text}</h3>
@@ -161,13 +160,13 @@ function Text({ read, pages }: { read: Read; pages: InfiniteData<DocumentDetails
           >
             {text}
           </div>
-          {(read.hasNextPage || read.error) && (
+          {read.hasNextPage && (
             <div className="flex flex-wrap items-center gap-3">
               <Button size="sm" busy={read.isFetchingNextPage} onClick={() => void read.fetchNextPage()}>
                 {m.showMore}
               </Button>
               <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">
-                {m.textPart(formatNumber(shown, lang), formatNumber(first.textLength, lang))}
+                {m.textPart(formatNumber(shown, lang), formatNumber(first.textLength, lang), first.textLength)}
               </span>
               {read.error && (
                 <ErrorNotice inline raw={errorText(read.error)}>

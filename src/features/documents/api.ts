@@ -30,12 +30,13 @@ export const useDocument = (ref: string | null) =>
     queryKey: keys.one(ref ?? ""),
     queryFn: ({ pageParam }) => platform.documentsShow(ref ?? "", pageParam),
     initialPageParam: 0,
-    getNextPageParam: (last) => (last.hasMore ? last.textOffset + (last.text?.length ?? 0) : undefined),
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor : undefined),
     enabled: ref !== null,
-    staleTime: 5 * 60_000,
+    staleTime: Number.POSITIVE_INFINITY,
   })
 
 export const useReveal = () => useMutation({ mutationFn: (ref: string) => platform.documentsReveal(ref) })
 
-/** Read again: the tree, every page and every document read so far. */
-export const readAgain = () => queryClient().invalidateQueries({ queryKey: keys.all })
+/** Read again: the tree and the list. An open document stays as read: each of its text parts is a memo process. */
+export const readAgain = () =>
+  queryClient().invalidateQueries({ queryKey: keys.all, predicate: (q) => q.queryKey[3] !== "one" })

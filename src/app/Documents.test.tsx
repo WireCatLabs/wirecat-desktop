@@ -42,9 +42,9 @@ describe("Documents", () => {
     expect(await within(table).findByRole("button", { name: /Q4 plan/ })).toBeInTheDocument()
 
     const tree = screen.getByRole("tree", { name: "Folders" })
-    await user.click(within(tree).getByRole("treeitem", { name: /ana@example.org/ }))
-    await user.click(await within(tree).findByRole("treeitem", { name: /^Projects/ }))
-    await user.click(await within(tree).findByRole("treeitem", { name: /^Acme/ }))
+    await user.click(within(tree).getByText("ana@example.org"))
+    await user.click(await within(tree).findByText("Projects"))
+    await user.click(await within(tree).findByText("Acme"))
     await waitFor(() =>
       expect(list).toHaveBeenLastCalledWith('source:"google-drive:ana@example.org" folder:"Projects/Acme"', 1, 25),
     )
@@ -52,6 +52,18 @@ describe("Documents", () => {
     expect(screen.getByRole("searchbox", { name: "Search documents" })).toHaveValue(
       'source:"google-drive:ana@example.org" folder:"Projects/Acme"',
     )
+  })
+
+  it("drops the chosen folder when the Account chip moves to another account", async () => {
+    const list = vi.spyOn(platform, "documentsList")
+    const user = userEvent.setup()
+    await openDocuments(user)
+    const tree = screen.getByRole("tree", { name: "Folders" })
+    await user.click(within(tree).getByText("ana@example.org"))
+    await user.click(await within(tree).findByText("Projects"))
+    await user.click(screen.getByRole("button", { name: /^Account/ }))
+    await user.click(await screen.findByRole("option", { name: /Synthetic notes/ }))
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith('source:"notes:1"', 1, 25))
   })
 
   it("asks memo for the next page instead of cutting one long list", async () => {

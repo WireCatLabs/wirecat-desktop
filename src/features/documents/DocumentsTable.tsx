@@ -15,7 +15,7 @@ import { EmptyState } from "@/ui/EmptyState"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
-import { useDocumentsPage } from "./api"
+import type { useDocumentsPage } from "./api"
 import { DOCUMENT_KINDS, type DocumentKind, documentMessages } from "./messages"
 import { useDocuments } from "./store"
 
@@ -34,7 +34,13 @@ const KIND_ICON: Partial<Record<DocumentKind, ReactNode>> = {
 export const kindIcon = (kind: string) => KIND_ICON[kind as DocumentKind] ?? <FileText className={ICON} aria-hidden />
 
 /** The search with its chips, the list memo cut into pages, and the pager. */
-export function DocumentsTable({ sources }: { sources: readonly DocumentSource[] | null }) {
+export function DocumentsTable({
+  sources,
+  list,
+}: {
+  sources: readonly DocumentSource[] | null
+  list: ReturnType<typeof useDocumentsPage>
+}) {
   const m = useMessages(documentMessages)
   const lang = useLang()
   const query = useDocuments((s) => s.query)
@@ -42,7 +48,6 @@ export function DocumentsTable({ sources }: { sources: readonly DocumentSource[]
   const page = useDocuments((s) => s.page)
   const size = useDocuments((s) => s.size)
   const { type, setQuery, setPage, setSize, reveal } = useDocuments.getState()
-  const list = useDocumentsPage(asked, page, size, sources !== null)
   const columns = useColumns()
   const data = list.data
   const field = (name: string, values: string[]) => setQuery(setField(query, name, values))
@@ -74,7 +79,8 @@ export function DocumentsTable({ sources }: { sources: readonly DocumentSource[]
           count: s.count,
         }))}
         selected={valuesOf(query, "source")}
-        onChange={(v) => field("source", v)}
+        // Another account's folders are not this one's: the folder goes with the account it was in.
+        onChange={(v) => setQuery(setField(query, "source", v, "source|folder"))}
       />
       <ToggleChip
         on={valuesOf(query, "has_text").includes("true")}

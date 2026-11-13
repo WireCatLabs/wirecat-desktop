@@ -1,27 +1,28 @@
-import { useIsFetching } from "@tanstack/react-query"
 import { gapFromRead } from "@/domain/needs"
-import { type Lang, useLang, useMessages } from "@/i18n"
+import { useMessages } from "@/i18n"
 import { errorText } from "@/shared/errors"
 import { Page, PageHeader } from "@/shared/Page"
 import { PageError } from "@/shared/PageError"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { RefreshButton } from "@/ui/RefreshButton"
-import { readAgain, useDocumentsRead } from "./api"
+import { readAgain, useDocumentsPage, useDocumentsRead } from "./api"
 import { DocumentDialog } from "./DocumentDialog"
 import { DocumentsTable } from "./DocumentsTable"
 import { FolderTree } from "./FolderTree"
 import { documentMessages } from "./messages"
-
-const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/documents`
+import { useDocuments } from "./store"
 
 export function DocumentsPage() {
   const m = useMessages(documentMessages)
-  const lang = useLang()
   const read = useDocumentsRead()
-  const reading = useIsFetching({ queryKey: ["tool", "memo", "documents"] }) > 0
   const data = read.data
   const gap = gapFromRead(data?.kind === "missing" || data?.kind === "old" ? data : null)
   const sources = data?.kind === "ready" ? data.sources : null
+  const asked = useDocuments((s) => s.asked)
+  const page = useDocuments((s) => s.page)
+  const size = useDocuments((s) => s.size)
+  // Read beside the tree, not after it: two memo runs at once instead of one after the other.
+  const list = useDocumentsPage(asked, page, size, !read.error && !gap)
 
   return (
     <Page className="@container">
@@ -29,12 +30,12 @@ export function DocumentsPage() {
         title={m.title}
         section="documents"
         intro={m.intro}
-        guide={{ label: m.guide, href: guide(lang) }}
         actions={
           !gap &&
-          !read.error && (
+          !read.error &&
+          !list.error && (
             <RefreshButton
-              busy={reading}
+              busy={read.isFetching}
               onClick={() => void readAgain()}
               label={m.readAgain}
               busyLabel={m.readingNow}
@@ -43,16 +44,21 @@ export function DocumentsPage() {
         }
       />
       {read.error ? (
-        <PageError raw={errorText(read.error)} what="Reading documents" busy={reading} onRetry={() => void readAgain()}>
+        <PageError
+          raw={errorText(read.error)}
+          what="Reading documents"
+          busy={read.isFetching}
+          onRetry={() => void readAgain()}
+        >
           {m.readFailed}
         </PageError>
       ) : gap ? (
         <ToolNeeded gap={gap} />
       ) : (
         // The tree beside the list it narrows; below about 52rem of page they stack, as the Agents tab does.
-        <div className="grid items-start gap-[1.5rem] @min-[52rem]:grid-cols-[13rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[16rem_minmax(0,1fr)] @min-[80rem]:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="grid items-start gap-[1.5rem] @min-[52rem]:grid-cols-[15rem_minmax(0,1fr)] @min-[80rem]:grid-cols-[17rem_minmax(0,1fr)]">
           <FolderTree sources={sources} />
-          <DocumentsTable sources={sources} />
+          <DocumentsTable sources={sources} list={list} />
         </div>
       )}
       <DocumentDialog />

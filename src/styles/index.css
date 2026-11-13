@@ -235,6 +235,18 @@ body {
   border-color: var(--brand);
 }
 
+/* A tree item holds its children (WAI-ARIA tree), so its ring goes on its own row, not around the whole branch. */
+[role="treeitem"]:focus-visible {
+  outline: none;
+}
+[role="treeitem"]:focus-visible > [data-tree-row] {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+:root[data-input="pointer"] [role="treeitem"]:focus-visible > [data-tree-row] {
+  outline: none;
+}
+
 /* A scrolling box clips what falls outside it, so the ring is drawn inside the row. Unlayered, like the rule it changes. */
 .ring-inside :focus-visible {
   outline-offset: -2px;

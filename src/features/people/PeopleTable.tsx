@@ -4,6 +4,7 @@ import { allBots, cleanName, contactOf, filterPeople, isFragment, looksLikeAccou
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
+import { SourceIcon, sourceOf } from "@/shared/SourceIcon"
 import { Button } from "@/ui/Button"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { EmptyState } from "@/ui/EmptyState"
@@ -16,7 +17,6 @@ import { Skeleton } from "@/ui/Skeleton"
 import { TipPanel, useTip } from "@/ui/Tooltip"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
-import { SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
 const KIND_ICONS: Record<PersonKind, ReactNode> = {

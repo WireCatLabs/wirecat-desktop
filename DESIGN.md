@@ -439,7 +439,8 @@ Rule 9 (CLAUDE.md) uses five shared pieces, never ad hoc CSS:
   is about one agent at a time and everything about that agent (its skills, what else stops it, its sessions, its
   tasks) belongs in one place. Below about 52rem of page width the two stack.
   Documents has a folder tree beside its table (owner, 2026-11-13): the tree narrows the list, as a filter chip
-  does, and a document still opens in a dialog, so it is not a detail pane. It stacks below 52rem the same way.
+  does, and a document still opens in a dialog, so it is not a detail pane. It stacks below 52rem and takes the
+  Agents list's widths (15rem, 17rem from 80rem).
 - **Don't** add a shadow to the rack, a row, a banner or a button. The panel shadow belongs to what floats or is lifted.
 - **Don't** use Unbounded below the page title.
 - **Don't** fill a button red. Danger actions are outlined; the only red fill is the window close control on hover.

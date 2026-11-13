@@ -17,8 +17,8 @@ const NODES: TreeNode[] = [
   },
 ]
 
-function Harness() {
-  const [selected, setSelected] = useState("all")
+function Harness({ start = "all" }: { start?: string }) {
+  const [selected, setSelected] = useState(start)
   return (
     <>
       <TreeList label="Folders" nodes={NODES} selected={selected} onSelect={setSelected} />
@@ -52,10 +52,29 @@ describe("TreeList", () => {
   it("chooses with Enter or a click, and opens what it chose", async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    await user.click(screen.getByRole("treeitem", { name: /Account/ }))
+    await user.click(screen.getByText("Account"))
     expect(screen.getByRole("status")).toHaveTextContent("a")
     expect(screen.getByRole("treeitem", { name: /Account/ })).toHaveAttribute("aria-selected", "true")
     await user.keyboard("{ArrowDown}{ArrowDown}{Enter}")
     expect(screen.getByRole("status")).toHaveTextContent("a/r")
+  })
+
+  it("opens the branches above a node chosen elsewhere, and the tab stop starts on it", async () => {
+    const user = userEvent.setup()
+    render(<Harness start="a/p/x" />)
+    await user.tab()
+    expect(screen.getByRole("treeitem", { name: /Acme/ })).toHaveFocus()
+    expect(screen.getByRole("treeitem", { name: /Account/ })).toHaveAttribute("aria-expanded", "true")
+  })
+
+  it("keeps focus on a branch whose open children are folded away by the mouse", async () => {
+    const user = userEvent.setup()
+    render(<Harness start="a/r" />)
+    await user.tab()
+    const account = screen.getByRole("treeitem", { name: /Account/ })
+    const chevron = account.querySelector("[data-tree-row] > span:last-child") as HTMLElement
+    await user.click(chevron)
+    expect(account).toHaveAttribute("aria-expanded", "false")
+    expect(account).toHaveFocus()
   })
 })

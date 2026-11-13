@@ -1,4 +1,5 @@
 import { Files, Folder } from "lucide-react"
+import { useMemo } from "react"
 import { ALL, type Branch, branches, nodeOfQuery } from "@/domain/documents"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import type { DocumentSource } from "@/platform/bindings"
@@ -15,30 +16,23 @@ export function FolderTree({ sources }: { sources: readonly DocumentSource[] | n
   const m = useMessages(documentMessages)
   const lang = useLang()
   const query = useDocuments((s) => s.query)
-  const node = (b: Branch): TreeNode => ({
-    id: b.id,
-    label: b.label,
-    count: formatNumber(b.count, lang),
-    icon: b.provider ? (
-      <SourceIcon provider={b.provider} label={b.service} labelled />
-    ) : (
-      <Folder className={ICON} aria-hidden />
-    ),
-    children: b.children.map(node),
-  })
-  const accounts = sources ? branches(sources) : []
-  const total = (sources ?? []).reduce((n, s) => n + s.count, 0)
-  const nodes: TreeNode[] = [
-    {
-      id: ALL,
-      label: m.all,
-      count: formatNumber(total, lang),
-      icon: <Files className={ICON} aria-hidden />,
-    },
-    ...accounts.map(node),
-  ]
+  const nodes = useMemo((): TreeNode[] => {
+    const node = (b: Branch): TreeNode => ({
+      id: b.id,
+      label: b.label,
+      count: formatNumber(b.count, lang),
+      // The tree already says the account's name; its logo says only the service.
+      icon: b.provider ? <SourceIcon provider={b.provider} labelled /> : <Folder className={ICON} aria-hidden />,
+      children: b.children.map(node),
+    })
+    const total = (sources ?? []).reduce((n, s) => n + s.count, 0)
+    return [
+      { id: ALL, label: m.all, count: formatNumber(total, lang), icon: <Files className={ICON} aria-hidden /> },
+      ...(sources ? branches(sources) : []).map(node),
+    ]
+  }, [sources, lang, m.all])
   return (
-    <nav aria-label={m.tree} className="rounded-rack border border-line-strong bg-app p-[0.4rem]">
+    <div className="rounded-rack border border-line-strong bg-app p-[0.4rem]">
       {sources === null ? (
         <div className="flex flex-col gap-[0.6rem] p-[0.5rem]">
           <Skeleton className="h-[1.2rem] w-[70%]" label={m.reading} />
@@ -53,6 +47,6 @@ export function FolderTree({ sources }: { sources: readonly DocumentSource[] | n
           onSelect={(id) => useDocuments.getState().choose(id)}
         />
       )}
-    </nav>
+    </div>
   )
 }

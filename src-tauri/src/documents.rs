@@ -123,6 +123,9 @@ pub struct DocumentDetails {
     pub document: DocumentRow,
     pub text: Option<String>,
     pub text_offset: u64,
+    /// Where the next part starts, in characters as memo's SQLite counts them; JavaScript's `length` counts an emoji
+    /// as two, so the page never adds it up itself.
+    pub next_cursor: u64,
     pub text_length: u64,
     pub has_more: bool,
     pub extraction_error: Option<String>,
@@ -157,8 +160,11 @@ fn document_ref(s: &str) -> Result<&str, String> {
 /// The search goes to memo as one word after `--`, so it can never read as an option.
 fn query_word(query: &str) -> Result<String, String> {
     let q = query.trim();
-    if q.len() > MAX_QUERY || q.chars().any(char::is_control) {
+    if q.len() > MAX_QUERY {
         return Err("That search is too long.".into());
+    }
+    if q.chars().any(char::is_control) {
+        return Err("That search holds a character memo cannot take.".into());
     }
     Ok(q.to_string())
 }
@@ -231,10 +237,13 @@ fn linked(v: &Value) -> Option<DocumentLinked> {
 }
 
 fn details_of(v: &Value) -> Option<DocumentDetails> {
+    let part = v["text"].as_str().map(str::to_string);
+    let text_offset = count(v, "text_offset");
     Some(DocumentDetails {
         document: row_of(v)?,
-        text: v["text"].as_str().map(str::to_string),
-        text_offset: count(v, "text_offset"),
+        next_cursor: text_offset + part.as_deref().map_or(0, |t| t.chars().count() as u64),
+        text: part,
+        text_offset,
         text_length: count(v, "text_length"),
         has_more: v["has_more"].as_bool().unwrap_or(false),
         extraction_error: text(v, "extraction_error"),
@@ -420,7 +429,7 @@ mod tests {
             assert_eq!(args[..7], ["documents", "show", "document:40", "--cursor", "20000", "--max-chars", "20000"]);
             let mut item = row();
             let extra = json!({
-                "text": "an invented budget", "text_offset": 20_000, "text_length": 40_018, "has_more": false,
+                "text": "an invented budget 📈", "text_offset": 20_000, "text_length": 40_018, "has_more": false,
                 "extraction": "pdf", "extraction_error": null, "language": "en", "tags": ["budget"],
                 "people": [{ "ref": "person:7", "name": "Kai Sample", "kind": "person" }],
                 "meetings": [{ "ref": "meeting:3/7", "title": "Board", "at": "2026-11-12T10:00:00.000Z", "role": null }],
@@ -431,6 +440,7 @@ mod tests {
         };
         let d = show_with(&call, "document:40", 20_000).unwrap();
         assert_eq!((d.text_offset, d.text_length, d.has_more), (20_000, 40_018, false));
+        assert_eq!(d.next_cursor, 20_020, "the chart emoji is one character to memo, two to JavaScript");
         assert_eq!(d.people[0].reference, "person:7");
         assert_eq!(d.meetings[0].reference, "meeting:3/7");
         assert_eq!(d.tags, ["budget"]);
