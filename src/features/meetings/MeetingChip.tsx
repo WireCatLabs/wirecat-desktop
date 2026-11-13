@@ -24,7 +24,7 @@ export function KindIcon({ meeting, className = ICON }: { meeting: MeetingRow; c
 }
 
 /** "9:30 AM" in English, "09:30" in Russian and Spanish, as the hour gutter writes them. */
-export const timeText = (iso: string | null, lang: string) =>
+const timeText = (iso: string | null, lang: string) =>
   iso ? new Date(iso).toLocaleTimeString(lang, { hour: lang === "en" ? "numeric" : "2-digit", minute: "2-digit" }) : ""
 
 /** What a meeting carries, as icons; each is named in the meeting's own label, so they stay hidden here. */

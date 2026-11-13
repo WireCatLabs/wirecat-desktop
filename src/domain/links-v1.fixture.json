@@ -86,6 +86,16 @@
       }
     },
     {
+      "ref": "tasks:undated",
+      "path": "/v1/tasks/undated",
+      "web": "https://wirecat.dev/o#/v1/tasks/undated",
+      "app": "wirecat://open/v1/tasks/undated",
+      "target": {
+        "type": "tasks",
+        "filter": "undated"
+      }
+    },
+    {
       "ref": "tasks:today",
       "path": "/v1/tasks/today",
       "web": "https://wirecat.dev/o#/v1/tasks/today",
@@ -103,16 +113,6 @@
       "target": {
         "type": "tasks",
         "filter": "tomorrow"
-      }
-    },
-    {
-      "ref": "tasks:undated",
-      "path": "/v1/tasks/undated",
-      "web": "https://wirecat.dev/o#/v1/tasks/undated",
-      "app": "wirecat://open/v1/tasks/undated",
-      "target": {
-        "type": "tasks",
-        "filter": "undated"
       }
     },
     {
@@ -147,16 +147,6 @@
       }
     },
     {
-      "ref": "digest:2026-11-08",
-      "path": "/v1/digest/2026-11-08",
-      "web": "https://wirecat.dev/o#/v1/digest/2026-11-08",
-      "app": "wirecat://open/v1/digest/2026-11-08",
-      "target": {
-        "type": "digest",
-        "date": "2026-11-08"
-      }
-    },
-    {
       "ref": "person:77",
       "path": "/v1/person/77",
       "web": "https://wirecat.dev/o#/v1/person/77",
@@ -167,23 +157,53 @@
       }
     },
     {
+      "ref": "project:79",
+      "path": "/v1/project/79",
+      "web": "https://wirecat.dev/o#/v1/project/79",
+      "app": "wirecat://open/v1/project/79",
+      "target": {
+        "type": "project",
+        "id": "79"
+      }
+    },
+    {
+      "ref": "project:ACME site/2",
+      "path": "/v1/project/ACME%20site%2F2",
+      "web": "https://wirecat.dev/o#/v1/project/ACME%20site%2F2",
+      "app": "wirecat://open/v1/project/ACME%20site%2F2",
+      "target": {
+        "type": "project",
+        "id": "ACME site/2"
+      }
+    },
+    {
       "ref": "project:north-wind",
       "path": "/v1/project/north-wind",
       "web": "https://wirecat.dev/o#/v1/project/north-wind",
       "app": "wirecat://open/v1/project/north-wind",
       "target": {
         "type": "project",
-        "key": "north-wind"
+        "id": "north-wind"
       }
     },
     {
-      "ref": "project:%D0%BE%D1%84%D0%B8%D1%81",
+      "ref": "project:офис",
       "path": "/v1/project/%D0%BE%D1%84%D0%B8%D1%81",
       "web": "https://wirecat.dev/o#/v1/project/%D0%BE%D1%84%D0%B8%D1%81",
       "app": "wirecat://open/v1/project/%D0%BE%D1%84%D0%B8%D1%81",
       "target": {
         "type": "project",
-        "key": "офис"
+        "id": "офис"
+      }
+    },
+    {
+      "ref": "digest:2026-11-08",
+      "path": "/v1/digest/2026-11-08",
+      "web": "https://wirecat.dev/o#/v1/digest/2026-11-08",
+      "app": "wirecat://open/v1/digest/2026-11-08",
+      "target": {
+        "type": "digest",
+        "date": "2026-11-08"
       }
     },
     {
@@ -210,18 +230,6 @@
   ],
   "refused": [
     {
-      "path": "/v1/tasks/undated/x",
-      "why": "undated takes no value"
-    },
-    {
-      "path": "/v1/person/77/notes",
-      "why": "person takes one id"
-    },
-    {
-      "path": "/v1/project",
-      "why": "project needs a key"
-    },
-    {
       "path": "/v2/chat/telegram/1001/4004",
       "why": "another version"
     },
@@ -230,12 +238,28 @@
       "why": "unknown kind"
     },
     {
+      "path": "/v1/organization/78",
+      "why": "a kind not in this slice yet"
+    },
+    {
       "path": "/v1/chat/telegram/1001/4004/9",
       "why": "a part too many"
     },
     {
       "path": "/v1/chat/telegram/1001",
       "why": "a part too few"
+    },
+    {
+      "path": "/v1/person/77/1",
+      "why": "a person with a part too many"
+    },
+    {
+      "path": "/v1/person/77/notes",
+      "why": "a person with a named part after the id"
+    },
+    {
+      "path": "/v1/project",
+      "why": "a project with no key"
     },
     {
       "path": "/v1/chat/telegram//4004",
@@ -256,6 +280,10 @@
     {
       "path": "/v1/tasks/someday",
       "why": "an unknown task filter"
+    },
+    {
+      "path": "/v1/tasks/undated/x",
+      "why": "a task filter that takes no value given one"
     },
     {
       "path": "/v1/tasks/new/yesterday",

@@ -318,7 +318,7 @@ The agent runs the tools. The app only prepares them.
 pnpm install
 pnpm dev        # the interface in a browser, with Rust mocked: http://localhost:1420
 pnpm app        # the real desktop app
-pnpm check      # types, lint, tests, rustfmt, clippy, Rust tests
+pnpm check      # types, lint, unused exports (knip), tests, rustfmt, clippy, Rust tests
 ```
 
 To build from source you need Node.js, pnpm and a Rust toolchain. On Debian or Ubuntu, run `bin/install-linux-deps`

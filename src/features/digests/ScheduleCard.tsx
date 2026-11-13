@@ -29,7 +29,7 @@ import { AgentFields, draftAgent, needsConsent, refusalOf } from "./DigestAgent"
 import { area, card } from "./editor-state"
 import { bookMessages, SOURCES, type Source, WEEKDAYS } from "./messages-book"
 import { type ScheduleText, scheduleMessages } from "./messages-schedule"
-import { MORNING, specOf, useDigestBook } from "./schedule-store"
+import { specOf, useDigestBook } from "./schedule-store"
 
 type RouteKind = Route["kind"]
 const PREFIX: Record<RouteKind, string> = { telegramBot: "telegram-bot", email: "email" }
@@ -676,5 +676,3 @@ export function ScheduleCard({
     </section>
   )
 }
-
-export { MORNING }

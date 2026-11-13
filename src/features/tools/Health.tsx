@@ -342,7 +342,7 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
 }
 
 /** tools.json and its translations mark a command with backticks, as the CLIs' own notes do. */
-export function withCode(text: string): ReactNode[] {
+function withCode(text: string): ReactNode[] {
   let at = 0
   return text.split("`").map((part, i) => {
     const start = at

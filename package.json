@@ -12,6 +12,7 @@
     "typecheck": "tsc",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "knip": "knip",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -23,7 +24,7 @@
     "standards:check": "node config/wirecat/check.mjs",
     "secrets:scan": "gitleaks git --log-opts=HEAD --no-banner --redact --exit-code 1 .",
     "bundle:check": "node scripts/check-bundle.mjs",
-    "check": "pnpm standards:check && pnpm docs:lint && pnpm docs:spell && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm bundle:check && pnpm rust:fmt && pnpm rust:lint && pnpm rust:test",
+    "check": "pnpm standards:check && pnpm docs:lint && pnpm docs:spell && pnpm typecheck && pnpm lint && pnpm knip && pnpm test && pnpm build && pnpm bundle:check && pnpm rust:fmt && pnpm rust:lint && pnpm rust:test",
     "prepare": "lefthook install || true"
   },
   "dependencies": {
@@ -58,6 +59,7 @@
     "@vitest/coverage-v8": "^5.0.5",
     "cspell": "10.4.0",
     "jsdom": "^30.1.3",
+    "knip": "6.43.0",
     "lefthook": "2.2.2",
     "markdownlint-cli2": "0.24.0",
     "playwright-core": "^1.64.1",

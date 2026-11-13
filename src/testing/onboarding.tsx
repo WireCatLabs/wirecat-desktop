@@ -162,7 +162,7 @@ export function fakeInstaller(installed: Record<string, string> = {}) {
 export type FakeInstaller = ReturnType<typeof fakeInstaller>
 
 /** Stands in for the managed Node.js setup: each phase arrives when the test sends it. */
-export function fakeNodeSetup(computer: { current: Readiness | null }) {
+function fakeNodeSetup(computer: { current: Readiness | null }) {
   let onEvent: (e: NodeEvent) => void = () => {}
   let resolve = () => {}
   const setup = vi.spyOn(platform, "setupNode").mockImplementation(

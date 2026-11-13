@@ -77,8 +77,8 @@ export const zoomNeedsClientId = (tool: string, message: string, reason?: string
   tool === "zm" && (reason === "zoom.client-id-missing" || message.includes("zoom.client_id"))
 
 /** Google's pages for Gmail's two refusals; mail-cli names the reason, not the page. */
-export const GMAIL_APP_PASSWORDS = "https://myaccount.google.com/apppasswords"
-export const GMAIL_IMAP_HELP = "https://support.google.com/mail/answer/7126229"
+const GMAIL_APP_PASSWORDS = "https://myaccount.google.com/apppasswords"
+const GMAIL_IMAP_HELP = "https://support.google.com/mail/answer/7126229"
 
 /**
  * Texts and codes checked in the tools' source (2026-11-07): whatsapp-cli `engine/cmd/wa-engine/device.go` ("this

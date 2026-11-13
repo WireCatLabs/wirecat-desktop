@@ -55,7 +55,7 @@ pub enum Target {
         id: String,
     },
     Project {
-        key: String,
+        id: String,
     },
     Sync {
         tool: String,
@@ -175,7 +175,7 @@ fn target_of(parts: Vec<String>) -> Option<Target> {
         "proposal" if one(1) => Target::Proposal { id: at(0) },
         "digest" if one(1) && is_date(&rest[0]) => Target::Digest { date: at(0) },
         "person" if one(1) => Target::Person { id: at(0) },
-        "project" if one(1) => Target::Project { key: at(0) },
+        "project" if one(1) => Target::Project { id: at(0) },
         "sync" if one(1) => Target::Sync { tool: at(0), account: None },
         "sync" if one(2) => Target::Sync { tool: at(0), account: Some(at(1)) },
         _ => return None,

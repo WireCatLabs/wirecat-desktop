@@ -4,7 +4,7 @@ import { platform } from "@/platform/bridge"
 import { queryClient } from "@/shared/query"
 
 /** A calendar window reads this many rows at most, oldest first; the days past the cut say "Not read" (NEED-34 A). */
-export const WINDOW_CAP = 500
+const WINDOW_CAP = 500
 
 const keys = {
   all: ["tool", "memo", "meetings"] as const,
