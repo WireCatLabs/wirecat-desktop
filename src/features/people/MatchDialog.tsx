@@ -352,7 +352,13 @@ function Column({
       </Cell>
       <Cell label={m.recent}>
         {ready && ready.recent.length > 0 ? (
-          <Recent items={ready.recent} />
+          <Recent
+            items={ready.recent}
+            onLeave={() => {
+              usePeople.getState().openMatch(null)
+              useProfiles.getState().clear()
+            }}
+          />
         ) : loading ? (
           <Lines />
         ) : (
@@ -399,8 +405,8 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
   )
 }
 
-/** The latest messages or meetings; a message opens its conversation in WireCat. */
-function Recent({ items }: { items: PersonProfile["recent"] }) {
+/** The latest messages or meetings; a message opens its conversation in WireCat, after `onLeave` closes the dialog. */
+export function Recent({ items, onLeave }: { items: PersonProfile["recent"]; onLeave: () => void }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
   const row = "flex min-w-0 flex-col gap-[0.1rem] rounded-control px-[0.45rem] py-[0.35rem]"
@@ -441,8 +447,7 @@ function Recent({ items }: { items: PersonProfile["recent"] }) {
                   "selectable cursor-pointer transition-colors duration-(--motion-fast) hover:bg-app-2",
                 )}
                 onClick={() => {
-                  usePeople.getState().openMatch(null)
-                  useProfiles.getState().clear()
+                  onLeave()
                   openConversation(target)
                 }}
               >

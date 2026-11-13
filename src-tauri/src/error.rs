@@ -45,6 +45,13 @@ impl From<String> for AppError {
     }
 }
 
+/// A failure that kept the CLI's own answer: its `usage.*` reason says "too old" before its words are read.
+impl From<crate::memo_cli::Failure> for AppError {
+    fn from(failure: crate::memo_cli::Failure) -> Self {
+        if failure.unknown_command() { AppError::TooOld(failure.message) } else { AppError::Failed(failure.message) }
+    }
+}
+
 impl From<&str> for AppError {
     fn from(message: &str) -> Self {
         AppError::from(message.to_string())

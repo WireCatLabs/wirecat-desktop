@@ -36,9 +36,11 @@ import type {
   AccountRemoved,
   Backfill,
   Brief,
+  CallOpened,
   ChatPage,
   ChatPlace,
   ChosenFolders,
+  ClientCall,
   Conversation,
   CrmAccount,
   CrmBaseEdit,
@@ -72,6 +74,7 @@ import type {
   Signed,
   SyncSchedule,
   TemplatePreview,
+  ToolNetwork,
   ZoomAppAnswer,
 } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
@@ -227,8 +230,10 @@ export type Platform = {
   configRepair(id: string, profile: string | null): Promise<Repair>
   /** The tool's own `session end` for one profile: the fallback while the installed version has no `account remove`. */
   accountSignOut(id: string, profile: string): Promise<AccountRemoved>
-  /** Whether the installed version has `account remove` (`accountRemove.remove.minVersion` in the catalog). */
+  /** Whether the installed version has `account remove`: the catalog's version says so, or the tool lists it. */
   accountRemoveSupported(id: string): Promise<boolean>
+  /** Where the installed tool says its data goes, from its own `contracts/wirecat.json`. */
+  toolNetwork(id: string): Promise<ToolNetwork>
   /** `account remove --dry-run`: what it would remove and keep. */
   accountRemovePlan(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
   /** `account remove --yes`: signs the profile out and forgets it, keeping or deleting its data. */
@@ -396,6 +401,10 @@ export type Platform = {
    * card; a CRM's copy goes through that CRM's CLI as `via`'s profile, which answers none: the page reads it again.
    */
   clientsMove(kind: CrmKind, ref: string, stage: string, via: CrmVia | null): Promise<CrmCard | null>
+  /** The calls of a CRM card's people, through that CRM's CLI as `via`'s profile; `null` from a CLI too old to say. */
+  clientsCalls(kind: CrmKind, ref: string, via: CrmVia): Promise<ClientCall[] | null>
+  /** One call in the tool that recorded it, as the chosen profile: its `meetings show`, and its transcript if any. */
+  callOpen(tool: string, profile: string, meeting: number, transcript: boolean): Promise<CallOpened>
   /**
    * Whether a CRM account syncs only what is assigned to the owner (`mine`) or everything (`all`), read through its
    * CRM's CLI as `profile`, and whether the app can change it (`why` says why not).

@@ -158,9 +158,13 @@ src-tauri/src/
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
   people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge|links resolve` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
-  person_profile.rs what a match's details compare about one person: memo's `context <ref> --limit 3 --trimmed` and the
-                person's row from `people check -- <name words>`, slimmed to contacts, companies, counts and the latest
-                messages (see "The Contacts page").
+  person_profile.rs what a match's details and a person's card show about one person: memo's `context <ref> --limit
+                10 --trimmed` and the person's row from `people check -- <name words>`, slimmed to contacts, companies,
+                counts, the latest messages and their calls (see "The Contacts page").
+  calls.rs      a client's calls: cli-core's `meetings` on a CRM's `deals show`/`leads show` and on memo's person
+                context (0.650.0 and later; an older CLI names none and the card shows nothing). A call opens in the
+                tool whose catalog `meetings.provider` recorded it, as the profile the owner picks: `meetings show` and
+                `meetings transcript`. Titles and transcripts are other people's words: plain text, never logged.
   memory_review.rs a memory or fact whose source changed: memo's source review read with `review show` and
                 decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
   memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted
@@ -172,7 +176,8 @@ src-tauri/src/
                 dropdown's lists that need no key (Ollama's, OpenRouter's) come from fixed addresses here.
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   crm_board.rs  the Clients page: memo's deals and leads by the owner's base stages, the cards of every pipeline, and
-                moving the owner's own through `<kind>s move`. A CRM's copy is changed by its own CLI (`writer`); a memo
+                moving the owner's own through `<kind>s move`. A CRM's copy is changed, and a card's calls read
+                (`deals show`), by its own CLI (`writer`); a memo
                 older than the catalog's `crmBoard.minVersion` (the first with base stages) is refused.
                 `crm_board/base.rs` alone knows the base-stage commands' argv and JSON.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
@@ -306,6 +311,11 @@ src-tauri/src/
   permissions.rs the Permissions block: each command's level per profile, from the tool's own config.
   zoom_app.rs   what zm needs made in the Zoom App Marketplace, from `zm app --json`.
   cache.rs      what the app remembers about a tool's program while it runs (memory only).
+  command_tree.rs what an installed tool can run, from its own `commands --json`, read once per installed version and
+                only when asked: a feature turns on when the tool lists its command, not by a version written by hand
+                (DEBT-340). `account remove` uses it when the catalog's version says no.
+  tool_network.rs where an installed tool says its data goes: `network` in the package's own
+                `contracts/wirecat.json`, read from disk, never run. A tool that ships none declares nothing.
   window_size.rs the main window's first size, and its saved size and place restored.
   probe.rs      `WIRECAT_PROBES`: the skipped tests that touch the owner's accounts or this computer run only for what it
                 names ([testing.md](guides/testing.md#probes)).

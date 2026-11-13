@@ -1,18 +1,23 @@
 import type { Kind } from "@/domain/clients"
 import { useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
+import { tooOld } from "@/platform/command-error"
+import { ClientCalls } from "@/shared/ClientCalls"
+import { errorText } from "@/shared/errors"
+import { callMessages } from "@/shared/messages-calls"
 import { Button } from "@/ui/Button"
 import { CopyRef } from "@/ui/CopyRef"
 import { Dialog } from "@/ui/Dialog"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
-import { type Based, useBoard, useStageName } from "./api"
+import { type Based, useBoard, useCardCalls, useStageName } from "./api"
 import { useBaseMove } from "./base-move"
 import { CardFacts, OutcomeLamp, StageText } from "./Card"
 import { CardTasks } from "./CardTasks"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
-/** A card's details, from the row the board already read; the whole client context waits for memo's `deals context`. */
+/** A card's details, from the row the board already read, and its people's calls from the CRM's own CLI. */
 export function CardDialog() {
   const m = useMessages(clientMessages)
   const kind = useClients((s) => s.kind)
@@ -41,10 +46,27 @@ export function CardDialog() {
             stage={data?.kind === "base" ? <StageField read={data} kind={kind} card={card} /> : undefined}
           />
           <CardTasks card={card} related={data?.kind === "base" && data.relatedTasks} />
+          {data?.kind === "base" && <CardCalls kind={kind} card={card} pipelines={data.pipelines} />}
         </div>
       )}
     </Dialog>
   )
+}
+
+/**
+ * Calls reach a card through its people: the CRM's own CLI lists theirs. A CLI from before cli-core 0.650.0 names
+ * none, and the card shows nothing, not an error.
+ */
+function CardCalls({ kind, card, pipelines }: { kind: Kind; card: CrmCard; pipelines: Based["pipelines"] }) {
+  const m = useMessages(callMessages)
+  const calls = useCardCalls(kind, card, pipelines)
+  if (calls.isError && !tooOld(calls.error))
+    return (
+      <ErrorNotice inline raw={errorText(calls.error)}>
+        {m.listFailed}
+      </ErrorNotice>
+    )
+  return calls.data ? <ClientCalls calls={calls.data} help={m.dealHelp} /> : null
 }
 
 /** The card's stage, changed in place among its own pipeline's stages, written the way a move on the board is. */

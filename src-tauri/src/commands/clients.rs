@@ -21,6 +21,31 @@ pub async fn clients_move(
     .await
 }
 
+/// The calls of a CRM card's people; `None` when the CRM's CLI is too old to name them.
+#[tauri::command]
+pub async fn clients_calls(
+    kind: CrmKind,
+    reference: String,
+    via: crm_board::CrmVia,
+) -> Result<Option<Vec<crate::calls::ClientCall>>, AppError> {
+    crate::log::command("clients_calls", async move { attempt(move || crm_board::calls(kind, &reference, &via)).await })
+        .await
+}
+
+/// One call, in the tool that recorded it, as the profile the owner chose; the transcript only when it has one.
+#[tauri::command]
+pub async fn call_open(
+    tool: String,
+    profile: String,
+    meeting: u32,
+    transcript: bool,
+) -> Result<crate::calls::CallOpened, AppError> {
+    crate::log::command("call_open", async move {
+        attempt(move || crate::calls::open(&tool, &profile, meeting, transcript)).await
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn clients_scope(
     account: crm_board::CrmAccount,

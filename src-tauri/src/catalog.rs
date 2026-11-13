@@ -65,6 +65,9 @@ pub struct Tool {
     /// A CRM's own CLI: the Clients board moves that CRM's cards and switches its sync scope through it.
     #[serde(default)]
     pub crm: Option<CrmSource>,
+    /// A tool that records calls or meetings: a client's call opens here, by cli-core's provider name (`calls.rs`).
+    #[serde(default)]
+    pub meetings: Option<MeetingsSource>,
     /// Only memo: the People page's lowest memo (`people.rs`); below it the page offers the update instead of a read.
     #[serde(default)]
     pub people: Option<PeopleSource>,
@@ -261,6 +264,16 @@ pub struct CrmBoardSource {
     pub related_tasks: Option<crate::enrichment::Gate>,
 }
 
+/// `{profile}` is the one the owner chose, `{id}` the stored meeting's number as cli-core's `meeting_id` gives it.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingsSource {
+    /// cli-core's provider name on the meetings this tool saves (`zoom`, `asterisk`).
+    pub provider: String,
+    pub show: Vec<String>,
+    pub transcript: Vec<String>,
+}
+
 /// `{profile}` is the one the owner chose, `{ref}` a validated `deal:<id>` or `lead:<id>`, `{stage}` a validated stage
 /// name of the card's own pipeline.
 #[derive(Debug, Deserialize)]
@@ -272,6 +285,11 @@ pub struct CrmSource {
     pub min_version: String,
     pub move_deal: Vec<String>,
     pub move_lead: Vec<String>,
+    /// One card with its people's calls (`meetings`, cli-core 0.650.0 and later); `{ref}` as for a move.
+    #[serde(default)]
+    pub show_deal: Option<Vec<String>>,
+    #[serde(default)]
+    pub show_lead: Option<Vec<String>>,
     pub scope: CrmScopeSource,
 }
 

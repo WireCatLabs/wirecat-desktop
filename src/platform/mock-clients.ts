@@ -1,4 +1,5 @@
 import type { CrmAccount, CrmBaseEdit, CrmCard, CrmKind, CrmRead, CrmStageMap, CrmWritesWith } from "./bindings"
+import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import type { CrmAppliedScope, CrmScope, Platform } from "./types"
@@ -392,6 +393,7 @@ type ClientsApi = Pick<
   Platform,
   | "clientsRead"
   | "clientsMove"
+  | "clientsCalls"
   | "clientsScope"
   | "clientsScopeSet"
   | "clientsMapSet"
@@ -480,6 +482,14 @@ export function clientsMock(writer: CrmWriter = SCENARIO_WRITER, crmCliOld = sce
       if (scenario === "old") return { kind: "old", version: "0.131.54", need: "0.131.71" }
       if (scenario === "fail") throw new Error(BUSY)
       return baseRead(kind)
+    },
+    async clientsCalls(_kind, ref, via) {
+      await delay(400)
+      const pipe = ALL_PIPES.find((p) => p.ref === cards.find((c) => c.ref === ref)?.pipeline)
+      if (!writesWithOf(writer, pipe?.account ?? null)?.profiles.includes(via.profile)) {
+        throw new Error(`${ref} is not a deal of this CRM account (not_found)`)
+      }
+      return mockCalls()
     },
     async clientsMove(_kind, ref, given, via) {
       await delay(600)

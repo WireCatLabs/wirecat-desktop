@@ -1,12 +1,10 @@
 name: Security
 
 # The checks the CLIs run before each release (cli-base release-checks: CodeQL, gitleaks, zizmor, pnpm audit), plus the
-# Rust advisories they have no step for. Release calls this before any build gets the signing keys.
+# Rust advisories they have no step for. Release calls this before any build gets the signing keys; the weekly run
+# catches a new advisory between releases. Not on pull requests: WC-CI-10 keeps security checks to releases (PERF-105).
 # Method and results: cli-testing docs/security/METHOD.md; the runs themselves are private.
 on:
-  pull_request:
-  push:
-    branches: [main]
   schedule:
     # Weekly, so a new advisory against an unchanged lockfile still shows up between releases.
     - cron: "17 6 * * 1"

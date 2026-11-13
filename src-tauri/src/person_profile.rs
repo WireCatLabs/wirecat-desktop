@@ -6,8 +6,8 @@ use crate::people::{Call, person_ref, text, with_memo};
 use serde::Serialize;
 use serde_json::Value;
 
-/// Messages and events of each kind memo reads; the dialog shows the newest few.
-const CONTEXT_LIMIT: &str = "3";
+/// Messages, events and calls of each kind memo reads: the dialogs show the newest few messages and every call read.
+const CONTEXT_LIMIT: &str = "10";
 const RECENT_SHOWN: usize = 3;
 /// `people check` gives at most 50 people with a name like the words; the person is found among them by ref.
 const CHECK_LIMIT: &str = "50";
@@ -49,6 +49,8 @@ pub struct Profile {
     pub tasks_more: bool,
     pub deals: u64,
     pub recent: Vec<Recent>,
+    /// Their calls and recorded meetings, newest first; `None` from a memo before cli-core 0.650.0, which reads none.
+    pub meetings: Option<Vec<crate::calls::ClientCall>>,
 }
 
 fn clipped(s: &str) -> String {
@@ -149,6 +151,7 @@ fn profile_of(context: &Value, row: Option<&Value>) -> Profile {
     recent.sort_by(|a, b| b.at.cmp(&a.at));
     recent.truncate(RECENT_SHOWN);
     p.recent = recent;
+    p.meetings = crate::calls::calls_of(&item["messages"]);
     p
 }
 
@@ -276,6 +279,19 @@ mod tests {
     }
 
     #[test]
+    fn a_memo_on_cli_core_0_650_lists_their_calls_and_an_older_one_none() {
+        assert_eq!(profile_of(&context(), None).meetings, None);
+        let mut v = context();
+        v["item"]["messages"]["meetings"] = json!([
+            { "ref": "meeting:4/77", "meeting_id": 77, "account": { "provider": "asterisk", "account": "office" },
+              "title": "+34 600 111 222 → 201", "started_at": "2026-11-12T09:30:00.000Z", "duration_ms": 184_000,
+              "has_transcript": true, "event": null, "people": ["person:7"] }
+        ]);
+        let calls = profile_of(&v, None).meetings.unwrap();
+        assert_eq!((calls[0].meeting_id, calls[0].tool.as_deref()), (77, Some("pbx")));
+    }
+
+    #[test]
     fn reads_the_context_then_finds_the_row_by_ref_among_people_with_that_name() {
         let seen = Mutex::new(Vec::<Vec<String>>::new());
         let call = |a: &[String]| {
@@ -289,7 +305,7 @@ mod tests {
         let p = profile_with(&call, "person:7").unwrap();
         assert_eq!(p.messages_from, Some(120));
         let seen = seen.lock().unwrap();
-        assert_eq!(seen[0], ["context", "person:7", "--limit", "3", "--trimmed", "--json", "--no-record"]);
+        assert_eq!(seen[0], ["context", "person:7", "--limit", "10", "--trimmed", "--json", "--no-record"]);
         assert_eq!(seen[1], ["people", "check", "--json", "--no-record", "--limit", "50", "--", "Lena", "Ortiz"]);
     }
 

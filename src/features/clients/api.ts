@@ -135,6 +135,18 @@ export function useCardMove(
   return { run, chosen }
 }
 
+/** The calls of a CRM card's people, read when its dialog opens; the owner's own card has no CRM to ask. */
+export function useCardCalls(kind: Kind, card: CrmCard, pipelines: readonly CrmPipeline[]) {
+  const { profile } = useWriter(card.account, pipelines)
+  const via = card.account && profile ? { account: card.account, profile } : null
+  return useQuery({
+    queryKey: ["clients", "calls", kind, card.ref, profile] as const,
+    queryFn: () => (via ? platform.clientsCalls(kind, card.ref, via) : Promise.resolve(null)),
+    enabled: via !== null,
+    staleTime: 60_000,
+  })
+}
+
 export const useScope = (account: CrmAccount | null, profile: string | null) =>
   useQuery({
     queryKey: account ? clientKeys.scope(account, profile) : ["clients", "scope", "own"],

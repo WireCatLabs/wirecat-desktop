@@ -1453,6 +1453,11 @@
           }
         ]
       },
+      "meetings": {
+        "provider": "zoom",
+        "show": ["{profile}", "meetings", "show", "{id}", "--no-record", "--json"],
+        "transcript": ["{profile}", "meetings", "transcript", "{id}", "--no-record", "--json"]
+      },
       "accountRemove": {
         "signOut": null,
         "remove": {
@@ -1955,7 +1960,7 @@
     {
       "id": "email",
       "name": "Email",
-      "tagline": "Gmail, Outlook and IMAP\u00a0· search\u00a0· whole threads",
+      "tagline": "Your mailbox over IMAP, searchable on your computer",
       "bin": "mail",
       "package": "@wirecat/mail-cli",
       "summary": "Gmail, Outlook and other IMAP mail copied to your computer: search it offline, read whole threads, and see how far each sync got. Syncing never changes your mailbox.",
@@ -2287,6 +2292,8 @@
         "minVersion": "0.11.0",
         "moveDeal": ["{profile}", "deals", "move", "{ref}", "{stage}", "--record", "--json"],
         "moveLead": ["{profile}", "leads", "move", "{ref}", "{stage}", "--record", "--json"],
+        "showDeal": ["{profile}", "deals", "show", "{ref}", "--no-record", "--json"],
+        "showLead": ["{profile}", "leads", "show", "{ref}", "--no-record", "--json"],
         "scope": {
           "minVersion": "0.12.0",
           "show": ["{profile}", "config", "show", "--no-record", "--json"],
@@ -2372,6 +2379,11 @@
             "stdin": true
           }
         ]
+      },
+      "meetings": {
+        "provider": "asterisk",
+        "show": ["{profile}", "meetings", "show", "{id}", "--no-record", "--json"],
+        "transcript": ["{profile}", "meetings", "transcript", "{id}", "--no-record", "--json"]
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],

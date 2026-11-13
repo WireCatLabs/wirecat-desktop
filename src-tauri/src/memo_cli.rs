@@ -26,12 +26,18 @@ impl Failure {
 
     /// A Memo from before the command: commander's own words, before any of Memo's.
     pub fn unknown_command(&self) -> bool {
-        unknown_to_cli(&self.message)
+        too_old(self.reason.as_deref(), &self.message)
     }
 }
 
+/// The installed CLI lacks a command or an option the app passes: it is older than the app expects, not broken.
+/// cli-core 0.648.0 and later name it by reason; an older CLI says it only in commander's English.
+pub fn too_old(reason: Option<&str>, text: &str) -> bool {
+    matches!(reason, Some("usage.unknown-command" | "usage.unknown-option")) || unknown_to_cli(text)
+}
+
 /// What commander, which every `WireCat` CLI parses its words with, says when the installed version lacks a command or
-/// an option the app passes: the tool is older than the app expects, not broken.
+/// an option the app passes. Only for a CLI from before the `usage.*` reasons: `too_old` reads the reason first.
 pub fn unknown_to_cli(text: &str) -> bool {
     ["unknown command", "unknown option", "too many arguments"].iter().any(|w| text.contains(w))
 }
