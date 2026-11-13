@@ -66,7 +66,7 @@ const update: Notification = {
   expiresAt: null,
 }
 
-export const notificationsMock: Pick<Platform, "notifications"> = {
+export const notificationsMock: Pick<Platform, "notifications" | "dockBadge"> = {
   async notifications() {
     await delay(300)
     if (mode === "fail") throw new Error("Could not reach the WireCat server: connection refused")
@@ -74,4 +74,5 @@ export const notificationsMock: Pick<Platform, "notifications"> = {
     if (mode === "security" || mode === "open") return [security, update, welcome]
     return [welcome]
   },
+  async dockBadge() {},
 }

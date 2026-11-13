@@ -90,3 +90,20 @@ pub async fn autostart_set(app: tauri::AppHandle, on: bool) -> Result<bool, AppE
     )
     .await
 }
+
+/// The bell's unread count on the app icon; 0 takes the badge away.
+#[tauri::command]
+#[cfg(target_os = "linux")]
+pub async fn dock_badge(count: u32) -> Result<(), AppError> {
+    crate::log::command("dock_badge", attempt(move || crate::dock_badge::set(count))).await
+}
+
+/// Tauri's own badge works on macOS; Windows has none (only an overlay icon), so there the call does nothing.
+#[tauri::command]
+#[cfg(not(target_os = "linux"))]
+pub fn dock_badge(app: tauri::AppHandle, count: u32) {
+    use tauri::Manager;
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_badge_count((count > 0).then_some(i64::from(count)));
+    }
+}

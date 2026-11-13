@@ -81,6 +81,10 @@ tauri-plugin-autostart = "2.7.0"
 # A second launch, such as the system opening a wirecat:// link, hands its link to the running window instead.
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
+[target."cfg(target_os = \"linux\")".dependencies]
+# The dock's unread count (dock_badge.rs); zbus 5 is already in the build through the opener and single-instance.
+zbus = "5"
+
 [target."cfg(unix)".dependencies]
 libc = "0.2"
 

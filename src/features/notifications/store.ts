@@ -80,3 +80,17 @@ export const useNotifications = create<NotificationsState>()(
     },
   ),
 )
+
+/** Keeps the dock's badge on the app icon equal to the bell's unread count; returns the function that stops it. */
+export function followDockBadge() {
+  let sent: number | undefined
+  const send = (s: NotificationsState) => {
+    const count = unread(s).length
+    if (count === sent) return
+    sent = count
+    // A dock that cannot be told only misses a number; Rust logs why.
+    platform.dockBadge(count).catch(() => {})
+  }
+  send(useNotifications.getState())
+  return useNotifications.subscribe(send)
+}

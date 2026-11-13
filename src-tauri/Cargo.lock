@@ -6093,6 +6093,7 @@ dependencies = [
  "windows-sys 0.61.2",
  "winreg",
  "x509-parser",
+ "zbus 5.19.0",
  "zeroize",
  "zip",
 ]

@@ -29,6 +29,8 @@ mod digest_editors;
 mod digest_routes;
 mod digest_schedule;
 mod digests;
+#[cfg(target_os = "linux")]
+mod dock_badge;
 mod drive_folders;
 mod enrichment;
 mod error;
@@ -448,13 +450,16 @@ pub fn run() {
             commands::sync::sync_schedule_set,
             commands::sync::sync_schedule_test,
             commands::app::autostart_status,
-            commands::app::autostart_set
+            commands::app::autostart_set,
+            commands::app::dock_badge
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_, event| {
             if let tauri::RunEvent::Exit = event {
                 digests::unmark_running();
+                #[cfg(target_os = "linux")]
+                let _ = dock_badge::set(0);
                 memo_server::stop_all();
             }
         });

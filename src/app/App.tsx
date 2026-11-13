@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react"
 import { AboutDialog, docsPage } from "@/features/about"
 import { useDigestWatch } from "@/features/digests"
 import { useDeepLinks } from "@/features/links"
-import { Bell, CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications"
+import { Bell, followDockBadge, CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications"
 import { type HelpActions, HelpMenu, Onboarding, resumeSetup, SetupSteps, Tour, useTour } from "@/features/onboarding"
 import { PrivacyDialog } from "@/features/privacy"
 import { ReportDialog } from "@/features/report"
@@ -95,6 +95,7 @@ function Shell() {
     const timer = setInterval(check, NEWS_EVERY_MS)
     return () => clearInterval(timer)
   }, [])
+  useEffect(() => followDockBadge(), [])
 
   return (
     <div className="flex h-full">

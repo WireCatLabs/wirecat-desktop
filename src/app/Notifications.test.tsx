@@ -50,6 +50,27 @@ describe("App notifications", () => {
     expect(screen.getByRole("button", { name: "Notifications" })).toHaveFocus()
   })
 
+  it("puts the bell's unread count on the dock icon, and takes it away once the bell is opened", async () => {
+    const info = { ...security, id: "info-1", severity: "info" as const, title: { en: "Search arrives" } }
+    const read = { ...security, id: "read-1", title: { en: "Read before" } }
+    useNotifications.setState({ read: ["read-1"] })
+    vi.spyOn(platform, "notifications").mockResolvedValue([security, info, read])
+    const dock = vi.spyOn(platform, "dockBadge").mockResolvedValue()
+    const user = userEvent.setup()
+    render(<App />)
+
+    const bell = await screen.findByRole("button", { name: "Notifications, a security notice is unread" })
+    expect(dock).toHaveBeenNthCalledWith(1, 0)
+    expect(dock).toHaveBeenLastCalledWith(2)
+    useNotifications.setState({ items: [info, read] })
+    expect(await screen.findByRole("button", { name: "Notifications, 1 unread" })).toBeInTheDocument()
+    expect(dock).toHaveBeenLastCalledWith(1)
+
+    await user.click(bell)
+    expect(dock).toHaveBeenLastCalledWith(0)
+    expect(dock).toHaveBeenCalledTimes(4)
+  })
+
   it("removes a notification for good when the owner dismisses it", async () => {
     vi.spyOn(platform, "notifications").mockResolvedValue([security])
     const user = userEvent.setup()
