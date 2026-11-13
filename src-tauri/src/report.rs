@@ -12,6 +12,9 @@ const RUNS_PER_TOOL: u32 = 20;
 // The dialog waits for this; a tool that answers later is left out rather than holding the report up.
 const RUNS_WAIT: Duration = Duration::from_secs(10);
 const MAX_BODY: usize = 1024 * 1024;
+// A dead address fails fast; a full report on a slow or VPN link still has time to upload.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// Everything about this computer a report carries, masked, so the dialog can show it before anything is sent.
 #[derive(Serialize, Deserialize)]
@@ -105,7 +108,8 @@ pub fn send(mut draft: Draft, mut context: Context) -> Result<Sent, String> {
     let url = format!("{}/v1/reports", api_base()?);
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .http_status_as_error(false)
-        .timeout_global(Some(Duration::from_secs(30)))
+        .timeout_connect(Some(CONNECT_TIMEOUT))
+        .timeout_global(Some(SEND_TIMEOUT))
         // A redirect could carry the report to another host, or to plain http.
         .max_redirects(0)
         .build()
@@ -452,6 +456,14 @@ fn is_uuid(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_full_report_uploads_in_time_on_a_slow_link() {
+        let slow_link_bytes_per_sec = 128_000 / 8;
+        let upload = Duration::from_secs((MAX_BODY / slow_link_bytes_per_sec) as u64);
+        assert!(upload < SEND_TIMEOUT, "{upload:?} to upload {MAX_BODY} bytes, {SEND_TIMEOUT:?} allowed");
+        assert!(CONNECT_TIMEOUT < SEND_TIMEOUT);
+    }
 
     fn draft(summary: &str, details: &str) -> Draft {
         Draft {
