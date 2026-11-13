@@ -149,7 +149,7 @@ export function JsonEditor({ id, errors, label, value, onChange, onSave, marks, 
 
   return (
     <div>
-      <search className="flex items-center gap-2 border-line border-b bg-app-2 px-3 py-1.5">
+      <search className="flex items-center gap-2 border-line border-b bg-app-2 px-3 py-1.5 focus-within:border-brand">
         <Search className="size-4 shrink-0 text-ink-dim" aria-hidden />
         <label htmlFor={findId} className="sr-only">
           {m.find}

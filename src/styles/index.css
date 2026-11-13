@@ -223,6 +223,18 @@ body {
   outline: none;
 }
 
+/* Every text field shows focus with its own border, never the ring 2px outside it: border and ring read as a double
+   outline (owner, 2026-11-13), and a box that clips while it animates cut the ring's edge off. A field with an error
+   keeps its red border. Written for all fields, so a field styled by hand cannot bring the ring back. */
+:is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select):focus-visible {
+  outline: none;
+}
+:is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select):focus-visible:not(
+  [aria-invalid="true"]
+) {
+  border-color: var(--brand);
+}
+
 /* A scrolling box clips what falls outside it, so the ring is drawn inside the row. Unlayered, like the rule it changes. */
 .ring-inside :focus-visible {
   outline-offset: -2px;

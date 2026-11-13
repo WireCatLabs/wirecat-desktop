@@ -21,6 +21,20 @@ export function portalHost(typed: string): string | null {
   return shaped ? host : null
 }
 
+export type PortalProblem = "empty" | "notDomain" | "path"
+
+/**
+ * What is wrong with a typed portal address, or null. Only the domain is asked for: a scheme and one closing slash are
+ * forgiven, as a browser shows them, but a path is refused rather than silently cut, so the owner sees what is kept.
+ */
+export function portalProblem(typed: string): PortalProblem | null {
+  const text = typed.trim()
+  if (!text) return "empty"
+  if (!portalHost(text)) return "notDomain"
+  const rest = text.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "").replace(/^[^/?#]*/, "")
+  return rest === "" || rest === "/" ? null : "path"
+}
+
 /**
  * The portal's Developer resources, where Other → Incoming webhook is. Only the menu path is documented
  * (apidocs.bitrix24.com/local-integrations/local-webhooks.html); `/devops/` is the section's address on the portal.

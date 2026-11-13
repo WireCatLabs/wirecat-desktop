@@ -382,6 +382,7 @@ Four steps joined by a 2px track. Done is a green dot with a check, active is a 
 
 - **Style:** 2rem tall, `app` fill, `line-strong` border, 0.35rem corners, mono text with an Onest placeholder in `ink-dim`.
 - **Error:** the border turns red and a one-line red hint appears below.
+- **Focus:** the field's own border turns purple; no ring around it, which would read as a second outline. One unlayered rule in `index.css` covers every text field, hand-styled ones too; a field with an error keeps its red border.
 - **Copy field:** a command in mono on `app-2` with a `line` border and an icon button that swaps to a green check for 1.6s.
 - **No native controls.** WebKitGTK and Windows paint their own date pickers, checkboxes, radios, search crosses and
   sliders, which ignore the theme. Dates use `Calendar` / `DateField` / `DatePopover` (`src/ui/Calendar.tsx`: a month of
@@ -398,7 +399,7 @@ Sidebar sections on the wall: a line icon (1.55rem, stroke 1.6) and label. Curre
 
 ### Dialogs
 
-The platform's modal dialog: `app` fill, `line` border, 0.6rem corners, the panel shadow, a 40% black backdrop with a 1px blur, max 32rem wide. A semibold title, body prose in `ink-soft`, actions right-aligned with the safe choice (secondary, focused first) left of the destructive one.
+The platform's modal dialog: `app` fill, `line` border, 0.6rem corners, the panel shadow, a 40% black backdrop with a 1px blur, max 32rem wide. A semibold title, body prose in `ink-soft`, actions right-aligned with the safe choice (secondary, focused first) left of the destructive one. A wizard's footer keeps its moves together on the right: Back (`BackButton`, `src/ui/BackButton.tsx`), then Cancel, then Next; the setup's full-page footer orders Back, Skip, Continue the same way.
 
 ### Motion
 

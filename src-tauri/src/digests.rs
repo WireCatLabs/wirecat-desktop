@@ -228,20 +228,28 @@ fn one_line(s: &str, limit: usize) -> String {
     s.chars().filter(|c| !c.is_control()).take(limit).collect()
 }
 
-/// A system notification for a new digest; a click opens its day. The words come from the interface, in its language.
-pub fn notify(app: &tauri::AppHandle, date: &str, title: &str, body: &str, open: &str) -> Result<(), String> {
-    if !deep_link::is_date(date) {
-        return Err(format!("not a day: {date}"));
-    }
+fn notice(title: &str, body: &str, open: &str) -> notify_rust::Notification {
     let mut note = notify_rust::Notification::new();
     note.summary(&one_line(title, 120))
         .body(&one_line(body, 240))
         .appname("WireCat")
         .action("default", &one_line(open, 40));
+    // GNOME keeps a notice in its list until it is opened, and the Ubuntu dock counts that list on WireCat's icon: a
+    // "1" there that the bell does not show. The digest stays on its own page, so the notice leaves with its banner.
+    #[cfg(all(unix, not(target_os = "macos")))]
+    note.hint(notify_rust::Hint::Transient(true));
     // An installed copy is registered under the bundle identifier; a dev build would fail to show under it.
     #[cfg(all(windows, not(debug_assertions)))]
     note.app_id("dev.wirecat.desktop");
-    let handle = note.show().map_err(|e| e.to_string())?;
+    note
+}
+
+/// A system notification for a new digest; a click opens its day. The words come from the interface, in its language.
+pub fn notify(app: &tauri::AppHandle, date: &str, title: &str, body: &str, open: &str) -> Result<(), String> {
+    if !deep_link::is_date(date) {
+        return Err(format!("not a day: {date}"));
+    }
+    let handle = notice(title, body, open).show().map_err(|e| e.to_string())?;
     let app = app.clone();
     let date = date.to_string();
     // Linux and macOS answer "default" for a click on the notice, Windows for its Open button; until the owner acts or
@@ -259,6 +267,13 @@ pub fn notify(app: &tauri::AppHandle, date: &str, title: &str, body: &str, open:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    #[test]
+    fn the_digest_notice_does_not_stay_in_the_list_the_dock_counts() {
+        let note = notice("Digest", "Two things", "Open");
+        assert!(note.hints.contains(&notify_rust::Hint::Transient(true)));
+    }
 
     #[test]
     fn a_summary_in_the_list_is_plain_text_without_markdown_marks() {

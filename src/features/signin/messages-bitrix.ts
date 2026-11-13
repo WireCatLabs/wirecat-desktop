@@ -9,8 +9,10 @@ const en = {
     lead: "The address you open Bitrix24 at. The next step's links lead to it.",
     label: "Portal address",
     placeholder: "mycompany.bitrix24.ru",
-    hint: "A whole address copied from the browser works too: only the portal's name is kept.",
+    hint: "Only the domain, such as mycompany.bitrix24.ru, with nothing after it.",
     missing: "Enter your portal's address, such as mycompany.bitrix24.ru.",
+    notDomain: "This is not a portal's address. Type its domain, such as mycompany.bitrix24.ru.",
+    path: (host: string) => `Remove everything after ${host}: the address is the domain alone.`,
     way: "How to sign in",
     ways: {
       webhook: { name: "Incoming webhook", detail: "Quickest. Acts as the employee who makes it." },
@@ -26,7 +28,8 @@ const en = {
     steps: {
       open: (host: string) => `Open Developer resources on ${host}.`,
       other: "Choose Other, then Incoming webhook.",
-      rights: "Under the rights, tick these three. The list has a search field: the code finds each one.",
+      rights:
+        "At the bottom of the page, under Assign permissions, press the + link beside the field. A list with a search field opens: type each code below, user_basic, crm and department, and tick it.",
       save: (host: string) => `Press Save, then copy the webhook's address. It starts with https://${host}/rest/.`,
     },
     scopes: {
@@ -35,6 +38,11 @@ const en = {
       department: "Company structure",
     } as Record<WebhookScope, string>,
     copyCode: (code: string) => `Copy ${code}`,
+    shot: {
+      alt: "Bitrix24's Incoming webhook page. At the bottom, under the permissions, Users (basic) user_basic, CRM crm and Company structure department are chosen.",
+      caption: "The three permissions, chosen",
+    },
+    enlarge: (caption: string) => `Enlarge: ${caption}`,
     acts: "The agent acts with the rights of the employee who makes the webhook: it sees and changes only what they can.",
     admin: "Only a webhook made by a portal administrator can delete or merge records in the CRM.",
     noItem:
@@ -150,8 +158,10 @@ const ru: BitrixText = {
     lead: "Адрес, по которому вы открываете Битрикс24. Ссылки следующего шага ведут на него.",
     label: "Адрес портала",
     placeholder: "mycompany.bitrix24.ru",
-    hint: "Подойдет и полный адрес из браузера: сохраняется только имя портала.",
+    hint: "Только домен, например mycompany.bitrix24.ru, и ничего после него.",
     missing: "Введите адрес портала, например mycompany.bitrix24.ru.",
+    notDomain: "Это не адрес портала. Введите его домен, например mycompany.bitrix24.ru.",
+    path: (host) => `Уберите всё после ${host}: адрес портала это только домен.`,
     way: "Как войти",
     ways: {
       webhook: { name: "Входящий вебхук", detail: "Быстрее всего. Действует от имени сотрудника, создавшего его." },
@@ -167,15 +177,21 @@ const ru: BitrixText = {
     steps: {
       open: (host) => `Откройте раздел «Разработчикам» на ${host}.`,
       other: "Выберите «Другое», затем «Входящий вебхук».",
-      rights: "В правах доступа отметьте эти три. В списке есть поиск: каждое находится по коду.",
+      rights:
+        "Внизу страницы, в разделе «Настройка прав», нажмите «+ выбрать» рядом с полем. Откроется список с поиском: введите по очереди коды user_basic, crm и department и выберите каждое право.",
       save: (host) => `Нажмите «Сохранить» и скопируйте адрес вебхука. Он начинается с https://${host}/rest/.`,
     },
     scopes: {
       crm: "CRM",
-      user_basic: "Пользователи (базовые)",
+      user_basic: "Пользователи (базовый)",
       department: "Структура компании",
     },
     copyCode: (code) => `Скопировать ${code}`,
+    shot: {
+      alt: "Страница «Входящий вебхук» в Битрикс24. Внизу, в разделе «Настройка прав», выбраны «Пользователи (базовый) (user_basic)», «CRM (crm)» и «Структура компании (department)».",
+      caption: "Три права выбраны",
+    },
+    enlarge: (caption) => `Увеличить: ${caption}`,
     acts: "Агент действует с правами сотрудника, создавшего вебхук: видит и меняет только то, что может он.",
     admin: "Удалять и объединять записи в CRM может только вебхук администратора портала.",
     noItem:
@@ -203,7 +219,7 @@ const ru: BitrixText = {
     scope: {
       title: "Вебхуку не хватает права читать пользователей.",
       cause:
-        "В Битрикс24 откройте вебхук, отметьте «Пользователи (базовые)», user_basic, и сохраните. Адрес не изменится: нажмите «Проверить снова».",
+        "В Битрикс24 откройте вебхук, отметьте «Пользователи (базовый)», user_basic, и сохраните. Адрес не изменится: нажмите «Проверить снова».",
     },
     refused: {
       title: "Битрикс24 отклонил этот вебхук.",
@@ -263,7 +279,7 @@ const ru: BitrixText = {
       scope: {
         title: "Приложению не хватает права читать пользователей.",
         cause:
-          "В Битрикс24 откройте приложение, отметьте «Пользователи (базовые)», user_basic, сохраните и войдите снова.",
+          "В Битрикс24 откройте приложение, отметьте «Пользователи (базовый)», user_basic, сохраните и войдите снова.",
       },
       invalid: {
         title: "Инструмент Битрикс24 не принял введенное.",
@@ -289,8 +305,10 @@ const es: BitrixText = {
     lead: "La dirección con la que abres Bitrix24. Los enlaces del siguiente paso llevan a ella.",
     label: "Dirección del portal",
     placeholder: "mycompany.bitrix24.es",
-    hint: "También vale la dirección completa copiada del navegador: solo se guarda el nombre del portal.",
+    hint: "Solo el dominio, por ejemplo mycompany.bitrix24.es, sin nada detrás.",
     missing: "Escribe la dirección de tu portal, por ejemplo mycompany.bitrix24.es.",
+    notDomain: "Esto no es la dirección de un portal. Escribe su dominio, por ejemplo mycompany.bitrix24.es.",
+    path: (host) => `Quita todo lo que va después de ${host}: la dirección es solo el dominio.`,
     way: "Cómo iniciar sesión",
     ways: {
       webhook: { name: "Webhook entrante", detail: "Lo más rápido. Actúa como el empleado que lo crea." },
@@ -306,7 +324,8 @@ const es: BitrixText = {
     steps: {
       open: (host) => `Abre Recursos para desarrolladores en ${host}.`,
       other: "Elige Otro y luego Webhook entrante.",
-      rights: "En los permisos, marca estos tres. La lista tiene un buscador: el código encuentra cada uno.",
+      rights:
+        "Al final de la página, en la sección de permisos, pulsa el enlace + junto al campo. Se abre una lista con buscador: escribe uno a uno los códigos user_basic, crm y department y elige cada permiso.",
       save: (host) => `Pulsa Guardar y copia la dirección del webhook. Empieza por https://${host}/rest/.`,
     },
     scopes: {
@@ -315,6 +334,11 @@ const es: BitrixText = {
       department: "Estructura de la empresa",
     },
     copyCode: (code) => `Copiar ${code}`,
+    shot: {
+      alt: "La página Webhook entrante de Bitrix24. Abajo, en los permisos, están elegidos Usuarios (básico) user_basic, CRM crm y Estructura de la empresa department.",
+      caption: "Los tres permisos, elegidos",
+    },
+    enlarge: (caption) => `Ampliar: ${caption}`,
     acts: "El agente actúa con los permisos del empleado que crea el webhook: ve y cambia solo lo que esa persona puede.",
     admin: "Solo un webhook creado por un administrador del portal puede borrar o fusionar registros en el CRM.",
     noItem:

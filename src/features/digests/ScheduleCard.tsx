@@ -34,7 +34,7 @@ import { MORNING, specOf, useDigestBook } from "./schedule-store"
 type RouteKind = Route["kind"]
 const PREFIX: Record<RouteKind, string> = { telegramBot: "telegram-bot", email: "email" }
 const input =
-  "h-8 rounded-pill border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand aria-[invalid=true]:border-bad"
+  "h-8 rounded-pill border border-line-strong bg-app px-2 text-[0.9rem] text-ink aria-[invalid=true]:border-bad"
 const MAX_TIMES = 6
 
 export const routeLabel = (r: { kind: RouteKind; profile: string; to: string }, m: ScheduleText) =>

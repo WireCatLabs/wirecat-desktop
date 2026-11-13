@@ -19,6 +19,7 @@ import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { Disclosure } from "@/ui/Disclosure"
 import { useFieldError } from "@/ui/FieldError"
+import { wideFieldClass } from "@/ui/field"
 import { AsteriskSource } from "./AsteriskSource"
 import { BitrixSteps } from "./BitrixSteps"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
@@ -27,9 +28,6 @@ import { type PlanText, planFor, planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { needFor, wizardMessages } from "./messages-wizard"
 import { routeOf } from "./wizard"
-
-const FIELD =
-  "selectable h-10 w-full rounded-control border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 /** Before anything runs: the steps the sign-in will take, how long, and what happens to what the owner shares. */
 export function Plan() {
@@ -224,7 +222,7 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
             value={address}
             onChange={(e) => useSignIn.setState({ address: e.target.value, planMissing: null })}
             {...addressNeed.field}
-            className={FIELD}
+            className={wideFieldClass}
           />
           {addressNeed.hint}
         </>
@@ -246,7 +244,7 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
               useSignIn.setState({ planMissing: null })
             }}
             {...passwordNeed.field}
-            className={FIELD}
+            className={wideFieldClass}
           />
           {passwordNeed.hint}
         </>
@@ -404,7 +402,7 @@ function OwnApp({
               onChange={(e) => useSignIn.setState({ ownId: e.target.value, planError: null })}
               aria-invalid={planError !== null}
               aria-describedby={`${id}-hint`}
-              className={FIELD}
+              className={wideFieldClass}
             />
             <p id={`${id}-hint`} className="text-[0.9rem] text-ink-soft">
               {planError ? (

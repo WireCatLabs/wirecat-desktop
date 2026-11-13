@@ -178,7 +178,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
               maxLength={80}
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand"
+              className="inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem]"
             />
           )}
         </div>
@@ -284,7 +284,7 @@ function AddRole({ list, taken, onAdded }: { list: string; taken: readonly strin
               }}
               {...need.field}
               className={cx(
-                "inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
+                "inner-field h-[2.4rem] rounded-control border border-line-strong bg-app px-[0.6rem] text-[0.95rem]",
                 invalidBorder,
               )}
             />
