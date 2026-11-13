@@ -5,7 +5,7 @@ export function ruleMaker(source: string | null): RuleMaker {
   // `rules add` records a source only with --kind, so a rule without one was added by hand.
   if (source === null || source === "owner") return { by: "you" }
   if (source.startsWith("preset:")) return { by: "preset" }
-  if (source === "probe") return { by: "agent" }
+  if (source === "probe" || source === "agent") return { by: "agent" }
   if (source === "gmail-filter") return { by: "gmail" }
   return { by: "other", source }
 }

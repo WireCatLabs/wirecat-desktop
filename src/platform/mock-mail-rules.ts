@@ -3,7 +3,7 @@ import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
 // mail-cli's `rules list` on Email's accounts (`?accounts=email`, then "Mail rules" in an account's menu): a protected
-// sender, Telemost meeting notes, an envelope rule with what it recorded, a built-in kind and a Gmail filter.
+// sender, Telemost meeting notes (keep and protected, as `rules add --meeting-notes telemost` makes them), an envelope rule with what it recorded, a built-in kind and a Gmail filter.
 // `?mail-rules=none` has no rules, `fail` refuses (another sync holds the store), `old` is a mail-cli without
 // `rules list`, `many` has 60 rules, so the list pages.
 const rule = (over: Partial<MailRule> & Pick<MailRule, "conditions" | "action">): MailRule => ({
@@ -31,6 +31,7 @@ const RULES: MailRule[] = [
     id: 7,
     conditions: [{ key: "from", value: "keeper@telemost.yandex.ru" }],
     action: "keep",
+    protected: true,
     meetingNotes: "telemost",
     source: "owner",
     decidedAt: "2026-11-13T07:45:00.000Z",

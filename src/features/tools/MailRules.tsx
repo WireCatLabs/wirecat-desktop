@@ -20,7 +20,6 @@ import { mailRulesMessages } from "./messages-mail-rules"
 
 const PAGE = 25
 const SKELETON_ROWS = 3
-const TELEMOST_SENDER = "keeper@telemost.yandex.ru"
 
 /**
  * One mailbox's rules as mail-cli's `rules list` answers them, read only: what each matches, what it does and who made
@@ -76,11 +75,7 @@ export function MailRules(props: { tool: CatalogTool; profile: string; onClose: 
       {!tooOld && (
         <div className="flex flex-col gap-1.5">
           <p className="max-w-[65ch] text-[0.85rem] leading-snug text-ink-soft">{m.addHint}</p>
-          <CopyField
-            wrap
-            label={m.addLabel}
-            value={`${tool.bin} ${profile} rules add --sender ${TELEMOST_SENDER} --do keep --meeting-notes telemost`}
-          />
+          <CopyField wrap label={m.addLabel} value={`${tool.bin} ${profile} rules add --meeting-notes telemost`} />
         </div>
       )}
 

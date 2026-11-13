@@ -7,6 +7,7 @@ describe("mail rules in words", () => {
     expect(ruleMaker("owner")).toEqual({ by: "you" })
     expect(ruleMaker("preset:social")).toEqual({ by: "preset" })
     expect(ruleMaker("probe")).toEqual({ by: "agent" })
+    expect(ruleMaker("agent")).toEqual({ by: "agent" })
     expect(ruleMaker("gmail-filter")).toEqual({ by: "gmail" })
     expect(ruleMaker("import")).toEqual({ by: "other", source: "import" })
   })

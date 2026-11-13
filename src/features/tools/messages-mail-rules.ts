@@ -19,7 +19,8 @@ const en = {
   what: "Which mail this mailbox stores whole, keeps as an envelope (sender, date and size, no text) or skips. Each sync follows them.",
   close: "Close mail rules",
   loading: "Reading mail rules…",
-  addHint: "Rules are added and changed in a terminal. For example, this one saves Telemost meeting notes from mail:",
+  addHint:
+    "Rules are added and changed in a terminal. For example, this one saves Telemost meeting notes from mail as meetings and keeps those emails whole and protected:",
   addLabel: "Copy the command",
   none: "No rules yet",
   noneText: "This mailbox stores all its mail whole.",
@@ -59,7 +60,8 @@ const ru: typeof en = {
   what: "Какие письма этот ящик хранит целиком, какие только конвертом (отправитель, дата и размер, без текста), а какие пропускает. Каждая синхронизация следует им.",
   close: "Закрыть правила почты",
   loading: "Читаем правила почты…",
-  addHint: "Правила добавляют и меняют в терминале. Например, это правило сохраняет итоги встреч Телемоста из почты:",
+  addHint:
+    "Правила добавляют и меняют в терминале. Например, это правило сохраняет итоги встреч Телемоста из почты как встречи, а сами письма хранит целиком и под защитой:",
   addLabel: "Скопировать команду",
   none: "Правил пока нет",
   noneText: "Этот ящик хранит все письма целиком.",
@@ -114,7 +116,7 @@ const es: typeof en = {
   close: "Cerrar las reglas de correo",
   loading: "Leyendo las reglas de correo…",
   addHint:
-    "Las reglas se añaden y cambian en una terminal. Por ejemplo, esta guarda las notas de reuniones de Telemost desde el correo:",
+    "Las reglas se añaden y cambian en una terminal. Por ejemplo, esta guarda como reuniones las notas de Telemost que llegan por correo, y conserva esos correos enteros y protegidos:",
   addLabel: "Copiar el comando",
   none: "Aún no hay reglas",
   noneText: "Este buzón guarda todo su correo entero.",
