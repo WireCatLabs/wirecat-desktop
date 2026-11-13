@@ -227,7 +227,8 @@ export type TimedRow = {
 }
 
 /** A calendar writes an all-day day as `YYYY-MM-DD`: the computer's midnight, never UTC's, which moves it a day. */
-const instantOf = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? parse(s) : new Date(s))
+/** memo's instant, or an all-day bare date read as local midnight (`new Date` would read it as UTC). */
+export const instantOf = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? parse(s) : new Date(s))
 
 /** A row's instants; a row with no start has no place on a calendar. A missing end is the start plus its duration. */
 export function timeOf(row: TimedRow): MeetingTime | null {

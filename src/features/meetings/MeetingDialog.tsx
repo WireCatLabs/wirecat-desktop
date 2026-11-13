@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { instantOf } from "@/domain/meeting-layout"
 import { openDocument } from "@/features/documents"
 import { openTarget } from "@/features/links"
 import { openPerson } from "@/features/people"
@@ -48,6 +49,8 @@ type Read = ReturnType<typeof useMeeting>
 
 function Details({ read }: { read: Read }) {
   const m = useMessages(meetingMessages)
+  const pages = read.data?.pages
+  const lines = useMemo(() => pages?.flatMap((p) => p.transcript?.lines ?? []) ?? [], [pages])
   const box = "pb-[1.2rem]"
   if (read.error && !read.data)
     return (
@@ -64,7 +67,6 @@ function Details({ read }: { read: Read }) {
         </ErrorNotice>
       </div>
     )
-  const pages = read.data?.pages
   const first = pages?.[0]
   if (!pages || !first)
     return (
@@ -73,7 +75,6 @@ function Details({ read }: { read: Read }) {
         <Skeleton className="h-[12rem] w-full rounded-control" />
       </div>
     )
-  const lines = pages.flatMap((p) => p.transcript?.lines ?? [])
   return (
     <div className={`${box} reveal flex flex-col gap-[1rem]`}>
       <Head details={first} />
@@ -97,8 +98,8 @@ function Head({ details }: { details: MeetingDetails }) {
   const m = useMessages(meetingMessages)
   const lang = useLang()
   const meeting = details.meeting
-  const start = meeting.startedAt ? new Date(meeting.startedAt) : null
-  const end = meeting.endedAt ? new Date(meeting.endedAt) : null
+  const start = meeting.startedAt ? instantOf(meeting.startedAt) : null
+  const end = meeting.endedAt ? instantOf(meeting.endedAt) : null
   const time = (d: Date, zone?: string) =>
     d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", ...(zone ? { timeZone: zone } : {}) })
   const here = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -195,7 +196,7 @@ function Findings({ details }: { details: MeetingDetails }) {
             void openTarget({ type: "proposal", id: f.id })
           }}
         >
-          {m.confirmOnMemory}
+          {waiting.length > 1 ? `${m.confirmOnMemory} · #${f.id}` : m.confirmOnMemory}
         </LinkButton>
       ))}
     </p>

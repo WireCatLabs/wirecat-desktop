@@ -67,8 +67,11 @@ export function TranscriptLines({
         const first = seen
         seen += matchesIn(l.text, find)
         return (
-          <li key={l.key} className="selectable grid grid-cols-[3.8rem_minmax(0,1fr)] gap-x-[0.6rem]">
-            <span className="font-mono text-[0.82rem] tabular-nums text-ink-dim">{offsetText(l.at)}</span>
+          <li
+            key={l.key}
+            className="selectable grid grid-cols-[3.8rem_minmax(0,1fr)] gap-x-[0.6rem] [contain-intrinsic-size:auto_1.6rem] [content-visibility:auto]"
+          >
+            <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{offsetText(l.at)}</span>
             <span>
               {l.who && <span className="font-medium">{l.who}: </span>}
               {marked(l.text ?? "", find, first, current)}

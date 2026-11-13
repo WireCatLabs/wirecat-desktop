@@ -7,6 +7,9 @@ import { useNav } from "./nav"
  */
 export const useMeetingOpen = create<{ ref: string | null; title: string }>(() => ({ ref: null, title: "" }))
 
+/** Opens a meeting's details over the page that is showing. */
+export const showMeeting = (ref: string, title: string | null) => useMeetingOpen.setState({ ref, title: title ?? "" })
+
 export function openMeeting(ref: string, title = "") {
   useMeetingOpen.setState({ ref, title })
   useNav.getState().go("meetings")

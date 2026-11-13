@@ -3,7 +3,7 @@ import { dayOf } from "@/domain/days"
 import { layoutWeekRow, placeWindow, timeOf } from "@/domain/meeting-layout"
 import { useLang, useMessages } from "@/i18n"
 import type { MeetingRow } from "@/platform/bindings"
-import { useMeetingOpen } from "@/shared/meeting-open"
+import { showMeeting } from "@/shared/meeting-open"
 import { Button } from "@/ui/Button"
 import { MonthGrid } from "@/ui/MonthGrid"
 import { DayList } from "./DayList"
@@ -11,7 +11,7 @@ import { meetingLabel } from "./label"
 import { MeetingLine } from "./MeetingChip"
 import { meetingMessages } from "./messages"
 
-const open = (meeting: MeetingRow) => useMeetingOpen.setState({ ref: meeting.ref, title: meeting.title ?? "" })
+const open = (meeting: MeetingRow) => showMeeting(meeting.ref, meeting.title)
 
 export function MonthView({
   days,
@@ -84,7 +84,7 @@ export function MonthView({
           )
         }
         renderCell={(day, lines) => {
-          if (unread(day)) return <span className="px-[0.2rem] text-[0.8rem] text-ink-dim">{m.notRead}</span>
+          if (unread(day)) return <span className="px-[0.2rem] text-[0.85rem] text-ink-dim">{m.notRead}</span>
           const refs = perDay.get(day) ?? []
           const fits = refs.length > lines ? Math.max(0, lines - 1) : refs.length
           return (
@@ -109,6 +109,7 @@ export function MonthView({
                   size="sm"
                   variant="ghost"
                   tabIndex={-1}
+                  aria-label={`${m.more(refs.length - fits)}, ${date(day, { weekday: "long", day: "numeric", month: "long" })}`}
                   onClick={(e) => {
                     anchor.current = e.currentTarget
                     setList(day)

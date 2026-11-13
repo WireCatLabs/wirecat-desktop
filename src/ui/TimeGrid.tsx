@@ -45,7 +45,9 @@ type Props = {
   layout: (columns: number) => ReadonlyMap<string, readonly Placed[]>
   /** What a block shows, its full name for screen readers, and what a click does. */
   renderItem: (key: string, day: string, place: Extract<Placed, { type: "event" }>) => ReactNode
-  itemLabel: (key: string) => string
+  itemLabel: (key: string, day: string) => string
+  /** A day column's name for screen readers, from its date and how many meetings it holds. */
+  columnName: (day: string, count: number) => string
   onOpen: (key: string) => void
   renderMore: (day: string, more: Extract<Placed, { type: "more" }>) => ReactNode
   /** Days the read did not reach; they say so instead of showing nothing. */
@@ -183,7 +185,7 @@ export function TimeGrid(props: Props) {
         })}
       </div>
       <div className={cx(columnsClass, "border-line border-b")}>
-        <span className="self-center px-[0.4rem] text-right font-mono text-[0.75rem] text-ink-dim">{allDayLabel}</span>
+        <span className="self-center px-[0.4rem] text-right font-mono text-[0.85rem] text-ink-dim">{allDayLabel}</span>
         <div className="relative col-span-7 grid min-h-[3.4rem] grid-cols-7 grid-rows-[repeat(2,1.5rem)] gap-y-[0.15rem] py-[0.15rem]">
           {days.map((day, i) => (
             <span
@@ -202,7 +204,7 @@ export function TimeGrid(props: Props) {
             {Array.from({ length: 23 }, (_, i) => i + 1).map((h) => (
               <span
                 key={h}
-                className="-translate-y-1/2 absolute right-[0.45rem] font-mono text-[0.75rem] text-ink-dim tabular-nums"
+                className="-translate-y-1/2 absolute right-[0.45rem] font-mono text-[0.85rem] text-ink-dim tabular-nums"
                 style={{ top: rem(h * 60) }}
               >
                 {hourLabel(h)}
@@ -216,7 +218,7 @@ export function TimeGrid(props: Props) {
               <div
                 key={day}
                 role="group"
-                aria-label={`${head(day).name}, ${count}`}
+                aria-label={props.columnName(day, count)}
                 className="relative border-line border-l"
                 style={{
                   backgroundImage:
@@ -232,7 +234,7 @@ export function TimeGrid(props: Props) {
                         key={p.key}
                         type="button"
                         data-stop={p.key}
-                        aria-label={itemLabel(p.key)}
+                        aria-label={itemLabel(p.key, day)}
                         tabIndex={p.key === current ? 0 : -1}
                         onFocus={() => setActive(p.key)}
                         onKeyDown={(e) => onKey(e, p.key)}

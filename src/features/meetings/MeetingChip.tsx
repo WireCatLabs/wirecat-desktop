@@ -37,7 +37,7 @@ function Badges({ meeting, count }: { meeting: MeetingRow; count: boolean }) {
       {meeting.pendingFindings > 0 && (
         <span className="inline-flex items-center gap-[0.15rem]">
           <Lamp tone="warn" size="sm" />
-          {count && <span className="font-mono text-[0.75rem] text-ink-soft">{meeting.pendingFindings}</span>}
+          {count && <span className="font-mono text-[0.85rem] text-ink-soft">{meeting.pendingFindings}</span>}
         </span>
       )}
     </span>
@@ -72,7 +72,7 @@ export function MeetingBlock({
   return (
     <span
       className={cx(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-control px-[0.35rem] py-[0.1rem] text-[0.8rem] leading-[1.25rem]",
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-control px-[0.35rem] py-[0.1rem] text-[0.85rem] leading-[1.25rem]",
         "transition-colors duration-(--motion-fast) hover:border-ink-dim",
         call
           ? "border border-line-strong border-dashed bg-app"
@@ -84,13 +84,13 @@ export function MeetingBlock({
       <span className="flex min-w-0 items-center gap-[0.3rem]">
         {now(meeting) && <Lamp tone="doing" size="sm" />}
         <KindIcon meeting={meeting} />
-        {!two && <span className="shrink-0 font-mono text-[0.75rem]">{start}</span>}
+        {!two && <span className="shrink-0 font-mono text-[0.85rem]">{start}</span>}
         <span className="truncate font-medium">{meeting.title ?? m.columns.title}</span>
         {!two && <Badges meeting={meeting} count={false} />}
       </span>
       {two && (
         <span className="flex min-w-0 items-center gap-[0.3rem] text-ink-soft">
-          <span className="truncate whitespace-nowrap font-mono text-[0.75rem]">
+          <span className="truncate whitespace-nowrap font-mono text-[0.85rem]">
             {start}
             {goesOn ? " →" : `–${timeText(meeting.endedAt, lang)}`}
           </span>
@@ -108,14 +108,14 @@ export function MeetingLine({ meeting }: { meeting: MeetingRow }) {
   return (
     <span
       className={cx(
-        "flex min-w-0 items-center gap-[0.3rem] text-[0.8rem] leading-[1.45rem]",
+        "flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] leading-[1.45rem]",
         past(meeting) ? "text-ink-soft" : "text-ink",
         cancelled(meeting) && "text-ink-dim line-through",
       )}
     >
       <KindIcon meeting={meeting} />
       {!meeting.allDay && (
-        <span className="shrink-0 font-mono text-[0.75rem]">{timeText(meeting.startedAt, lang)}</span>
+        <span className="shrink-0 font-mono text-[0.85rem]">{timeText(meeting.startedAt, lang)}</span>
       )}
       <span className="truncate">{meeting.title ?? m.columns.title}</span>
       {meeting.pendingFindings > 0 && <Lamp tone="warn" size="sm" />}

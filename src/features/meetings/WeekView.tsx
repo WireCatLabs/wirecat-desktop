@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react"
 import { layoutDay, layoutWeekRow, placeWindow, timeOf } from "@/domain/meeting-layout"
 import { useLang, useMessages } from "@/i18n"
 import type { MeetingRow } from "@/platform/bindings"
-import { useMeetingOpen } from "@/shared/meeting-open"
+import { showMeeting } from "@/shared/meeting-open"
 import { MIN_MINUTES, TimeGrid } from "@/ui/TimeGrid"
 import { DayList } from "./DayList"
 import { meetingLabel } from "./label"
@@ -12,7 +12,7 @@ import { meetingMessages } from "./messages"
 /** The all-day row is always two lanes high, so moving between weeks never moves the hours under it. */
 const ALL_DAY_LANES = 2
 
-const open = (meeting: MeetingRow) => useMeetingOpen.setState({ ref: meeting.ref, title: meeting.title ?? "" })
+const open = (meeting: MeetingRow) => showMeeting(meeting.ref, meeting.title)
 
 export function WeekView({
   days,
@@ -87,8 +87,9 @@ export function WeekView({
           <button
             key={days[i]}
             type="button"
+            aria-label={`${m.more(n)}, ${head(days[i] as string).name}`}
             onClick={(e) => showList(e.currentTarget, days[i] as string, coveringDay(i))}
-            className="z-[1] justify-self-end self-end cursor-pointer rounded-control px-[0.3rem] font-mono text-[0.75rem] text-ink-soft hover:bg-app-3"
+            className="z-[1] justify-self-end self-end cursor-pointer rounded-control px-[0.3rem] font-mono text-[0.85rem] text-ink-soft hover:bg-app-3"
             style={{ gridColumn: i + 1, gridRow: 2 }}
           >
             {m.plus(n)}
@@ -108,10 +109,15 @@ export function WeekView({
         allDay={allDay}
         allDayLabel={m.allDay}
         layout={layout}
-        itemLabel={(key) => {
+        itemLabel={(key, day) => {
           const meeting = byRef.get(key)
-          return meeting ? meetingLabel(meeting, m, lang) : key
+          if (!meeting) return key
+          const s = segment.get(`${day}|${key}`)
+          return [meetingLabel(meeting, m, lang), s?.fromBefore && m.fromBefore, s?.goesOn && m.continues]
+            .filter(Boolean)
+            .join(", ")
         }}
+        columnName={(day, n) => m.dayCount(head(day).name, n)}
         onOpen={(key) => {
           const meeting = byRef.get(key)
           if (meeting) open(meeting)
@@ -131,8 +137,9 @@ export function WeekView({
         renderMore={(day, more) => (
           <button
             type="button"
+            aria-label={`${m.more(more.keys.length)}, ${head(day).name}`}
             onClick={(e) => showList(e.currentTarget, day, more.keys)}
-            className="h-full w-full cursor-pointer rounded-control border border-line border-dashed bg-app font-mono text-[0.75rem] text-ink-soft hover:bg-app-2"
+            className="h-full w-full cursor-pointer rounded-control border border-line border-dashed bg-app font-mono text-[0.85rem] text-ink-soft hover:bg-app-2"
           >
             {m.plus(more.keys.length)}
           </button>

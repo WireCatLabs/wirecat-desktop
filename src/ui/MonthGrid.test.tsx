@@ -37,7 +37,7 @@ function Harness({ onPage = vi.fn(), onOpen = vi.fn() }) {
 }
 
 describe("MonthGrid", () => {
-  it("moves by day and week, to the week's ends and the grid's ends, and pages by month", async () => {
+  it("moves by day and week, to the week's ends and the month's ends, and pages by month", async () => {
     const user = userEvent.setup()
     const onPage = vi.fn()
     render(<Harness onPage={onPage} />)
@@ -52,7 +52,9 @@ describe("MonthGrid", () => {
     await user.keyboard("{End}")
     expect(screen.getByRole("gridcell", { name: "2026-11-22" })).toHaveFocus()
     await user.keyboard("{Control>}{Home}{/Control}")
-    expect(screen.getByRole("gridcell", { name: "2026-10-26" })).toHaveFocus()
+    expect(screen.getByRole("gridcell", { name: "2026-11-01" })).toHaveFocus()
+    await user.keyboard("{Control>}{End}{/Control}")
+    expect(screen.getByRole("gridcell", { name: "2026-11-30" })).toHaveFocus()
     await user.keyboard("{PageDown}")
     expect(onPage).toHaveBeenCalledWith(1)
   })

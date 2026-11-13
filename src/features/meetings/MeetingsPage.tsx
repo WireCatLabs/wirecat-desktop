@@ -1,7 +1,7 @@
 import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Rows3 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { dayOf, shift, shiftMonth, weekStart } from "@/domain/days"
-import { monthWindow, weekWindow } from "@/domain/meeting-layout"
+import { instantOf, monthWindow, weekWindow } from "@/domain/meeting-layout"
 import { gapFromRead } from "@/domain/needs"
 import { setField, valuesOf } from "@/domain/query-terms"
 import { formatNumber, useLang, useMessages } from "@/i18n"
@@ -12,7 +12,7 @@ import { PageError } from "@/shared/PageError"
 import { SourceIcon } from "@/shared/SourceIcon"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
-import { Calendar, DatePopover } from "@/ui/Calendar"
+import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
 import { EmptyState } from "@/ui/EmptyState"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
@@ -20,6 +20,7 @@ import { NoticeChips } from "@/ui/NoticeChips"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
+import { Skeleton } from "@/ui/Skeleton"
 import { readAgain, useMeetingsPage, useMeetingsWindow } from "./api"
 import { MeetingDialog } from "./MeetingDialog"
 import { MeetingsTable } from "./MeetingsTable"
@@ -61,8 +62,10 @@ export function MeetingsPage() {
     if (ready && valuesOf(asked, "source").length === 0) setAccounts(ready.accounts)
   }, [ready, asked])
 
-  // Rows come oldest first; when the cap cut the window, the days after the last row read are not known.
-  const cutDay = calendar && ready?.more ? dayOf(new Date(ready.meetings.at(-1)?.startedAt ?? window.from)) : null
+  // Rows come oldest first; when the cap cut the window, nothing after the last row read is known.
+  const last = ready?.meetings.at(-1)?.startedAt
+  const cutAt = calendar && ready?.more ? (last ? instantOf(last) : new Date(window.from)) : null
+  const cutDay = cutAt ? dayOf(cutAt) : null
   const unread = (day: string) => cutDay !== null && day > cutDay
   const step = (by: -1 | 1) => setAnchor(view === "month" ? shiftMonth(anchor, by) : shift(anchor, by * 7))
 
@@ -86,8 +89,7 @@ export function MeetingsPage() {
         intro={m.intro}
         compact
         actions={
-          !gap &&
-          !read.error && (
+          !gap && (
             <div className="flex flex-wrap items-center gap-2">
               <Segmented<View>
                 size="md"
@@ -100,12 +102,14 @@ export function MeetingsPage() {
                   { value: "month", label: m.views.month, icon: <CalendarDays className="size-4" aria-hidden /> },
                 ]}
               />
-              <RefreshButton
-                busy={read.isFetching}
-                onClick={() => void readAgain()}
-                label={m.readAgain}
-                busyLabel={m.readingNow}
-              />
+              {!read.error && (
+                <RefreshButton
+                  busy={read.isFetching}
+                  onClick={() => void readAgain()}
+                  label={m.readAgain}
+                  busyLabel={m.readingNow}
+                />
+              )}
             </div>
           )
         }
@@ -185,7 +189,12 @@ export function MeetingsPage() {
                   id: "cut",
                   tone: "neutral",
                   label: m.cut(
-                    new Date(`${cutDay}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "long" }),
+                    (cutAt as Date).toLocaleString(lang, {
+                      day: "numeric",
+                      month: "long",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
                   ),
                   body: (
                     <Button size="sm" onClick={() => setView("table")}>
@@ -196,10 +205,11 @@ export function MeetingsPage() {
               ]}
             />
           )}
-          {view === "week" && (
+          {calendar && !ready && <Skeleton className="min-h-[20rem] flex-1 rounded-rack" label={m.reading} />}
+          {view === "week" && ready && (
             <WeekView
               days={window.days}
-              meetings={ready?.meetings ?? []}
+              meetings={ready.meetings}
               unread={unread}
               jump={jump}
               onDay={(day) => {
@@ -208,12 +218,12 @@ export function MeetingsPage() {
               }}
             />
           )}
-          {view === "month" && (
+          {view === "month" && ready && (
             <MonthView
               days={window.days}
               month={anchor.slice(0, 7)}
               active={window.days.includes(anchor) ? anchor : (window.days[0] as string)}
-              meetings={ready?.meetings ?? []}
+              meetings={ready.meetings}
               unread={unread}
               onMove={setAnchor}
               onPage={step}
@@ -276,7 +286,11 @@ function Toolbar(props: {
 }) {
   const m = useMessages(meetingMessages)
   const [picking, setPicking] = useState(false)
-  const button = useRef<HTMLButtonElement>(null)
+  const button = useRef<HTMLSpanElement>(null)
+  const close = (refocus: boolean) => {
+    setPicking(false)
+    if (refocus) button.current?.querySelector("button")?.focus()
+  }
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button size="sm" onClick={props.onToday}>
@@ -296,34 +310,33 @@ function Toolbar(props: {
         icon={<ChevronRight className="size-4" aria-hidden />}
         onClick={() => props.onStep(1)}
       />
-      <button
-        ref={button}
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={picking}
-        aria-label={`${props.title}, ${m.pickDate}`}
-        onClick={() => setPicking((p) => !p)}
-        className="cursor-pointer rounded-control px-[0.4rem] font-medium text-[1.05rem] hover:bg-app-2"
-      >
-        {props.title}
-      </button>
-      <DatePopover
-        open={picking}
-        anchor={button}
-        label={m.pickDate}
-        onClose={(refocus) => {
-          setPicking(false)
-          if (refocus) button.current?.focus()
-        }}
-      >
+      <span ref={button}>
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-haspopup="dialog"
+          aria-expanded={picking}
+          aria-label={`${props.title}, ${m.pickDate}`}
+          onClick={() => setPicking((p) => !p)}
+          className="text-[1.05rem] text-ink"
+        >
+          {props.title}
+        </Button>
+      </span>
+      <DatePopover open={picking} anchor={button} label={m.pickDate} onClose={close}>
         <Calendar
           label={m.pickDate}
           selected={{ from: props.anchor }}
           autoFocus
           onPick={(day) => {
             props.onPick(day)
-            setPicking(false)
-            button.current?.focus()
+            close(true)
+          }}
+        />
+        <CalendarFooter
+          onToday={() => {
+            props.onToday()
+            close(true)
           }}
         />
       </DatePopover>

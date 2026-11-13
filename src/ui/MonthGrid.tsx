@@ -1,6 +1,7 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an APG grid of focusable cells, which a <table> cannot be
 // biome-ignore-all lint/a11y/useFocusableInteractive: only the grid's one active cell is in the tab order
 import { type KeyboardEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react"
+import { shift } from "./Calendar"
 import { cx } from "./cx"
 import { focusInPlace } from "./motion"
 
@@ -32,15 +33,9 @@ type Props = {
   renderCell: (day: string, lines: number) => ReactNode
 }
 
-const shiftDay = (day: string, by: number) => {
-  const [y, m, d] = day.split("-").map(Number)
-  const date = new Date(y ?? 1970, (m ?? 1) - 1, (d ?? 1) + by)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
-}
-
 /**
  * Six weeks of days as the WAI-ARIA APG grid: one tab stop on the active cell, arrows by day and week, Home and End to
- * the week's ends, Ctrl+Home and Ctrl+End to the first and last cell, Page Up and Page Down by a month. Enter goes into
+ * the week's ends, Ctrl+Home and Ctrl+End to the month's first and last day, Page Up and Page Down by a month. Enter goes into
  * the cell, to its day number and meetings; Escape comes back to the cell.
  */
 export function MonthGrid(props: Props) {
@@ -57,6 +52,7 @@ export function MonthGrid(props: Props) {
   }, [active])
 
   const move = (day: string) => {
+    if (day === active) return
     moved.current = true
     onMove(day)
   }
@@ -79,22 +75,22 @@ export function MonthGrid(props: Props) {
     const col = index % 7
     switch (e.key) {
       case "ArrowRight":
-        move(shiftDay(day, 1))
+        move(shift(day, 1))
         break
       case "ArrowLeft":
-        move(shiftDay(day, -1))
+        move(shift(day, -1))
         break
       case "ArrowDown":
-        move(shiftDay(day, 7))
+        move(shift(day, 7))
         break
       case "ArrowUp":
-        move(shiftDay(day, -7))
+        move(shift(day, -7))
         break
       case "Home":
-        move(e.ctrlKey ? (days[0] ?? day) : shiftDay(day, -col))
+        move(e.ctrlKey ? `${month}-01` : shift(day, -col))
         break
       case "End":
-        move(e.ctrlKey ? (days.at(-1) ?? day) : shiftDay(day, 6 - col))
+        move(e.ctrlKey ? (days.filter((d) => d.startsWith(month)).at(-1) ?? day) : shift(day, 6 - col))
         break
       case "PageUp":
         moved.current = true
@@ -119,7 +115,7 @@ export function MonthGrid(props: Props) {
       ref={grid}
       role="grid"
       aria-label={label}
-      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-rack border border-line-strong bg-app"
+      className="ring-inside flex min-h-0 flex-1 flex-col overflow-hidden rounded-rack border border-line-strong bg-app"
     >
       <div role="row" className="grid grid-cols-7 border-line border-b">
         {weekdays.map((w, i) => (
@@ -148,11 +144,10 @@ export function MonthGrid(props: Props) {
                   role="gridcell"
                   data-day={day}
                   aria-label={cellName(day)}
-                  aria-selected={day === active}
                   tabIndex={day === active ? 0 : -1}
                   onKeyDown={(e) => onKey(e, day, index)}
                   className={cx(
-                    "ring-inside flex min-w-0 flex-col gap-[0.1rem] overflow-hidden px-[0.3rem] pt-[0.25rem] pb-[0.2rem]",
+                    "flex min-w-0 flex-col gap-[0.1rem] overflow-hidden px-[0.3rem] pt-[0.25rem] pb-[0.2rem]",
                     i > 0 && "border-line border-l",
                     other && "bg-app-2/50",
                   )}

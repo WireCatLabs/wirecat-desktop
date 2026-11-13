@@ -1,7 +1,7 @@
-import { ChevronDown, ChevronUp, Search } from "lucide-react"
-import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
+import { FindBar } from "@/ui/FindBar"
 import { configMessages } from "./messages"
 
 const TOKEN = /("(?:\\.|[^"\\\n])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b|([{}[\],:])/g
@@ -84,7 +84,6 @@ export function JsonEditor({ id, errors, label, value, onChange, onSave, marks, 
   const gutter = useRef<HTMLDivElement>(null)
   const marksLayer = useRef<HTMLPreElement>(null)
   const findBox = useRef<HTMLInputElement>(null)
-  const findId = useId()
   const m = useMessages(configMessages)
   const lines = value.split("\n").length
   const [query, setQuery] = useState("")
@@ -134,65 +133,29 @@ export function JsonEditor({ id, errors, label, value, onChange, onSave, marks, 
     }
   }
 
-  const onFindKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      step(e.shiftKey ? -1 : 1)
-    }
-    if (e.key === "Escape" && query) {
-      e.preventDefault()
-      setQuery("")
-    }
-  }
-
   const box = "m-0 px-3 py-2.5 font-mono text-[0.9rem] leading-[1.6] whitespace-pre"
 
   return (
     <div>
-      <search className="flex items-center gap-2 border-line border-b bg-app-2 px-3 py-1.5 focus-within:border-brand">
-        <Search className="size-4 shrink-0 text-ink-dim" aria-hidden />
-        <label htmlFor={findId} className="sr-only">
-          {m.find}
-        </label>
-        <input
-          ref={findBox}
-          id={findId}
-          type="search"
-          value={query}
-          placeholder={m.findPlaceholder}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setCurrent(0)
-          }}
-          onKeyDown={onFindKey}
-          autoComplete="off"
-          spellCheck={false}
-          className="h-8 min-w-0 flex-1 bg-transparent font-mono text-[0.9rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim"
-        />
-        {query && (
-          <span aria-live="polite" className="shrink-0 font-mono text-[0.85rem] text-ink-dim tabular-nums">
-            {found.length === 0 ? m.findNone : m.findCount(shown + 1, found.length)}
-          </span>
-        )}
-        <button
-          type="button"
-          aria-label={m.findPrevious}
-          disabled={found.length === 0}
-          onClick={() => step(-1)}
-          className="grid size-8 place-items-center rounded-control text-ink-soft hover:bg-app-3 hover:text-ink disabled:opacity-40"
-        >
-          <ChevronUp className="size-4" aria-hidden />
-        </button>
-        <button
-          type="button"
-          aria-label={m.findNext}
-          disabled={found.length === 0}
-          onClick={() => step(1)}
-          className="grid size-8 place-items-center rounded-control text-ink-soft hover:bg-app-3 hover:text-ink disabled:opacity-40"
-        >
-          <ChevronDown className="size-4" aria-hidden />
-        </button>
-      </search>
+      <FindBar
+        value={query}
+        onChange={(v) => {
+          setQuery(v)
+          setCurrent(0)
+        }}
+        onStep={step}
+        found={found.length}
+        current={shown}
+        inputRef={findBox}
+        labels={{
+          find: m.find,
+          placeholder: m.findPlaceholder,
+          none: m.findNone,
+          count: m.findCount,
+          previous: m.findPrevious,
+          next: m.findNext,
+        }}
+      />
       <div className="grid h-[min(60vh,34rem)] min-h-[16rem] grid-cols-[auto_minmax(0,1fr)] overflow-hidden bg-app">
         <div
           ref={gutter}

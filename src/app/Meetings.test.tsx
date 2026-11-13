@@ -116,6 +116,22 @@ describe("Meetings", () => {
     expect(await screen.findByRole("dialog", { name: "Lena Ortiz" })).toBeInTheDocument()
   })
 
+  it('takes focus into a day\'s full list, and back to its "more" button after the meeting closes', async () => {
+    const user = userEvent.setup()
+    await openMeetings(user)
+    await user.click(screen.getByRole("radio", { name: /Month/ }))
+    const grid = await screen.findByRole("grid", { name: "Month" })
+    const more = (await within(grid).findAllByRole("button", { name: /^\+\d+ more, / }))[0] as HTMLElement
+    await user.click(more)
+    const list = await screen.findByRole("dialog", { name: /^All meetings of / })
+    const first = within(list).getAllByRole("button")[0] as HTMLElement
+    expect(first).toHaveFocus()
+    await user.click(first)
+    const meeting = await screen.findByRole("dialog", { name: /./ })
+    await user.click(within(meeting).getByRole("button", { name: "Close" }))
+    await waitFor(() => expect(more).toHaveFocus())
+  })
+
   it("finds words in the transcript and reads more of it", async () => {
     const show = vi.spyOn(platform, "meetingsShow")
     const user = userEvent.setup()

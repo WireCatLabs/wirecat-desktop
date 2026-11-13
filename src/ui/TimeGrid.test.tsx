@@ -28,6 +28,7 @@ function grid(onOpen = vi.fn()) {
       layout={() => PLACED}
       renderItem={(key) => key}
       itemLabel={(key) => key}
+      columnName={(day, n) => `${day}, ${n}`}
       onOpen={onOpen}
       renderMore={() => null}
     />,

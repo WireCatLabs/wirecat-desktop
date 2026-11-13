@@ -1,3 +1,4 @@
+import { instantOf } from "@/domain/meeting-layout"
 import type { Lang } from "@/i18n"
 import type { MeetingRow } from "@/platform/bindings"
 import { sourceOf } from "@/shared/SourceIcon"
@@ -9,8 +10,8 @@ const services = (meeting: MeetingRow) => [...new Set(meeting.sources.map((s) =>
 
 /** A meeting's name for screen readers, said once: title, when, where it came from, and what it carries. */
 export function meetingLabel(meeting: MeetingRow, m: M, lang: Lang): string {
-  const start = meeting.startedAt ? new Date(meeting.startedAt) : null
-  const end = meeting.endedAt ? new Date(meeting.endedAt) : null
+  const start = meeting.startedAt ? instantOf(meeting.startedAt) : null
+  const end = meeting.endedAt ? instantOf(meeting.endedAt) : null
   const day = (d: Date) => d.toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" })
   const time = (d: Date) => d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" })
   const when = !start

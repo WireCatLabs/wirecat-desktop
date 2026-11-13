@@ -30,6 +30,9 @@ on 2026-11-10 and 2026-11-11. A row is removed once its fix is merged; a row hal
 | A link inside a sentence | `LinkButton` (`src/ui/LinkButton.tsx`) in the app, `ExtLink` to a web page | a `<button>` with `text-brand` |
 | Heading of a block on a page | `SectionTitle` (`src/ui/SectionTitle.tsx`) | a size per page |
 | A tree of choices that narrows a list (Documents' folders) | `TreeList` (`src/ui/TreeList.tsx`): the WAI-ARIA tree, one tab stop, children folded inside their item | nested buttons or a list indented by hand |
+| Meetings on a week of hours | `TimeGrid` (`src/ui/TimeGrid.tsx`): hour gutter, overlap columns with "+N", the now line, one tab stop | absolutely placed blocks drawn by a page |
+| A month of days | `MonthGrid` (`src/ui/MonthGrid.tsx`): the WAI-ARIA grid, one tab stop, Enter into a cell | a `<table>` or a CSS grid of buttons |
+| Find in a text (a config file, a transcript) | `FindBar` (`src/ui/FindBar.tsx`): count, Enter and Shift+Enter, the arrows, Escape clears | an input with its own counter and buttons |
 | Dialog | `Dialog` | — (checked: no `aria-modal` or `fixed inset-0` outside `ui/`; Bell and Calendar are popovers, not dialogs) |
 
 ## Findings

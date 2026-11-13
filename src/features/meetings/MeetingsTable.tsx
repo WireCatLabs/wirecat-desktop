@@ -1,15 +1,16 @@
 import { AlignLeft, Disc, FileText } from "lucide-react"
 import type { ReactNode } from "react"
+import { instantOf } from "@/domain/meeting-layout"
 import { useLang, useMessages } from "@/i18n"
 import type { MeetingRow } from "@/platform/bindings"
-import { useMeetingOpen } from "@/shared/meeting-open"
+import { showMeeting } from "@/shared/meeting-open"
 import { SourceIcon } from "@/shared/SourceIcon"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { Pill } from "@/ui/Pill"
 import { KindIcon } from "./MeetingChip"
 import { meetingMessages } from "./messages"
 
-const open = (meeting: MeetingRow) => useMeetingOpen.setState({ ref: meeting.ref, title: meeting.title ?? "" })
+const open = (meeting: MeetingRow) => showMeeting(meeting.ref, meeting.title)
 
 /** `h:mm`, from the instants memo gave, never from a drawing. */
 const clock = (meeting: MeetingRow) => {
@@ -55,7 +56,7 @@ function useColumns(): Column<MeetingRow>[] {
   const c = m.columns
   const when = (r: MeetingRow) =>
     r.startedAt
-      ? new Date(r.startedAt).toLocaleString(lang, {
+      ? instantOf(r.startedAt).toLocaleString(lang, {
           weekday: "short",
           day: "numeric",
           month: "short",
