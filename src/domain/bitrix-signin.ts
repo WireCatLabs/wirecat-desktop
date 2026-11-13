@@ -21,7 +21,7 @@ export function portalHost(typed: string): string | null {
   return shaped ? host : null
 }
 
-export type PortalProblem = "empty" | "notDomain" | "path"
+type PortalProblem = "empty" | "notDomain" | "path"
 
 /**
  * What is wrong with a typed portal address, or null. Only the domain is asked for: a scheme and one closing slash are

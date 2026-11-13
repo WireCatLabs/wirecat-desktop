@@ -22,7 +22,7 @@ export { MY_TELEGRAM }
 
 export const isTelegramApps = (url: OpenUrl) => isTelegramAppsUrl(url.url)
 
-export type Shot = {
+type Shot = {
   src: string
   width: number
   height: number
