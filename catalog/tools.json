@@ -1619,7 +1619,7 @@
         "remove": ["{profile}", "folders", "remove", "{folder}", "--record", "--json"],
         "name": ["{profile}", "catalog", "show", "{folder}", "--offline", "--no-record", "--json"],
         "transcripts": {
-          "minVersion": null,
+          "minVersion": "0.67.0",
           "list": ["{profile}", "transcripts", "list", "--no-record", "--json"]
         }
       },
