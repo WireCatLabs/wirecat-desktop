@@ -98,6 +98,9 @@ pub struct Tool {
     /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
     #[serde(default)]
     pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,
+    /// Only email: mail-cli's own `rules list` for one mailbox, shown read only (`mail_rules.rs`).
+    #[serde(default)]
+    pub mail_rules: Option<crate::mail_rules::MailRulesSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
     /// The messengers' `serve` in the background, which keeps the archive current between syncs.

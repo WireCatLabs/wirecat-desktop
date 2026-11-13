@@ -23,6 +23,7 @@ import { groupsMock } from "./mock-groups"
 import { npmLines } from "./mock-install"
 import { localOnlyMock } from "./mock-local-only"
 import { mailAgentMock } from "./mock-mail-agent"
+import { mailRulesMock } from "./mock-mail-rules"
 import { mcpServerMock } from "./mock-mcp"
 import { memoState, OLD_MEMO } from "./mock-memo"
 import { memoryMock } from "./mock-memory"
@@ -739,6 +740,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncMock(),
     ...syncScheduleMock(params),
     ...mailAgentMock(params),
+    ...mailRulesMock(params),
     ...backgroundAgentMock(params),
     ...digestsMock(params),
     ...digestEditorsMock(params),

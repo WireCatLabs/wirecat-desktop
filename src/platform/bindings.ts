@@ -755,6 +755,26 @@ export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | 
 /**  `30m` when memo's `when` is one of the catalog's intervals. */
 every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null; agent: string | null; trouble: AgentTrouble | null };
 
+export type MailRule = {
+	id: number | null,
+	conditions: RuleCondition[],
+	/**  `keep`, `envelope` or `skip`. */
+	action: string,
+	tags: string[],
+	reason: string | null,
+	protected: boolean,
+	/**  The meetings provider whose notes these emails are, such as `telemost`. */
+	meetingNotes: string | null,
+	/**  `owner`, `preset:<kind>`, `probe` or `gmail-filter`; `None` for a rule the owner added by hand. */
+	source: string | null,
+	decidedAt: string,
+	recorded: RuleRecorded | null,
+};
+
+export type MailRules = 
+/**  One page of the rules in the CLI's order (protected first); `total` counts them all. */
+{ result: "listed"; rules: MailRule[]; total: number } | { result: "failed"; message: string; code: string | null; reason: string | null };
+
 export type Mailbox = {
 	profile: string,
 	address: string | null,
@@ -1255,6 +1275,18 @@ export type RouteChoices = {
 };
 
 export type RouteKind = "telegramBot" | "email";
+
+/**  One condition of a rule; every condition must hold. `value` is the CLI's value as text (`365`, `true`). */
+export type RuleCondition = {
+	key: string,
+	value: string,
+};
+
+/**  How many emails an envelope rule has recorded, and their size at the source. */
+export type RuleRecorded = {
+	emails: number,
+	bytes: number,
+};
 
 /**  A schedule's last run, without its output: an agent's answer quotes messages. */
 export type ScheduleRun = {

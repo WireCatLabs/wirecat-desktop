@@ -59,6 +59,7 @@ import type {
   FolderRemoved,
   HarderStatus,
   MailAgent,
+  MailRules,
   NotesFolderAdded,
   NotesFolderRemoved,
   NotesModelEvent,
@@ -585,6 +586,8 @@ export type Platform = {
   driveFolderRemove(id: string, profile: string, folder: string): Promise<FolderRemoved>
   /** drive's `transcripts list`: how many Docs look like Meet transcripts or Gemini notes, and the newest names. */
   driveTranscriptsFind(id: string, profile: string): Promise<TranscriptsFound>
+  /** One page of a mailbox's rules (catalog `mailRules`), in the CLI's order: protected first. */
+  mailRulesList(id: string, profile: string, page: number, limit: number): Promise<MailRules>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.

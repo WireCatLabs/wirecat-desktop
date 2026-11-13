@@ -1,6 +1,6 @@
 use super::{attempt, known_tool};
 use crate::error::AppError;
-use crate::{drive_folders, zoom_app};
+use crate::{drive_folders, mail_rules, zoom_app};
 
 /// zm's own description of the Zoom app to make before signing in.
 #[tauri::command]
@@ -69,6 +69,21 @@ pub async fn drive_transcripts_find(id: String, profile: String) -> Result<drive
     crate::log::command("drive_transcripts_find", async move {
         let tool = known_tool(&id)?;
         attempt(move || drive_folders::transcripts(tool, &profile)).await
+    })
+    .await
+}
+
+/// One page of a mailbox's rules, read only.
+#[tauri::command]
+pub async fn mail_rules_list(
+    id: String,
+    profile: String,
+    page: u32,
+    limit: u32,
+) -> Result<mail_rules::MailRules, AppError> {
+    crate::log::command("mail_rules_list", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || mail_rules::list(tool, &profile, page, limit)).await
     })
     .await
 }
