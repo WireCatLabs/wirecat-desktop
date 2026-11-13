@@ -28,6 +28,8 @@ const TOOL_OF: Record<string, string> = {
   zoom: "zm",
   mail: "email",
   calendar: "gcal",
+  // cli-core's calendar accounts, as memo's meetings name their source.
+  "google-calendar": "gcal",
   "google-drive": "drive",
 }
 

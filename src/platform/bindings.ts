@@ -519,7 +519,7 @@ export type DocumentDetails = {
 	text: string | null,
 	textOffset: number,
 	/**
-	 *  Where the next part starts, in characters as memo's SQLite counts them; JavaScript's `length` counts an emoji
+	 *  Where the next part starts, in characters as memo's `SQLite` counts them; JavaScript's `length` counts an emoji
 	 *  as two, so the page never adds it up itself.
 	 */
 	nextCursor: number,
@@ -910,6 +910,108 @@ export type McpServerStatus = {
 	outdated: boolean,
 	clients: McpClient[],
 };
+
+export type MeetingDetails = {
+	meeting: MeetingRow,
+	description: string | null,
+	location: string | null,
+	summaries: MeetingSummary[],
+	transcript: Transcript | null,
+	findings: MeetingFindings[],
+};
+
+export type MeetingDocument = {
+	ref: string,
+	title: string | null,
+	role: string | null,
+};
+
+/**  A batch of findings that cite the meeting; Memory decides it. */
+export type MeetingFindings = {
+	id: string,
+	status: string,
+	findings: number,
+	pending: number,
+};
+
+export type MeetingLink = {
+	source: string,
+	url: string,
+};
+
+export type MeetingPage = {
+	meetings: MeetingRow[],
+	total: number,
+	/**  memo stopped counting: `total` is a floor. */
+	totalMore: boolean,
+	more: boolean,
+	/**
+	 *  Every account memo read (`provider:account`): what a `source:` term may name. memo refuses one it does not hold,
+	 *  so the Source menu offers only these.
+	 */
+	accounts: string[],
+};
+
+export type MeetingParticipant = {
+	name: string | null,
+	email: string | null,
+	person: MeetingPerson | null,
+	organizer: boolean,
+};
+
+export type MeetingPerson = {
+	ref: string,
+	name: string | null,
+};
+
+export type MeetingRow = {
+	ref: string,
+	/**  `meeting`, `call` or `event`. */
+	kind: string,
+	title: string | null,
+	startedAt: string | null,
+	endedAt: string | null,
+	durationMs: number | null,
+	allDay: boolean,
+	timezone: string | null,
+	status: string | null,
+	/**  Join links, `https` only: each opens in its own app. */
+	links: MeetingLink[],
+	sources: MeetingSource[],
+	participants: MeetingParticipant[],
+	participantsCount: number,
+	hasRecording: boolean,
+	hasTranscript: boolean,
+	hasSummary: boolean,
+	documents: MeetingDocument[],
+	pendingFindings: number,
+};
+
+export type MeetingSection = {
+	label: string,
+	text: string,
+};
+
+export type MeetingSource = {
+	provider: string,
+	account: string,
+	source: string,
+	label: string,
+	/**  `calendar` or `meeting`: which kind of record of this row the source gave. */
+	via: string,
+};
+
+export type MeetingSummary = {
+	source: string,
+	title: string | null,
+	overview: string | null,
+	sections: MeetingSection[],
+	nextSteps: string[],
+};
+
+export type MeetingsRead = { kind: "missing" } | 
+/**  The installed memo has no Meetings page commands; the page offers its update. */
+{ kind: "old"; version: string | null; need: string } | { kind: "ready"; page: MeetingPage };
 
 export type NodeEvent = { event: "step"; step: NodeStep } | 
 /**  Bytes of the archive so far: downloaded during `download`, read back out of it during `unpack`. */
@@ -1521,6 +1623,23 @@ export type ToolState = {
 	id: string,
 	/**  Newest first: the first one is the copy the app runs (`program`); the rest are left unused. */
 	installs: Install[],
+};
+
+export type Transcript = {
+	source: string,
+	language: string | null,
+	offset: number,
+	total: number,
+	hasMore: boolean,
+	lines: TranscriptLine[],
+};
+
+export type TranscriptLine = {
+	position: number,
+	offsetMs: number,
+	speaker: string | null,
+	person: MeetingPerson | null,
+	text: string,
 };
 
 /**  How many Docs look like Meet transcripts or Gemini notes, with the newest few names to show before the owner chooses. */

@@ -25,7 +25,7 @@ const parse = (day: string) => {
   const [y, m, d] = day.split("-").map(Number)
   return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1)
 }
-const shift = (day: string, days: number) => {
+export const shift = (day: string, days: number) => {
   const d = parse(day)
   d.setDate(d.getDate() + days)
   return dayOf(d)

@@ -47,6 +47,7 @@ mod mail_agent;
 mod mail_rules;
 mod mcp;
 mod mcp_server;
+mod meetings;
 mod memo_cli;
 mod memo_server;
 mod memory;
@@ -379,6 +380,8 @@ pub fn run() {
             commands::documents::documents_list,
             commands::documents::documents_show,
             commands::documents::documents_reveal,
+            commands::meetings::meetings_list,
+            commands::meetings::meetings_show,
             commands::people::people_split_decide,
             commands::people::people_doubts,
             commands::people::people_keep,

@@ -15,12 +15,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { errorText } from "./errors"
 import { callMessages } from "./messages-calls"
 import { profilesQuery } from "./query"
-
-const minutes = (ms: number | null) => {
-  if (ms === null) return null
-  const s = Math.round(ms / 1000)
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
-}
+import { offsetText, TranscriptLines } from "./TranscriptLines"
 
 /**
  * A client's calls and recorded meetings, as cli-core lists them, newest first. The title is the source's own line:
@@ -73,7 +68,7 @@ function CallRow({ call }: { call: ClientCall }) {
           <span className="selectable line-clamp-2 break-words">{call.title ?? m.untitled}</span>
           <span className="flex flex-wrap items-center gap-x-[0.6rem] gap-y-[0.2rem] text-[0.85rem] text-ink-soft">
             <span className="font-mono tabular-nums">
-              {[when, minutes(call.durationMs)].filter(Boolean).join(" · ")}
+              {[when, offsetText(call.durationMs)].filter(Boolean).join(" · ")}
             </span>
             {call.hasTranscript && (
               <Pill size="sm" tone="brand">
@@ -162,17 +157,7 @@ function Opened({ call, tool, profile }: { call: ClientCall; tool: string; profi
         (lines.length === 0 ? (
           <p className="text-ink-soft">{m.emptyTranscript}</p>
         ) : (
-          <ol className="flex max-h-[18rem] flex-col gap-[0.35rem] overflow-y-auto rounded-control bg-app-2 p-[0.6rem]">
-            {lines.map((l) => (
-              <li key={l.key} className="selectable grid grid-cols-[3.2rem_minmax(0,1fr)] gap-x-[0.6rem]">
-                <span className="font-mono text-[0.82rem] tabular-nums text-ink-dim">{minutes(l.at)}</span>
-                <span>
-                  {l.who && <span className="font-medium">{l.who}: </span>}
-                  {l.text}
-                </span>
-              </li>
-            ))}
-          </ol>
+          <TranscriptLines lines={lines} className="max-h-[18rem] overflow-y-auto" />
         ))}
     </div>
   )

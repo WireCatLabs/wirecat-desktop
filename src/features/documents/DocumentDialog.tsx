@@ -7,6 +7,7 @@ import { openPerson } from "@/features/people"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import type { DocumentDetails } from "@/platform/bindings"
 import { errorText } from "@/shared/errors"
+import { openMeeting } from "@/shared/meeting-open"
 import { OpenLink } from "@/shared/OpenLink"
 import { SourceIcon, sourceOf } from "@/shared/SourceIcon"
 import { Button } from "@/ui/Button"
@@ -193,7 +194,15 @@ function Links({ doc }: { doc: DocumentDetails }) {
         <ul className="flex flex-col gap-[0.35rem] text-[0.95rem]">
           {items.map((i) => (
             <li key={i.ref} className="flex min-w-0 flex-col">
-              <span className="truncate">{i.title ?? i.ref}</span>
+              <LinkButton
+                aria-label={m.openMeeting(i.title ?? i.ref)}
+                onClick={() => {
+                  useDocuments.getState().reveal(null)
+                  openMeeting(i.ref, i.title ?? "")
+                }}
+              >
+                <span className="truncate">{i.title ?? i.ref}</span>
+              </LinkButton>
               {day(i.at) && <span className="font-mono text-[0.85rem] text-ink-dim">{day(i.at)}</span>}
             </li>
           ))}

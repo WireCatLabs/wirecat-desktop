@@ -284,6 +284,9 @@ function createTauri(): Platform {
     documentsList: (query, page, limit) => invoke("documents_list", { query, page, limit }),
     documentsShow: (ref, cursor) => invoke("documents_show", { reference: ref, cursor }),
     documentsReveal: (ref) => invoke("documents_reveal", { reference: ref }),
+    meetingsList: (query, window, page, limit) =>
+      invoke("meetings_list", { query, from: window?.from ?? null, to: window?.to ?? null, page, limit }),
+    meetingsShow: (ref, cursor) => invoke("meetings_show", { reference: ref, cursor }),
     peopleRead: (kind) => call(PeopleReadSchema, "people_read", { kind: kind ?? null }),
     peopleKinds: () => call(KindCountsSchema, "people_kinds"),
     peoplePage: ({ kind, page, size, query, sort }) =>

@@ -14,6 +14,7 @@ import {
   Search,
   Settings,
   Users,
+  Video,
   Wrench,
 } from "lucide-react"
 import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } from "react"
@@ -28,6 +29,7 @@ const ClientsPage = lazy(() => import("@/features/clients/page").then((m) => ({ 
 const ConfigPage = lazy(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
 const LinkPage = lazy(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
+const MeetingsPage = lazy(() => import("@/features/meetings/page").then((m) => ({ default: m.MeetingsPage })))
 const DocumentsPage = lazy(() => import("@/features/documents/page").then((m) => ({ default: m.DocumentsPage })))
 const DigestSchedules = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestSchedules })))
 const GuidesPage = lazy(() => import("@/features/guides/page").then((m) => ({ default: m.GuidesPage })))
@@ -60,6 +62,7 @@ export type SectionId =
   | "guides"
   | "memory"
   | "people"
+  | "meetings"
   | "documents"
   | "analytics"
   | "storage"
@@ -83,13 +86,14 @@ export type Section = {
 }
 
 // The sidebar's order, top to bottom (owner, NEED-31). A new area of the app is one entry here and one folder in
-// features/; Meetings goes between Contacts and Documents once its page exists.
+// features/.
 export const sections: readonly Section[] = [
   { id: "tools", icon: Wrench, page: ToolsPage },
   { id: "agents", icon: Bot, page: AgentsTab, tabOf: "tools" },
   { id: "tasks", icon: ListTodo, page: TasksPage },
   { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "people", icon: Users, page: PeoplePage },
+  { id: "meetings", icon: Video, page: MeetingsPage },
   { id: "documents", icon: FileText, page: DocumentsPage },
   { id: "memory", icon: Brain, page: MemoryPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
