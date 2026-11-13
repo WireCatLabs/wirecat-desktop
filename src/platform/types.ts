@@ -75,6 +75,7 @@ import type {
   SyncSchedule,
   TemplatePreview,
   ToolNetwork,
+  TranscriptsFound,
   ZoomAppAnswer,
 } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
@@ -582,6 +583,8 @@ export type Platform = {
   driveFoldersChosen(id: string, profile: string): Promise<ChosenFolders>
   /** Stops importing one folder; drive's next sync drops what it copied from there. */
   driveFolderRemove(id: string, profile: string, folder: string): Promise<FolderRemoved>
+  /** drive's `transcripts list`: how many Docs look like Meet transcripts or Gemini notes, and the newest names. */
+  driveTranscriptsFind(id: string, profile: string): Promise<TranscriptsFound>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.

@@ -1,4 +1,4 @@
-import type { ChosenFolders, DriveFolder, FolderAdded, FolderLevel, FolderRemoved } from "./bindings"
+import type { ChosenFolders, DriveFolder, FolderAdded, FolderLevel, FolderRemoved, TranscriptsFound } from "./bindings"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
@@ -9,6 +9,10 @@ import type { Platform } from "./types"
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = query.get("drive-folders")
+// drive's `transcripts list`: `?drive-transcripts=none` finds nothing, `fail` refuses (rate limited), `old` is a drive
+// before the command. Without it, five are found, the newest three named.
+const transcriptsScenario = query.get("drive-transcripts")
+const TRANSCRIPTS = ["Planning sync - Notes by Gemini", "Weekly standup - Transcript", "Client call - Transcript"]
 
 const folder = (
   id: string,
@@ -80,7 +84,7 @@ const chosenNow = () => [...new Set(["1Notes", ...added])].filter((id) => !remov
 
 export function driveFoldersMock(): Pick<
   Platform,
-  "driveFoldersBrowse" | "driveFolderAdd" | "driveFoldersChosen" | "driveFolderRemove"
+  "driveFoldersBrowse" | "driveFolderAdd" | "driveFoldersChosen" | "driveFolderRemove" | "driveTranscriptsFind"
 > {
   return {
     async driveFoldersBrowse(_id, _profile, parent): Promise<FolderLevel> {
@@ -125,6 +129,20 @@ export function driveFoldersMock(): Pick<
       removed.add(id)
       added.delete(id)
       return { result: "removed" }
+    },
+    async driveTranscriptsFind(): Promise<TranscriptsFound> {
+      await delay(700)
+      if (transcriptsScenario === "old")
+        return { result: "failed", code: "needs_update", reason: null, message: "error: unknown command 'transcripts'" }
+      if (transcriptsScenario === "fail")
+        return {
+          result: "failed",
+          code: "rate_limited",
+          reason: "provider.rate-limited",
+          message: "Google asks to slow down",
+        }
+      if (transcriptsScenario === "none") return { result: "found", count: 0, titles: [] }
+      return { result: "found", count: 5, titles: TRANSCRIPTS }
     },
   }
 }

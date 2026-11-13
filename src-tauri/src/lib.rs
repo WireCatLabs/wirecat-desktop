@@ -443,6 +443,7 @@ pub fn run() {
             commands::setup_extras::drive_folder_add,
             commands::setup_extras::drive_folders_chosen,
             commands::setup_extras::drive_folder_remove,
+            commands::setup_extras::drive_transcripts_find,
             commands::sync::sync_run,
             commands::sync::sync_stop,
             commands::sync::sync_last,

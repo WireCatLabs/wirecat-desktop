@@ -26,7 +26,29 @@ pub struct FolderPickerSource {
     pub remove: Vec<String>,
     /// `{folder}`: the copied folder's name, offline; a folder not synced yet has none.
     pub name: Vec<String>,
+    /// Google Docs named like Meet transcripts or Gemini notes, wherever they sit; imports nothing.
+    #[serde(default)]
+    pub transcripts: Option<TranscriptsSource>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptsSource {
+    /// The first drive with `transcripts list`; absent until one is released, and the window asks for an update.
+    #[serde(default)]
+    pub min_version: Option<String>,
+    pub list: Vec<String>,
+}
+
+/// How many Docs look like Meet transcripts or Gemini notes, with the newest few names to show before the owner chooses.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "result")]
+pub enum TranscriptsFound {
+    Found { count: u32, titles: Vec<String> },
+    Failed { message: String, code: Option<String>, reason: Option<String> },
+}
+
+const SHOWN_TITLES: usize = 3;
 
 /// A folder the profile imports; `name` is `None` until a sync has copied it.
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
@@ -114,7 +136,7 @@ pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>) -> Result<Folder
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
         return Ok(read_level(json));
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderLevel::Failed { message, code, reason })
 }
 
@@ -132,7 +154,7 @@ pub fn add(tool: &Tool, profile: &str, folder: &str) -> Result<FolderAdded, Stri
     if out.code == Some(0) {
         return Ok(FolderAdded::Added);
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderAdded::Failed { message, code, reason })
 }
 
@@ -141,7 +163,7 @@ pub fn chosen(tool: &Tool, profile: &str) -> Result<ChosenFolders, String> {
     let src = source(tool)?;
     let (out, json) = skills::call(tool, &catalog::with_profile(&src.list, Some(profile))?, BROWSE)?;
     let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) else {
-        let (message, code, reason) = failure(&out, json.as_ref());
+        let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
         return Ok(ChosenFolders::Failed { message, code, reason });
     };
     let folders = chosen_ids(json)
@@ -182,19 +204,57 @@ pub fn remove(tool: &Tool, profile: &str, folder: &str) -> Result<FolderRemoved,
     if out.code == Some(0) {
         return Ok(FolderRemoved::Removed);
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderRemoved::Failed { message, code, reason })
 }
 
-fn failure(out: &crate::run::Output, json: Option<&Value>) -> (String, Option<String>, Option<String>) {
+/// drive's `transcripts list`: the count and the newest names. The names are the owner's data and reach only the window.
+pub fn transcripts(tool: &Tool, profile: &str) -> Result<TranscriptsFound, String> {
+    let src = source(tool)?;
+    let found = src.transcripts.as_ref().ok_or_else(|| format!("{} cannot list meeting transcripts", tool.name))?;
+    let argv = catalog::with_profile(&found.list, Some(profile))?;
+    if !released(tool, found.min_version.as_deref()) {
+        return Ok(TranscriptsFound::Failed {
+            message: TRANSCRIPTS_TOO_OLD.into(),
+            code: Some(NEEDS_UPDATE.into()),
+            reason: None,
+        });
+    }
+    let (out, json) = skills::call(tool, &argv, BROWSE)?;
+    if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
+        return Ok(read_transcripts(json));
+    }
+    let (message, code, reason) = failure(&out, json.as_ref(), TRANSCRIPTS_TOO_OLD);
+    Ok(TranscriptsFound::Failed { message, code, reason })
+}
+
+/// Not before the catalog names a release with the command, and not on an older installed drive.
+fn released(tool: &Tool, min_version: Option<&str>) -> bool {
+    min_version.is_some_and(|need| crate::task_board::unusable(tool, need).is_none())
+}
+
+fn read_transcripts(json: &Value) -> TranscriptsFound {
+    let body = skills::body(json);
+    let items: Vec<&Value> =
+        json["items"].as_array().or_else(|| body["items"].as_array()).into_iter().flatten().collect();
+    let mut named: Vec<(&str, &str)> =
+        items.iter().filter_map(|v| Some((v["modified_at"].as_str().unwrap_or(""), v["name"].as_str()?))).collect();
+    // ISO 8601 times in one zone sort as text.
+    named.sort_by(|a, b| b.0.cmp(a.0));
+    TranscriptsFound::Found {
+        count: u32::try_from(items.len()).unwrap_or(u32::MAX),
+        titles: named.into_iter().take(SHOWN_TITLES).map(|(_, name)| name.to_string()).collect(),
+    }
+}
+
+const FOLDERS_TOO_OLD: &str = "This version cannot list Drive folders yet. Update it on the Tools page.";
+const TRANSCRIPTS_TOO_OLD: &str = "This version cannot find meeting transcripts yet. Update it on the Tools page.";
+
+fn failure(out: &crate::run::Output, json: Option<&Value>, too_old: &str) -> (String, Option<String>, Option<String>) {
     let message = skills::failure(out, json);
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
     if crate::memo_cli::unknown_to_cli(&text) {
-        return (
-            "This version cannot list Drive folders yet. Update it on the Tools page.".into(),
-            Some(NEEDS_UPDATE.into()),
-            None,
-        );
+        return (too_old.into(), Some(NEEDS_UPDATE.into()), None);
     }
     let word = |k: &str| json.and_then(|v| v["error"][k].as_str()).map(str::to_string);
     (message, word("code"), word("reason"))
@@ -261,6 +321,40 @@ mod tests {
         assert!(browse(catalog::tool("tg").unwrap(), "personal", None).is_err());
         assert!(remove(drive, "personal", "--all").is_err());
         assert!(remove(drive, "a;b", "abc").is_err());
+    }
+
+    #[test]
+    fn counts_every_transcript_and_names_the_newest_three() {
+        let json = serde_json::json!({ "items": [
+            { "id": "a", "name": "Old sync - Transcript", "modified_at": "2026-11-01T10:00:00.000Z" },
+            { "id": "b", "name": "Planning - Notes by Gemini", "modified_at": "2026-11-12T10:00:00.000Z" },
+            { "id": "c", "name": "Retro - Transcript", "modified_at": "2026-11-10T10:00:00.000Z" },
+            { "id": "d", "name": "Standup - Transcript", "modified_at": "2026-11-11T10:00:00.000Z" },
+        ], "has_more": false });
+        assert_eq!(
+            read_transcripts(&json),
+            TranscriptsFound::Found {
+                count: 4,
+                titles: vec![
+                    "Planning - Notes by Gemini".into(),
+                    "Standup - Transcript".into(),
+                    "Retro - Transcript".into()
+                ],
+            }
+        );
+        assert_eq!(
+            read_transcripts(&serde_json::json!({ "item": { "items": [] } })),
+            TranscriptsFound::Found { count: 0, titles: vec![] }
+        );
+        assert!(transcripts(catalog::tool("tg").unwrap(), "personal").is_err());
+        assert!(transcripts(catalog::tool("drive").unwrap(), "--help").is_err());
+    }
+
+    #[test]
+    fn asks_for_an_update_until_a_drive_with_transcripts_is_released() {
+        let drive = catalog::tool("drive").unwrap();
+        assert!(!released(drive, None));
+        assert!(!released(drive, Some("999.0.0")));
     }
 
     #[test]

@@ -63,6 +63,7 @@ fn types() -> Types {
         .register::<crate::drive_folders::FolderAdded>()
         .register::<crate::drive_folders::FolderRemoved>()
         .register::<crate::drive_folders::ChosenFolders>()
+        .register::<crate::drive_folders::TranscriptsFound>()
         .register::<crate::account::AccountRemoved>()
         .register::<crate::account::AccountRemoval>()
         .register::<crate::backup::Backups>()

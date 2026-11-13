@@ -1617,7 +1617,11 @@
         "add": ["{profile}", "folders", "add", "{folder}", "--record", "--json"],
         "list": ["{profile}", "folders", "list", "--no-record", "--json"],
         "remove": ["{profile}", "folders", "remove", "{folder}", "--record", "--json"],
-        "name": ["{profile}", "catalog", "show", "{folder}", "--offline", "--no-record", "--json"]
+        "name": ["{profile}", "catalog", "show", "{folder}", "--offline", "--no-record", "--json"],
+        "transcripts": {
+          "minVersion": "0.67.0",
+          "list": ["{profile}", "transcripts", "list", "--no-record", "--json"]
+        }
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
