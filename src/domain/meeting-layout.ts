@@ -3,7 +3,7 @@ import { dayOf, parse, shift } from "./days"
 // Where meetings sit in a week's time grid and a month's cells. Pure: minutes and fractions in, minutes and fractions
 // out; the grids multiply them by their own sizes. Times are the computer's zone, from `Date`, never a library.
 
-export const DAY_MINUTES = 1_440
+const DAY_MINUTES = 1_440
 
 /** One meeting as the grids see it: its real instants, and whether the calendar files it under days. */
 export type MeetingTime = { key: string; start: Date; end: Date; allDay: boolean }

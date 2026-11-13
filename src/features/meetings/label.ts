@@ -31,5 +31,3 @@ export function meetingLabel(meeting: MeetingRow, m: M, lang: Lang): string {
     .filter(Boolean)
     .join(", ")
 }
-
-export { services }
