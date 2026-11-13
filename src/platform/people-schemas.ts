@@ -183,7 +183,6 @@ export type PeoplePage = v.InferOutput<typeof PeoplePageSchema>
 export type Listed = v.InferOutput<typeof ListedSchema>
 export type PersonDetail = v.InferOutput<typeof PersonDetailSchema>
 export type Identity = PersonDetail["identities"][number]
-export type Merge = PersonDetail["merges"][number]
 export type Unlinked = v.InferOutput<typeof UnlinkedSchema>
 export type Similar = v.InferOutput<typeof SimilarSchema>
 export type Merged = v.InferOutput<typeof MergedSchema>

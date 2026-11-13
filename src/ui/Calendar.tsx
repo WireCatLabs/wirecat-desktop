@@ -19,7 +19,7 @@ import { uiMessages } from "./messages"
 import { useCloseOutside, useListPlacement } from "./popup-list"
 
 /** A local calendar day, `YYYY-MM-DD`; never through UTC, which moves an evening to the next day. */
-export const dayOf = (d: Date) =>
+const dayOf = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 const parse = (day: string) => {
   const [y, m, d] = day.split("-").map(Number)

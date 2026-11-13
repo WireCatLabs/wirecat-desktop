@@ -29,4 +29,3 @@ export function renderHook<Result, Props>(
 }
 
 export { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react"
-export { resetStores } from "./stores"

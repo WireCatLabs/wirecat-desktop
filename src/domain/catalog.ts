@@ -312,7 +312,6 @@ const CatalogSchema = v.object({
 /** Where a tool came from: compiled in, the signed list, or the owner's own file. Rust sets it, never the entry. */
 export type ToolSource = "official" | "community" | "own"
 export type CatalogTool = v.InferOutput<typeof ToolSchema> & { source?: ToolSource }
-export type SearchField = NonNullable<CatalogTool["search"]>["fields"][number]
 
 const catalog = v.parse(CatalogSchema, raw)
 
@@ -321,7 +320,6 @@ const all: CatalogTool[] = catalog.tools.filter((t) => !t.helper)
 const helpers: readonly CatalogTool[] = catalog.tools.filter((t) => t.helper)
 export const tools: readonly CatalogTool[] = all
 export const requirements = catalog.requirements
-export const sharedStorage = catalog.sharedStorage
 
 export const isCommunity = (t: CatalogTool) => t.community === true
 /** Added by the owner without WireCat's review: the **Not verified** badge. */

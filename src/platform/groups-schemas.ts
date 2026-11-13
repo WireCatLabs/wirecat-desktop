@@ -24,6 +24,5 @@ export const GroupsReadSchema = v.variant("kind", [
 ])
 
 export type GroupsRead = v.InferOutput<typeof GroupsReadSchema>
-export type AccountGroup = v.InferOutput<typeof AccountGroupSchema>
 
 export type AccountScope = "personal" | "work"

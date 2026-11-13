@@ -160,12 +160,3 @@ export const ProjectActivitySchema = v.looseObject({
   ),
   page: v.optional(v.looseObject({ has_more: v.optional(v.boolean(), false) }), { has_more: false }),
 })
-
-export type ProjectActivity = v.InferOutput<typeof ProjectActivitySchema>["items"][number]
-export type Responses = v.InferOutput<typeof ResponsesSchema>
-export type Waiting = v.InferOutput<typeof WaitingSchema>
-export type Coverage = v.InferOutput<typeof CoverageSchema>
-export type MeetingsList = v.InferOutput<typeof MeetingsListSchema>
-export type Mail = v.InferOutput<typeof MailSchema>
-export type TaskSources = v.InferOutput<typeof TaskSourcesSchema>
-export type MeetingHistory = v.InferOutput<typeof MeetingHistorySchema>

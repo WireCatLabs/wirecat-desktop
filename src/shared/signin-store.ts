@@ -37,7 +37,7 @@ type Failed = Of<"failed">
 export const NEEDS_UPDATE = "needs_update"
 
 /** The tool stopped without a `done` or `failed` event; the English message still goes to the bug report. */
-export const ENDED = "ended"
+const ENDED = "ended"
 
 /** What the dialog shows: the step the tool reached last. `plan` says what will happen, before anything runs. */
 export type Phase = "plan" | "starting" | "scan" | "pair" | "browser" | "answer" | "progress" | "done" | "failed"
@@ -186,7 +186,7 @@ export type PlanStep = "choose" | "password" | "webhook" | "paste" | "app"
 export const BITRIX = "bitrix"
 /** Bitrix24's local application: its id and key are typed in the window, then b24 signs in in the browser. */
 export const BITRIX_APP = "app"
-export const isBitrixApp = (s: Pick<SignInState, "tool" | "method">) => s.tool === BITRIX && s.method === BITRIX_APP
+const isBitrixApp = (s: Pick<SignInState, "tool" | "method">) => s.tool === BITRIX && s.method === BITRIX_APP
 
 /** The first https link in a tool's hint, without the sentence's closing punctuation. */
 export const linkIn = (hint: string | null | undefined) =>

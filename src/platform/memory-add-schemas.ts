@@ -88,7 +88,6 @@ export type AddSource = { given: GivenSource; title: string | null; subjects: st
 export type AddedSource = v.InferOutput<typeof AddedSourceSchema>
 export type StoredSource = v.InferOutput<typeof StoredSourceSchema>
 export type Mentions = v.InferOutput<typeof MentionsSchema>
-export type Mention = Mentions["items"][number]
 export type Reader = v.InferOutput<typeof ReaderSchema>
 export type Suggested = v.InferOutput<typeof SuggestedSchema>
 export type FilePreview = v.InferOutput<typeof FilePreviewSchema>

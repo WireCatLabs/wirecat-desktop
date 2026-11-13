@@ -1,8 +1,12 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["src/features/*/index.ts", "src/features/*/page.{ts,tsx}", "scripts/**/*.mjs"],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+  "ignore": ["src/platform/bindings.ts"],
   "ignoreDependencies": ["@fontsource-variable/.+", "tailwindcss", "@cspell/dict-es-es"],
   "ignoreBinaries": ["gitleaks"],
-  "ignoreExportsUsedInFile": { "type": true, "interface": true }
+  "ignoreExportsUsedInFile": {
+    "type": true,
+    "interface": true
+  }
 }

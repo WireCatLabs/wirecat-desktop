@@ -57,10 +57,6 @@ export function profilesOf(
 export const canSplit = (chosen: readonly string[], all: readonly (IdentityLike & { movable: boolean })[]) =>
   chosen.length > 0 && chosen.length < all.length && chosen.every((c) => all.some((i) => i.identity === c && i.movable))
 
-/** The person's name as the list read it; `null` when memo knows no name, or the list does not hold them. */
-export const nameOf = (people: readonly { ref: string; name: string | null }[], ref: string) =>
-  people.find((p) => p.ref === ref)?.name ?? null
-
 /** A search that names an account rather than a person: `telegram:4411`, `@kai_m` with a messenger, or an address. */
 export const looksLikeAccount = (query: string) => /^[a-z][a-z0-9-]*:\S+$|^\S+@\S+\.\S+$/.test(query.trim())
 

@@ -56,7 +56,6 @@ const ShellReachSchema = v.object({
   finds: v.nullable(v.boolean()),
   primary: v.boolean(),
 })
-export type ShellReach = v.InferOutput<typeof ShellReachSchema>
 
 export const PathFixSchema = v.object({
   added: v.array(v.string()),

@@ -8,7 +8,7 @@ import { errorText } from "@/shared/errors"
 import { useTools } from "@/shared/tools-store"
 
 /** Runs fetched per tool and page: about a month of a busy tool's failures. */
-export const PAGE = 500
+const PAGE = 500
 
 /**
  * `answer`: how long a round waits for the slowest tool before it shows what arrived.
@@ -114,13 +114,13 @@ function initialState(id: string): SourceState {
 }
 
 // Turning it back off removes the setting, so a tool without `config unset` is not offered the switch.
-export const canKeepEveryRun = (id: string) => {
+const canKeepEveryRun = (id: string) => {
   const settings = findTool(id)?.settings
   return Boolean(settings?.defaults && settings.unset)
 }
 
 /** Every source and keeping row the catalog knows of, before anything is read. */
-export function fromCatalog(): Pick<LogsState, "sources" | "keeping"> {
+function fromCatalog(): Pick<LogsState, "sources" | "keeping"> {
   const sources = Object.fromEntries(
     // A part's runs come from its owner's source and are filed under the part by `runTool`.
     tools
