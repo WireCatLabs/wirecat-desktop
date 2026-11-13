@@ -44,7 +44,7 @@ describe("Drive's meeting transcripts", () => {
     expect(await within(step()).findByText("Found 5 transcripts and Gemini notes")).toBeInTheDocument()
     expect(within(step()).getByText("Planning - Notes by Gemini")).toBeInTheDocument()
     expect(within(step()).getByText("and 2 more")).toBeInTheDocument()
-    const choices = within(step()).getAllByRole("radio")
+    const choices = await within(step()).findAllByRole("radio")
     expect(choices.map((c) => (c as HTMLInputElement).checked)).toEqual([false, false, false])
     await userEvent.click(within(step()).getByRole("radio", { name: /Add to WireCat/ }))
     expect(set).toHaveBeenCalledWith("drive", "work", false, "transcripts", '"include"')
@@ -56,8 +56,8 @@ describe("Drive's meeting transcripts", () => {
     vi.mocked(platform.settingsShow).mockResolvedValue(shown("exclude"))
     vi.spyOn(platform, "settingsSet").mockRejectedValue(new Error("config file is read-only"))
     render(<DriveTranscripts tool="drive" profile="work" />)
-    const never = within(step()).getByRole("radio", { name: /Never add/ })
-    await vi.waitFor(() => expect(never).toBeChecked())
+    const never = await within(step()).findByRole("radio", { name: /Never add/ })
+    expect(never).toBeChecked()
     await userEvent.click(within(step()).getByRole("radio", { name: /Don't add/ }))
     expect(await within(step()).findByText(/The choice was not saved: config file is read-only/)).toBeInTheDocument()
     expect(never).toBeChecked()
@@ -73,6 +73,41 @@ describe("Drive's meeting transcripts", () => {
     render(<DriveTranscripts tool="drive" profile="work" />)
     expect(await within(step()).findByText(/cannot find transcripts\. Update it/)).toBeInTheDocument()
     expect(within(step()).queryByRole("radio")).not.toBeInTheDocument()
+  })
+
+  it("offers the choices only once the saved one is known, so a quick click is not overwritten", async () => {
+    let answer: (s: Settings) => void = () => {}
+    vi.mocked(platform.settingsShow).mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    render(<DriveTranscripts tool="drive" profile="work" />)
+    await within(step()).findByText("Found 5 transcripts and Gemini notes")
+    expect(within(step()).queryByRole("radio")).not.toBeInTheDocument()
+    answer(shown("skip"))
+    expect(await within(step()).findByRole("radio", { name: /Don't add/ })).toBeChecked()
+  })
+
+  it("keeps the last choice when an earlier save answers after it", async () => {
+    let refuseFirst: (e: Error) => void = () => {}
+    vi.spyOn(platform, "settingsSet")
+      .mockReturnValueOnce(new Promise((_, reject) => (refuseFirst = reject)))
+      .mockResolvedValueOnce()
+    render(<DriveTranscripts tool="drive" profile="work" />)
+    await userEvent.click(await within(step()).findByRole("radio", { name: /Don't add/ }))
+    await userEvent.click(within(step()).getByRole("radio", { name: /Never add/ }))
+    expect(await within(step()).findByText(/never copied/)).toBeInTheDocument()
+    refuseFirst(new Error("late"))
+    await vi.waitFor(() => expect(within(step()).getByRole("radio", { name: /Never add/ })).toBeChecked())
+    expect(within(step()).queryByText(/was not saved/)).not.toBeInTheDocument()
+  })
+
+  it("lets the surface explain a failed search in its own words", async () => {
+    vi.mocked(platform.driveTranscriptsFind).mockResolvedValue({
+      result: "failed",
+      code: "authentication_error",
+      reason: "oauth.expired",
+      message: "expired",
+    })
+    render(<DriveTranscripts tool="drive" profile="work" failed={(f) => <p>Explained {f.reason}</p>} />)
+    expect(await within(step()).findByText("Explained oauth.expired")).toBeInTheDocument()
   })
 
   it("still lets the owner choose when the search failed, and Try again looks again", async () => {

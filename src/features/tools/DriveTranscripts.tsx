@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useId, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { TranscriptsFound } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -15,6 +15,7 @@ import { driveMessages } from "./messages-drive"
 export const TRANSCRIPT_MODES = ["include", "skip", "exclude"] as const
 export type TranscriptMode = (typeof TRANSCRIPT_MODES)[number]
 
+export type TranscriptsFailed = Extract<TranscriptsFound, { result: "failed" }>
 type Found = { state: "loading" } | { state: "ready"; found: TranscriptsFound }
 type Saved = { state: "idle" } | { state: "saving" } | { state: "saved" } | { state: "failed"; message: string }
 
@@ -29,19 +30,27 @@ const isMode = (value: unknown): value is TranscriptMode =>
 export function DriveTranscripts(props: {
   tool: string
   profile: string
+  /** A failed search in the surface's own words, such as a sign-in that expired; a plain notice otherwise. */
+  failed?: (found: TranscriptsFailed, retry: () => void) => ReactNode
   /** The next step once the owner chose to add them, such as Sync now. */
   afterInclude?: ReactNode
+  onChosen?: (mode: TranscriptMode) => void
   /** Inside a panel with its own heading, such as the account's folders, one level below it. */
   nested?: boolean
 }) {
-  const { tool, profile, afterInclude, nested = false } = props
+  const { tool, profile, failed, afterInclude, onChosen, nested = false } = props
   const Heading = nested ? "h6" : "h3"
   const m = useMessages(driveMessages).transcripts
   const heading = useId()
   const name = useId()
   const [found, setFound] = useState<Found>({ state: "loading" })
   const [mode, setMode] = useState<TranscriptMode | null>(null)
+  // The choices wait for the saved one: a click before it arrives would be overwritten by it.
+  const [read, setRead] = useState(false)
   const [saved, setSaved] = useState<Saved>({ state: "idle" })
+  const latest = useRef(0)
+  // The last choice drive accepted, to go back to when a later one is refused.
+  const kept = useRef<TranscriptMode | null>(null)
 
   const find = useCallback(async () => {
     setFound({ state: "loading" })
@@ -61,9 +70,14 @@ export function DriveTranscripts(props: {
     platform.settingsShow(tool, profile).then(
       ({ rows }) => {
         const row = rows.find((r) => r.key === "transcripts" && r.origin === "profile")
-        if (live && isMode(row?.value)) setMode(row.value)
+        if (!live) return
+        if (isMode(row?.value)) {
+          setMode(row.value)
+          kept.current = row.value
+        }
+        setRead(true)
       },
-      () => {},
+      () => live && setRead(true),
     )
     return () => {
       live = false
@@ -71,14 +85,18 @@ export function DriveTranscripts(props: {
   }, [tool, profile])
 
   const choose = async (next: TranscriptMode) => {
-    const before = mode
+    const call = ++latest.current
     setMode(next)
     setSaved({ state: "saving" })
     try {
       await platform.settingsSet(tool, profile, false, "transcripts", JSON.stringify(next))
+      kept.current = next
+      if (call !== latest.current) return
       setSaved({ state: "saved" })
+      onChosen?.(next)
     } catch (e) {
-      setMode(before)
+      if (call !== latest.current) return
+      setMode(kept.current)
       setSaved({ state: "failed", message: m.saveFailed(errorText(e)) })
     }
   }
@@ -105,6 +123,8 @@ export function DriveTranscripts(props: {
           </div>
         ) : found.found.result === "found" ? (
           <FoundList count={found.found.count} titles={found.found.titles} />
+        ) : failed && !tooOld ? (
+          failed(found.found, find)
         ) : (
           <ErrorNotice
             inline
@@ -122,7 +142,8 @@ export function DriveTranscripts(props: {
         )}
       </AutoHeight>
 
-      {!tooOld && (
+      {!tooOld && !read && <Skeleton className="h-24 w-full" />}
+      {!tooOld && read && (
         <fieldset className="flex flex-col gap-2 border-0 p-0">
           <legend className="mb-2 text-[0.95rem] font-medium text-ink">{m.choose}</legend>
           <div className="flex flex-col gap-2">
@@ -167,8 +188,10 @@ function FoundList({ count, titles }: { count: number; titles: string[] }) {
       <p className="text-[0.9rem] font-medium text-ink">{m.found(count)}</p>
       {titles.length > 0 && (
         <ul className="flex flex-col gap-1">
-          {titles.map((title) => (
-            <li key={title} className="flex min-w-0 items-center gap-2 text-[0.9rem] text-ink-soft">
+          {titles.map((title, i) => (
+            // Docs of a recurring meeting can share a name.
+            // biome-ignore lint/suspicious/noArrayIndexKey: the list is fixed once shown
+            <li key={i} className="flex min-w-0 items-center gap-2 text-[0.9rem] text-ink-soft">
               <FileText className="size-4 shrink-0 text-ink-dim" aria-hidden />
               <span className="truncate">{title}</span>
             </li>

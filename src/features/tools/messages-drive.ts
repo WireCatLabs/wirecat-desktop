@@ -64,7 +64,7 @@ const en = {
       },
       skip: {
         name: "Don't add",
-        detail: "Only the folders you chose are copied. You can change this later in the account's settings.",
+        detail: "Only the folders you chose are copied. You can change this at any time.",
       },
       exclude: {
         name: "Never add",
@@ -73,7 +73,7 @@ const en = {
     },
     saving: "Saving…",
     saved: {
-      include: "Transcripts and Gemini notes are copied on the next sync.",
+      include: "Transcripts and Gemini notes will be copied on the next sync.",
       skip: "Transcripts are not added. Those in your chosen folders are still copied.",
       exclude: "Transcripts and Gemini notes are never copied, not even from your chosen folders.",
     },
@@ -146,11 +146,11 @@ const ru: DriveText = {
       include: {
         name: "Добавить в WireCat",
         detail:
-          "Копируются, где бы ни лежали, как выбранная папка, и обновляются. Ваш агент может искать в них и читать их.",
+          "Копируются из любого места, как документы выбранной папки, и обновляются. Ваш агент может искать в них и читать их.",
       },
       skip: {
         name: "Не добавлять",
-        detail: "Копируются только выбранные папки. Это можно поменять позже в настройках аккаунта.",
+        detail: "Копируются только выбранные папки. Это можно поменять в любой момент.",
       },
       exclude: {
         name: "Никогда не добавлять",
@@ -164,7 +164,7 @@ const ru: DriveText = {
       exclude: "Расшифровки и заметки Gemini не копируются никогда, даже из выбранных папок.",
     },
     saveFailed: (error) => `Выбор не сохранён: ${error}`,
-    findFailed: "Не удалось поискать расшифровки. Выбрать всё равно можно.",
+    findFailed: "Поиск расшифровок не удался. Выбрать всё равно можно.",
     needsUpdate: "Эта версия Drive не умеет искать расшифровки. Обновите её на странице «Инструменты», чтобы выбрать.",
     retry: "Попробовать снова",
   },
@@ -224,7 +224,10 @@ const es: DriveText = {
     found: (n) =>
       n === 0
         ? "Aún no se encontraron transcripciones ni notas de Gemini."
-        : `${plural("es", n, { one: "Se encontró # transcripción o nota de Gemini", other: "Se encontraron # transcripciones y notas de Gemini" })}`,
+        : plural("es", n, {
+            one: "Se encontró # transcripción o nota de Gemini",
+            other: "Se encontraron # transcripciones y notas de Gemini",
+          }),
     more: (n) => `y ${n} más`,
     choose: "¿Añadirlas a WireCat?",
     choices: {
@@ -235,7 +238,7 @@ const es: DriveText = {
       },
       skip: {
         name: "No añadir",
-        detail: "Solo se copian las carpetas que elegiste. Puedes cambiarlo después en los ajustes de la cuenta.",
+        detail: "Solo se copian las carpetas que elegiste. Puedes cambiarlo cuando quieras.",
       },
       exclude: {
         name: "No añadir nunca",
@@ -244,12 +247,12 @@ const es: DriveText = {
     },
     saving: "Guardando…",
     saved: {
-      include: "Las transcripciones y las notas de Gemini se copian en la próxima sincronización.",
+      include: "Las transcripciones y las notas de Gemini se copiarán en la próxima sincronización.",
       skip: "Las transcripciones no se añaden. Las que están en tus carpetas elegidas se siguen copiando.",
       exclude: "Las transcripciones y las notas de Gemini no se copian nunca, ni siquiera desde tus carpetas elegidas.",
     },
     saveFailed: (error) => `La elección no se guardó: ${error}`,
-    findFailed: "No se pudo buscar transcripciones. Aun así puedes elegir.",
+    findFailed: "No se pudieron buscar las transcripciones. Aun así puedes elegir.",
     needsUpdate:
       "Esta versión de Drive no puede buscar transcripciones. Actualízala en la página Herramientas para elegir.",
     retry: "Reintentar",

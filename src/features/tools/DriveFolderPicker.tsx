@@ -29,13 +29,11 @@ export function DriveFolderPicker(props: {
   profile: string
   /** What a level that could not be read says, with a way to read it again. */
   failed: (level: FailedLevel, retry: () => void) => ReactNode
-  /** The next step once a folder is added, such as Sync now. */
-  after?: ReactNode
   onAdded?: () => void
   /** Off where the surface around it already has the title. */
   titled?: boolean
 }) {
-  const { tool, profile, failed, after, onAdded, titled = true } = props
+  const { tool, profile, failed, onAdded, titled = true } = props
   const sm = useMessages(driveMessages)
   const heading = useId()
   const [trail, setTrail] = useState<Crumb[]>([{ id: null, name: sm.picker.root }])
@@ -194,7 +192,6 @@ export function DriveFolderPicker(props: {
         <Button size="sm" variant="primary" disabled={adding} onClick={add}>
           {adding ? sm.picker.adding : sm.picker.add(chosen.size)}
         </Button>
-        {added.length > 0 && after}
       </div>
       <p role="status" className="min-h-[1.3rem] text-[0.95rem] text-ink-soft">
         {notAdded.length > 0 ? (

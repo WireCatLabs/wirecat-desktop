@@ -136,7 +136,7 @@ pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>) -> Result<Folder
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
         return Ok(read_level(json));
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderLevel::Failed { message, code, reason })
 }
 
@@ -154,7 +154,7 @@ pub fn add(tool: &Tool, profile: &str, folder: &str) -> Result<FolderAdded, Stri
     if out.code == Some(0) {
         return Ok(FolderAdded::Added);
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderAdded::Failed { message, code, reason })
 }
 
@@ -163,7 +163,7 @@ pub fn chosen(tool: &Tool, profile: &str) -> Result<ChosenFolders, String> {
     let src = source(tool)?;
     let (out, json) = skills::call(tool, &catalog::with_profile(&src.list, Some(profile))?, BROWSE)?;
     let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) else {
-        let (message, code, reason) = failure(&out, json.as_ref());
+        let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
         return Ok(ChosenFolders::Failed { message, code, reason });
     };
     let folders = chosen_ids(json)
@@ -204,7 +204,7 @@ pub fn remove(tool: &Tool, profile: &str, folder: &str) -> Result<FolderRemoved,
     if out.code == Some(0) {
         return Ok(FolderRemoved::Removed);
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderRemoved::Failed { message, code, reason })
 }
 
@@ -213,20 +213,24 @@ pub fn transcripts(tool: &Tool, profile: &str) -> Result<TranscriptsFound, Strin
     let src = source(tool)?;
     let found = src.transcripts.as_ref().ok_or_else(|| format!("{} cannot list meeting transcripts", tool.name))?;
     let argv = catalog::with_profile(&found.list, Some(profile))?;
-    let released = found.min_version.as_deref().is_some_and(|need| crate::task_board::unusable(tool, need).is_none());
-    if !released {
-        return Ok(too_old("This version cannot find meeting transcripts yet. Update it on the Tools page."));
+    if !released(tool, found.min_version.as_deref()) {
+        return Ok(TranscriptsFound::Failed {
+            message: TRANSCRIPTS_TOO_OLD.into(),
+            code: Some(NEEDS_UPDATE.into()),
+            reason: None,
+        });
     }
     let (out, json) = skills::call(tool, &argv, BROWSE)?;
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
         return Ok(read_transcripts(json));
     }
-    let (message, code, reason) = failure(&out, json.as_ref());
+    let (message, code, reason) = failure(&out, json.as_ref(), TRANSCRIPTS_TOO_OLD);
     Ok(TranscriptsFound::Failed { message, code, reason })
 }
 
-fn too_old(message: &str) -> TranscriptsFound {
-    TranscriptsFound::Failed { message: message.into(), code: Some(NEEDS_UPDATE.into()), reason: None }
+/// Not before the catalog names a release with the command, and not on an older installed drive.
+fn released(tool: &Tool, min_version: Option<&str>) -> bool {
+    min_version.is_some_and(|need| crate::task_board::unusable(tool, need).is_none())
 }
 
 fn read_transcripts(json: &Value) -> TranscriptsFound {
@@ -243,15 +247,14 @@ fn read_transcripts(json: &Value) -> TranscriptsFound {
     }
 }
 
-fn failure(out: &crate::run::Output, json: Option<&Value>) -> (String, Option<String>, Option<String>) {
+const FOLDERS_TOO_OLD: &str = "This version cannot list Drive folders yet. Update it on the Tools page.";
+const TRANSCRIPTS_TOO_OLD: &str = "This version cannot find meeting transcripts yet. Update it on the Tools page.";
+
+fn failure(out: &crate::run::Output, json: Option<&Value>, too_old: &str) -> (String, Option<String>, Option<String>) {
     let message = skills::failure(out, json);
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
     if crate::memo_cli::unknown_to_cli(&text) {
-        return (
-            "This version cannot list Drive folders yet. Update it on the Tools page.".into(),
-            Some(NEEDS_UPDATE.into()),
-            None,
-        );
+        return (too_old.into(), Some(NEEDS_UPDATE.into()), None);
     }
     let word = |k: &str| json.and_then(|v| v["error"][k].as_str()).map(str::to_string);
     (message, word("code"), word("reason"))
@@ -350,10 +353,8 @@ mod tests {
     #[test]
     fn asks_for_an_update_until_a_drive_with_transcripts_is_released() {
         let drive = catalog::tool("drive").unwrap();
-        if drive.folder_picker.as_ref().and_then(|p| p.transcripts.as_ref()).is_some_and(|t| t.min_version.is_none()) {
-            let found = transcripts(drive, "personal").unwrap();
-            assert!(matches!(found, TranscriptsFound::Failed { code: Some(ref c), .. } if c == NEEDS_UPDATE));
-        }
+        assert!(!released(drive, None));
+        assert!(!released(drive, Some("999.0.0")));
     }
 
     #[test]

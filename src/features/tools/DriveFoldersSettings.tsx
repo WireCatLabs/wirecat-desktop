@@ -186,7 +186,13 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         )}
       </AutoHeight>
 
-      <DriveTranscripts tool={tool.id} profile={profile} afterInclude={<SyncButton c={sync} />} nested />
+      <DriveTranscripts
+        key={profile}
+        tool={tool.id}
+        profile={profile}
+        afterInclude={changed ? undefined : <SyncButton c={sync} />}
+        nested
+      />
     </section>
   )
 }

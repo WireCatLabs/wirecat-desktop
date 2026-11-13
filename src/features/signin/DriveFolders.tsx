@@ -1,5 +1,6 @@
+import { useState } from "react"
 import { explainFailure } from "@/domain/signin-failure"
-import { DriveFolderPicker, DriveTranscripts, driveMessages, type FailedLevel } from "@/features/tools"
+import { DriveFolderPicker, DriveTranscripts, driveMessages } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -12,18 +13,27 @@ import { SyncNow } from "./ZoomApp"
  * Meet transcripts and Gemini notes, which sit outside the owner's folders, are added too.
  */
 export function DriveFolders({ tool, profile, name }: { tool: string; profile: string; name: string }) {
+  const [added, setAdded] = useState(false)
+  const [included, setIncluded] = useState(false)
+  const failed = (level: Failed, retry: () => void) => (
+    <LevelFailed level={level} name={name} profile={profile} onRetry={retry} />
+  )
   return (
     <div className="flex w-full flex-col gap-4">
-      <DriveFolderPicker
+      <DriveFolderPicker tool={tool} profile={profile} failed={failed} onAdded={() => setAdded(true)} />
+      <DriveTranscripts
+        key={profile}
         tool={tool}
         profile={profile}
-        failed={(level, retry) => <LevelFailed level={level} name={name} profile={profile} onRetry={retry} />}
-        after={<SyncNow tool={tool} profile={profile} />}
+        failed={failed}
+        onChosen={(mode) => setIncluded(mode === "include")}
       />
-      <DriveTranscripts tool={tool} profile={profile} afterInclude={<SyncNow tool={tool} profile={profile} />} />
+      {(added || included) && <SyncNow tool={tool} profile={profile} />}
     </div>
   )
 }
+
+type Failed = { message: string; code: string | null; reason: string | null }
 
 function LevelFailed({
   level,
@@ -31,7 +41,7 @@ function LevelFailed({
   profile,
   onRetry,
 }: {
-  level: FailedLevel
+  level: Failed
   name: string
   profile: string
   onRetry: () => void
