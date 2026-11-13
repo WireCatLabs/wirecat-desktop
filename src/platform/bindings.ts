@@ -519,7 +519,7 @@ export type DocumentDetails = {
 	text: string | null,
 	textOffset: number,
 	/**
-	 *  Where the next part starts, in characters as memo's SQLite counts them; JavaScript's `length` counts an emoji
+	 *  Where the next part starts, in characters as memo's `SQLite` counts them; JavaScript's `length` counts an emoji
 	 *  as two, so the page never adds it up itself.
 	 */
 	nextCursor: number,
