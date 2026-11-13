@@ -68,12 +68,14 @@ Each is a memo change; the page adds nothing in its place, and a missing field s
    from the computer's.
 5. **Join links per source** (`links[]{source, url}`), so Open in Zoom, Meet or Telemost is one button each.
 6. **Deciding a meeting's findings**: the command and what it needs (a batch id, a fingerprint), like
-   `actions confirm <id> <finding ids…> --fingerprint <hash>` on the Memory page.
+   `actions confirm <id> <finding ids…> --fingerprint <hash>` on the Memory page. Needed for deciding them inside
+   the dialog ([NEED-2354](#need-2354--where-a-meetings-findings-are-decided)).
 7. **The person ref on a participant**, so a name links to Contacts; without it the name is plain text.
 8. **Start order for windows** (`--order start`, oldest first), so a capped window is whole up to its last day.
 9. **The transcript inside `show`**, in `meetings transcript`'s line shape, so one read fills the dialog. Until
    then the Transcript tab reads `meetings transcript` when it opens.
-10. **A review id for a meeting's findings**, so "3 to confirm" can open that batch on the Memory page.
+10. **A review id for a meeting's findings**, so "3 to confirm" can open that batch on the Memory page
+    ([NEED-2354](#need-2354--where-a-meetings-findings-are-decided)).
 
 ## The page
 
@@ -89,13 +91,12 @@ Under the header, one toolbar line and one filter line. In Week and Month:
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
 │ [Today]  [‹] [›]   10 – 16 November 2026                                                     │
 │ [ search: title, person, words…                                                           ]  │
-│ [Kind: all ▾] [Source: all ▾] [Person ▾] [☐ Only with a transcript]                          │
+│ [Kind: all ▾] [Source: all ▾] [☐ Only with a transcript]                                     │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **Today** jumps to the week or month holding today and scrolls the time grid to now. Shown as a plain secondary
-  button even when today is on screen; it then only scrolls (a button that does nothing visible would be disabled,
-  and rule 10 forbids disabling it for that).
+  button even when today is on screen: it then scrolls the grid to now, so it always does something.
 - **‹ ›** step one week or one month (`aria-label` "Previous week" / "Next week" and so on).
 - **The range title** is a button that opens `DatePopover` with `Calendar`, to jump to any date. The week reads
   "10 – 16 November 2026", "29 December 2026 – 4 January 2027" across years, "Ноябрь 2026" for a month; all through
@@ -255,7 +256,8 @@ A meeting opens in `Dialog wide="xl" scroll tall`, the shape Tasks and Contacts 
   existing `proposal` target (`openTarget` in `src/features/links/open.ts`), where findings are already decided.
   Deciding them inside this dialog is a later step: Memory's `Findings` part reads the Memory store and its
   messages, so reusing it is a refactor of its own, and memo has no meeting command for it yet
-  ([gap 6](#gaps-in-memo)). Coming back from Memory reads the meeting again, so the count is current.
+  ([gap 6](#gaps-in-memo), [NEED-2354](#need-2354--where-a-meetings-findings-are-decided)). Coming back from
+  Memory reads the meeting again, so the count is current.
 - **Summary**: memo's text as prose, `text-body`, max 70ch, selectable.
 - **Participants**: a list; a name with a person ref is a `LinkButton` that opens the person on Contacts through the
   `person` target of `src/domain/links.ts`, and the dialog closes first. `openTarget` has no `person` case yet:
@@ -377,7 +379,7 @@ layoutDay(events: DaySegment[], maxColumns: number, minMinutes: number): Placed[
    it for its whole time (`span`). A block has one width for its whole height, so this helps only an event whose
    right-hand columns are free from its start to its end: A 9:00–12:00, B 9:00–10:00, C 9:00–10:00 and
    D 10:30–11:00 take columns 0, 1, 2 and 1, and D spans columns 1 and 2. Width is `span / shown`, left is
-   `column / shown`.
+   `column / shown`. With `maxColumns = 1` the 80% rule of step 5 replaces this width.
 7. **Result**, all in fractions and minutes, so the component only multiplies by the hour height and the day width.
 
 `maxColumns` comes from the day column's width: `floor(width / 4.5rem)`, at least 1, at most 4.
@@ -575,6 +577,17 @@ Made without the owner, as asked; each can be overturned on its own.
   the shown date is kept for the session, not across launches.**
 - **B**, a desktop-only link format: it would drift from the grammar every CLI writes, which the backlog already
   calls out as a check to add.
+
+### NEED-2354 · Where a meeting's findings are decided
+
+The brief asks for findings to be confirmed in the meeting's details; the first version sends the owner to Memory.
+
+- **Chosen: A, the count and "Confirm on Memory"**, which opens that batch on the Memory page through the existing
+  `proposal` target. Memory already decides findings, and memo has no meeting command for them yet.
+- **B**, decide them in the dialog with Memory's `Findings` part: needs memo's meeting command (gap 6) and that part
+  freed from the Memory store, a refactor of its own.
+- **C**, a small meetings-only findings list against memo's command, once it exists: a second way to decide the
+  same thing, which the consistency guide argues against.
 
 ## Out of scope
 
