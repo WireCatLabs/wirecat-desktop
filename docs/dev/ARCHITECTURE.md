@@ -296,6 +296,9 @@ src-tauri/src/
                 tool writes the timer. Its latest run (and `failing_since`) shows under the account, and a failed sync
                 from this window clears once a later run succeeded, timed or listed by `syncLast`.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
+  dock_badge.rs Linux only: the bell's unread count on the dock icon, as Unity's LauncherEntry signal over zbus, for
+                `wirecat.desktop` (every package) or `wirecat-desktop.desktop` (a build without one). One bus connection
+                lives as long as the app: the dock drops the count when its sender leaves. macOS uses Tauri's badge.
   attachments.rs one file of a stored message by its `msg:` reference: the text the owner's agent read from a picture
                 (`<messenger> images read`), or the saved copy opened.
   picture_reading.rs Settings "Reading pictures": memo's `models picture-reading show|set`.

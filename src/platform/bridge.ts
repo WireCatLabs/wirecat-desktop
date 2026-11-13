@@ -459,6 +459,7 @@ function createTauri(): Platform {
     reportContext: () => call(ReportContextSchema, "report_context"),
     sendReport: (draft, context) => call(ReportSentSchema, "send_report", { draft, context }),
     notifications: () => call(NotificationsSchema, "notifications"),
+    dockBadge: (count) => invoke("dock_badge", { count }),
     settingsShow: (id, profile) => call(SettingsSchema, "settings_show", { id, profile }),
     settingsSet: (id, profile, defaults, setting, value) =>
       invoke("settings_set", { id, profile, defaults, setting, value }),

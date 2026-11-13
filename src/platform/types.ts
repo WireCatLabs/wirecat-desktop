@@ -705,6 +705,8 @@ export type Platform = {
   sendReport(draft: ReportDraft, context: ReportContext): Promise<ReportSent>
   /** News from WireCat for this version and OS. The request carries nothing about the owner; rejects when offline. */
   notifications(): Promise<Notification[]>
+  /** The bell's unread count on the app icon in the dock; 0 takes the badge away. Nothing on Windows. */
+  dockBadge(count: number): Promise<void>
   /** `query` is the CLI's own filter (exact `field:value` terms); `page` starts at 1. */
   listRuns(id: string, query: string | null, limit: number, page: number): Promise<RunsPage>
   showRun(id: string, run: string): Promise<RunDetail>
