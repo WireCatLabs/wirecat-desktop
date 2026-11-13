@@ -11,6 +11,7 @@ import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { DriveFolderPicker } from "./DriveFolderPicker"
+import { DriveTranscripts } from "./DriveTranscripts"
 import { driveMessages } from "./messages-drive"
 import { SyncButton, useSyncControl } from "./Sync"
 
@@ -184,6 +185,8 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
           </div>
         )}
       </AutoHeight>
+
+      <DriveTranscripts tool={tool.id} profile={profile} afterInclude={<SyncButton c={sync} />} nested />
     </section>
   )
 }

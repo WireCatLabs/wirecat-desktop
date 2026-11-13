@@ -61,3 +61,14 @@ pub async fn drive_folder_remove(
     })
     .await
 }
+
+/// Google Docs named like Meet transcripts or Gemini notes, in the profile's Drive or shared with it: how many, and
+/// the newest names.
+#[tauri::command]
+pub async fn drive_transcripts_find(id: String, profile: String) -> Result<drive_folders::TranscriptsFound, AppError> {
+    crate::log::command("drive_transcripts_find", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || drive_folders::transcripts(tool, &profile)).await
+    })
+    .await
+}

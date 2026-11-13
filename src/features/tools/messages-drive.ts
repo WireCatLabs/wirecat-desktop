@@ -46,6 +46,42 @@ const en = {
     retry: "Try again",
     close: "Close",
   },
+  transcripts: {
+    title: "Meeting transcripts",
+    lead: "Google Meet saves transcripts and Gemini notes as Google Docs in the organizer's Drive and shares them with the guests, so most of them are not in your folders.",
+    loading: "Looking for transcripts…",
+    found: (n: number) =>
+      n === 0
+        ? "No transcripts or Gemini notes found yet."
+        : `Found ${plural("en", n, { one: "# transcript or Gemini note", other: "# transcripts and Gemini notes" })}`,
+    more: (n: number) => `and ${n} more`,
+    choose: "Add them to WireCat?",
+    choices: {
+      include: {
+        name: "Add to WireCat",
+        detail:
+          "Copied wherever they are, like a chosen folder, and kept up to date. Your agent can search and read them.",
+      },
+      skip: {
+        name: "Don't add",
+        detail: "Only the folders you chose are copied. You can change this later in the account's settings.",
+      },
+      exclude: {
+        name: "Never add",
+        detail: "Left out even when they sit in a folder you chose.",
+      },
+    },
+    saving: "Saving…",
+    saved: {
+      include: "Transcripts and Gemini notes are copied on the next sync.",
+      skip: "Transcripts are not added. Those in your chosen folders are still copied.",
+      exclude: "Transcripts and Gemini notes are never copied, not even from your chosen folders.",
+    },
+    saveFailed: (error: string) => `The choice was not saved: ${error}`,
+    findFailed: "Could not look for transcripts. You can still choose.",
+    needsUpdate: "This version of Drive cannot find transcripts. Update it on the Tools page to choose.",
+    retry: "Try again",
+  },
 }
 
 export type DriveText = typeof en
@@ -90,6 +126,47 @@ const ru: DriveText = {
     changed: "Папки изменились. Синхронизируйте сейчас, чтобы скопировать или убрать их текст.",
     retry: "Попробовать снова",
     close: "Закрыть",
+  },
+  transcripts: {
+    title: "Расшифровки встреч",
+    lead: "Google Meet сохраняет расшифровки и заметки Gemini как документы Google в Drive организатора и делится ими с гостями, поэтому большинство из них не лежит в ваших папках.",
+    loading: "Ищу расшифровки…",
+    found: (n) =>
+      n === 0
+        ? "Расшифровок и заметок Gemini пока не найдено."
+        : plural("ru", n, {
+            one: "Найдена # расшифровка или заметка Gemini",
+            few: "Найдено # расшифровки и заметки Gemini",
+            many: "Найдено # расшифровок и заметок Gemini",
+            other: "Найдено # расшифровки и заметки Gemini",
+          }),
+    more: (n) => `и ещё ${n}`,
+    choose: "Добавить их в WireCat?",
+    choices: {
+      include: {
+        name: "Добавить в WireCat",
+        detail:
+          "Копируются, где бы ни лежали, как выбранная папка, и обновляются. Ваш агент может искать в них и читать их.",
+      },
+      skip: {
+        name: "Не добавлять",
+        detail: "Копируются только выбранные папки. Это можно поменять позже в настройках аккаунта.",
+      },
+      exclude: {
+        name: "Никогда не добавлять",
+        detail: "Не копируются, даже если лежат в выбранной папке.",
+      },
+    },
+    saving: "Сохраняю…",
+    saved: {
+      include: "Расшифровки и заметки Gemini скопируются при следующей синхронизации.",
+      skip: "Расшифровки не добавляются. Те, что лежат в выбранных папках, по-прежнему копируются.",
+      exclude: "Расшифровки и заметки Gemini не копируются никогда, даже из выбранных папок.",
+    },
+    saveFailed: (error) => `Выбор не сохранён: ${error}`,
+    findFailed: "Не удалось поискать расшифровки. Выбрать всё равно можно.",
+    needsUpdate: "Эта версия Drive не умеет искать расшифровки. Обновите её на странице «Инструменты», чтобы выбрать.",
+    retry: "Попробовать снова",
   },
 }
 
@@ -139,6 +216,43 @@ const es: DriveText = {
     changed: "Las carpetas cambiaron. Sincroniza ahora para copiar o quitar su texto.",
     retry: "Reintentar",
     close: "Cerrar",
+  },
+  transcripts: {
+    title: "Transcripciones de reuniones",
+    lead: "Google Meet guarda las transcripciones y las notas de Gemini como documentos de Google en el Drive del organizador y los comparte con los invitados, así que la mayoría no están en tus carpetas.",
+    loading: "Buscando transcripciones…",
+    found: (n) =>
+      n === 0
+        ? "Aún no se encontraron transcripciones ni notas de Gemini."
+        : `${plural("es", n, { one: "Se encontró # transcripción o nota de Gemini", other: "Se encontraron # transcripciones y notas de Gemini" })}`,
+    more: (n) => `y ${n} más`,
+    choose: "¿Añadirlas a WireCat?",
+    choices: {
+      include: {
+        name: "Añadir a WireCat",
+        detail:
+          "Se copian estén donde estén, como una carpeta elegida, y se mantienen al día. Tu agente puede buscar en ellas y leerlas.",
+      },
+      skip: {
+        name: "No añadir",
+        detail: "Solo se copian las carpetas que elegiste. Puedes cambiarlo después en los ajustes de la cuenta.",
+      },
+      exclude: {
+        name: "No añadir nunca",
+        detail: "Se quedan fuera aunque estén en una carpeta que elegiste.",
+      },
+    },
+    saving: "Guardando…",
+    saved: {
+      include: "Las transcripciones y las notas de Gemini se copian en la próxima sincronización.",
+      skip: "Las transcripciones no se añaden. Las que están en tus carpetas elegidas se siguen copiando.",
+      exclude: "Las transcripciones y las notas de Gemini no se copian nunca, ni siquiera desde tus carpetas elegidas.",
+    },
+    saveFailed: (error) => `La elección no se guardó: ${error}`,
+    findFailed: "No se pudo buscar transcripciones. Aun así puedes elegir.",
+    needsUpdate:
+      "Esta versión de Drive no puede buscar transcripciones. Actualízala en la página Herramientas para elegir.",
+    retry: "Reintentar",
   },
 }
 

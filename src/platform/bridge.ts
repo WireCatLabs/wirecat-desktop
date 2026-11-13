@@ -392,6 +392,7 @@ function createTauri(): Platform {
     driveFolderAdd: (id, profile, folder) => invoke("drive_folder_add", { id, profile, folder }),
     driveFoldersChosen: (id, profile) => invoke("drive_folders_chosen", { id, profile }),
     driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
+    driveTranscriptsFind: (id, profile) => invoke("drive_transcripts_find", { id, profile }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
     checkBots: (id) => invoke("check_bots", { id }),

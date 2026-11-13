@@ -1,5 +1,5 @@
 import { explainFailure } from "@/domain/signin-failure"
-import { DriveFolderPicker, driveMessages, type FailedLevel } from "@/features/tools"
+import { DriveFolderPicker, DriveTranscripts, driveMessages, type FailedLevel } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -7,15 +7,21 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { wizardMessages } from "./messages-wizard"
 import { SyncNow } from "./ZoomApp"
 
-/** After Drive signs in: the folder picker, and a sign-in's own words when Drive refuses to list them. */
+/**
+ * After Drive signs in: the folder picker, with a sign-in's own words when Drive refuses to list them, then whether
+ * Meet transcripts and Gemini notes, which sit outside the owner's folders, are added too.
+ */
 export function DriveFolders({ tool, profile, name }: { tool: string; profile: string; name: string }) {
   return (
-    <DriveFolderPicker
-      tool={tool}
-      profile={profile}
-      failed={(level, retry) => <LevelFailed level={level} name={name} profile={profile} onRetry={retry} />}
-      after={<SyncNow tool={tool} profile={profile} />}
-    />
+    <div className="flex w-full flex-col gap-4">
+      <DriveFolderPicker
+        tool={tool}
+        profile={profile}
+        failed={(level, retry) => <LevelFailed level={level} name={name} profile={profile} onRetry={retry} />}
+        after={<SyncNow tool={tool} profile={profile} />}
+      />
+      <DriveTranscripts tool={tool} profile={profile} afterInclude={<SyncNow tool={tool} profile={profile} />} />
+    </div>
   )
 }
 

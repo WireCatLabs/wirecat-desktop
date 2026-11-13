@@ -201,7 +201,8 @@ src-tauri/src/
                 used and lists the rest.
   drive_folders.rs Drive's folders for one profile: `folders browse` and `add` (the picker), `folders list` with each
                 name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
-                next sync drops what it copied from there.
+                next sync drops what it copied from there; `transcripts list`, the Docs named like Meet transcripts or
+                Gemini notes, counted with the newest three names.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
@@ -779,7 +780,10 @@ sign-in's failure words): `drive_folders_browse(id, profile, parent)` runs `fold
 browse [--parent <id>]` one level at a time, and `drive_folder_add` runs `folders add <id>` for each ticked folder
 (catalog `folderPicker`; ids are checked in `drive_folders.rs`; Shared with me is a list, not a folder, and cannot be
 added). The same picker opens later from an account row's "Choose folders" (`DriveFoldersSettings.tsx`), beside the
-chosen folders with Remove each. A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
+chosen folders with Remove each. Below the picker, and in the same settings, "Meeting transcripts"
+(`tools/DriveTranscripts.tsx`) shows what `drive_transcripts_find` found (drive's `transcripts list`) and three choices
+that set the profile's `transcripts` setting through `settings_set`: include, skip, exclude; none is chosen until the
+owner picks one. A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
 it", with the terminal as the fallback.
 
 Every sign-in is one wizard: `SignInPath.tsx` draws the method's steps from `wizard.ts` (before you start, the tool's

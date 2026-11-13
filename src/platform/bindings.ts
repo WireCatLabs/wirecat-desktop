@@ -1401,6 +1401,9 @@ export type ToolState = {
 	installs: Install[],
 };
 
+/**  How many Docs look like Meet transcripts or Gemini notes, with the newest few names to show before the owner chooses. */
+export type TranscriptsFound = { result: "found"; count: number; titles: string[] } | { result: "failed"; message: string; code: string | null; reason: string | null };
+
 export type TroubleKind = "noCredit" | "limit" | "signedOut";
 
 export type TunnelRoute = {
