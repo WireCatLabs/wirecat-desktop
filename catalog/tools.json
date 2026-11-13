@@ -2301,7 +2301,7 @@
       "bin": "pbx",
       "package": "@wirecat/asterisk-cli",
       "summary": "Import your Asterisk PBX's call records and recordings as meetings, transcribe the calls on this computer and give your agent what was said.",
-      "docs": "https://github.com/WireCatLabs/asterisk-cli#readme",
+      "docs": "https://wirecat.dev/en/docs/pbx",
       "repo": "https://github.com/WireCatLabs/asterisk-cli",
       "profiles": {
         "args": ["session", "list", "--no-record", "--json"],
