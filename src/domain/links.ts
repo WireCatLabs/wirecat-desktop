@@ -1,6 +1,7 @@
 // WireCat links (`wirecat://open/v1/…`, `https://wirecat.dev/o#/v1/…`): the v1 grammar cli-core's `src/domain/links.ts`
-// writes. The desktop cannot import cli-core, so `links-v1.fixture.json` is a copy of its shared test file and both this
-// parser and `src-tauri/src/deep_link.rs` must accept exactly what it lists. A link only opens a screen.
+// writes. The desktop cannot import cli-core, so `links-v1.fixture.json` is a copy of its shared test file (commit and
+// hash in `links-v1.fixture.source.json`, checked by `links.test.ts`), and both this parser and
+// `src-tauri/src/deep_link.rs` must accept exactly what it lists. A link only opens a screen.
 
 export type TaskFilter = "overdue" | "today" | "tomorrow" | "undated"
 
@@ -15,7 +16,8 @@ export type DeepLinkTarget =
   | { type: "digest"; date: string }
   /** memo's person id, as `person:<id>` names it. */
   | { type: "person"; id: string }
-  | { type: "project"; key: string }
+  /** A project's store id or its key, as `project:<key>` names it. */
+  | { type: "project"; id: string }
   | { type: "sync"; tool: string; account?: string }
 
 // Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
@@ -62,7 +64,7 @@ const partsOf = (target: DeepLinkTarget): string[] => {
     case "person":
       return ["person", target.id]
     case "project":
-      return ["project", target.key]
+      return ["project", target.id]
     case "sync":
       return target.account === undefined ? ["sync", target.tool] : ["sync", target.tool, target.account]
   }
@@ -90,7 +92,7 @@ const targetOfParts = (parts: string[]): DeepLinkTarget | null => {
     case "person":
       return rest.length === 1 ? { type: "person", id: a } : null
     case "project":
-      return rest.length === 1 ? { type: "project", key: a } : null
+      return rest.length === 1 ? { type: "project", id: a } : null
     case "sync":
       if (rest.length === 1) return { type: "sync", tool: a }
       return rest.length === 2 ? { type: "sync", tool: a, account: b } : null
@@ -130,7 +132,7 @@ export const parseLink = (text: string): DeepLinkTarget | null => {
   return targetOfPath(rest)
 }
 
-const LINK_ONLY = new Set(["tasks", "proposal", "digest", "sync", "person", "project"])
+const LINK_ONLY = new Set(["tasks", "proposal", "digest", "sync"])
 
 const encodedParts = (rest: string, count: number): string[] | null => {
   const parts = rest.split("/")
@@ -143,9 +145,10 @@ const encodedParts = (rest: string, count: number): string[] | null => {
 }
 
 /**
- * The target a digest item's ref names, or null. `msg:`, `chat:` and `task:` are store references (their parts
- * percent-encoded, a task id as it is); the kinds that are no reference are their path with a colon after the kind:
- * `proposal:fact%3A512`, `tasks:overdue`, `digest:2026-11-08`, `sync:telegram/1001`, `person:77`, `project:north-wind`.
+ * The target a digest item's ref names, or null. `msg:`, `chat:`, `task:`, `person:` and `project:` are store
+ * references (msg and chat parts percent-encoded, an id as it is, as cli-core's `parseReference` reads them); the kinds
+ * that are no reference are their path with a colon after the kind: `proposal:fact%3A512`, `tasks:overdue`,
+ * `digest:2026-11-08`, `sync:telegram/1001`.
  */
 export const linkTargetOf = (ref: string): DeepLinkTarget | null => {
   const text = ref.trim()
@@ -154,7 +157,8 @@ export const linkTargetOf = (ref: string): DeepLinkTarget | null => {
   const kind = text.slice(0, colon)
   const rest = text.slice(colon + 1)
   if (LINK_ONLY.has(kind)) return targetOfPath(`${kind}/${rest}`)
-  if (kind === "task") return rest === "" ? null : { type: "task", id: rest }
+  if (kind === "task" || kind === "person" || kind === "project")
+    return rest.trim() === "" ? null : { type: kind, id: rest }
   if (kind === "msg") {
     const p = encodedParts(rest, 4)
     return p
@@ -177,7 +181,9 @@ export const referenceOf = (target: DeepLinkTarget): string => {
     case "chat":
       return `chat:${encoded(target.provider, target.account, target.chat)}`
     case "task":
-      return `task:${target.id}`
+    case "person":
+    case "project":
+      return `${target.type}:${target.id}`
     default:
       return formatLink(target)
         .slice(LINK_VERSION.length + 2)

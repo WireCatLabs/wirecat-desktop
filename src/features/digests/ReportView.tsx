@@ -89,7 +89,7 @@ function refLabel(target: DeepLinkTarget, item: ReportItem, m: M): string {
     case "person":
       return entityOf(item.refs, "person") && item.who ? item.who : m.refs.person
     case "project":
-      return m.refs.project(target.key)
+      return m.refs.project(target.id)
     default:
       return m.refs.other
   }

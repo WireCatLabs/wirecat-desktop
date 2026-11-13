@@ -43,7 +43,7 @@ async function openDigest(target: Extract<DeepLinkTarget, { type: "digest" }>) {
 
 async function openProject(target: Extract<DeepLinkTarget, { type: "project" }>) {
   const projects = await platform.projectList().catch(() => [])
-  const project = projectNamed(projects, target.key)
+  const project = projectNamed(projects, target.id)
   if (!project) return show({ kind: "unsupported", target })
   useNav.getState().go("tasks")
   useTasks.getState().setQuery(projectQuery(project.key))

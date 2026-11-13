@@ -60,7 +60,7 @@ describe("a digest laid out as cli-core's renderer lays it out", () => {
     expect(entityOf(["person:77", "person:78"], "person")).toBeNull()
     expect(entityOf(["project:north-wind", "project:north-wind"], "project")).toEqual({
       type: "project",
-      key: "north-wind",
+      id: "north-wind",
     })
     expect(targetsOfRefs(["task:80", "plain", "task:80", "proposal:17070"])).toEqual([
       { type: "task", id: "80" },

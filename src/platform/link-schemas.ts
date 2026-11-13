@@ -13,7 +13,7 @@ const DeepLinkTargetSchema = v.union([
   v.object({ type: v.literal("proposal"), id: part }),
   v.object({ type: v.literal("digest"), date: part }),
   v.object({ type: v.literal("person"), id: part }),
-  v.object({ type: v.literal("project"), key: part }),
+  v.object({ type: v.literal("project"), id: part }),
   v.object({ type: v.literal("sync"), tool: part, account: v.exactOptional(part) }),
 ]) satisfies v.GenericSchema<unknown, DeepLinkTarget>
 
