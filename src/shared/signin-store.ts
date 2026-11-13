@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { ASTERISK, sourceProblem, sourceSettings } from "@/domain/asterisk-source"
 import {
   type AppProblem,
   appIdShaped,
@@ -85,7 +86,17 @@ type SignInState = {
   /** The own app id could not be saved, so the plan stays open with the tool's reason. */
   planError: string | null
   /** Start was pressed without what the method needs. */
-  planMissing: "address" | "password" | "client" | "portal" | "webhook" | "appId" | "appKey" | "update" | null
+  planMissing:
+    | "address"
+    | "password"
+    | "client"
+    | "portal"
+    | "webhook"
+    | "appId"
+    | "appKey"
+    | "update"
+    | "source"
+    | null
   /** Gmail's way in: the browser, with WireCat's Google app or the owner's own client, or an app password. */
   way: MailWay
   /**
@@ -96,6 +107,8 @@ type SignInState = {
   planStep: PlanStep
   /** Bitrix24's portal host, as the owner typed it on the first step. */
   portal: string
+  /** pbx's source settings by key, saved with `config set` before the run; never the password. */
+  source: Record<string, string>
   /** The local application's Application ID (client_id); not a secret. Its key stays outside the store. */
   appId: string
   /** Why b24 refused the local application's sign-in; its form says it, with what to do. */
@@ -157,6 +170,7 @@ const closed = {
   way: "browser" as MailWay,
   planStep: "choose" as PlanStep,
   portal: "",
+  source: {} as Record<string, string>,
   appId: "",
   appProblem: null as AppProblem | null,
   webhookProblem: null as WebhookProblem | null,
@@ -235,9 +249,10 @@ export const guidedProvider = (
 const WRONG_PASSWORD = new Set(["mail.app-password-required", "mail.login-refused"])
 
 /** What the plan keeps across a run, a new try and a way back to it. */
-const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "portal" | "appId">) => ({
+const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "portal" | "appId" | "source">) => ({
   address: s.address,
   portal: s.portal,
+  source: s.source,
   appId: s.appId,
   ownFile: s.ownFile,
   ownId: s.ownId,
@@ -564,13 +579,24 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (chosen?.oauth && get().way === "browser" && !ownFile && oauthTooOld(tool, method))
         return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
+      if (tool === ASTERISK) {
+        if (sourceProblem(method, get().source)) return set({ planMissing: "source" })
+        if (chosen?.stdin && !typed.password) return set({ planMissing: "password" })
+      }
       const setting = chosen?.clientId
+      const saves: [string, string][] = [
+        ...(setting && ownId.trim() ? [[setting, ownId.trim()] as [string, string]] : []),
+        ...(tool === ASTERISK ? sourceSettings(method, get().source) : []),
+      ]
       const run = () => get().start(tool, profile, onFinish ?? undefined, method)
       const go = () => {
-        if (!setting || !ownId.trim()) return run()
+        if (saves.length === 0) return run()
         set({ planError: null })
-        platform
-          .settingsSet(tool, profile, false, setting, ownId.trim())
+        saves
+          .reduce<Promise<void>>(
+            (saved, [key, value]) => saved.then(() => platform.settingsSet(tool, profile, false, key, value)),
+            Promise.resolve(),
+          )
           .then(run, (e) => set({ planError: errorText(e) }))
       }
       const launch = tool === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go

@@ -28,6 +28,7 @@ const en = {
     webhook: () => "Make a webhook",
     paste: () => "Paste and check",
     localApp: () => "Your local application",
+    source: () => "Where the calls are",
     done: () => "Done",
   } as Record<WizardStep, (name: string) => string>,
   method: {
@@ -237,6 +238,7 @@ const ru: WizardText = {
     webhook: () => "Создайте вебхук",
     paste: () => "Вставьте и проверьте",
     localApp: () => "Локальное приложение",
+    source: () => "Где звонки",
     done: () => "Готово",
   },
   method: {
@@ -449,6 +451,7 @@ const es: WizardText = {
     webhook: () => "Crea un webhook",
     paste: () => "Pega y comprueba",
     localApp: () => "Tu aplicación local",
+    source: () => "Dónde están las llamadas",
     done: () => "Listo",
   },
   method: {

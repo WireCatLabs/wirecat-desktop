@@ -3,7 +3,7 @@
 import { execFileSync } from "node:child_process"
 import { writeFileSync } from "node:fs"
 
-const TOOLS = ["tg", "max", "wa", "memo", "zm", "drive"]
+const TOOLS = ["tg", "max", "wa", "memo", "zm", "drive", "pbx"]
 const out = "src/features/guides/commands.fixture.json"
 const env = { ...process.env, DBUS_SESSION_BUS_ADDRESS: "disabled:" }
 const run = (bin, args) => execFileSync(bin, args, { env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })

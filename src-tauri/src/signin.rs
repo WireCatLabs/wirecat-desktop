@@ -133,10 +133,12 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
         let password = Answer::new(password);
         if app {
             stdin = Some(valid_app_key(&password)?);
-        } else if method.stdin {
+        } else if method.stdin && method.id == "webhook" {
             stdin = Some(valid_webhook(&password)?);
         } else if password.is_empty() || password.len() > 1024 || password.chars().any(char::is_control) {
-            return Err("The app password is one line of at most 1024 characters.".into());
+            return Err("The password is one line of at most 1024 characters.".into());
+        } else if method.stdin {
+            stdin = Some(password);
         } else {
             env.push((flag(method.password.as_ref(), "a password")?.clone(), password));
         }
@@ -524,6 +526,26 @@ mod tests {
         assert!(
             args(b24, "webhook", "work", Inputs { address: Some("me@x.com".into()), ..Inputs::default() }).is_err()
         );
+    }
+
+    #[test]
+    fn a_database_password_goes_only_to_stdin_and_a_csv_file_needs_none() {
+        let asterisk = catalog::tool("pbx").unwrap();
+        let typed = |text: &str| Inputs { password: Some(text.into()), ..Inputs::default() };
+        for method in ["mysql", "postgres"] {
+            let prepared = args(asterisk, method, "office", typed("pa ss;word")).unwrap();
+            assert_eq!(prepared.args, ["office", "session", "start", "--json"]);
+            assert_eq!(prepared.env.len(), 0);
+            assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some("pa ss;word"));
+            for bad in ["", "s3cr3t\nx"] {
+                let error = args(asterisk, method, "office", typed(bad)).err().unwrap();
+                assert!(!error.contains("s3cr3t"), "{error}");
+            }
+        }
+        let csv = args(asterisk, "csv", "office", Inputs::default()).unwrap();
+        assert_eq!(csv.args, ["office", "session", "start", "--json"]);
+        assert!(csv.stdin.is_none());
+        assert!(args(asterisk, "csv", "office", typed("x")).is_err(), "Master.csv takes no password");
     }
 
     #[test]

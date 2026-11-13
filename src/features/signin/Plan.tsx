@@ -1,6 +1,7 @@
 import { CircleCheck, Clock, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
+import { ASTERISK } from "@/domain/asterisk-source"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
@@ -18,6 +19,7 @@ import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
 import { Disclosure } from "@/ui/Disclosure"
 import { useFieldError } from "@/ui/FieldError"
+import { AsteriskSource } from "./AsteriskSource"
 import { BitrixSteps } from "./BitrixSteps"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
 import { mailMessages } from "./messages-mail"
@@ -47,6 +49,7 @@ export function Plan() {
   // A refusal is a new run: the step starts again, its field empty.
   if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
   if (tool === BITRIX) return <BitrixSteps />
+  if (tool === ASTERISK) return <AsteriskSource />
   const steps = [
     ...(plan?.appKeys ? tm.appSteps.map((text) => ({ text, once: true })) : []),
     ...(plan?.steps ?? []).map((text) => ({ text, once: false })),
