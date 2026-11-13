@@ -236,7 +236,11 @@ describe("Bitrix24's sign-in wizard", () => {
     })
     await settled()
     expect(within(dialog).getByText("The webhook may not read who made it.")).toBeInTheDocument()
-    expect(within(dialog).getByText(/tick Users \(basic\), user_basic/)).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(
+        /all three permissions are chosen: Users \(basic\), user_basic; CRM, crm; Company structure, department/,
+      ),
+    ).toBeInTheDocument()
     expect(within(dialog).getByLabelText("Webhook address")).toHaveValue(HOOK)
     await userEvent.click(within(dialog).getByRole("button", { name: "Check again" }))
     expect(platform.signIn).toHaveBeenCalledTimes(2)

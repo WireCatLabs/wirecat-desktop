@@ -71,7 +71,7 @@ const en = {
     scope: {
       title: "The webhook may not read who made it.",
       cause:
-        "In Bitrix24, open the webhook, tick Users (basic), user_basic, and save. The address stays the same: press Check again.",
+        "In Bitrix24, open the webhook and check that all three permissions are chosen: Users (basic), user_basic; CRM, crm; Company structure, department. Save. The address stays the same: press Check again.",
     },
     refused: {
       title: "Bitrix24 refused this webhook.",
@@ -130,7 +130,8 @@ const en = {
       },
       scope: {
         title: "The application may not read who signed in.",
-        cause: "In Bitrix24, open the application, tick Users (basic), user_basic, save, and sign in again.",
+        cause:
+          "In Bitrix24, open the application and check that all three permissions are chosen: Users (basic), user_basic; CRM, crm; Company structure, department. Save and sign in again.",
       },
       invalid: {
         title: "Bitrix24's tool refused what was typed.",
@@ -219,7 +220,7 @@ const ru: BitrixText = {
     scope: {
       title: "Вебхуку не хватает права читать пользователей.",
       cause:
-        "В Битрикс24 откройте вебхук, отметьте «Пользователи (базовый)», user_basic, и сохраните. Адрес не изменится: нажмите «Проверить снова».",
+        "В Битрикс24 откройте вебхук и проверьте, что в «Настройке прав» выбраны все три права: «Пользователи (базовый)», user_basic; «CRM», crm; «Структура компании», department. Сохраните. Адрес не изменится: нажмите «Проверить снова».",
     },
     refused: {
       title: "Битрикс24 отклонил этот вебхук.",
@@ -279,7 +280,7 @@ const ru: BitrixText = {
       scope: {
         title: "Приложению не хватает права читать пользователей.",
         cause:
-          "В Битрикс24 откройте приложение, отметьте «Пользователи (базовый)», user_basic, сохраните и войдите снова.",
+          "В Битрикс24 откройте приложение и проверьте, что выбраны все три права: «Пользователи (базовый)», user_basic; «CRM», crm; «Структура компании», department. Сохраните и войдите снова.",
       },
       invalid: {
         title: "Инструмент Битрикс24 не принял введенное.",
@@ -367,7 +368,7 @@ const es: BitrixText = {
     scope: {
       title: "El webhook no puede leer quién lo creó.",
       cause:
-        "En Bitrix24, abre el webhook, marca Usuarios (básico), user_basic, y guarda. La dirección no cambia: pulsa Comprobar de nuevo.",
+        "En Bitrix24, abre el webhook y comprueba que están elegidos los tres permisos: Usuarios (básico), user_basic; CRM, crm; Estructura de la empresa, department. Guarda. La dirección no cambia: pulsa Comprobar de nuevo.",
     },
     refused: {
       title: "Bitrix24 rechazó este webhook.",
@@ -427,7 +428,8 @@ const es: BitrixText = {
       },
       scope: {
         title: "La aplicación no puede leer quién inició sesión.",
-        cause: "En Bitrix24, abre la aplicación, marca Usuarios (básico), user_basic, guarda e inicia sesión de nuevo.",
+        cause:
+          "En Bitrix24, abre la aplicación y comprueba que están elegidos los tres permisos: Usuarios (básico), user_basic; CRM, crm; Estructura de la empresa, department. Guarda e inicia sesión de nuevo.",
       },
       invalid: {
         title: "La herramienta de Bitrix24 rechazó lo escrito.",
