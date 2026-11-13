@@ -154,7 +154,7 @@ function ConversationRow({ conversation: c, now }: { conversation: Conversation;
           <span className="ml-auto flex shrink-0 items-baseline gap-[1.1rem] text-[0.9rem] text-ink-soft">
             {c.key && (
               <span className="font-mono tabular-nums" title={formatDate(c.first, FULL, lang)}>
-                {m.from(formatWhen(c.first, now, lang))}
+                {m.from(formatWhen(c.first, now, lang, { seconds: true }))}
               </span>
             )}
             <span className="tabular-nums">{m.runsN(c.runs.length)}</span>
@@ -203,7 +203,7 @@ export function RunsTable({
             className="font-mono text-[0.9rem] text-ink-soft tabular-nums"
             title={formatDate(run.started_at, FULL, lang)}
           >
-            {formatWhen(run.started_at, now, lang)}
+            {formatWhen(run.started_at, now, lang, { seconds: true })}
           </td>
           <td>
             <span className="flex min-w-0 items-center gap-[0.4rem]">
@@ -237,7 +237,7 @@ export function RunsTable({
               aria-expanded={open}
               aria-label={(open ? m.hideRun : m.showRun)(
                 commandLabel(m, commandOf(run)),
-                formatWhen(run.started_at, now, lang),
+                formatWhen(run.started_at, now, lang, { seconds: true }),
               )}
               onClick={(e) => {
                 e.stopPropagation()

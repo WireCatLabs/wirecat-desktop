@@ -654,14 +654,22 @@ export function formatDuration(ms: number | undefined): string {
 const pad = (n: number) => String(n).padStart(2, "0")
 const dayMonth = (d: Date, lang: Lang) => d.toLocaleString(lang, { day: "numeric", month: "short" })
 
-/** Local time on a 24-hour clock: "14:05:12" today, "Yesterday 14:05", "Oct 3 14:05" otherwise, in `lang`. */
-export function formatWhen(iso: string, now: Date, lang: Lang): string {
+/**
+ * Local time on a 24-hour clock: "14:05" today, "Yesterday 14:05", "Oct 3 14:05" otherwise, in `lang`. The run log
+ * asks for `seconds`, since runs a second apart must read apart; elsewhere they are noise.
+ */
+export function formatWhen(
+  iso: string,
+  now: Date,
+  lang: Lang,
+  { seconds = false }: { seconds?: boolean } = {},
+): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
   const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`
   const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
   const days = Math.round((day(now) - day(d)) / 86_400_000)
-  if (days === 0) return `${hm}:${pad(d.getSeconds())}`
+  if (days === 0) return seconds ? `${hm}:${pad(d.getSeconds())}` : hm
   if (days === 1) {
     const yesterday = new Intl.RelativeTimeFormat(lang, { numeric: "auto" }).format(-1, "day")
     return `${yesterday.charAt(0).toLocaleUpperCase(lang)}${yesterday.slice(1)} ${hm}`

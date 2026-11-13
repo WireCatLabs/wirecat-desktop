@@ -60,7 +60,7 @@ export function Groups({ field, groups, now, onPick }: Props) {
             <td className="pr-[0.9rem] text-right font-mono text-[0.95rem] tabular-nums">{g.count}</td>
             <td className="pr-[0.9rem] text-right font-mono text-[0.95rem] text-ink-soft tabular-nums">{g.failed}</td>
             <td className="wrap-break-word pr-[1.3rem] font-mono text-[0.9rem] text-ink-soft tabular-nums">
-              {formatWhen(g.last, now, lang)}
+              {formatWhen(g.last, now, lang, { seconds: true })}
             </td>
           </tr>
         ))}
