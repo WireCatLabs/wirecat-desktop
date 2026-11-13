@@ -97,6 +97,8 @@ fn types() -> Types {
         .register::<crate::documents::DocumentsRead>()
         .register::<crate::documents::DocumentPage>()
         .register::<crate::documents::DocumentDetails>()
+        .register::<crate::meetings::MeetingsRead>()
+        .register::<crate::meetings::MeetingDetails>()
 }
 
 fn render() -> String {

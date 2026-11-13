@@ -26,6 +26,7 @@ import { localOnlyMock } from "./mock-local-only"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mailRulesMock } from "./mock-mail-rules"
 import { mcpServerMock } from "./mock-mcp"
+import { meetingsMock } from "./mock-meetings"
 import { memoState, OLD_MEMO } from "./mock-memo"
 import { memoryMock } from "./mock-memory"
 import { notesSetupMock } from "./mock-notes-setup"
@@ -743,6 +744,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...mailAgentMock(params),
     ...mailRulesMock(params),
     ...documentsMock(),
+    ...meetingsMock(),
     ...backgroundAgentMock(params),
     ...digestsMock(params),
     ...digestEditorsMock(params),

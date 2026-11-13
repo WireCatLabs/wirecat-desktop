@@ -80,6 +80,7 @@ const en = {
   nobody: "No people linked.",
   changedAt: "Changed",
   openPerson: (name: string) => `Open ${name} on Contacts`,
+  openMeeting: (title: string) => `Open ${title} on Meetings`,
 }
 
 const ru: typeof en = {
@@ -141,6 +142,7 @@ const ru: typeof en = {
   nobody: "Люди не связаны.",
   changedAt: "Изменён",
   openPerson: (name: string) => `Открыть ${name} в Контактах`,
+  openMeeting: (title: string) => `Открыть «${title}» во Встречах`,
 }
 
 const es: typeof en = {
@@ -202,6 +204,7 @@ const es: typeof en = {
   nobody: "No hay personas vinculadas.",
   changedAt: "Cambiado",
   openPerson: (name: string) => `Abrir a ${name} en Contactos`,
+  openMeeting: (title: string) => `Abrir ${title} en Reuniones`,
 }
 
 export const documentMessages: Messages<typeof en> = { en, ru, es }

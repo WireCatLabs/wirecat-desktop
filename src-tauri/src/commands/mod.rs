@@ -10,6 +10,7 @@ pub mod enrichment;
 pub mod groups;
 pub mod mail_agent;
 pub mod mcp_server;
+pub mod meetings;
 pub mod memory;
 pub mod node;
 pub mod notes_setup;

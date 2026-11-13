@@ -63,6 +63,8 @@ import type {
   HarderStatus,
   MailAgent,
   MailRules,
+  MeetingDetails,
+  MeetingsRead,
   NotesFolderAdded,
   NotesFolderRemoved,
   NotesModelEvent,
@@ -436,6 +438,18 @@ export type Platform = {
   documentsShow(ref: string, cursor: number): Promise<DocumentDetails>
   /** The document's file on this computer, shown in its folder. */
   documentsReveal(ref: string): Promise<void>
+  /**
+   * Meetings, calls and events of every account: a calendar window `from`–`to` (instants with their offset) oldest
+   * first, or with no window one page of all of them newest first; "old" below the catalog's minimum.
+   */
+  meetingsList(
+    query: string,
+    window: { from: string; to: string } | null,
+    page: number,
+    limit: number,
+  ): Promise<MeetingsRead>
+  /** One meeting with its transcript lines from `cursor`, a line position. */
+  meetingsShow(ref: string, cursor: number): Promise<MeetingDetails>
   /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
   peopleRead(kind?: PersonKind): Promise<PeopleRead>
   /** How many people memo holds of each kind; empty from a memo older than kinds. */

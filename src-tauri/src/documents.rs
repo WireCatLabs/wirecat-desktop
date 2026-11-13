@@ -123,7 +123,7 @@ pub struct DocumentDetails {
     pub document: DocumentRow,
     pub text: Option<String>,
     pub text_offset: u64,
-    /// Where the next part starts, in characters as memo's SQLite counts them; JavaScript's `length` counts an emoji
+    /// Where the next part starts, in characters as memo's `SQLite` counts them; JavaScript's `length` counts an emoji
     /// as two, so the page never adds it up itself.
     pub next_cursor: u64,
     pub text_length: u64,

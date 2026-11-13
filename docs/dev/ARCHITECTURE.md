@@ -160,6 +160,10 @@ src-tauri/src/
                 command" reads as the update that brings them). Lists page on memo's side; "Show in folder" reads the
                 file's path again from `documents show` and only reveals it, never opens it. Titles, paths and text
                 unmasked, never logged, as people.rs.
+  meetings.rs   the Meetings page: memo's `meetings list|show` (catalog `meetingsPage.minVersion`). A calendar window
+                goes to memo as `started_at:[from TO to}` with `--order start`, capped at 500 rows; the table reads
+                `started_at:[* TO *]` newest first, a page at a time. `--order` is always passed, so a memo with Core's
+                older `meetings list` refuses it and reads as the update. Unmasked, never logged, as documents.rs.
   people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge|links resolve` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
   person_profile.rs what a match's details and a person's card show about one person: memo's `context <ref> --limit
