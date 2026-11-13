@@ -951,7 +951,7 @@ fn entities_of(m: &Manifest) -> std::collections::BTreeMap<String, Vec<String>> 
 
 /// cli-base's `HOST_PATTERN` (`src/http/hosts.ts`): lower-case labels, and `*.` only before two or more of them, so
 /// `*.com` cannot declare a whole top-level domain.
-fn plain_host(h: &str) -> bool {
+pub(crate) fn plain_host(h: &str) -> bool {
     let label = |l: &str| {
         (1..=63).contains(&l.len())
             && l.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')

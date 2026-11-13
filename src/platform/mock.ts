@@ -8,6 +8,7 @@ import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backgroundAgentMock } from "./mock-background-agent"
 import { backupMock } from "./mock-backup"
 import { botMock } from "./mock-bot"
+import { callsMock } from "./mock-calls"
 import { clientsMock } from "./mock-clients"
 import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
@@ -696,6 +697,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...peopleProfileMock(),
     ...tasksMock(),
     ...clientsMock(),
+    ...callsMock(),
     async removeCopy(id) {
       await delay(1600)
       if (params.get("copy-fail") === id) {

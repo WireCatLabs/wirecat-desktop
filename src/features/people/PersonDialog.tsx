@@ -11,11 +11,15 @@ import { IdentityList } from "./IdentityList"
 import { useJoinedFromName, usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
+import { PersonContacts } from "./PersonContacts"
 import { PersonTasks } from "./PersonTasks"
 import { Refusal } from "./Refusal"
 import { usePeople } from "./store"
 
-/** One person, from a table row or a search: their accounts by source, what was joined into them, their matches. */
+/**
+ * One person, from a table row or a search: their accounts by source, their tasks, latest messages and calls, what was
+ * joined into them, and their matches.
+ */
 export function PersonDialog() {
   const name = usePersonName()
   const open = usePeople((s) => s.open)
@@ -82,6 +86,7 @@ function Details({ reference }: { reference: string }) {
         {failed && <Refusal error={failed} />}
       </div>
       <PersonTasks reference={detail.person.ref} />
+      <PersonContacts reference={detail.person.ref} />
       <div className="flex min-w-0 flex-col gap-[0.9rem] empty:hidden">
         <Merges person={detail.person} />
         {groupMatches(detail.person.matches, decided).map((group) => (

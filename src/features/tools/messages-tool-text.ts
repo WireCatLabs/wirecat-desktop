@@ -8,7 +8,7 @@ export const RU_TAGLINE: Record<string, string> = {
   drive: "Папки и документы\u00a0· поиск\u00a0· редактирование",
   gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
   memo: "Заметки, люди и воспоминания\u00a0· поиск по всему",
-  email: "Gmail, Outlook и IMAP\u00a0· поиск\u00a0· переписка целиком",
+  email: "Ваша почта по IMAP, с поиском на вашем компьютере",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
 }
@@ -37,7 +37,7 @@ export const ES_TAGLINE: Record<string, string> = {
   drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
   memo: "Notas, personas y memorias\u00a0· búsqueda en todo",
-  email: "Gmail, Outlook e IMAP\u00a0· búsqueda\u00a0· hilos completos",
+  email: "Tu correo por IMAP, con búsqueda en tu ordenador",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
 }

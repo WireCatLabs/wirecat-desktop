@@ -3,6 +3,7 @@
 //! from the catalog by the account's provider; memo's `tool` is only checked against the catalog, never run.
 
 use super::{CrmAccount, CrmKind, CrmMovable, CrmPipeline, CrmWritesWith, invalid, validate_card, validate_stage};
+use crate::calls::ClientCall;
 use crate::catalog::{self, CrmSource, Tool};
 use crate::memo_cli::{Call, Failure};
 use crate::task_board::{self, Unusable};
@@ -150,6 +151,31 @@ pub(super) fn move_with(
 pub fn move_card(kind: CrmKind, reference: &str, stage: &str, via: &CrmVia) -> Result<(), String> {
     let (tool, crm) = ready(&via.account)?;
     with_tool(tool, WRITE, |call| move_with(call, crm, kind, reference, stage, &via.profile))
+}
+
+/// The calls of the card's people, from the CRM's own CLI's `deals show`; `None` when the catalog names no such
+/// command or the installed CLI answers without `meetings` (before cli-core 0.650.0).
+pub(super) fn calls_with(
+    call: &Call,
+    crm: &CrmSource,
+    kind: CrmKind,
+    reference: &str,
+    profile: &str,
+) -> Result<Option<Vec<ClientCall>>, Failure> {
+    catalog::validate_profile(profile).map_err(invalid)?;
+    validate_card(kind, reference).map_err(invalid)?;
+    let template = match kind {
+        CrmKind::Deal => crm.show_deal.as_ref(),
+        CrmKind::Lead => crm.show_lead.as_ref(),
+    };
+    let Some(template) = template else { return Ok(None) };
+    let shown = call(&filled(template, &[("{profile}", profile), ("{ref}", reference)]))?;
+    Ok(crate::calls::calls_of(crate::skills::body(&shown)))
+}
+
+pub fn calls(kind: CrmKind, reference: &str, via: &CrmVia) -> Result<Option<Vec<ClientCall>>, String> {
+    let (tool, crm) = ready(&via.account)?;
+    with_tool(tool, READ, |call| calls_with(call, crm, kind, reference, &via.profile))
 }
 
 fn setting(crm: &CrmSource, account: &CrmAccount) -> Result<String, Failure> {
@@ -368,5 +394,21 @@ mod tests {
         assert!(validate_host("-x").is_err());
         assert!(validate_host("a:b").is_err());
         assert!(validate_host("").is_err());
+    }
+    #[test]
+    fn a_cards_calls_come_from_the_crms_cli_as_the_chosen_profile_and_an_older_one_gives_none() {
+        let seen = Mutex::new(Vec::new());
+        let answer = json!({ "item": { "ref": "deal:12", "meetings": [
+            { "ref": "meeting:4/77", "meeting_id": 77, "account": { "provider": "asterisk", "account": "office" },
+              "title": "+34 600 111 222 → 201", "started_at": "2026-11-12T09:30:00.000Z", "duration_ms": 184_000,
+              "has_transcript": true, "event": null, "people": ["person:7"] }
+        ] } });
+        let calls = calls_with(&recording(&seen, &answer), b24(), CrmKind::Deal, "deal:12", "work").unwrap().unwrap();
+        assert_eq!(calls[0].tool.as_deref(), Some("pbx"));
+        assert_eq!(seen.lock().unwrap()[0], "work deals show deal:12 --no-record --json");
+        let older = json!({ "item": { "ref": "lead:3" } });
+        assert_eq!(calls_with(&recording(&seen, &older), b24(), CrmKind::Lead, "lead:3", "work").unwrap(), None);
+        assert!(calls_with(&recording(&seen, &older), b24(), CrmKind::Lead, "deal:3", "work").is_err());
+        assert!(calls_with(&recording(&seen, &older), b24(), CrmKind::Deal, "deal:3", "--yes").is_err());
     }
 }

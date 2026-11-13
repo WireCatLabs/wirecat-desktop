@@ -1,4 +1,5 @@
 import { WHATSAPP_PHONE } from "@/domain/people"
+import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import {
@@ -862,6 +863,7 @@ const EMPTY_PROFILE: PersonProfile = {
   tasksMore: false,
   deals: 0,
   recent: [],
+  meetings: null,
 }
 
 const said = (days: number, text: string, outgoing: boolean, chat: string, provider = "telegram", n = days) => ({
@@ -889,6 +891,7 @@ const PROFILES: Record<string, Partial<PersonProfile>> = {
       said(3, "Sure, after 6.", true, "Lena"),
       said(9, "Invoice for October attached.", false, "Lena Ortiz", "email"),
     ],
+    meetings: mockCalls(),
   },
   "person:9": {
     phones: ["+34 600 111 222"],

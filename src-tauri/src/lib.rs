@@ -11,10 +11,12 @@ mod backup;
 mod bindings;
 mod bots;
 mod cache;
+mod calls;
 mod catalog;
 mod chats;
 mod cloudflare;
 mod cloudflare_install;
+mod command_tree;
 mod commands;
 mod community;
 mod compat;
@@ -98,6 +100,7 @@ mod task_board;
 mod tasks;
 mod terminal;
 mod terminal_path;
+mod tool_network;
 mod tools;
 mod window_size;
 mod zoom_app;
@@ -257,6 +260,7 @@ pub fn run() {
             commands::tools::config_repair,
             commands::tools::account_sign_out,
             commands::tools::account_remove_supported,
+            commands::tools::tool_network,
             commands::tools::account_remove_plan,
             commands::tools::account_remove,
             commands::tools::open_setup,
@@ -324,6 +328,8 @@ pub fn run() {
             commands::tasks::task_chats,
             commands::clients::clients_read,
             commands::clients::clients_move,
+            commands::clients::clients_calls,
+            commands::clients::call_open,
             commands::clients::clients_scope,
             commands::clients::clients_scope_set,
             commands::clients::clients_map_set,

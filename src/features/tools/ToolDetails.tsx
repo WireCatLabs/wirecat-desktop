@@ -32,6 +32,7 @@ import { RemoveOwn } from "./RemoveOwn"
 import { SearchHarder } from "./SearchHarder"
 import { Service } from "./Service"
 import { FitDetails } from "./StorageFit"
+import { ToolNetworkDetails } from "./ToolNetwork"
 import { toolText } from "./tool-text"
 
 function ConfirmUninstall({ tool, open, onClose }: { tool: CatalogTool; open: boolean; onClose: () => void }) {
@@ -215,6 +216,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
           </ul>
         </div>
         {installs.length > 0 && <FitDetails id={tool.id} />}
+        {installs.length > 0 && !isOwn(tool) && <ToolNetworkDetails id={tool.id} />}
         {installs.length > 0 && (
           <div>
             <Button

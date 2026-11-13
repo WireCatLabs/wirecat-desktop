@@ -119,6 +119,13 @@ export type BuiltBy = {
 	workflow: string,
 };
 
+/**  What the recording tool printed for one call, as it printed it: the interface reads the participants and lines. */
+export type CallOpened = {
+	show: unknown,
+	/**  Only when the call has a transcript. */
+	transcript: unknown | null,
+};
+
 export type CannotOpen = {
 	/**  The schema the new version reads. */
 	speaks: number,
@@ -186,6 +193,23 @@ export type ChosenFolder = {
 };
 
 export type ChosenFolders = { result: "listed"; folders: ChosenFolder[] } | { result: "failed"; message: string; code: string | null; reason: string | null };
+
+/**  One item of cli-core's `meetings`: the row the card lists. */
+export type ClientCall = {
+	/**  `meeting:<account>/<meeting>`. */
+	ref: string,
+	/**  The stored id the recording tool's `meetings show` and `meetings transcript` take. */
+	meetingId: number,
+	provider: string,
+	account: string,
+	/**  The catalog tool that opens it; `None` when no tool in `WireCat` records this provider's calls. */
+	tool: string | null,
+	/**  The source's own line: a phone line puts the direction, the manager and the client's number in it. */
+	title: string | null,
+	startedAt: string | null,
+	durationMs: number | null,
+	hasTranscript: boolean,
+};
 
 export type CloudflareStatus = {
 	os: Os,
@@ -1358,6 +1382,12 @@ export type TemplatePreview = {
 	templateFailed: boolean,
 	sample: boolean,
 };
+
+export type ToolNetwork = 
+/**  `hosts: []` is a tool that contacts no server of its own; `userHosts` names one the owner chooses. */
+{ kind: "declared"; hosts: string[]; userHosts: string | null } | 
+/**  The package ships no manifest, or one without `network`, or one Desktop cannot read. */
+{ kind: "undeclared" } | { kind: "notInstalled" };
 
 /**
  *  Where a tool came from. The badge follows it, never a key in the entry, so a listed entry can neither claim nor

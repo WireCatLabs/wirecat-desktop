@@ -419,6 +419,12 @@ pub fn move_card(kind: CrmKind, reference: &str, stage: &str, via: Option<&CrmVi
     }
 }
 
+/// The calls of a CRM card's people, through that CRM's own CLI as the profile memo names or the owner chose; the
+/// owner's own cards have no CRM to ask.
+pub fn calls(kind: CrmKind, reference: &str, via: &CrmVia) -> Result<Option<Vec<crate::calls::ClientCall>>, String> {
+    writer::calls(kind, reference, via)
+}
+
 pub fn scope(account: &CrmAccount, profile: Option<&str>) -> Result<CrmScope, String> {
     writer::scope(account, profile)
 }

@@ -4,6 +4,7 @@ import { useSync } from "@/features/tools"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { CommandError, TOO_OLD } from "@/platform/command-error"
+import { callsMock } from "@/platform/mock-calls"
 import { type CrmWriter, clientsMock, NORTHSTAR, SAMPLE_PROMPTED } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
 import { answerAtOnce } from "@/testing/mock-speed"
@@ -838,5 +839,66 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await user.type(field, "Paid{Enter}")
     expect(edit).toHaveBeenCalledWith("deal", { op: "add", name: "Paid", outcome: "won" })
     expect(await column(/^Paid/)).toBeInTheDocument()
+  })
+})
+
+describe("Calls on a card", () => {
+  beforeEach(() => {
+    freshMemo("one")
+    const calls = callsMock()
+    vi.spyOn(platform, "clientsCalls").mockImplementation(clientsMock("one").clientsCalls)
+    vi.spyOn(platform, "callOpen").mockImplementation(calls.callOpen)
+    vi.spyOn(platform, "listProfiles").mockResolvedValue([{ name: "office", signedIn: true }])
+  })
+
+  it("lists the people's calls through b24 as memo's profile, and opens one in the profile the owner picks", async () => {
+    const open = vi.spyOn(platform, "callOpen")
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    const calls = await within(dialog).findByRole("region", { name: "Calls" })
+    expect(platform.clientsCalls).toHaveBeenCalledWith("deal", expect.stringMatching(/^deal:/), {
+      account: NORTHSTAR,
+      profile: "work",
+    })
+    const row = within(calls).getByRole("button", { name: /\+34 600 555 014 → 201 Ana Ruiz/ })
+    expect(row).toHaveTextContent("Transcript")
+    expect(row).toHaveTextContent("3:04")
+    await user.click(row)
+    expect(open).not.toHaveBeenCalled()
+    await user.click(await within(calls).findByRole("button", { name: "office" }))
+    expect(open).toHaveBeenCalledWith("pbx", "office", 77, true)
+    expect(await within(calls).findByText("It leaves on Friday.")).toBeInTheDocument()
+    expect(within(calls).getByText(/Lena Ortiz/)).toHaveTextContent("client")
+  })
+
+  it("says a call from a line WireCat has no tool for cannot open, and reads nothing", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    await user.click(await within(dialog).findByRole("button", { name: /Входящий звонок/ }))
+    expect(within(dialog).getByText(/no tool for beeline calls yet/)).toBeInTheDocument()
+    expect(platform.callOpen).not.toHaveBeenCalled()
+  })
+
+  it("shows nothing, and no error, when the CRM's tool is too old to name calls", async () => {
+    vi.spyOn(platform, "clientsCalls").mockResolvedValue(null)
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    await waitFor(() => expect(platform.clientsCalls).toHaveBeenCalled())
+    expect(within(dialog).queryByRole("region", { name: "Calls" })).toBeNull()
+    expect(within(dialog).queryByRole("alert")).toBeNull()
+  })
+
+  it("asks no CRM for the owner's own card", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Site for Northstar"))
+    await screen.findByRole("dialog", { name: "Site for Northstar" })
+    expect(platform.clientsCalls).not.toHaveBeenCalled()
   })
 })

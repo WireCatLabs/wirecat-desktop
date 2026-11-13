@@ -369,7 +369,8 @@ fn call_program(bin: &std::path::Path, args: &[String]) -> Result<Value, Failure
         Some(v) if v["error"]["code"].as_str() == Some("not_found") => Err(Failure::NotFound),
         j => {
             let message = failure(&out, j.as_ref());
-            Err(if crate::memo_cli::unknown_to_cli(&message) { Failure::Old(message) } else { Failure::Other(message) })
+            let old = crate::memo_cli::too_old(crate::skills::reason(j.as_ref()), &message);
+            Err(if old { Failure::Old(message) } else { Failure::Other(message) })
         }
     }
 }

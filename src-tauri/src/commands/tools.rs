@@ -171,6 +171,16 @@ pub async fn account_remove_supported(id: String) -> Result<bool, AppError> {
     .await
 }
 
+/// Where the installed tool says its data goes, from its own `contracts/wirecat.json`.
+#[tauri::command]
+pub async fn tool_network(id: String) -> Result<crate::tool_network::ToolNetwork, AppError> {
+    crate::log::command("tool_network", async move {
+        let tool = known_tool(&id)?;
+        blocking(move || crate::tool_network::read(tool)).await
+    })
+    .await
+}
+
 /// The dry run: what `account remove` would remove and keep, with nothing changed.
 #[tauri::command]
 pub async fn account_remove_plan(

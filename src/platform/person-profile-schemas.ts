@@ -1,6 +1,7 @@
 import * as v from "valibot"
 
-// What `person_profile.rs` builds from memo's `context` and the person's `people check` row, for the match dialog.
+// What `person_profile.rs` builds from memo's `context` and the person's `people check` row, for the match dialog
+// and the person's card.
 
 const text = v.nullable(v.string())
 
@@ -25,6 +26,22 @@ export const PersonProfileSchema = v.object({
       chat: text,
       locator: text,
     }),
+  ),
+  /** Their calls and recorded meetings; `null` from a memo before cli-core 0.650.0, which reads none. */
+  meetings: v.nullable(
+    v.array(
+      v.object({
+        ref: v.string(),
+        meetingId: v.number(),
+        provider: v.string(),
+        account: v.string(),
+        tool: text,
+        title: text,
+        startedAt: text,
+        durationMs: v.nullable(v.number()),
+        hasTranscript: v.boolean(),
+      }),
+    ),
   ),
 })
 

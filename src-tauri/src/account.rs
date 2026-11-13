@@ -163,10 +163,16 @@ pub fn sign_out(tool: &Tool, profile: &str) -> Result<AccountRemoved, String> {
 }
 
 /// Whether the installed version has `account remove`; a catalog without its version counts as no.
+/// The catalog's version says so, or the installed CLI lists `account remove` itself: a gate written by hand goes stale
+/// the day a release ships the command (DEBT-340), and the tool's own list is asked only then, once per version.
 pub fn supported(tool: &Tool) -> bool {
-    let Some(min) = full(tool).and_then(|r| r.min_version.as_deref()) else { return false };
+    let Some(remove) = full(tool) else { return false };
     let Some(bin) = crate::tools::program(&tool.bin) else { return false };
-    !crate::tools::older(crate::tools::version_of(&bin).as_deref(), min)
+    let released = remove
+        .min_version
+        .as_deref()
+        .is_some_and(|min| !crate::tools::older(crate::tools::version_of(&bin).as_deref(), min));
+    released || crate::command_tree::has(tool, &["account", "remove"]) == Some(true)
 }
 
 /// `--dry-run` with `plan`, `--yes` without: the dialog shows the plan, and only its confirm runs the real one.
@@ -201,7 +207,7 @@ fn answer(out: &crate::run::Output, json: Option<&Value>) -> AccountRemoval {
     let error = json.map(|v| &v["error"]);
     let reason = skills::reason(json);
     let unknown = format!("{message}\n{}", out.stderr).to_lowercase();
-    if crate::memo_cli::unknown_to_cli(&unknown) {
+    if crate::memo_cli::too_old(reason, &unknown) {
         return AccountRemoval::TooOld;
     }
     let refusal = match reason.unwrap_or_default() {
