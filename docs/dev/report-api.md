@@ -49,7 +49,7 @@ Body, at most 1 MB:
 | `summary` | required, 1–120 characters, becomes the issue title |
 | `details` | required, 1–10 000 characters. Markdown: the desktop form is a template, and its answers arrive as a `### What I was doing` section (left out when empty) and a `### What happened` section. Render it as given |
 | `expected` | optional, up to 5 000 characters |
-| `tool` | optional, one of `tg max wa zm drive memo`, or null for the app itself |
+| `tool` | optional: the catalog id of the tool the report is about (`[a-z0-9][a-z0-9-]{0,39}`), or null for the app itself. Any id is accepted, so a tool newer than the server still gets its report. The issue goes to the tool's repository when the server has one for it (`tg max wa zm drive memo`), otherwise to `WireCatLabs/wirecat-desktop` |
 | `app`, `system`, `tools` | required objects; versions may be null when unknown |
 | `attachments` | optional object; **private**, stored on the server only, never copied into the issue. The desktop app always sends `runs` (each installed tool's last 20 failed runs, from its `runs list`, cut to an allowlist of fields in `report.rs` `safe_run`: no profile, chat or person ids, paths, typed words or caller ids; where a session, client, connection, request or trace id existed it reads `•••`), plus `installLog` (the masked output of a failed install, up to 200 lines) when a failed install opened the report, and `appErrors` (the window's last 10 uncaught errors, each `{ at, kind, name, message, stack }`, stack cut to 2 000 characters) when an error message's "Report this" opened it. A body over 1 MB loses `runs` first. Store it as given; new keys may appear |
 
@@ -72,11 +72,13 @@ client shows `message` and, when present, the field messages next to the fields.
 The desktop app previews the public issue and opens the same text on GitHub when the server cannot be reached
 (`issueBody` in `src/domain/report.ts`). The server renders the issue in the same order:
 
-1. `details` as given (the template's sections).
-2. `### Expected` with `expected`, only when present.
-3. `### Environment`: `- App: <name> <version>`, `- OS: <os> <arch>`, `- Node: <node>, npm: <npm>` (`not found` when
+1. `About: <tool>`, only when the issue went to `WireCatLabs/wirecat-desktop` for a tool without its own repository.
+   The app's preview leaves this line out: the app does not know which tools have a repository.
+2. `details` as given (the template's sections).
+3. `### Expected` with `expected`, only when present.
+4. `### Environment`: `- App: <name> <version>`, `- OS: <os> <arch>`, `- Node: <node>, npm: <npm>` (`not found` when
    null), `- Tool: <tool>` when set, then `- <id> <version> (<manager>)` for each installed tool.
-4. The report id, in small text.
+5. The report id, in small text.
 
 ## Health
 
