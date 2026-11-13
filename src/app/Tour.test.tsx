@@ -18,6 +18,7 @@ const KAI = "Kai Moreno prefers calls on Friday afternoons and asks for the agen
 const BEFORE_TASKS = ["Status lamps", "One action per tool", "Agents", "How it works with your agent"]
 const SEARCH_STOPS = ["Search", "Ask in your own words", "Open a result"]
 const TASK_STOPS = ["Tasks", "Table or board", "Who, how urgent, by when"]
+const MEMORY_STOPS = ["Memory", "Approve or correct", "Where it came from"]
 
 const navItem = (name: string) =>
   ["Sections", "Data and settings"]
@@ -64,19 +65,19 @@ describe("Tour", () => {
     const stops: [string, string][] = [
       ["Status lamps", "Tools"],
       ["One action per tool", "Tools"],
-      ["Agents", "Agents"],
-      ["How it works with your agent", "Agents"],
-      ["Search", "Search"],
-      ["Ask in your own words", "Search"],
-      ["Open a result", "Search"],
+      ["Agents", "Tools"],
+      ["How it works with your agent", "Tools"],
       ["Tasks", "Tasks"],
       ["Table or board", "Tasks"],
       ["Who, how urgent, by when", "Tasks"],
       ["Memory", "Memory"],
       ["Approve or correct", "Memory"],
       ["Where it came from", "Memory"],
-      ["Storage, Logs and Settings", "Storage"],
-      ["Help is here", "Storage"],
+      ["Search", "Search"],
+      ["Ask in your own words", "Search"],
+      ["Open a result", "Search"],
+      ["Logs and Settings", "Logs"],
+      ["Help is here", "Logs"],
       ["Your first guide", "Guides"],
     ]
     for (const [title, section] of stops) {
@@ -94,7 +95,7 @@ describe("Tour", () => {
     await first.click(navItem("Tools"))
     const user = await startTour(true)
 
-    for (const title of [...BEFORE_TASKS, ...SEARCH_STOPS]) await next(user, title)
+    for (const title of BEFORE_TASKS) await next(user, title)
     await next(user, "Tasks")
     expect(await screen.findByText(TASK_EXAMPLE)).toBeInTheDocument()
     expect(screen.getByRole("note", { name: "Example" })).toBeInTheDocument()
@@ -108,7 +109,8 @@ describe("Tour", () => {
 
     await next(user, "Approve or correct")
     await next(user, "Where it came from")
-    await next(user, "Storage, Logs and Settings")
+    for (const title of SEARCH_STOPS) await next(user, title)
+    await next(user, "Logs and Settings")
     expect(screen.queryByRole("note", { name: "Example" })).not.toBeInTheDocument()
     expect(useMemory.getState().entries.some((e) => e.text === MEMORY_EXAMPLE)).toBe(false)
 
@@ -121,7 +123,7 @@ describe("Tour", () => {
   it("takes the examples away and reads the owner's memory again when Escape closes the tour", async () => {
     const read = vi.spyOn(platform, "memoryRead")
     const user = await startTour()
-    for (const title of [...BEFORE_TASKS, ...SEARCH_STOPS, ...TASK_STOPS]) await next(user, title)
+    for (const title of [...BEFORE_TASKS, ...TASK_STOPS]) await next(user, title)
     await next(user, "Memory")
     expect(await screen.findByText(MEMORY_EXAMPLE)).toBeInTheDocument()
     expect(read).not.toHaveBeenCalled()
@@ -138,7 +140,7 @@ describe("Tour", () => {
     const search = vi.spyOn(platform, "searchStore")
     const draft = vi.spyOn(platform, "searchDraft")
     const user = await startTour()
-    for (const title of BEFORE_TASKS) await next(user, title)
+    for (const title of [...BEFORE_TASKS, ...TASK_STOPS, ...MEMORY_STOPS]) await next(user, title)
 
     await next(user, "Search")
     expect((await screen.findAllByText(SEARCH_HIT)).length).toBeGreaterThan(0)
@@ -164,7 +166,7 @@ describe("Tour", () => {
 
   it("points at the view switch and an example task's assignee, priority and due date", async () => {
     const user = await startTour()
-    for (const title of [...BEFORE_TASKS, ...SEARCH_STOPS, "Tasks"]) await next(user, title)
+    for (const title of [...BEFORE_TASKS, "Tasks"]) await next(user, title)
 
     await next(user, "Table or board")
     const view = screen.getByRole("group", { name: "View" })
@@ -185,7 +187,7 @@ describe("Tour", () => {
   it("shows an example memory's actions, then opens the messages it rests on", async () => {
     const sources = vi.spyOn(platform, "memorySources")
     const user = await startTour()
-    for (const title of [...BEFORE_TASKS, ...SEARCH_STOPS, ...TASK_STOPS, "Memory"]) await next(user, title)
+    for (const title of [...BEFORE_TASKS, ...TASK_STOPS, "Memory"]) await next(user, title)
 
     await next(user, "Approve or correct")
     const row = screen.getByText(KAI).closest("[data-row]") as HTMLElement

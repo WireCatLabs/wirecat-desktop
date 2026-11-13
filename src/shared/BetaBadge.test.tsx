@@ -19,7 +19,7 @@ describe("beta badge", () => {
     const user = userEvent.setup()
     render(<App />)
     const nav = screen.getByRole("navigation", { name: "Sections" })
-    for (const name of ["Memory", "Contacts", "Clients", "Digests", "Tasks"])
+    for (const name of ["Memory", "Contacts", "Clients", "Tasks"])
       expect(
         within(within(nav).getByRole("button", { name: new RegExp(name) })).getByRole("img", { name: LABEL }),
       ).toBeInTheDocument()

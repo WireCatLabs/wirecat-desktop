@@ -1,14 +1,16 @@
-import { Bell as BellIcon, CircleArrowUp, Megaphone, ShieldAlert, X } from "lucide-react"
+import { Bell as BellIcon, CircleArrowUp, Megaphone, Newspaper, ShieldAlert, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
+import { openTarget } from "@/features/links"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { ago } from "@/i18n/ago"
 import type { Localized, Notification } from "@/platform/notifications-schemas"
 import { ExtLink } from "@/shared/ExtLink"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { LinkButton } from "@/ui/LinkButton"
 import { focusInPlace, reducedMotion } from "@/ui/motion"
 import { notificationMessages } from "./messages"
-import { unread, useNotifications, visible } from "./store"
+import { type DigestNotice, unread, useNotifications, visible, visibleDigests } from "./store"
 
 const text = (t: { [L in keyof Localized]?: string | undefined }, lang: Lang) => t[lang] || t.en || ""
 
@@ -21,7 +23,8 @@ function when(iso: string, lang: Lang, now = Date.now()) {
   return new Intl.DateTimeFormat(lang, { day: "numeric", month: "short", year: "numeric" }).format(at)
 }
 
-const SEVERITY: Record<Notification["severity"], { icon: ReactNode; label: string }> = {
+const SEVERITY: Record<Notification["severity"] | DigestNotice["severity"], { icon: ReactNode; label: string }> = {
+  digest: { icon: <Newspaper className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />, label: "text-brand" },
   security: {
     icon: <ShieldAlert className="size-[1.15rem] text-bad" strokeWidth={1.8} aria-hidden />,
     label: "text-ink",
@@ -109,6 +112,7 @@ function Panel({ id, leaving }: { id: string; leaving: boolean }) {
   const m = useMessages(notificationMessages)
   const lang = useLang()
   const items = useNotifications((s) => s.items)
+  const digests = useNotifications((s) => s.digests)
   const dismissed = useNotifications((s) => s.dismissed)
   const fresh = useNotifications((s) => s.fresh)
   const failed = useNotifications((s) => s.failed && !s.checked)
@@ -116,8 +120,8 @@ function Panel({ id, leaving }: { id: string; leaving: boolean }) {
   const [hidden] = useState(() => dismissed)
   const heading = useRef<HTMLHeadingElement>(null)
   const headingId = useId()
-  const shown = visible({ items, dismissed: hidden })
-  const left = visible({ items, dismissed })
+  const shown = [...visibleDigests({ digests, dismissed: hidden }), ...visible({ items, dismissed: hidden })]
+  const left = [...visibleDigests({ digests, dismissed }), ...visible({ items, dismissed })]
 
   useEffect(() => focusInPlace(heading.current), [])
 
@@ -178,13 +182,17 @@ function Item({
   lang,
   onDismiss,
 }: {
-  notification: Notification
+  notification: Notification | DigestNotice
   isNew: boolean
   lang: Lang
   onDismiss: () => void
 }) {
   const m = useMessages(notificationMessages)
-  const title = text(n.title, lang)
+  const digest = n.severity === "digest" ? n : null
+  const news = n.severity === "digest" ? null : n
+  const title = news ? text(news.title, lang) : (digest?.title ?? "")
+  const body = news ? text(news.body, lang) : (digest?.body ?? "")
+  const at = news ? news.publishedAt : (digest?.at ?? "")
   const severity = SEVERITY[n.severity]
   return (
     <li
@@ -196,12 +204,12 @@ function Item({
       <span className={cx("mt-[0.1rem] shrink-0", severity.label)}>{severity.icon}</span>
       <div className="selectable min-w-0 flex-1">
         <p className="flex items-center gap-[0.45rem] text-[0.85rem]">
-          <span className={cx("font-medium", severity.label)}>{m.severity[n.severity]}</span>
+          <span className={cx("font-medium", severity.label)}>{news ? m.severity[news.severity] : m.digest}</span>
           <span aria-hidden className="text-ink-soft">
             ·
           </span>
-          <time dateTime={n.publishedAt} className="text-ink-soft">
-            {when(n.publishedAt, lang)}
+          <time dateTime={at} className="text-ink-soft">
+            {when(at, lang)}
           </time>
           {isNew && (
             <span className="ml-[0.1rem] inline-flex items-center gap-[0.3rem] font-medium text-brand">
@@ -211,17 +219,26 @@ function Item({
           )}
         </p>
         <h3 className="mt-[0.25rem] font-semibold text-[1rem] text-ink leading-snug">{title}</h3>
-        {text(n.body, lang)
-          .split(/\n\s*\n/)
-          .map((para, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of one fixed text never reorder
-            <p key={i} className="mt-[0.4rem] text-[0.95rem] text-ink-soft leading-relaxed whitespace-pre-line">
-              {para}
-            </p>
-          ))}
-        {n.link && (
-          <ExtLink href={n.link.url} className="mt-[0.55rem] text-[0.95rem] font-medium">
-            {text(n.link.label, lang) || n.link.url}
+        {body.split(/\n\s*\n/).map((para, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of one fixed text never reorder
+          <p key={i} className="mt-[0.4rem] text-[0.95rem] text-ink-soft leading-relaxed whitespace-pre-line">
+            {para}
+          </p>
+        ))}
+        {digest && (
+          <LinkButton
+            className="mt-[0.55rem] text-[0.95rem]"
+            onClick={() => {
+              useNotifications.getState().close()
+              void openTarget({ type: "digest", date: digest.date })
+            }}
+          >
+            {m.openDigest}
+          </LinkButton>
+        )}
+        {news?.link && (
+          <ExtLink href={news.link.url} className="mt-[0.55rem] text-[0.95rem] font-medium">
+            {text(news.link.label, lang) || news.link.url}
           </ExtLink>
         )}
       </div>

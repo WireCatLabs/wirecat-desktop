@@ -28,7 +28,7 @@ export type EntryKey =
   | "auto"
   | "importLock"
 
-/** What an entry is, as a key the Storage page's catalog explains. */
+/** What an entry is, as a key the Storage tab's catalog explains. */
 export type EntryInfo = {
   key: EntryKey
   /** Sign-in material: shown by size only. */

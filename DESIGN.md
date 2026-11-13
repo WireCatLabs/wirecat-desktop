@@ -307,6 +307,8 @@ The root font size is fluid, `clamp(13px, 0.5rem + 0.52vw, 18px)`: about 14.7px 
 
 A page is a vertical stack with a 1.5rem gap and a 2.1rem side gutter: title row (title left, the page's actions right, on the title's line on every page, however long the intro), then any notice banners, then the rack. The rack row is a five-column grid: lamp, icon, name and tagline (flexible), version, action. The fixed columns widen and the gap grows from 0.9rem to 1.2rem at `xl`. Rows are at least 4.5rem tall. The Storage rack uses the same frame with four columns (icon, name and folders, size, action).
 
+A page with tabs (Tools: Tools and Agents; Analytics: Data and Storage) has one title, then its tabs on a line with the `line` rule under it: `LineTab size="lg"`, the title's 1.08rem, the selected tab semibold over a 2px brand line, 1.8rem apart. The selected tab's own line follows (its intro and status on the left, its actions on the right), then its content; the new tab's content fades in. The arrow keys, Home and End move between tabs and select them.
+
 A page with a board (Clients, Tasks) keeps its title row to one line in every view: the same 2.1rem title as every page, the intro behind an "i" beside it and the guide link after it, and the filter chips beside the search field. In board view the page is the window's height with the same 1.5rem gap, so Table and Board move nothing, and the board takes what is left; its columns scroll their cards inside, never shorter than 22rem.
 
 A row expands in place: the panel under it opens by animating grid rows from 0fr to 1fr over 300ms with the quart ease-out. The details panel becomes two columns from `lg` (1024px), about and links on the left, profiles and health on the right.
@@ -433,7 +435,7 @@ Rule 9 (CLAUDE.md) uses five shared pieces, never ad hoc CSS:
 ### Don't:
 
 - **Don't** turn the rack into a card grid or a sidebar-plus-detail split; details open under their row. One
-  exception, the owner's choice (2026-10-25): the Agents page is a list of agents beside one agent's pane, because it
+  exception, the owner's choice (2026-10-25): the Agents tab is a list of agents beside one agent's pane, because it
   is about one agent at a time and everything about that agent (its skills, what else stops it, its sessions, its
   tasks) belongs in one place. Below about 52rem of page width the two stack.
 - **Don't** add a shadow to the rack, a row, a banner or a button. The panel shadow belongs to what floats or is lifted.

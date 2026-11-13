@@ -39,7 +39,7 @@ export function AgentsMatrix({ expected = [] }: { expected?: readonly string[] }
   const matrix = useSkillMatrix()
   const m = useMessages(agentsMessages)
   const { detected, agents, found } = matrix
-  // Hermes has its own target that no released tool writes yet; its pane on the Agents page says so. A column of
+  // Hermes has its own target that no released tool writes yet; its pane on the Agents tab says so. A column of
   // "needs a newer version" would only push the matrix past the onboarding step's width.
   const targets = matrix.targets.filter((t) => t !== "hermes")
   const rows = matrix.rows.map((r) => ({ ...r, cells: r.cells.filter((c) => c.target !== "hermes") }))

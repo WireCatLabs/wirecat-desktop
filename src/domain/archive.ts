@@ -1,4 +1,4 @@
-// What the shared archive holds, shaped for the Storage page. Plain data in, rows out.
+// What the shared archive holds, shaped for the Storage tab. Plain data in, rows out.
 
 export type GroupLike = {
   provider: string

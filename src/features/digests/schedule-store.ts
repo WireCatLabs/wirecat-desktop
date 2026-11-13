@@ -4,8 +4,12 @@ import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Backfill, DigestBook, DigestItem, DigestSpec, SendTo } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { errorText } from "@/shared/errors"
+import { useNav } from "@/shared/nav"
 import { safeStorage } from "@/shared/safe-storage"
 import { MORNING, useDigests } from "./store"
+
+/** The archive page's section id: a sub-route, not a sidebar item. */
+export const DIGESTS_SECTION = "digests"
 
 export { MORNING }
 
@@ -154,7 +158,11 @@ export const useDigestBook = create<State>()(
             () => set({ backfill: "yes" }),
           )
         },
-        openDigest: (open) => set({ open, failed: null }),
+        openDigest: (open) => {
+          set({ open, failed: null })
+          // A digest opens on the archive page, also from the schedules on the Agents tab.
+          if (open !== null) useNav.getState().go(DIGESTS_SECTION)
+        },
         save: (spec, create) =>
           change(spec.name, "save", () => platform.digestSave(spec, create), create ? "create" : "save"),
         async run(name, to) {

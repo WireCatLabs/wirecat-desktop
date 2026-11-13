@@ -240,7 +240,7 @@ src-tauri/src/
                 cli-core's start guard stopped (skip `agent.refused`, "save it again") is offered «Save again»: the
                 same agent and interval, the owner's choice untouched. A skip older than the schedule's `created_at`
                 is dropped, since memo keeps it until the next run.
-  background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents page
+  background_agent.rs the agent for the background jobs (the mail agent, the digests). Every agent the Agents tab
                 finds (`skills::agents`) and every one memo starts (`schedule agents list`: id, name, programs,
                 `reports_cost`, `restricted`, `installed`) is listed; one that cannot run a job carries why (not
                 installed, program not found, memo cannot start it, needs a newer Memo, or memo cannot limit its
@@ -268,7 +268,7 @@ src-tauri/src/
                 on Memory, a tool's sync, a day on Digests, a chat or message on Conversation, a project (`project/<key>`, by key
                 or `project:<n>` reference) on Tasks searched by it; a person (`person/<id>`) and an unknown project
                 have no page yet and say so, with the reference to copy.
-  digests.rs    the Digests page's past days: a digest's runs, read from the files its schedule keeps
+  digests.rs    the digests archive's past days: a digest's runs, read from the files its schedule keeps
                 (`<memo state>/schedules/<name>/runs/`; memo has no command that lists a schedule's runs), one
                 day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
                 older run, its `.md` text. Shown unmasked, an exception to rule 4 like memory.rs, never logged.
@@ -276,7 +276,7 @@ src-tauri/src/
                 (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls the
                 morning digest's `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and
                 announces a run newer than the last one it announced.
-  digest_book.rs the Digests page's table: `memo digest list|add|edit|run|pause|resume|remove` (the contract in
+  digest_book.rs the digests' table (the Agents tab's «Schedules and digests», and the archive): `memo digest list|add|edit|run|pause|resume|remove` (the contract in
                 [digests-api.md](digests-api.md)), every write with `--from-app`.
                 A memo without `digest list` has only `morning-digest`, kept as a schedule: the page reads it through
                 digest_schedule.rs and refuses what that memo cannot do (a second digest, several times, weekdays,
@@ -288,7 +288,7 @@ src-tauri/src/
                 unknown), first without `--yes` for the price, then with it. Routes are checked to the two shapes
                 `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and the page says
                 it needs an update.
-  digest_editors.rs the Digests page's two editors for one digest, both owner-only writes memo itself guards: What to
+  digest_editors.rs the archive's two editors for one digest, both owner-only writes memo itself guards: What to
                 collect is `digest brief show|edit --file -|edit --undo|reset [name]`, How it looks is
                 `templates show|edit|preview|reset report/<name> --channel --locale`. Text goes on stdin; `templates`
                 has no `--file -` yet, so it gets `/dev/stdin` (none on Windows: there a save says to use the
@@ -358,7 +358,7 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
    line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
-   why not, rides on the `done` event; a failure is a warning beside a working update. The Agents page then asks that
+   why not, rides on the `done` event; a failure is a warning beside a working update. The Agents tab then asks that
    tool again (`useAgents.recheck`).
 7. Events reach the store as Rust sent them, typed by `InstallEvent` from the generated bindings; they are not
    parsed again.
@@ -426,7 +426,7 @@ folder (`skills.rs`); which folder each agent reads comes from the agents' own d
 first folder it reads (`skillColumns`), so Cursor, which reads both, heads one column, not two.
 
 Shared storage is described by `store info --json` (`storeInfo` in the catalog). `compat.rs` asks every installed
-package at once, read-only, and the answer of the tool that reads the newest schema fills the Storage page; tables and
+package at once, read-only, and the answer of the tool that reads the newest schema fills the Storage tab; tables and
 checks go to the first messenger in that ranking. A tool from before cli-core's shared `store info` (zm, drive, memo
 before their release with WireCatLabs/cli-core#1973) answers "unknown command". `archive.rs` picks known fields by name,
 because the generic masker would hide counts called `accounts` or `emails`. The breakdown is read only when the tool
@@ -435,7 +435,7 @@ prints `by_provider`, and the file facts (journal mode, pages, migrations, last 
 sizes; it reads the whole file, so the page runs it on request) and `storeCheck` (the health check, also on request:
 about 90 s on a 3 GB file). A tool that answers "unknown command" gets "arrives with the next update". Of a check only
 counts leave Rust, never the chats it finds behind. The interface calls the shared database "storage" everywhere, never
-"archive". Folder entries on the Storage page are names and sizes from `storage.rs`; what each one is lives in
+"archive". Folder entries on the Storage tab are names and sizes from `storage.rs`; what each one is lives in
 `src/domain/files.ts`. `open_folder` opens a folder or one entry in it by name: Rust joins the name to the catalog's
 folder after refusing anything but a plain child, opens a directory, and shows a file or a link in its folder instead of
 opening it.
@@ -621,7 +621,7 @@ addresses and account ids are the owner's own data, shown unmasked like the Memo
 
 ## What agents do with the tools
 
-The Agents page has one row per agent found. Each opens to what to fix, the tools (skill and MCP per profile), the
+The Agents tab (on the Tools page) has one row per agent found. Each opens to what to fix, the tools (skill and MCP per profile), the
 agent's recent sessions and the tasks it holds.
 
 - **MCP.** The app no longer adds MCP servers; it lists the `<bin>-<profile>` ones an agent already has. No tool
@@ -1023,7 +1023,7 @@ memo's store (never files on disk). The id is checked first (`checked_folder_id`
 ## The Tasks page
 
 memo's project tasks only (`project:*`); tasks made from messages stay
-on the Agents page. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
+on the Agents tab. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
 `tasks comments list|add`, `people list|add` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
 memo's run log). The owner's search goes last, after `--`, since memo reads every word after it as the query; the page
 adds the board's default (open work, and what was closed in the last 14 days) unless the search names `state:` or
@@ -1075,6 +1075,25 @@ Ctrl or ⌘ at the drop a copy. A change is said once memo made it, a refusal by
 ## Growing the app
 
 A new area (accounts, memory, people…) is one entry in `src/app/sections.tsx` and one folder in `src/features/`.
+
+### Pages, tabs and sub-pages
+
+`sections` in `src/app/sections.tsx` is the sidebar's order, top to bottom: Tools, Tasks, Clients, Contacts, Memory,
+Guides, Analytics, Search, then Logs and Settings at the bottom. Meetings and Documents go between Contacts and Memory,
+one line each, once their pages exist; an entry without a page would show a disabled «Soon» item.
+
+- **A tab** is an entry with `tabOf`: `agents` is a tab of `tools`, `storage` a tab of `analytics` (owner, NEED-31).
+  Its id stays the section id, so `go("agents")`, a saved page, `?section=storage`, the tour and every old link land
+  on the tab. `app/TabbedPage.tsx` draws the page: one title, the tabs (`LineTab size="lg"`, React Aria's tabs
+  pattern), and the tab's own page in the panel. The tab's page keeps its `Page` and `PageHeader`; inside
+  `PageAsTab` (`shared/Page.tsx`) they drop the frame and the title, and keep the intro, status and actions on one
+  line under the tabs. The sidebar marks the page, and its dot stands for a dot on any of its tabs.
+- **The address** is the section id in `useNav` (`shared/nav.ts`): a tab click is `go(tab)`, so back and forward and
+  the page saved for the next start keep the tab. `App` keys the page and its switch by `pageOf(active)`, so a tab
+  switch keeps the frame, the scroll and the focus on the tab, and the new tab's panel fades in (`.reveal`).
+- **A sub-page** is an entry with `hidden`: the digests archive (`digests`) is reached from «All digests» in the
+  Agents tab's «Schedules and digests», from a digest's notice in the bell, from a digest link and from a digest's row,
+  never from the sidebar (owner, NEED-32 A). Its Back goes to the Agents tab.
 The app's own Node.js (`node.rs`) is the nodejs.org LTS build, checked against `SHASUMS256.txt` and unpacked into
 `<app local data>/dev.wirecat.desktop/node/v<version>`, outside the shared archive that Storage may delete.
 `paths.rs` puts its `bin` first only when the user's own Node or npm cannot install tools, so `system.rs` and

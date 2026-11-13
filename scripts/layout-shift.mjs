@@ -41,6 +41,7 @@ const dark = args.includes("--dark") ? args.splice(args.indexOf("--dark"), 1) &&
 // A page opens from a query; `clicks` then go through to a state behind it, each after the page before has settled.
 // Only what happens after the last step is scored, so `settings` measures Settings, not the Tools page it starts on.
 const nav = (id) => `nav button[data-tour="nav-${id}"]`
+const tab = (id) => `[role="tab"][data-tour="tab-${id}"]`
 // By position, not by text, so every --lang finds them.
 const manage = '[data-tour="tool-action"] button[aria-expanded] >> nth=0'
 const PAGES = {
@@ -53,7 +54,7 @@ const PAGES = {
     clicks: [manage, '[data-tour="mcp-server"]'],
   },
   agents: { query: "?onboarding=off&section=agents" },
-  "agents-revisit": { query: "?onboarding=off&section=agents", clicks: [nav("tools"), nav("agents")] },
+  "agents-revisit": { query: "?onboarding=off&section=agents", clicks: [tab("tools"), tab("agents")] },
   storage: { query: "?onboarding=off&section=storage" },
   clients: { query: "?onboarding=off&section=clients" },
   analytics: { query: "?onboarding=off&section=analytics" },

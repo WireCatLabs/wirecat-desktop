@@ -9,6 +9,11 @@ const en = {
   page: "Digests",
   intro:
     "Manage regular notifications with a digest for the day, the week and so on. A digest can take data from any connected source, such as chats, mail, meetings and tasks, and shows it on one tidy page, here and in Telegram or mail.",
+  schedules: "Schedules and digests",
+  schedulesIntro:
+    "An agent writes each digest on its schedule: what to collect, how it looks and where it goes. A digest that arrives shows in the bell.",
+  allDigests: "All digests",
+  backToAgents: "Back to Agents",
   readAgain: "Read again",
   reading: "Reading…",
   readFailed: "Couldn't read the digests.",
@@ -93,6 +98,11 @@ const ru: typeof en = {
   page: "Сводки",
   intro:
     "Управляйте регулярными уведомлениями со сводкой за день, неделю и т.п. Сводка может брать данные из любых подключённых источников: чатов, почты, встреч, задач, и показывает их на одной аккуратной странице, здесь и в Telegram или почте.",
+  schedules: "Расписания и сводки",
+  schedulesIntro:
+    "Каждую сводку агент пишет по её расписанию: что собрать, как она выглядит и куда её отправить. Пришедшая сводка появляется в колокольчике.",
+  allDigests: "Все сводки",
+  backToAgents: "Назад к агентам",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   readFailed: "Не удалось прочитать сводки.",
@@ -178,6 +188,11 @@ const es: typeof en = {
   page: "Resúmenes",
   intro:
     "Gestiona notificaciones periódicas con un resumen del día, la semana, etc. Un resumen puede tomar datos de cualquier fuente conectada, como chats, correo, reuniones y tareas, y los muestra en una página ordenada, aquí y en Telegram o el correo.",
+  schedules: "Horarios y resúmenes",
+  schedulesIntro:
+    "Un agente escribe cada resumen según su horario: qué reunir, cómo se ve y adónde va. Un resumen que llega aparece en la campana.",
+  allDigests: "Todos los resúmenes",
+  backToAgents: "Volver a Agentes",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   readFailed: "No se pudieron leer los resúmenes.",

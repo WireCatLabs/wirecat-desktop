@@ -99,11 +99,12 @@ describe("App notifications", () => {
     render(<App />)
     await vi.waitFor(() => expect(useTools.getState().checked).toBe(true))
 
-    const agents = screen.getByRole("button", { name: "Agents, something new here" })
-    await user.click(agents)
-    await user.click(screen.getByRole("button", { name: "Tools" }))
+    expect(screen.getByRole("button", { name: "Tools, something new here" })).toBeInTheDocument()
+    await user.click(screen.getByRole("tab", { name: "Agents, something new here" }))
+    await user.click(screen.getByRole("tab", { name: "Tools" }))
 
-    expect(screen.getByRole("button", { name: "Agents" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Agents" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Tools" })).toBeInTheDocument()
     expect(useSeen.getState().seen).toEqual(["agents"])
   })
 })

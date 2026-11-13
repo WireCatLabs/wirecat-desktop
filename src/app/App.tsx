@@ -30,7 +30,8 @@ import { appMessages } from "./messages"
 import { PageSkeleton } from "./PageSkeleton"
 import { SandboxBanner, SandboxConfirm } from "./Sandbox"
 import { Sidebar } from "./Sidebar"
-import { sections } from "./sections"
+import { pageOf, type SectionId, sections, tabsOf } from "./sections"
+import { TabbedPage } from "./TabbedPage"
 import { TopBar } from "./TopBar"
 import { TopNotices } from "./TopNotices"
 import { useApplyTheme } from "./theme"
@@ -58,12 +59,15 @@ function Shell() {
   useDeepLinks(!onboarding)
   useDigestWatch(!onboarding)
   const Page = sections.find((s) => s.id === active)?.page
+  // A tab switch keeps the page, its scroll and its focus; only a move to another page plays the page switch.
+  const shown = pageOf(active)
+  const tabbed = tabsOf(shown).length > 0
   // A page saved by an older version may be gone or not built yet.
   useEffect(() => {
     if (!Page) useNav.setState({ active: HOME_SECTION })
   }, [Page])
   const main = useRef<HTMLElement>(null)
-  useSectionSwitch(main, onboarding ? null : active)
+  useSectionSwitch(main, onboarding ? null : shown)
 
   const startTour = () => useTour.getState().start()
   const toHome = () => setActive(HOME_SECTION)
@@ -135,12 +139,16 @@ function Shell() {
           </ErrorBoundary>
         ) : (
           <main ref={main} className="relative min-h-0 flex-1 overflow-y-auto">
-            <ErrorBoundary key={active} scope="page">
-              <CrashScenario section={active} />
-              {Page && (
-                <Suspense fallback={<PageSkeleton />}>
-                  <Page />
-                </Suspense>
+            <ErrorBoundary key={shown} scope="page">
+              {!tabbed && <CrashScenario section={active} />}
+              {Page && tabbed ? (
+                <TabbedPage page={shown as SectionId} active={active} />
+              ) : (
+                Page && (
+                  <Suspense fallback={<PageSkeleton />}>
+                    <Page />
+                  </Suspense>
+                )
               )}
             </ErrorBoundary>
           </main>

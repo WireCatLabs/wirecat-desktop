@@ -12,7 +12,8 @@ describe("Storage", () => {
   it("shows what is in storage, breaks it down, and says what each folder entry is", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("button", { name: /Storage/ }))
+    await user.click(screen.getByRole("button", { name: /Analytics/ }))
+    await user.click(screen.getByRole("tab", { name: /^Storage/ }))
 
     const archive = await screen.findByRole("region", { name: "In storage" })
     expect(await within(archive).findByText("15,594")).toBeInTheDocument()
@@ -34,7 +35,8 @@ describe("Storage", () => {
     const open = vi.spyOn(platform, "openFolder")
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("button", { name: /Storage/ }))
+    await user.click(screen.getByRole("button", { name: /Analytics/ }))
+    await user.click(screen.getByRole("tab", { name: /^Storage/ }))
 
     const show = await screen.findByRole("button", {
       name: "Show ~/.local/share/WireCat/wirecat.db in the file manager",
@@ -47,7 +49,8 @@ describe("Storage", () => {
   it("shows the tables of one kind of data, with the kind in its column", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("button", { name: /Storage/ }))
+    await user.click(screen.getByRole("button", { name: /Analytics/ }))
+    await user.click(screen.getByRole("tab", { name: /^Storage/ }))
 
     await screen.findByRole("table", { name: "Tables" })
     const groups = screen.getByRole("group", { name: "Show tables" })
@@ -63,7 +66,8 @@ describe("Storage", () => {
   it("lists the database's tables, measures their sizes and checks its health", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("button", { name: /Storage/ }))
+    await user.click(screen.getByRole("button", { name: /Analytics/ }))
+    await user.click(screen.getByRole("tab", { name: /^Storage/ }))
 
     const tables = await screen.findByRole("table", { name: "Tables" })
     expect(within(tables).getByRole("rowheader", { name: "messages" })).toBeInTheDocument()
@@ -86,7 +90,8 @@ describe("Storage", () => {
     useLanguage.setState({ choice: "ru" })
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("button", { name: /Хранилище/ }))
+    await user.click(screen.getByRole("button", { name: /Аналитика/ }))
+    await user.click(screen.getByRole("tab", { name: /^Хранилище/ }))
 
     const archive = await screen.findByRole("region", { name: "В хранилище" })
     const bySource = await within(archive).findByRole("table", { name: "По источникам" })

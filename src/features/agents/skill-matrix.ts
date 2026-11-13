@@ -8,7 +8,7 @@ import { useTools } from "@/shared/tools-store"
 /** A function: an own tool added while the app runs joins the catalog after this module loaded. */
 export const catalogTools = () => tools.filter((t) => t.skill !== null)
 
-/** Each installed tool's skill in each folder agents read, for the Agents page and onboarding's matrix. */
+/** Each installed tool's skill in each folder agents read, for the Agents tab and onboarding's matrix. */
 export function useSkillMatrix() {
   const installs = useTools((s) => s.installs)
   const latest = useTools((s) => s.latest)

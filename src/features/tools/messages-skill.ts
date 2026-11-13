@@ -16,7 +16,7 @@ const en = {
     },
     {
       title: "Stays on this computer",
-      text: () => "It is a file in your agents' skills folder. Remove it any time on the Agents page.",
+      text: () => "It is a file in your agents' skills folder. Remove it any time on the Agents tab of Tools.",
     },
   ],
   add: (agents: string) => `Add the skill for ${agents}`,
@@ -25,9 +25,9 @@ const en = {
   already: (agents: string, tool: string) => `The ${tool} skill is already there for ${agents}.`,
   looking: "Looking for AI agents on this computer…",
   noAgent:
-    "No AI agent was found on this computer. Install Claude Code, Codex or another agent, then add the skill on the Agents page.",
+    "No AI agent was found on this computer. Install Claude Code, Codex or another agent, then add the skill on the Agents tab of Tools.",
   unclear: (tool: string) =>
-    `${tool} could not say whether its skill is already there. The Agents page shows each agent and adds it.`,
+    `${tool} could not say whether its skill is already there. The Agents tab of Tools shows each agent and adds it.`,
   openAgents: "Open Agents",
   failed: "The skill could not be added.",
 }
@@ -50,7 +50,8 @@ const ru: SkillText = {
     },
     {
       title: "Остаётся на этом компьютере",
-      text: () => "Это файл в папке навыков ваших агентов. Удалить его можно в любой момент на странице «Агенты».",
+      text: () =>
+        "Это файл в папке навыков ваших агентов. Удалить его можно в любой момент на вкладке «Агенты» в «Инструментах».",
     },
   ],
   add: (agents) => `Добавить навык для ${agents}`,
@@ -59,9 +60,9 @@ const ru: SkillText = {
   already: (agents, tool) => `Навык ${tool} у ${agents} уже есть.`,
   looking: "Ищем ИИ-агентов на этом компьютере…",
   noAgent:
-    "На этом компьютере не найдено ни одного ИИ-агента. Установите Claude Code, Codex или другого агента, затем добавьте навык на странице «Агенты».",
+    "На этом компьютере не найдено ни одного ИИ-агента. Установите Claude Code, Codex или другого агента, затем добавьте навык на вкладке «Агенты» в «Инструментах».",
   unclear: (tool) =>
-    `${tool} не смог сообщить, добавлен ли уже его навык. На странице «Агенты» видно каждого агента, там же навык можно добавить.`,
+    `${tool} не смог сообщить, добавлен ли уже его навык. На вкладке «Агенты» в «Инструментах» видно каждого агента, там же навык можно добавить.`,
   openAgents: "Открыть «Агенты»",
   failed: "Не удалось добавить навык.",
 }
@@ -83,7 +84,7 @@ const es: SkillText = {
     {
       title: "Se queda en este equipo",
       text: () =>
-        "Es un archivo en la carpeta de habilidades de tus agentes. Quítalo cuando quieras en la página Agentes.",
+        "Es un archivo en la carpeta de habilidades de tus agentes. Quítalo cuando quieras en la pestaña Agentes de Herramientas.",
     },
   ],
   add: (agents) => `Añadir la habilidad para ${agents}`,
@@ -92,9 +93,9 @@ const es: SkillText = {
   already: (agents, tool) => `${agents} ya tiene la habilidad de ${tool}.`,
   looking: "Buscando agentes de IA en este equipo…",
   noAgent:
-    "No se encontró ningún agente de IA en este equipo. Instala Claude Code, Codex u otro agente y luego añade la habilidad en la página Agentes.",
+    "No se encontró ningún agente de IA en este equipo. Instala Claude Code, Codex u otro agente y luego añade la habilidad en la pestaña Agentes de Herramientas.",
   unclear: (tool) =>
-    `${tool} no pudo decir si su habilidad ya está añadida. La página Agentes muestra cada agente y permite añadirla.`,
+    `${tool} no pudo decir si su habilidad ya está añadida. La pestaña Agentes de Herramientas muestra cada agente y permite añadirla.`,
   openAgents: "Abrir Agentes",
   failed: "No se pudo añadir la habilidad.",
 }

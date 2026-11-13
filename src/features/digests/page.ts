@@ -1,1 +1,1 @@
-export { DigestsPage } from "./DigestsPage"
+export { DigestSchedules, DigestsPage } from "./DigestsPage"

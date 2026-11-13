@@ -1,11 +1,24 @@
 import { LoaderCircle } from "lucide-react"
-import type { HTMLAttributes, ReactNode, Ref } from "react"
+import { createContext, type HTMLAttributes, type ReactNode, type Ref, useContext } from "react"
+import { createPortal } from "react-dom"
 import { useMessages } from "@/i18n"
 import { BetaBadge } from "@/shared/BetaBadge"
 import { ExtLink } from "@/shared/ExtLink"
 import { cx } from "@/ui/cx"
 import { InfoTip } from "@/ui/InfoTip"
 import { uiMessages } from "@/ui/messages"
+
+/** Set inside a tab: where the tab's actions go, on the line of the tabs. */
+const InTab = createContext<{ actions: HTMLElement | null } | null>(null)
+
+/**
+ * Wraps a page shown as a tab of another (Agents on Tools): its `Page` drops the frame the tabbed page already draws,
+ * and its `PageHeader` drops the title, which the tabbed page and the selected tab already say. Its status and actions
+ * move to the right of the tabs, so the title's line keeps them on every page.
+ */
+export const PageAsTab = ({ actions, children }: { actions: HTMLElement | null; children: ReactNode }) => (
+  <InTab.Provider value={{ actions }}>{children}</InTab.Provider>
+)
 
 /**
  * The frame every page sits in: the side gutter, the top and bottom space, and the gap between blocks. `fill` makes
@@ -19,6 +32,13 @@ export function Page({
 }: HTMLAttributes<HTMLDivElement> & {
   fill?: boolean
 }) {
+  const inTab = useContext(InTab)
+  if (inTab)
+    return (
+      <div {...rest} className={cx("flex min-w-0 flex-col gap-[1.5rem]", className)}>
+        {children}
+      </div>
+    )
   return (
     <div
       {...rest}
@@ -63,6 +83,7 @@ type Props = {
 export function PageHeader(props: Props) {
   const { title, section, status, busy = true, intro, guide, actions, compact, back, headingRef } = props
   const m = useMessages(uiMessages)
+  const inTab = useContext(InTab)
   const introText = (intro || guide) && (
     <>
       {intro}
@@ -76,6 +97,7 @@ export function PageHeader(props: Props) {
       )}
     </>
   )
+  if (inTab) return <TabHeader to={inTab.actions} status={status} busy={busy} intro={introText} actions={actions} />
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       {/* A basis, not the content, decides when the actions wrap: a status line appearing must not push them down. */}
@@ -106,21 +128,46 @@ export function PageHeader(props: Props) {
               {guide.label}
             </ExtLink>
           )}
-          {status !== undefined && (
-            <p
-              aria-live={busy ? "polite" : undefined}
-              className="flex min-w-0 items-center gap-1.5 text-[0.9rem] text-ink-soft"
-            >
-              {busy && status && (
-                <LoaderCircle className="size-4 shrink-0 text-brand motion-safe:animate-spin" aria-hidden />
-              )}
-              <span className="truncate">{status}</span>
-            </p>
-          )}
+          {status !== undefined && <Status status={status} busy={busy} />}
         </div>
         {!compact && introText && <p className="mt-3 max-w-[70ch] text-body text-ink-soft">{introText}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
+  )
+}
+
+function Status({ status, busy }: { status: string | null; busy: boolean }) {
+  return (
+    <p
+      aria-live={busy ? "polite" : undefined}
+      className="flex min-w-0 items-center gap-1.5 text-[0.9rem] text-ink-soft"
+    >
+      {busy && status && <LoaderCircle className="size-4 shrink-0 text-brand motion-safe:animate-spin" aria-hidden />}
+      <span className="truncate">{status}</span>
+    </p>
+  )
+}
+
+/** A tab's intro under the tabs; its status and actions beside the tabs. */
+function TabHeader(props: {
+  to: HTMLElement | null
+  status: string | null | undefined
+  busy: boolean
+  intro: ReactNode
+  actions: ReactNode
+}) {
+  const { to, status, busy, intro, actions } = props
+  const side = (status !== undefined || actions) && (
+    <>
+      {status !== undefined && <Status status={status} busy={busy} />}
+      {actions}
+    </>
+  )
+  return (
+    <>
+      {to && side && createPortal(side, to)}
+      {intro && <p className="max-w-[70ch] text-body text-ink-soft">{intro}</p>}
+    </>
   )
 }

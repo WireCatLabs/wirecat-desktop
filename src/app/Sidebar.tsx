@@ -10,7 +10,7 @@ import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { useBadges } from "./badges"
 import { appMessages } from "./messages"
-import { listed, type Section, type SectionId, sections } from "./sections"
+import { listed, pageOf, type Section, type SectionId, sections, tabsOf } from "./sections"
 import { type ThemeChoice, useTheme } from "./theme"
 
 export function Sidebar(props: { active: string; onSelect: (id: string) => void; help: HelpActions }) {
@@ -41,7 +41,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             .filter(listed)
             .filter((s) => !s.group)
             .map((s) => (
-              <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
+              <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={hasBadge(s.id, badges)} />
             ))}
         </nav>
         <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
@@ -49,7 +49,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             .filter(listed)
             .filter((s) => s.group === "system")
             .map((s) => (
-              <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
+              <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={hasBadge(s.id, badges)} />
             ))}
         </nav>
       </div>
@@ -89,6 +89,10 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
   )
 }
 
+// A page's dot also stands for a dot on any of its tabs (the Agents tab's, on Tools).
+const hasBadge = (id: SectionId, badges: Partial<Record<string, true>>) =>
+  Boolean(badges[id]) || tabsOf(id).some((t) => badges[t.id])
+
 function NavItem({
   section: s,
   active,
@@ -102,7 +106,7 @@ function NavItem({
 }) {
   const m = useMessages(appMessages)
   const ready = Boolean(s.page)
-  const current = s.id === active
+  const current = s.id === pageOf(active)
   return (
     <button
       type="button"

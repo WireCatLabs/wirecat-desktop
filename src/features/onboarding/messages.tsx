@@ -165,7 +165,7 @@ const en = {
       },
       local: {
         title: "It all stays on this computer",
-        text: "Tools keep their data in folders on this computer. Storage shows each folder and how much space it takes.",
+        text: "Tools keep their data in folders on this computer. The Storage tab of Analytics shows each folder and how much space it takes.",
       },
     },
   },
@@ -181,7 +181,7 @@ const en = {
         "The agent knows which tool can answer and runs it for you.",
         "Without the skill, the agent does not know the tool is there.",
         "The skill takes almost no room. The agent reads it only when your question needs the tool.",
-        "It is one small file on this computer. You can remove it later on the Agents page.",
+        "It is one small file on this computer. You can remove it later on the Agents tab of Tools.",
       ],
       next: "Install the skill for your agents below.",
     },
@@ -282,8 +282,8 @@ const en = {
       text: "Each memory lists the messages and mail it rests on. Click one to read it among the messages around it.",
     },
     system: {
-      title: "Storage, Logs and Settings",
-      text: "How much space each tool's data takes, what each run did and what went wrong, and each tool's settings.",
+      title: "Logs and Settings",
+      text: "What each run did and what went wrong, and each tool's settings. How much space each tool's data takes is under Analytics, on the Storage tab.",
     },
     help: {
       title: "Help is here",
@@ -497,7 +497,7 @@ const ru: OnboardingText = {
       },
       local: {
         title: "Всё остаётся на этом компьютере",
-        text: "Инструменты хранят данные в папках на этом компьютере. В Хранилище видно каждую папку и её размер.",
+        text: "Инструменты хранят данные в папках на этом компьютере. На вкладке «Хранилище» в «Аналитике» видно каждую папку и её размер.",
       },
     },
   },
@@ -513,7 +513,7 @@ const ru: OnboardingText = {
         "Агент знает, какой инструмент может ответить, и сам его запускает.",
         "Без навыка агент не знает, что инструмент есть.",
         "Навык почти не занимает места. Агент читает его, только когда вопрос требует инструмента.",
-        "Это один небольшой файл на этом компьютере. Удалить его можно потом на странице «Агенты».",
+        "Это один небольшой файл на этом компьютере. Удалить его можно потом на вкладке «Агенты» в «Инструментах».",
       ],
       next: "Установите навык для своих агентов ниже.",
     },
@@ -637,8 +637,8 @@ const ru: OnboardingText = {
       text: "У каждой записи видны сообщения и письма, на которых она основана. Нажмите на одно, чтобы прочитать его среди соседних.",
     },
     system: {
-      title: "Хранилище, журнал и настройки",
-      text: "Сколько места занимают данные каждого инструмента, что делал каждый запуск и что пошло не так, и настройки инструментов.",
+      title: "Журнал и настройки",
+      text: "Что делал каждый запуск и что пошло не так, и настройки инструментов. Сколько места занимают данные каждого инструмента, видно в «Аналитике», на вкладке «Хранилище».",
     },
     help: {
       title: "Помощь здесь",
@@ -813,7 +813,7 @@ const es: OnboardingText = {
       },
       local: {
         title: "Todo se queda en este ordenador",
-        text: "Las herramientas guardan sus datos en carpetas de este ordenador. Almacenamiento muestra cada carpeta y cuánto ocupa.",
+        text: "Las herramientas guardan sus datos en carpetas de este ordenador. La pestaña Almacenamiento de Analítica muestra cada carpeta y cuánto ocupa.",
       },
     },
   },
@@ -829,7 +829,7 @@ const es: OnboardingText = {
         "El agente sabe qué herramienta puede responder y la ejecuta por ti.",
         "Sin la skill, el agente no sabe que la herramienta existe.",
         "La skill casi no ocupa espacio. El agente la lee solo cuando tu pregunta necesita la herramienta.",
-        "Es un archivo pequeño en este equipo. Puedes quitarla más tarde en la página Agentes.",
+        "Es un archivo pequeño en este equipo. Puedes quitarla más tarde en la pestaña Agentes de Herramientas.",
       ],
       next: "Instala la skill para tus agentes aquí abajo.",
     },
@@ -954,8 +954,8 @@ const es: OnboardingText = {
       text: "Cada recuerdo muestra los mensajes y correos en los que se basa. Pulsa uno para leerlo entre los mensajes de alrededor.",
     },
     system: {
-      title: "Almacenamiento, Registros y Ajustes",
-      text: "Cuánto ocupan los datos de cada herramienta, qué hizo cada ejecución y qué falló, y los ajustes de cada herramienta.",
+      title: "Registros y Ajustes",
+      text: "Qué hizo cada ejecución y qué falló, y los ajustes de cada herramienta. Cuánto ocupan los datos de cada herramienta está en Analítica, en la pestaña Almacenamiento.",
     },
     help: {
       title: "La ayuda está aquí",

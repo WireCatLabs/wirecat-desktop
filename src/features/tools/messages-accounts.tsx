@@ -67,7 +67,7 @@ const en = {
       records: "CRM records (deals, leads, contacts and companies)",
     } satisfies Record<DataWhat, string>,
     noDelete: (tool: string) =>
-      `${tool} cannot delete one account's data yet. Clear storage on the Storage page deletes the data of every account.`,
+      `${tool} cannot delete one account's data yet. Clear storage on the Storage tab of Analytics deletes the data of every account.`,
     noSignOut: (tool: string) =>
       `${tool} cannot sign an account out yet. To end its access, remove the app you made in your ${tool} account.`,
     runs: "It runs:",
@@ -221,7 +221,7 @@ const ru: AccountsText = {
       records: "записи CRM (сделки, лиды, контакты и компании)",
     },
     noDelete: (tool) =>
-      `${tool} пока не умеет удалять данные одного аккаунта. «Очистить хранилище» на странице «Хранилище» удаляет данные всех аккаунтов.`,
+      `${tool} пока не умеет удалять данные одного аккаунта. «Очистить хранилище» на вкладке «Хранилище» в «Аналитике» удаляет данные всех аккаунтов.`,
     noSignOut: (tool) =>
       `${tool} пока не умеет выходить из аккаунта. Чтобы закрыть доступ, удалите созданное вами приложение в аккаунте ${tool}.`,
     runs: "Команда:",
@@ -373,7 +373,7 @@ const es: AccountsText = {
       records: "registros del CRM (negocios, prospectos, contactos y empresas)",
     },
     noDelete: (tool) =>
-      `${tool} aún no puede borrar los datos de una sola cuenta. Vaciar el almacenamiento en la página Almacenamiento borra los datos de todas las cuentas.`,
+      `${tool} aún no puede borrar los datos de una sola cuenta. Vaciar el almacenamiento en la pestaña Almacenamiento de Analítica borra los datos de todas las cuentas.`,
     noSignOut: (tool) =>
       `${tool} aún no puede cerrar la sesión de una cuenta. Para quitar su acceso, elimina la app que creaste en tu cuenta de ${tool}.`,
     runs: "Ejecuta:",

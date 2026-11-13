@@ -9,10 +9,12 @@ const en = {
   bellSecurity: "Notifications, a security notice is unread",
   title: "Notifications",
   severity: { info: "News", update: "Update", security: "Security" } satisfies Record<Severity, string>,
+  digest: "Digest",
+  openDigest: "Open the digest",
   isNew: "New",
   dismiss: (title: string) => `Remove “${title}”`,
   empty: "Nothing new",
-  emptyText: "WireCat posts security fixes, updates worth installing and news here.",
+  emptyText: "WireCat posts security fixes, updates worth installing, news and each digest that arrives here.",
   offline: "Couldn’t check for news",
   offlineText: "WireCat tries again every hour, and when it starts.",
 }
@@ -23,10 +25,13 @@ const ru: typeof en = {
   bellSecurity: "Уведомления, есть непрочитанное о безопасности",
   title: "Уведомления",
   severity: { info: "Новости", update: "Обновление", security: "Безопасность" },
+  digest: "Сводка",
+  openDigest: "Открыть сводку",
   isNew: "Новое",
   dismiss: (title) => `Убрать «${title}»`,
   empty: "Ничего нового",
-  emptyText: "Здесь WireCat сообщает об исправлениях безопасности, полезных обновлениях и новостях.",
+  emptyText:
+    "Здесь WireCat сообщает об исправлениях безопасности, полезных обновлениях, новостях и каждой пришедшей сводке.",
   offline: "Не удалось проверить новости",
   offlineText: "WireCat попробует снова через час и при следующем запуске.",
 }
@@ -37,10 +42,13 @@ const es: typeof en = {
   bellSecurity: "Avisos, hay uno de seguridad sin leer",
   title: "Avisos",
   severity: { info: "Novedades", update: "Actualización", security: "Seguridad" },
+  digest: "Resumen",
+  openDigest: "Abrir el resumen",
   isNew: "Nuevo",
   dismiss: (title) => `Quitar «${title}»`,
   empty: "Nada nuevo",
-  emptyText: "Aquí WireCat publica correcciones de seguridad, actualizaciones que merecen la pena y novedades.",
+  emptyText:
+    "Aquí WireCat publica correcciones de seguridad, actualizaciones que merecen la pena, novedades y cada resumen que llega.",
   offline: "No se pudieron consultar los avisos",
   offlineText: "WireCat lo intentará de nuevo dentro de una hora y al iniciarse.",
 }

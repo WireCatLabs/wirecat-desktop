@@ -16,7 +16,15 @@ const note = (id: string, extra: Partial<Notification> = {}): Notification => ({
 
 describe("notifications store", () => {
   beforeEach(() =>
-    useNotifications.setState({ items: [], read: [], dismissed: [], checked: false, failed: false, open: false }),
+    useNotifications.setState({
+      items: [],
+      digests: [],
+      read: [],
+      dismissed: [],
+      checked: false,
+      failed: false,
+      open: false,
+    }),
   )
   afterEach(() => vi.restoreAllMocks())
 
@@ -52,5 +60,19 @@ describe("notifications store", () => {
 
     useNotifications.getState().close()
     expect(useNotifications.getState()).toMatchObject({ open: false, fresh: [] })
+  })
+
+  it("keeps a digest's notice once, unread until the bell opens, and read across the server's checks", async () => {
+    const digest = { date: "2026-11-13", stamp: "2026-11-13T06-30-00Z", title: "Digest for 13 Nov", body: "Calm" }
+    useNotifications.getState().addDigest(digest)
+    useNotifications.getState().addDigest(digest)
+    expect(unread(useNotifications.getState()).map((n) => n.id)).toEqual(["digest:2026-11-13T06-30-00Z"])
+
+    useNotifications.getState().show()
+    vi.spyOn(platform, "notifications").mockResolvedValue([note("a")])
+    await useNotifications.getState().check()
+
+    expect(useNotifications.getState().digests).toHaveLength(1)
+    expect(unread(useNotifications.getState()).map((n) => n.id)).toEqual(["a"])
   })
 })

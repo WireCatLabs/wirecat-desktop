@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { dayTitle, TITLE_EMOJI } from "@/domain/digest"
+import { useNotifications } from "@/features/notifications"
 import { currentLang, messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { safeStorage } from "@/shared/safe-storage"
@@ -24,7 +25,10 @@ export async function checkForNew() {
     const lang = currentLang()
     const m = messagesOf(digestMessages, lang)
     const title = `${TITLE_EMOJI} ${m.title(dayTitle(newest.date, lang))}`
-    await platform.digestNotify(newest.date, title, newest.summary ?? m.notifyBody, m.open).catch(() => {})
+    const body = newest.summary ?? m.notifyBody
+    // The system's notice passes; the bell keeps it, and its Open reads the digest (owner, NEED-32 A).
+    useNotifications.getState().addDigest({ date: newest.date, stamp: newest.stamp, title, body })
+    await platform.digestNotify(newest.date, title, body, m.open).catch(() => {})
   }
   if (seen === null || newest.stamp > seen) {
     safeStorage.setItem(SEEN_KEY, newest.stamp)

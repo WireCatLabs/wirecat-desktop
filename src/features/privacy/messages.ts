@@ -41,7 +41,7 @@ const en = {
   },
   logs: {
     title: "Logs on this computer",
-    text: "Each WireCat tool keeps a log of its runs in its own folder: by default, successful runs for 7 days and failed ones for 30. Read them on the Logs page; the Storage page shows the folders. The app itself keeps no log, apart from the Cloudflare tunnel's log if you use one.",
+    text: "Each WireCat tool keeps a log of its runs in its own folder: by default, successful runs for 7 days and failed ones for 30. Read them on the Logs page; the Storage tab of Analytics shows the folders. The app itself keeps no log, apart from the Cloudflare tunnel's log if you use one.",
   },
   never: {
     title: "Never collected",
@@ -90,7 +90,7 @@ const ru: typeof en = {
   },
   logs: {
     title: "Логи на этом компьютере",
-    text: "Каждый инструмент WireCat ведёт лог своих запусков в своей папке: по умолчанию успешные хранятся 7 дней, упавшие — 30. Читайте их на странице «Журнал»; папки показывает страница «Хранилище». Само приложение логов не ведёт, кроме лога туннеля Cloudflare, если вы им пользуетесь.",
+    text: "Каждый инструмент WireCat ведёт лог своих запусков в своей папке: по умолчанию успешные хранятся 7 дней, упавшие — 30. Читайте их на странице «Журнал»; папки видно в «Аналитике», на вкладке «Хранилище». Само приложение логов не ведёт, кроме лога туннеля Cloudflare, если вы им пользуетесь.",
   },
   never: {
     title: "Никогда не собирается",
@@ -139,7 +139,7 @@ const es: typeof en = {
   },
   logs: {
     title: "Registros en este ordenador",
-    text: "Cada herramienta de WireCat guarda un registro de sus ejecuciones en su propia carpeta: por defecto, las correctas 7 días y las fallidas 30. Léelos en la página Registros; la página Almacenamiento muestra las carpetas. La aplicación no guarda ningún log propio, salvo el del túnel de Cloudflare si lo usas.",
+    text: "Cada herramienta de WireCat guarda un registro de sus ejecuciones en su propia carpeta: por defecto, las correctas 7 días y las fallidas 30. Léelos en la página Registros; la pestaña Almacenamiento de Analítica muestra las carpetas. La aplicación no guarda ningún log propio, salvo el del túnel de Cloudflare si lo usas.",
   },
   never: {
     title: "Nunca se recoge",
