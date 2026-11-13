@@ -506,6 +506,96 @@ export type Dns =
 /**  Neither resolver answered. */
 "unknown";
 
+/**  The account a document is in, as memo names it: `source` is what a `source:` term takes. */
+export type DocumentAccount = {
+	provider: string,
+	account: string,
+	source: string,
+	label: string,
+};
+
+export type DocumentDetails = {
+	document: DocumentRow,
+	text: string | null,
+	textOffset: number,
+	/**
+	 *  Where the next part starts, in characters as memo's SQLite counts them; JavaScript's `length` counts an emoji
+	 *  as two, so the page never adds it up itself.
+	 */
+	nextCursor: number,
+	textLength: number,
+	hasMore: boolean,
+	extractionError: string | null,
+	language: string | null,
+	tags: string[],
+	people: DocumentPerson[],
+	meetings: DocumentLinked[],
+	events: DocumentLinked[],
+};
+
+export type DocumentFolder = {
+	path: string,
+	name: string,
+	depth: number,
+	count: number,
+};
+
+/**  A meeting or a calendar event the document belongs to. */
+export type DocumentLinked = {
+	ref: string,
+	title: string | null,
+	at: string | null,
+	role: string | null,
+};
+
+export type DocumentPage = {
+	documents: DocumentRow[],
+	total: number,
+	/**  memo stopped counting: `total` is a floor. */
+	totalMore: boolean,
+	more: boolean,
+};
+
+export type DocumentPerson = {
+	ref: string,
+	name: string | null,
+	kind: string,
+};
+
+export type DocumentRow = {
+	ref: string,
+	title: string | null,
+	fileName: string | null,
+	kind: string,
+	mime: string | null,
+	size: number | null,
+	source: DocumentAccount,
+	folder: string | null,
+	path: string | null,
+	url: string | null,
+	/**  memo keeps the file on this computer; the path itself stays in Rust, which reads it again to show it. */
+	local: boolean,
+	sourceModifiedAt: string | null,
+	storedAt: string | null,
+	hasText: boolean,
+};
+
+/**  One account holding documents, with its folders parents first. */
+export type DocumentSource = {
+	provider: string,
+	source: string,
+	label: string,
+	name: string | null,
+	count: number,
+	/**  Documents in no folder. */
+	loose: number,
+	folders: DocumentFolder[],
+};
+
+export type DocumentsRead = { kind: "missing" } | 
+/**  The installed memo has no `documents` commands; the page offers its update. */
+{ kind: "old"; version: string | null; need: string } | { kind: "ready"; sources: DocumentSource[] };
+
 export type DriveFolder = {
 	id: string,
 	name: string,

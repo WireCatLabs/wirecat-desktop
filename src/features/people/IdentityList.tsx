@@ -6,11 +6,11 @@ import { useGroups } from "@/features/groups"
 import { useLang, useMessages } from "@/i18n"
 import type { Identity } from "@/platform/people-schemas"
 import { ExtLink } from "@/shared/ExtLink"
+import { SourceIcon, sourceOf } from "@/shared/SourceIcon"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { Pill } from "@/ui/Pill"
 import { peopleMessages } from "./messages"
-import { SourceIcon, sourceOf } from "./sources"
 
 const day = (iso: string, lang: string) => new Date(iso).toLocaleDateString(lang, { dateStyle: "medium" })
 

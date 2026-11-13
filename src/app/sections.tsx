@@ -3,6 +3,7 @@ import {
   Bot,
   Brain,
   ChartColumnBig,
+  FileText,
   Handshake,
   HardDrive,
   Link2,
@@ -27,6 +28,7 @@ const ClientsPage = lazy(() => import("@/features/clients/page").then((m) => ({ 
 const ConfigPage = lazy(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
 const LinkPage = lazy(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
+const DocumentsPage = lazy(() => import("@/features/documents/page").then((m) => ({ default: m.DocumentsPage })))
 const DigestSchedules = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestSchedules })))
 const GuidesPage = lazy(() => import("@/features/guides/page").then((m) => ({ default: m.GuidesPage })))
 const LogsPage = lazy(() => import("@/features/logs/page").then((m) => ({ default: m.LogsPage })))
@@ -58,6 +60,7 @@ export type SectionId =
   | "guides"
   | "memory"
   | "people"
+  | "documents"
   | "analytics"
   | "storage"
   | "logs"
@@ -80,13 +83,14 @@ export type Section = {
 }
 
 // The sidebar's order, top to bottom (owner, NEED-31). A new area of the app is one entry here and one folder in
-// features/; Meetings and Documents go between People and Memory once their pages exist.
+// features/; Meetings goes between Contacts and Documents once its page exists.
 export const sections: readonly Section[] = [
   { id: "tools", icon: Wrench, page: ToolsPage },
   { id: "agents", icon: Bot, page: AgentsTab, tabOf: "tools" },
   { id: "tasks", icon: ListTodo, page: TasksPage },
   { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "people", icon: Users, page: PeoplePage },
+  { id: "documents", icon: FileText, page: DocumentsPage },
   { id: "memory", icon: Brain, page: MemoryPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
   { id: "analytics", icon: ChartColumnBig, page: AnalyticsPage },

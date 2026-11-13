@@ -94,6 +94,9 @@ fn types() -> Types {
         .register::<crate::crm_board::CrmSuggested>()
         .register::<crate::crm_board::CrmVia>()
         .register::<crate::crm_board::CrmWritesWith>()
+        .register::<crate::documents::DocumentsRead>()
+        .register::<crate::documents::DocumentPage>()
+        .register::<crate::documents::DocumentDetails>()
 }
 
 fn render() -> String {

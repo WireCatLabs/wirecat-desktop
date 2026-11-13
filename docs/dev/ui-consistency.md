@@ -29,6 +29,7 @@ on 2026-11-10 and 2026-11-11. A row is removed once its fix is merged; a row hal
 | Buttons | `Button` (`primary` once per surface, `secondary` for Cancel and any row action, `ghost` for Back, Close, an icon alone, `danger`; `sm` in headers and rows); no ellipsis in a label | a styled `<button>`, a ghost as a row's only action |
 | A link inside a sentence | `LinkButton` (`src/ui/LinkButton.tsx`) in the app, `ExtLink` to a web page | a `<button>` with `text-brand` |
 | Heading of a block on a page | `SectionTitle` (`src/ui/SectionTitle.tsx`) | a size per page |
+| A tree of choices that narrows a list (Documents' folders) | `TreeList` (`src/ui/TreeList.tsx`): the WAI-ARIA tree, one tab stop, children folded inside their item | nested buttons or a list indented by hand |
 | Dialog | `Dialog` | — (checked: no `aria-modal` or `fixed inset-0` outside `ui/`; Bell and Calendar are popovers, not dialogs) |
 
 ## Findings

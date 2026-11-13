@@ -30,6 +30,7 @@ describe("Navigation", () => {
       "Tasks",
       "Clients",
       "Contacts",
+      "Documents",
       "Memory",
       "Guides",
       "Analytics",

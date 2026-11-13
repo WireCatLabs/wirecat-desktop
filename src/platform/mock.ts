@@ -17,6 +17,7 @@ import { conversationMock } from "./mock-conversation"
 import { delay } from "./mock-delay"
 import { digestEditorsMock } from "./mock-digest-editors"
 import { digestsMock } from "./mock-digests"
+import { documentsMock } from "./mock-documents"
 import { driveFoldersMock } from "./mock-drive-folders"
 import { enrichmentMock } from "./mock-enrichment"
 import { groupsMock } from "./mock-groups"
@@ -741,6 +742,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncScheduleMock(params),
     ...mailAgentMock(params),
     ...mailRulesMock(params),
+    ...documentsMock(),
     ...backgroundAgentMock(params),
     ...digestsMock(params),
     ...digestEditorsMock(params),

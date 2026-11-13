@@ -52,6 +52,9 @@ import type {
   DigestBook,
   DigestSpec,
   DigestTemplate,
+  DocumentDetails,
+  DocumentPage,
+  DocumentsRead,
   Enrichment,
   EnrichmentStatus,
   FolderAdded,
@@ -425,6 +428,14 @@ export type Platform = {
   clientsMapSuggest(kind: CrmKind): Promise<CrmSuggested>
   /** Adds, renames, moves or removes a stage of the kind's base set. */
   clientsBaseEdit(kind: CrmKind, edit: CrmBaseEdit): Promise<void>
+  /** memo's accounts and folders holding documents; "old" below the catalog's minimum. */
+  documentsRead(): Promise<DocumentsRead>
+  /** One page of documents of every account, cut by memo; `query` is memo's own search words. */
+  documentsList(query: string, page: number, limit: number): Promise<DocumentPage>
+  /** One document with a part of its text from `cursor`, a character offset. */
+  documentsShow(ref: string, cursor: number): Promise<DocumentDetails>
+  /** The document's file on this computer, shown in its folder. */
+  documentsReveal(ref: string): Promise<void>
   /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
   peopleRead(kind?: PersonKind): Promise<PeopleRead>
   /** How many people memo holds of each kind; empty from a memo older than kinds. */

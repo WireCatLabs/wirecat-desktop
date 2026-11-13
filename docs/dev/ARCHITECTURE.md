@@ -156,6 +156,10 @@ src-tauri/src/
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
                 messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
+  documents.rs  the Documents page: memo's `documents tree|list|show` (catalog `documents.minVersion`; "unknown
+                command" reads as the update that brings them). Lists page on memo's side; "Show in folder" reads the
+                file's path again from `documents show` and only reveals it, never opens it. Titles, paths and text
+                unmasked, never logged, as people.rs.
   people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge|links resolve` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
   person_profile.rs what a match's details and a person's card show about one person: memo's `context <ref> --limit

@@ -71,6 +71,9 @@ pub struct Tool {
     /// Only memo: the People page's lowest memo (`people.rs`); below it the page offers the update instead of a read.
     #[serde(default)]
     pub people: Option<PeopleSource>,
+    /// Only memo: the Documents page's lowest memo (`documents.rs`); below it the page offers the update.
+    #[serde(default)]
+    pub documents: Option<crate::documents::DocumentsSource>,
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,

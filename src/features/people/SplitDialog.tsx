@@ -1,12 +1,12 @@
 import { useEffect, useId, useState } from "react"
 import { accountLabel, canSplit, cleanName } from "@/domain/people"
 import { useMessages } from "@/i18n"
+import { SourceIcon } from "@/shared/SourceIcon"
 import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
 import { useFieldError } from "@/ui/FieldError"
 import { peopleMessages } from "./messages"
-import { SourceIcon } from "./sources"
 import { usePeople } from "./store"
 
 /** Ticks the accounts that leave this person; nothing is ticked unless a doubt named them, and at least one stays. */
