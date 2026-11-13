@@ -75,7 +75,7 @@ export function MailRules(props: { tool: CatalogTool; profile: string; onClose: 
       {!tooOld && (
         <div className="flex flex-col gap-1.5">
           <p className="max-w-[65ch] text-[0.85rem] leading-snug text-ink-soft">{m.addHint}</p>
-          <CopyField wrap label={m.addLabel} value={`${tool.bin} ${profile} rules add --meeting-notes telemost`} />
+          <CopyField wrap label={m.addLabel} value={`${tool.bin} ${profile} rules add --do meeting-notes:telemost`} />
         </div>
       )}
 

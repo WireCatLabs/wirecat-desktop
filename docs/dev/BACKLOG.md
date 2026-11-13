@@ -98,10 +98,10 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
   transcripts or recordings (checked by the owner, 2026-11-13), and its public API is for Yandex 360 for business only
   ([access][telemost-access]) with no method to read a summary ([OpenAPI specification][telemost-openapi]). The notes
   arrive by email from `keeper@telemost.yandex.ru`, which the mail tool already stores. A mail rule with
-  `--meeting-notes telemost` saves each such email as a meeting: cli-core's `meeting_notes` rule flag is in
-  [cli-core #2919][core-2919], and mail-cli's `rules add --meeting-notes` follows it. Desktop shows the flag in an
-  account's "Mail rules", read only. Reading the web app with the browser's cookies is dropped: there is nothing there
-  to read.
+  `--do meeting-notes:telemost` saves each such email as a meeting: cli-core's `meeting_notes` rule flag is in
+  [cli-core #2919][core-2919], and mail-cli's `rules add --do meeting-notes:<provider>` follows it. Desktop shows the
+  flag in an account's "Mail rules", read only. Reading the web app with the browser's cookies is dropped: there is
+  nothing there to read.
 
 ## Checks ([review 2026-11-12](review-2026-11-12.md))
 

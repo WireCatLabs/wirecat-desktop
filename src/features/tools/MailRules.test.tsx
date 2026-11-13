@@ -41,7 +41,7 @@ describe("an Email account's mail rules", () => {
     vi.spyOn(platform, "mailRulesList").mockResolvedValue({ result: "listed", rules: [], total: 0 })
     show()
     expect(await within(panel()).findByText("No rules yet")).toBeInTheDocument()
-    expect(within(panel()).getByText("mail work rules add --meeting-notes telemost")).toBeInTheDocument()
+    expect(within(panel()).getByText("mail work rules add --do meeting-notes:telemost")).toBeInTheDocument()
   })
 
   it("shows the tool's failure with Try again, which reads the rules again", async () => {
