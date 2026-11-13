@@ -186,6 +186,8 @@ const ToolSchema = v.object({
   imagesRead: v.optional(v.nullable(v.object({ minVersion: v.nullable(v.string()) })), null),
   /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
   folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
+  /** Only email: mail-cli's own `rules list` for one mailbox, read only, run by `mail_rules_list`. */
+  mailRules: v.optional(v.nullable(v.object({})), null),
   /**
    * Removing one account with the tool's own words. `remove` is cli-core's `account remove`, run by Rust from
    * `minVersion` on (null: not released yet); before it, `signOut` is the fallback, and `removes` and `keeps` say what

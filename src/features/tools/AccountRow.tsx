@@ -13,8 +13,10 @@ import { Skeleton } from "@/ui/Skeleton"
 import { type MenuItem, SplitButton } from "@/ui/SplitButton"
 import { CheckPanel, useCheck } from "./CheckResult"
 import { DriveFoldersSettings } from "./DriveFoldersSettings"
+import { MailRules } from "./MailRules"
 import { toolsMessages } from "./messages"
 import { accountsMessages } from "./messages-accounts"
+import { mailRulesMessages } from "./messages-mail-rules"
 import { RemoveAccountDialog } from "./RemoveAccount"
 import { reconnect } from "./SignInLost"
 import { SyncButton, SyncFollowUp, SyncStatus, SyncStatusLoading, useSyncControl } from "./Sync"
@@ -40,6 +42,8 @@ export function AccountRow(props: {
   const m = useMessages(accountsMessages).row
   const check = useCheck(tool)
   const [folders, setFolders] = useState(false)
+  const [rules, setRules] = useState(false)
+  const rulesWords = useMessages(mailRulesMessages)
   const [removing, setRemoving] = useState<"remove" | "signOut" | null>(null)
   const [renaming, setRenaming] = useState(false)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
@@ -51,6 +55,7 @@ export function AccountRow(props: {
       ? [{ label: check.running ? m.checking : m.check, disabled: check.running, onSelect: () => check.run(p.name) }]
       : []),
     ...(tool.folderPicker && p.signedIn === true ? [{ label: m.folders, onSelect: () => setFolders(true) }] : []),
+    ...(tool.mailRules && p.signedIn !== false ? [{ label: rulesWords.menu, onSelect: () => setRules(true) }] : []),
     ...(tool.setup
       ? [
           {
@@ -79,6 +84,9 @@ export function AccountRow(props: {
         <Collapse open={folders}>
           <DriveFoldersSettings tool={tool} profile={p.name} onClose={() => setFolders(false)} />
         </Collapse>
+        <Collapse open={rules}>
+          {rules && <MailRules tool={tool} profile={p.name} onClose={() => setRules(false)} />}
+        </Collapse>
         <Collapse open={renaming}>
           {renaming && <Rename tool={tool.id} profile={p.name} onClose={() => setRenaming(false)} />}
         </Collapse>
@@ -92,11 +100,13 @@ export function AccountRow(props: {
         onRemoved={() => {
           check.clear()
           setFolders(false)
+          setRules(false)
           onReload()
         }}
         onForgotten={() => {
           check.clear()
           setFolders(false)
+          setRules(false)
           useAccountNames.getState().forget(tool.id, p.name)
           onForgotten()
         }}

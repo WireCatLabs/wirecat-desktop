@@ -221,6 +221,22 @@ pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {
     redact::text(line.trim())
 }
 
+/// A refusal as message, code and reason; a CLI that does not know the command yet gets `too_old` and
+/// `needs_update`, so the window offers the update instead of the tool's usage error.
+pub(crate) fn refusal(
+    out: &run::Output,
+    json: Option<&Value>,
+    too_old: &str,
+) -> (String, Option<String>, Option<String>) {
+    let message = failure(out, json);
+    let text = format!("{message}\n{}", out.stderr).to_lowercase();
+    if crate::memo_cli::unknown_to_cli(&text) {
+        return (too_old.into(), Some(crate::signin_steps::NEEDS_UPDATE.into()), None);
+    }
+    let word = |k: &str| json.and_then(|v| v["error"][k].as_str()).map(str::to_string);
+    (message, word("code"), word("reason"))
+}
+
 /// A CLI from before `skill status` says so as a usage error; anything else is a real failure.
 fn unsupported(json: Option<&Value>) -> bool {
     json.and_then(|v| v["error"]["message"].as_str())

@@ -136,7 +136,7 @@ pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>) -> Result<Folder
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
         return Ok(read_level(json));
     }
-    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
+    let (message, code, reason) = skills::refusal(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderLevel::Failed { message, code, reason })
 }
 
@@ -154,7 +154,7 @@ pub fn add(tool: &Tool, profile: &str, folder: &str) -> Result<FolderAdded, Stri
     if out.code == Some(0) {
         return Ok(FolderAdded::Added);
     }
-    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
+    let (message, code, reason) = skills::refusal(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderAdded::Failed { message, code, reason })
 }
 
@@ -163,7 +163,7 @@ pub fn chosen(tool: &Tool, profile: &str) -> Result<ChosenFolders, String> {
     let src = source(tool)?;
     let (out, json) = skills::call(tool, &catalog::with_profile(&src.list, Some(profile))?, BROWSE)?;
     let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) else {
-        let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
+        let (message, code, reason) = skills::refusal(&out, json.as_ref(), FOLDERS_TOO_OLD);
         return Ok(ChosenFolders::Failed { message, code, reason });
     };
     let folders = chosen_ids(json)
@@ -204,7 +204,7 @@ pub fn remove(tool: &Tool, profile: &str, folder: &str) -> Result<FolderRemoved,
     if out.code == Some(0) {
         return Ok(FolderRemoved::Removed);
     }
-    let (message, code, reason) = failure(&out, json.as_ref(), FOLDERS_TOO_OLD);
+    let (message, code, reason) = skills::refusal(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderRemoved::Failed { message, code, reason })
 }
 
@@ -224,7 +224,7 @@ pub fn transcripts(tool: &Tool, profile: &str) -> Result<TranscriptsFound, Strin
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
         return Ok(read_transcripts(json));
     }
-    let (message, code, reason) = failure(&out, json.as_ref(), TRANSCRIPTS_TOO_OLD);
+    let (message, code, reason) = skills::refusal(&out, json.as_ref(), TRANSCRIPTS_TOO_OLD);
     Ok(TranscriptsFound::Failed { message, code, reason })
 }
 
@@ -249,16 +249,6 @@ fn read_transcripts(json: &Value) -> TranscriptsFound {
 
 const FOLDERS_TOO_OLD: &str = "This version cannot list Drive folders yet. Update it on the Tools page.";
 const TRANSCRIPTS_TOO_OLD: &str = "This version cannot find meeting transcripts yet. Update it on the Tools page.";
-
-fn failure(out: &crate::run::Output, json: Option<&Value>, too_old: &str) -> (String, Option<String>, Option<String>) {
-    let message = skills::failure(out, json);
-    let text = format!("{message}\n{}", out.stderr).to_lowercase();
-    if crate::memo_cli::unknown_to_cli(&text) {
-        return (too_old.into(), Some(NEEDS_UPDATE.into()), None);
-    }
-    let word = |k: &str| json.and_then(|v| v["error"][k].as_str()).map(str::to_string);
-    (message, word("code"), word("reason"))
-}
 
 fn read_level(json: &Value) -> FolderLevel {
     let body = skills::body(json);

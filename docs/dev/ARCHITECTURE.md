@@ -229,6 +229,9 @@ src-tauri/src/
                 The Search page's button runs `search all --only notes --harder --no-record` for the shown query (a recorded run keeps the query in memo's run log), first page
                 only; memo's `order` entry under `missing` is the outcome (no entry: the model's order stands). Gated on
                 `searchHarder.minVersion` in the catalog (memo 0.131.74). Keys are enrichment's.
+  mail_rules.rs one mailbox's rules, read only: mail-cli's own `rules list` (catalog `mailRules`), each rule's
+                conditions, action, tags, protected, `meeting_notes` and source. mail-cli answers every rule at once, so
+                Rust cuts the page the window asked for. Addresses in a rule reach the window only.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
@@ -783,7 +786,8 @@ added). The same picker opens later from an account row's "Choose folders" (`Dri
 chosen folders with Remove each. Below the picker, and in the same settings, "Meeting transcripts"
 (`tools/DriveTranscripts.tsx`) shows what `drive_transcripts_find` found (drive's `transcripts list`) and three choices
 that set the profile's `transcripts` setting through `settings_set`: include, skip, exclude; none is chosen until the
-owner picks one. A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
+owner picks one. Email's account rows have "Mail rules" (`tools/MailRules.tsx`): `mail_rules_list(id, profile, page,
+limit)` lists one page, read only, with the `rules add` command to start from above the list. A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
 it", with the terminal as the fallback.
 
 Every sign-in is one wizard: `SignInPath.tsx` draws the method's steps from `wizard.ts` (before you start, the tool's

@@ -94,12 +94,14 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
   ([Meet API overview][meet-api]). The drive tool already imports Drive folders, so choosing the "Meet Recordings"
   folder should make the transcripts searchable documents. Check this on a real Workspace account before promising
   it. A reader for the Meet REST API, which keeps transcript entries for 30 days, is a later step.
-- **Desktop, unexplored.** Yandex Telemost's public API is for Yandex 360 for business only ([access][telemost-access]). It
-  creates meetings and reads the organization's settings. It has no method to read a summary, a transcript or a
-  recording ([OpenAPI specification][telemost-openapi]). Summaries and recording links arrive by email, which the
-  mail tool already stores. The owner's idea is to read the Telemost web app with the browser's cookies. Risks:
-  session cookies are secrets, so they go to the keyring only and are never printed; the reader breaks whenever
-  the web app changes.
+- **Needs mail-cli first.** Yandex Telemost meetings come from mail. Telemost's web app keeps no summaries,
+  transcripts or recordings (checked by the owner, 2026-11-13), and its public API is for Yandex 360 for business only
+  ([access][telemost-access]) with no method to read a summary ([OpenAPI specification][telemost-openapi]). The notes
+  arrive by email from `keeper@telemost.yandex.ru`, which the mail tool already stores. A mail rule with
+  `--meeting-notes telemost` saves each such email as a meeting: cli-core's `meeting_notes` rule flag is in
+  [cli-core #2919][core-2919], and mail-cli's `rules add --meeting-notes` follows it. Desktop shows the flag in an
+  account's "Mail rules", read only. Reading the web app with the browser's cookies is dropped: there is nothing there
+  to read.
 
 ## Checks ([review 2026-11-12](review-2026-11-12.md))
 
@@ -129,5 +131,6 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 [2026-11-09-people-clients-digests]: https://github.com/WireCatLabs/wirecat-desktop/blob/26045692f61336fef71a1a4bba0a09c79e24beb8/docs/dev/plans/2026-11-09-people-clients-digests.md
 [memo-826]: https://github.com/WireCatLabs/cli-memo/pull/826
 [meet-api]: https://developers.google.com/workspace/meet/api/guides/overview
+[core-2919]: https://github.com/WireCatLabs/cli-core/pull/2919
 [telemost-access]: https://yandex.ru/dev/telemost/doc/ru/access
 [telemost-openapi]: https://doc-static.yandex.net/dev/telemost/api-specification.yaml
