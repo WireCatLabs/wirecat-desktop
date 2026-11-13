@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
+import { ASTERISK } from "@/domain/asterisk-source"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { zoomNeedsClientId } from "@/domain/signin-failure"
 import { useMessages } from "@/i18n"
@@ -19,6 +20,8 @@ function stepOf(s: SignInView, path: WizardStep[]): WizardStep | null {
     return s.planStep === "app" ? "localApp" : "portal"
   if (s.tool === BITRIX && s.method !== BITRIX_APP && s.phase !== "done")
     return s.phase === "plan" && s.planStep !== "paste" ? (s.planStep === "webhook" ? "webhook" : "portal") : "paste"
+  if (s.tool === ASTERISK && (s.phase === "plan" || s.phase === "starting"))
+    return s.phase === "plan" || !path.includes("check") ? "source" : "check"
   if (s.phase === "plan") return s.planStep === "password" && path.includes("appPassword") ? "appPassword" : "intro"
   if (isKeys(s)) return "keys"
   if (s.phase === "failed" && s.tool && s.failure && zoomNeedsClientId(s.tool, s.failure.message, s.failure.reason))

@@ -23,6 +23,7 @@ export type WizardStep =
   | "webhook"
   | "paste"
   | "localApp"
+  | "source"
   | "done"
 
 const PATHS: Record<string, WizardStep[]> = {
@@ -39,6 +40,9 @@ const PATHS: Record<string, WizardStep[]> = {
   "email:imap:guided": ["intro", "appPassword", "check", "done"],
   "bitrix:webhook": ["portal", "webhook", "paste", "done"],
   "bitrix:app": ["portal", "localApp", "browser", "done"],
+  "asterisk:csv": ["source", "done"],
+  "asterisk:mysql": ["source", "check", "done"],
+  "asterisk:postgres": ["source", "check", "done"],
 }
 
 const BY_KIND: Record<string, WizardStep[]> = {

@@ -1,4 +1,4 @@
-import { Globe, Mail, NotebookText, Package, Send } from "lucide-react"
+import { Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import bitrix24 from "@/assets/logos/bitrix24.svg"
 import calendar from "@/assets/logos/google-calendar.svg"
@@ -25,6 +25,7 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   memo: NotebookText,
   email: Mail,
   funnel: Globe,
+  asterisk: Phone,
 }
 
 /** Telegram's terms forbid its official logo in another app (API terms 2.4): a plain paper plane on a blue disc. */
@@ -37,7 +38,7 @@ function TelegramBadge({ className }: { className?: string | undefined }) {
 }
 
 /**
- * A tool's logo; WireCat's own tools, Email (one tool for every mail provider) and the Tailscale helper keep a line
+ * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk and the Tailscale helper keep a line
  * icon. A community tool ships no icon in the app's code, so every one shows the same package.
  */
 export function ToolIcon({ id, className }: { id: string; className?: string | undefined }) {

@@ -87,6 +87,7 @@ const LATEST: Record<string, string> = {
   email: "0.22.0",
   gcal: "0.19.0",
   funnel: "0.1.1",
+  asterisk: "0.1.0",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
 const storeCheck = params.get("store-check")

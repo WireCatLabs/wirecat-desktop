@@ -2295,6 +2295,92 @@
       }
     },
     {
+      "id": "asterisk",
+      "name": "Asterisk",
+      "tagline": "Phone calls and recordings · transcripts",
+      "bin": "asterisk",
+      "package": "@wirecat/asterisk-cli",
+      "summary": "Import your Asterisk PBX's call records and recordings as meetings, transcribe the calls on this computer and give your agent what was said.",
+      "docs": "https://github.com/WireCatLabs/asterisk-cli#readme",
+      "repo": "https://github.com/WireCatLabs/asterisk-cli",
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": {
+        "port": 8763,
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+      },
+      "tasks": null,
+      "sync": {
+        "run": ["{profile}", "meetings", "sync", "--record", "--json"],
+        "last": ["runs", "list", "command:\"meetings sync\" status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "meetings",
+        "note": null
+      },
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "asterisk-cli",
+        "env": "ASTERISK"
+      },
+      "settings": {
+        "show": ["{profile}", "config", "show", "--no-record", "--json"],
+        "set": ["{profile}", "config", "set", "--json"],
+        "unset": ["{profile}", "config", "unset", "--json"],
+        "shape": "rows",
+        "perProfile": true,
+        "defaults": true,
+        "jsonValues": false,
+        "keys": null,
+        "readOnly": []
+      },
+      "signIn": {
+        "gives": "Lets your agent find your company's phone calls and read what was said in them.",
+        "asks": "The path of Master.csv, or the CDR database's address and a read-only user's password.",
+        "pick": true,
+        "methods": [
+          { "id": "csv", "label": "Master.csv file", "words": ["{profile}", "session", "start", "--json"] },
+          { "id": "mysql", "label": "MySQL", "words": ["{profile}", "session", "start", "--json"], "stdin": true },
+          {
+            "id": "postgres",
+            "label": "PostgreSQL",
+            "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true
+          }
+        ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": null,
+        "removes": ["signIn"],
+        "keeps": ["settings", "data", "listed"]
+      }
+    },
+    {
       "id": "funnel",
       "name": "WireCat's Tailscale connection",
       "helper": true,

@@ -35,6 +35,7 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   gcal: "0.23.0",
   email: "0.24.0",
   bitrix: "0.13.0",
+  asterisk: "0.1.0",
 }
 
 const MIN = 60_000
