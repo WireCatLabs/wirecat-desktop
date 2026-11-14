@@ -58,7 +58,7 @@ it("speaks Russian, with the count in its own plural form", () => {
     </ul>,
   )
   expect(screen.getByText("3 копии установлены")).toBeInTheDocument()
-  expect(screen.getByText("Чаты и каналы · поиск · ответы")).toBeInTheDocument()
+  expect(screen.getByText("Чаты и боты · поиск по смыслу · аналитика")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Управление" })).toBeInTheDocument()
 })
 
