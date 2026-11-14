@@ -1,9 +1,9 @@
 // Each tool's tagline and summary in Russian and Spanish, by catalog id; English is the catalog's own.
 
 export const RU_TAGLINE: Record<string, string> = {
-  tg: "Чаты и каналы\u00a0· поиск\u00a0· ответы",
-  max: "Чаты и боты\u00a0· поиск\u00a0· ответы",
-  wa: "Чаты\u00a0· поиск\u00a0· ответы",
+  tg: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
+  max: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
+  wa: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
   zm: "Записи и расшифровки встреч\u00a0· поиск",
   drive: "Папки и документы\u00a0· поиск\u00a0· редактирование",
   gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
@@ -30,9 +30,9 @@ export const RU_SUMMARY: Record<string, string> = {
 }
 
 export const ES_TAGLINE: Record<string, string> = {
-  tg: "Chats y canales\u00a0· búsqueda\u00a0· respuestas",
-  max: "Chats y bots\u00a0· búsqueda\u00a0· respuestas",
-  wa: "Chats\u00a0· búsqueda\u00a0· respuestas",
+  tg: "Chats y bots\u00a0· búsqueda por significado\u00a0· analítica",
+  max: "Chats y bots\u00a0· búsqueda por significado\u00a0· analítica",
+  wa: "Chats y bots\u00a0· búsqueda por significado\u00a0· analítica",
   zm: "Grabaciones y transcripciones\u00a0· búsqueda",
   drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",

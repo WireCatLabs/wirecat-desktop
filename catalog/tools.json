@@ -7,7 +7,7 @@
     {
       "id": "tg",
       "name": "Telegram",
-      "tagline": "Chats and channels\u00a0· search\u00a0· replies",
+      "tagline": "Chats and bots\u00a0· search by meaning\u00a0· analytics",
       "bin": "tg",
       "package": "@wirecat/tg-cli",
       "summary": "A Telegram client for the terminal and for AI agents, on your own account.",
@@ -438,7 +438,7 @@
     {
       "id": "max",
       "name": "MAX",
-      "tagline": "Chats and bots\u00a0· search\u00a0· replies",
+      "tagline": "Chats and bots\u00a0· search by meaning\u00a0· analytics",
       "bin": "max",
       "package": "@wirecat/max-cli",
       "summary": "MAX Messenger from the terminal: bots through the official Bot API, and your personal account.",
@@ -862,7 +862,7 @@
     {
       "id": "wa",
       "name": "WhatsApp",
-      "tagline": "Chats\u00a0· search\u00a0· replies",
+      "tagline": "Chats and bots\u00a0· search by meaning\u00a0· analytics",
       "bin": "wa",
       "package": "@wirecat/whatsapp-cli",
       "summary": "Your WhatsApp account from the terminal, as a linked device, for agents and scripts.",
