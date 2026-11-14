@@ -33,6 +33,8 @@ const row = (n: number, start: Date): MeetingRow => ({
   hasSummary: false,
   documents: [],
   pendingFindings: 0,
+  seriesId: null,
+  recurrence: null,
 })
 
 describe("Meetings", () => {
