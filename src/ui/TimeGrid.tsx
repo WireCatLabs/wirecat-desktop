@@ -19,19 +19,21 @@ import { TipPanel, useTip } from "./Tooltip"
 const HOUR_REM = 4
 /** The drawn minimum: one line of text, 1.5rem at 4rem an hour. */
 export const MIN_MINUTES = (1.5 / HOUR_REM) * 60
-/** The narrowest block that still shows its icon and about five letters of its title. */
-const BLOCK_REM = 4.6
+/** The narrowest block that still shows its icon and the first word of its title, about seven letters. */
+const BLOCK_REM = 6
 /** What a block keeps at its left edge where a later one is drawn over it: its bar and its icon. */
 const INDENT_REM = 1.15
+/** The gutter a "+N" takes at a day's right edge, beside the blocks, never over them. */
+const MORE_REM = 1.75
 
 const DAY_MINUTES = 1_440
 
-/** How wide a readable block is and what a covered one keeps, as fractions of a day column's width. */
-export type Room = { block: number; indent: number }
+/** How wide a readable block is, what a covered one keeps and a "+N" takes, as fractions of a day column's width. */
+export type Room = { block: number; indent: number; more: number }
 
 /** Where the caller's layout put a block or a "+N" marker: minutes from midnight, and fractions of the day's width. */
 export type Placed =
-  | { type: "event"; key: string; startMin: number; endMin: number; left: number; width: number }
+  | { type: "event"; key: string; startMin: number; endMin: number; left: number; width: number; open: number }
   | { type: "more"; startMin: number; endMin: number; keys: string[]; left: number; width: number }
 
 const rem = (minutes: number) => `${(minutes / 60) * HOUR_REM}rem`
@@ -339,7 +341,7 @@ function Block(props: {
 
 /** A day column's room for blocks, from one observer on the grid; it changes only when the fractions do. */
 function useRoom(scroller: RefObject<HTMLDivElement | null>) {
-  const [room, setRoom] = useState<Room>({ block: 0.5, indent: 0.25 })
+  const [room, setRoom] = useState<Room>({ block: 0.5, indent: 0.25, more: 0.2 })
   useEffect(() => {
     const box = scroller.current
     if (!box || typeof ResizeObserver === "undefined") return
@@ -347,14 +349,14 @@ function useRoom(scroller: RefObject<HTMLDivElement | null>) {
       const remPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
       const day = (box.clientWidth - 3.6 * remPx) / 7 / remPx
       if (day <= 0) return
-      const next = { block: Math.min(1, BLOCK_REM / day), indent: Math.min(0.5, INDENT_REM / day) }
       // Rounded, so a window dragged a pixel wider does not lay the week out again.
       const round = (n: number) => Math.round(n * 100) / 100
-      setRoom((r) =>
-        round(r.block) === round(next.block) && round(r.indent) === round(next.indent)
-          ? r
-          : { block: round(next.block), indent: round(next.indent) },
-      )
+      const next = {
+        block: round(Math.min(1, BLOCK_REM / day)),
+        indent: round(Math.min(0.5, INDENT_REM / day)),
+        more: round(Math.min(0.5, MORE_REM / day)),
+      }
+      setRoom((r) => (r.block === next.block && r.indent === next.indent && r.more === next.more ? r : next))
     }
     const observer = new ResizeObserver(measure)
     observer.observe(box)

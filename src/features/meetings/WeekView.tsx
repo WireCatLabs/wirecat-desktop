@@ -132,7 +132,7 @@ export function WeekView({
           return meeting ? (
             <MeetingBlock
               meeting={meeting}
-              minutes={place.endMin - place.startMin}
+              minutes={place.open}
               fromBefore={s?.fromBefore ?? false}
               goesOn={s?.goesOn ?? false}
             />

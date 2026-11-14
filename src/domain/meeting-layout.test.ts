@@ -35,8 +35,8 @@ const seg = (key: string, startMin: number, endMin: number): DaySegment => ({
   goesOn: false,
 })
 const h = (hours: number) => hours * 60
-/** `n` blocks fit side by side, and a covered one keeps as much. */
-const cols = (n: number) => ({ block: 1 / n, indent: 1 / n })
+/** `n` blocks fit side by side, a covered one keeps as much, and a "+N" takes a fifth at the right. */
+const cols = (n: number) => ({ block: 1 / n, indent: 1 / n, more: 0.2 })
 const events = (placed: Placed[]) => placed.filter((p) => p.type === "event")
 const more = (placed: Placed[]) => placed.filter((p) => p.type === "more")
 const at = (s: string) => new Date(s)
@@ -77,6 +77,17 @@ describe("layoutDay", () => {
     ])
   })
 
+  it("tells a covered block how long its top stays readable, so it shows its time only when that fits", () => {
+    const placed = events(
+      layoutDay([seg("a", h(9), h(11)), seg("b", h(9.5), h(10.5)), seg("c", h(12), h(13))], cols(4), MIN),
+    )
+    expect(placed.map((p) => p.type === "event" && [p.key, p.open])).toEqual([
+      ["a", 30],
+      ["b", 60],
+      ["c", 60],
+    ])
+  })
+
   it("judges overlap by the drawn height, so two short calls a minute apart never cover each other", () => {
     const placed = layoutDay([seg("a", h(10), h(10) + 3), seg("b", h(10) + 4, h(10) + 7)], cols(4), MIN)
     expect(placed.map((p) => p.left)).toEqual([0, 0.5])
@@ -114,22 +125,22 @@ describe("layoutDay", () => {
     ])
   })
 
-  it("caps five meetings at one time by the width: 80 % and +4, half and +4, or three and +2", () => {
+  it("caps five meetings at one time by the width, beside a +N in the right gutter that counts the rest", () => {
     const five = ["a", "b", "c", "d", "e"].map((k) => seg(k, h(10), h(11)))
     const one = layoutDay(five, cols(1), MIN)
     expect(events(one).map((p) => [p.key, p.left, p.width])).toEqual([["a", 0, 0.8]])
     expect(more(one).map((p) => [p.keys.length, p.left, p.width])).toEqual([[4, 0.8, 0.2]])
 
     const two = layoutDay(five, cols(2), MIN)
-    expect(events(two).map((p) => [p.key, p.width])).toEqual([["a", 0.5]])
-    expect(more(two).map((p) => [p.keys.length, p.left])).toEqual([[4, 0.5]])
+    expect(events(two).map((p) => [p.key, p.width])).toEqual([["a", 0.8]])
+    expect(more(two).map((p) => [p.keys.length, p.left])).toEqual([[4, 0.8]])
 
     const four = layoutDay(five, cols(4), MIN)
     expect(events(four).map((p) => p.key)).toEqual(["a", "b", "c"])
-    expect(more(four).map((p) => [p.keys.length, p.left, p.width])).toEqual([[2, 0.75, 0.25]])
+    expect(more(four).map((p) => [p.keys.length, p.left, p.width])).toEqual([[2, 0.8, 0.2]])
   })
 
-  it("marks a meeting with no readable span by a +N at its own time, not one that starts later", () => {
+  it("puts one +N per run of overlapping meetings, at the run's start, counting every one it hides", () => {
     const placed = layoutDay(
       [
         seg("sprint", h(13), h(15)),
@@ -137,15 +148,14 @@ describe("layoutDay", () => {
         seg("interview", h(13.5), h(14.5)),
         seg("ops", h(14), h(15)),
         seg("coffee", h(14.25), h(14.75)),
+        seg("later", h(16), h(17)),
       ],
-      { block: 0.5, indent: 0.12 },
+      { block: 0.5, indent: 0.12, more: 0.2 },
       MIN,
     )
-    expect(events(placed).map((p) => p.key)).toEqual(["sprint", "demo", "ops"])
-    expect(more(placed).map((p) => [p.keys, p.startMin])).toEqual([
-      [["interview"], h(13.5)],
-      [["coffee"], h(14.25)],
-    ])
+    expect(events(placed).map((p) => p.key)).toEqual(["sprint", "interview", "ops", "later"])
+    expect(more(placed).map((p) => [p.keys, p.startMin, p.left])).toEqual([[["demo", "coffee"], h(13), 0.8]])
+    expect(events(placed).find((p) => p.key === "later")?.width).toBe(1)
   })
 
   it("leaves every block and +N its title line and left strip, and gives the same picture twice", () => {
@@ -161,9 +171,15 @@ describe("layoutDay", () => {
     const overlaps = (p: Placed, q: Placed) => p.startMin < q.endMin && q.startMin < p.endMin
     const covers = (p: Placed, x: number, y: number) =>
       p.left - 1e-9 < x && x < p.left + p.width + 1e-9 && p.startMin <= y && y < p.endMin
+    const across = (p: Placed, q: Placed) => p.left < q.left + q.width - 1e-9 && q.left < p.left + p.width - 1e-9
     for (const cap of [1, 2, 4]) {
       const placed = layoutDay(many, cols(cap), MIN)
       expect(layoutDay([...many].reverse(), cols(cap), MIN)).toEqual(placed)
+      const shown = new Set(events(placed).map((p) => p.key))
+      const counted = more(placed).flatMap((p) => p.keys)
+      expect(new Set([...shown, ...counted]).size).toBe(many.length)
+      expect(shown.size + counted.length).toBe(many.length)
+      for (const m of more(placed)) for (const e of events(placed)) expect(overlaps(m, e) && across(m, e)).toBe(false)
       placed.forEach((a, i) => {
         // The block's first line at its left edge, against everything drawn after it.
         const x = a.left + 0.01
@@ -182,8 +198,8 @@ describe("layoutDay", () => {
     const five = ["a", "b", "c", "d", "e"].map((k, i) => seg(k, h(10) + i * 15, h(12)))
     const placed = layoutDay(five, cols(4), MIN)
     expect(events(placed).map((p) => p.key)).toEqual(["a", "b", "c"])
-    expect(more(placed).map((p) => [p.keys, p.left])).toEqual([[["d", "e"], 0.75]])
-    expect(events(placed).every((p) => p.left + p.width <= 0.75 + 1e-9)).toBe(true)
+    expect(more(placed).map((p) => [p.keys, p.left])).toEqual([[["d", "e"], 0.8]])
+    expect(events(placed).every((p) => p.left + p.width <= 0.8 + 1e-9)).toBe(true)
   })
 })
 

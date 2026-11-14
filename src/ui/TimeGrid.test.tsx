@@ -12,6 +12,7 @@ const block = (key: string, startMin: number): Placed => ({
   endMin: startMin + 60,
   left: 0,
   width: 1,
+  open: 60,
 })
 const PLACED = new Map<string, Placed[]>([
   ["2026-11-09", [block("mon-9", 540), block("mon-14", 840)]],
@@ -86,7 +87,7 @@ describe("TimeGrid", () => {
     })
     const day = layoutDay(
       [seg("a", 540, 660), seg("b", 570, 630), seg("c", 600, 720)],
-      { block: 0.25, indent: 0.25 },
+      { block: 0.25, indent: 0.25, more: 0.2 },
       22.5,
     )
     render(
