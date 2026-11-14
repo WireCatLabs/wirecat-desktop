@@ -5,7 +5,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { QueryDraft as Draft, QueryWriter, SearchAnswer } from "@/platform/search-schemas"
 import { errorText } from "@/shared/errors"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -237,7 +237,7 @@ export function QueryDraft({ tool, example = null, check, values, onNeedTool, on
             ))}
           </ol>
           <p className="mt-[0.5rem] text-ink-dim">{m.draft.noneMeanwhile}</p>
-          <Button size="sm" variant="secondary" className="mt-[0.6rem]" onClick={() => useNav.getState().go("agents")}>
+          <Button size="sm" variant="secondary" className="mt-[0.6rem]" onClick={() => openSection("agents")}>
             {m.draft.goAgents}
           </Button>
         </div>

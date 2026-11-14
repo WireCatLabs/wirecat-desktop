@@ -2,6 +2,8 @@ import { type ReactNode, useLayoutEffect, useRef } from "react"
 import { keepRoom, PANEL_MS, reducedMotion } from "./motion"
 
 const CLIP_BOTTOM = "inset(-0.5rem -0.5rem 0 -0.5rem)"
+// Long enough for a panel that reads its rows on mount to draw them, short enough to be over before a click inside.
+const SETTLE_MS = PANEL_MS * 2
 
 /**
  * Follows its content's height with a transition, so a step or a message that swaps for a taller or shorter one
@@ -11,8 +13,10 @@ const CLIP_BOTTOM = "inset(-0.5rem -0.5rem 0 -0.5rem)"
 export function AutoHeight(props: {
   children: ReactNode
   /**
-   * Changes when the content is swapped (the step's id). Only a swap animates; any other change of height, such as a
-   * section inside folding open with its own transition, is followed at once, or the box would trail and clip it.
+   * Changes when the content is swapped (the step's id). A swap animates, and so does what the new content does while
+   * it settles (its rows arriving a moment later), or the box would ease to the placeholder's height and then jump.
+   * Any later change of height, such as a section inside folding open with its own transition, is followed at once, or
+   * the box would trail and clip it.
    */
   swap: unknown
   className?: string
@@ -31,11 +35,13 @@ export function AutoHeight(props: {
     let seen = current.current
     box.style.height = `${content.offsetHeight}px`
     let settle: ReturnType<typeof setTimeout> | undefined
+    let settling = 0
     // Runs after layout and before paint, so the new height is never drawn unanimated first.
     const observer = new ResizeObserver(() => {
       const next = content.offsetHeight
       const resized = content.offsetWidth !== width
-      const swapped = current.current !== seen
+      if (current.current !== seen) settling = performance.now() + SETTLE_MS
+      const swapped = performance.now() < settling
       width = content.offsetWidth
       seen = current.current
       if (`${next}px` === box.style.height) return

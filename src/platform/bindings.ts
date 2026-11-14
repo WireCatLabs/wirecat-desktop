@@ -711,7 +711,13 @@ export type FailReason = "requirements" | "permission" | "network" | "timeout" |
 /**  The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`). */
 "unconfirmed" | 
 /**  A community tool, while the signed list it comes from has expired or is gone (`registry.rs`). */
-"listExpired" | "failed";
+"listExpired" | 
+/**  A sync of the package runs: npm would replace the program under it. */
+"syncing" | 
+/**  A sign-in to one of the package's tools runs. */
+"signingIn" | 
+/**  Another install, update or removal of the package runs. */
+"busy" | "failed";
 
 export type Folder = {
 	kind: Kind,

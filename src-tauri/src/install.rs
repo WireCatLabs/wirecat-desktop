@@ -86,6 +86,12 @@ pub enum Reason {
     Unconfirmed,
     /// A community tool, while the signed list it comes from has expired or is gone (`registry.rs`).
     ListExpired,
+    /// A sync of the package runs: npm would replace the program under it.
+    Syncing,
+    /// A sign-in to one of the package's tools runs.
+    SigningIn,
+    /// Another install, update or removal of the package runs.
+    Busy,
     Failed,
 }
 
@@ -113,11 +119,19 @@ impl Running {
     }
     /// Starts `id` unless it, or any running or stopping key `conflicts` names, is busy; checked under one lock.
     pub fn start_unless(&self, id: &str, conflicts: impl Fn(&str) -> bool) -> bool {
+        self.start_or_holder(id, conflicts).is_ok()
+    }
+    /// `start_unless` that names the run in the way: `id` itself, or the first key `conflicts` names.
+    pub fn start_or_holder(&self, id: &str, conflicts: impl Fn(&str) -> bool) -> Result<(), String> {
         let mut keys = self.0.lock().unwrap();
-        if keys.busy(id) || keys.live.iter().chain(&keys.stopping).any(|k| conflicts(k)) {
-            return false;
+        if keys.busy(id) {
+            return Err(id.to_string());
         }
-        keys.live.insert(id.to_string())
+        if let Some(holder) = keys.live.iter().chain(&keys.stopping).find(|k| conflicts(k)) {
+            return Err(holder.clone());
+        }
+        keys.live.insert(id.to_string());
+        Ok(())
     }
     pub fn finish(&self, id: &str) {
         let mut keys = self.0.lock().unwrap();
@@ -178,25 +192,44 @@ pub fn uninstall(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     guarded(tool, running, events, &uninstall_steps);
 }
 
-const HELD: &str = "Another operation on this tool is running, such as a sync or a sign-in. Stop it first.";
+/// What the refusal says, in English for a report; the interface words each reason in the owner's language.
+fn held_message(reason: Reason) -> &'static str {
+    match reason {
+        Reason::Syncing => {
+            "A sync of this tool is running, and npm would replace the program under it. Wait until the sync finishes, \
+             or stop it, then try again."
+        }
+        Reason::SigningIn => "A sign-in to this tool is running. Finish or cancel it, then try again.",
+        _ => "This tool is already being installed, updated or removed. Wait until that finishes, then try again.",
+    }
+}
 
 /// Starts the package's install key unless a sync of it or a sign-in to one of its tools runs: npm would replace the
-/// program under either, which then fails halfway (or, on Windows, npm fails because the program is open).
-fn claim(tool: &Tool, running: &Running) -> bool {
+/// program under either, which then fails halfway (or, on Windows, npm fails because the program is open). The
+/// refusal names which one holds it, so the owner is told what to wait for or stop.
+fn claim(tool: &Tool, running: &Running) -> Result<(), Reason> {
     let syncs = crate::sync::package_prefix(&tool.id);
-    running.start_unless(&tool.id, |k| {
-        k.starts_with(&syncs)
-            || crate::signin::signing_in(k)
-                .and_then(|id| crate::catalog::tool(id).ok())
-                .is_some_and(|t| crate::catalog::owner(t).id == tool.id)
+    let signs_in = |k: &str| {
+        crate::signin::signing_in(k)
+            .and_then(|id| crate::catalog::tool(id).ok())
+            .is_some_and(|t| crate::catalog::owner(t).id == tool.id)
+    };
+    running.start_or_holder(&tool.id, |k| k.starts_with(&syncs) || signs_in(k)).map_err(|holder| {
+        if holder.starts_with(&syncs) {
+            Reason::Syncing
+        } else if signs_in(&holder) {
+            Reason::SigningIn
+        } else {
+            Reason::Busy
+        }
     })
 }
 
 type Steps<'a> = &'a dyn Fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent, Failure>;
 
 fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) -> bool {
-    if !claim(tool, running) {
-        let _ = events.send(InstallEvent::Failed { reason: Reason::Failed, message: HELD.into(), hint: None });
+    if let Err(reason) = claim(tool, running) {
+        let _ = events.send(InstallEvent::Failed { reason, message: held_message(reason).into(), hint: None });
         return false;
     }
     // A command server keeps running the program npm is about to replace, and may hold its files open.
@@ -531,8 +564,8 @@ pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
         );
     };
 
-    if !claim(tool, running) {
-        return refused(CopyRefusal::Busy, HELD.into());
+    if let Err(reason) = claim(tool, running) {
+        return refused(CopyRefusal::Busy, held_message(reason).into());
     }
     let log = Mutex::new(Vec::new());
     let send = |e| {
@@ -862,13 +895,23 @@ mod tests {
         let tg = crate::catalog::tool("tg").unwrap();
         let running = Running::default();
         assert!(running.start(&crate::signin::key("tg")));
-        assert!(!claim(tg, &running), "npm would replace tg under its sign-in");
+        assert_eq!(claim(tg, &running), Err(Reason::SigningIn), "npm would replace tg under its sign-in");
         running.finish(&crate::signin::key("tg"));
-        assert!(claim(tg, &running));
+        assert_eq!(claim(tg, &running), Ok(()));
+        assert_eq!(claim(tg, &running), Err(Reason::Busy), "a second update waits for the first");
         running.finish("tg");
         let other = crate::catalog::catalog().tools.iter().find(|t| crate::catalog::owner(t).id != "tg").unwrap();
         assert!(running.start(&crate::signin::key(&other.id)));
-        assert!(claim(tg, &running), "a sign-in to another package does not hold this one");
+        assert_eq!(claim(tg, &running), Ok(()), "a sign-in to another package does not hold this one");
+    }
+
+    #[test]
+    fn an_update_under_a_running_sync_says_the_sync_holds_it() {
+        let tg = crate::catalog::tool("tg").unwrap();
+        let running = Running::default();
+        assert!(running.start(&crate::sync::key(tg, Some("personal"))));
+        assert_eq!(claim(tg, &running), Err(Reason::Syncing));
+        assert!(held_message(Reason::Syncing).contains("sync"));
     }
 
     #[test]

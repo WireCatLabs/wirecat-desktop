@@ -18,6 +18,13 @@ const en = {
   listExpired: "The list of community tools is out of date, so this tool cannot be installed or updated.",
   listExpiredHint:
     "WireCat refreshes the list every day while it runs and is online. Installed community tools keep working.",
+  syncing: "This tool is syncing right now, so it can't be updated or removed until the sync ends.",
+  syncingHint:
+    "The update would replace the program the sync is running. Wait for the sync to finish, or stop it here, then try again.",
+  signingIn: "A sign-in to this tool is open, so it can't be updated or removed right now.",
+  signingInHint: "Finish or cancel the sign-in, then try again.",
+  busy: "This tool is already being installed, updated or removed.",
+  busyHint: "Wait for that to finish; its progress shows on the tool's row.",
 }
 
 const ru: typeof en = {
@@ -34,6 +41,14 @@ const ru: typeof en = {
   listExpired: "Список инструментов сообщества устарел, поэтому этот инструмент нельзя установить или обновить.",
   listExpiredHint:
     "WireCat обновляет список каждый день, пока он запущен и есть интернет. Установленные инструменты сообщества продолжают работать.",
+  syncing:
+    "Этот инструмент сейчас синхронизируется, поэтому его нельзя обновить или удалить, пока синхронизация не закончится.",
+  syncingHint:
+    "Обновление заменило бы программу, которую выполняет синхронизация. Дождитесь её окончания или остановите её здесь, затем попробуйте снова.",
+  signingIn: "Открыт вход в этот инструмент, поэтому сейчас его нельзя обновить или удалить.",
+  signingInHint: "Завершите или отмените вход, затем попробуйте снова.",
+  busy: "Этот инструмент уже устанавливается, обновляется или удаляется.",
+  busyHint: "Дождитесь окончания: ход видно в строке инструмента.",
 }
 
 const es: typeof en = {
@@ -52,6 +67,14 @@ const es: typeof en = {
     "La lista de herramientas de la comunidad está desactualizada, así que esta herramienta no se puede instalar ni actualizar.",
   listExpiredHint:
     "WireCat renueva la lista cada día mientras está abierto y con conexión. Las herramientas de la comunidad instaladas siguen funcionando.",
+  syncing:
+    "Esta herramienta se está sincronizando, así que no se puede actualizar ni quitar hasta que termine la sincronización.",
+  syncingHint:
+    "La actualización reemplazaría el programa que ejecuta la sincronización. Espera a que termine o detenla aquí, y vuelve a intentarlo.",
+  signingIn: "Hay un inicio de sesión abierto en esta herramienta, así que ahora no se puede actualizar ni quitar.",
+  signingInHint: "Termina o cancela el inicio de sesión y vuelve a intentarlo.",
+  busy: "Esta herramienta ya se está instalando, actualizando o quitando.",
+  busyHint: "Espera a que termine; su progreso se ve en la fila de la herramienta.",
 }
 
 const failureMessages: Messages<typeof en> = { en, ru, es }
@@ -87,6 +110,12 @@ export function failureWords(
       return [m.ownToolBun, m.ownToolBunHint]
     case "listExpired":
       return [m.listExpired, m.listExpiredHint]
+    case "syncing":
+      return [m.syncing, m.syncingHint]
+    case "signingIn":
+      return [m.signingIn, m.signingInHint]
+    case "busy":
+      return [m.busy, m.busyHint]
     default:
       return [outcome.message, outcome.hint]
   }

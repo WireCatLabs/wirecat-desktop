@@ -285,7 +285,7 @@ src-tauri/src/
                 (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls the
                 morning digest's `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and
                 announces a run newer than the last one it announced.
-  digest_book.rs the digests' table (the Agents tab's «Schedules and digests», and the archive): `memo digest list|add|edit|run|pause|resume|remove` (the contract in
+  digest_book.rs the digests' table (the Digests tab of Tools): `memo digest list|add|edit|run|pause|resume|remove` (the contract in
                 [digests-api.md](digests-api.md)), every write with `--from-app`.
                 A memo without `digest list` has only `morning-digest`, kept as a schedule: the page reads it through
                 digest_schedule.rs and refuses what that memo cannot do (a second digest, several times, weekdays,
@@ -297,7 +297,7 @@ src-tauri/src/
                 unknown), first without `--yes` for the price, then with it. Routes are checked to the two shapes
                 `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and the page says
                 it needs an update.
-  digest_editors.rs the archive's two editors for one digest, both owner-only writes memo itself guards: What to
+  digest_editors.rs the Digests tab's two editors for one digest, both owner-only writes memo itself guards: What to
                 collect is `digest brief show|edit --file -|edit --undo|reset [name]`, How it looks is
                 `templates show|edit|preview|reset report/<name> --channel --locale`. Text goes on stdin; `templates`
                 has no `--file -` yet, so it gets `/dev/stdin` (none on Windows: there a save says to use the

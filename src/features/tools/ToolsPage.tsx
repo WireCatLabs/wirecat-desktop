@@ -39,7 +39,7 @@ export function ToolsPage() {
   const progress = refreshing ? m.looking : askingNpm ? m.askingNpm : null
 
   useEffect(() => {
-    useTools.getState().refresh()
+    useTools.getState().refreshIfStale()
   }, [])
 
   return (

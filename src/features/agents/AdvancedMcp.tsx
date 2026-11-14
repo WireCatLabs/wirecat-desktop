@@ -3,7 +3,7 @@ import { connections, serverName } from "@/domain/agents"
 import { tools as catalogTools } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { Agent, Registrations } from "@/platform/agents-schemas"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -64,7 +64,7 @@ export function AdvancedMcp({ agent }: { agent: Agent }) {
         )}
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem] text-ink-soft">
           {m.mcpChatApps}
-          <Button size="sm" onClick={() => useNav.getState().go("tools")}>
+          <Button size="sm" onClick={() => openSection("tools")}>
             {m.openTools}
           </Button>
         </p>

@@ -109,7 +109,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               : "tagline"
 
   return (
-    <li data-tour="tool" className="border-line border-b last:border-b-0">
+    <li data-tour="tool" data-tool={tool.id} className="border-line border-b last:border-b-0">
       <div
         ref={header}
         className="grid min-h-[4.5rem] max-[999px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_auto] max-[999px]:gap-x-[0.9rem] min-[1000px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_10.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_11rem] xl:gap-x-[1.2rem] px-[1.3rem]"

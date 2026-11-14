@@ -5,7 +5,7 @@ import { needsUpdate, type SkillTarget } from "@/domain/skills"
 import { useSkillMatrix } from "@/features/agents"
 import { formatList, useMessages } from "@/i18n"
 import { useAgents } from "@/shared/agents-store"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { ReportThis } from "@/shared/ReportThis"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -77,7 +77,7 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
     body = (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="min-w-0 flex-1 basis-[20rem] text-body text-ink-soft">{m.noAgent}</p>
-        <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("agents")}>
+        <Button size="sm" variant="secondary" onClick={() => openSection("agents")}>
           {m.openAgents}
         </Button>
       </div>
@@ -91,7 +91,7 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
     body = (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="min-w-0 flex-1 basis-[20rem] text-body text-ink-soft">{m.unclear(tool.name)}</p>
-        <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("agents")}>
+        <Button size="sm" variant="secondary" onClick={() => openSection("agents")}>
           {m.openAgents}
         </Button>
       </div>

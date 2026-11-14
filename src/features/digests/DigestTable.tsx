@@ -179,7 +179,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
   ]
 
   return (
-    <div className="flex flex-col gap-[0.7rem]">
+    <div data-digest-table className="flex flex-col gap-[0.7rem]">
       <FilterBar query={query} onQuery={setQuery} label={m.list.search} placeholder={m.list.placeholder} inline>
         <FilterMenu
           label={m.list.schedule}

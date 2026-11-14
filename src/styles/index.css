@@ -477,6 +477,43 @@ body {
   animation: reveal var(--motion-normal) var(--ease-out-quart);
 }
 
+@keyframes tab-in {
+  from {
+    opacity: 0.5;
+  }
+}
+
+/* A tab's page replaces the last one at once and settles in: never a blank frame between the two. */
+.tab-in {
+  animation: tab-in var(--motion-fast) var(--ease-out-quart);
+}
+
+/* The target of an in-app link ("Open Memo", a digest from the bell): an outline that fades once the eye is there. */
+[data-target-flash] {
+  scroll-margin-top: 1rem;
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  animation: target-flash 1800ms var(--ease-out-quart) forwards;
+}
+
+@keyframes target-flash {
+  0%,
+  55% {
+    outline-color: var(--brand);
+    background-color: color-mix(in srgb, var(--brand) 7%, transparent);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
+
+/* Still, not gone: under reduced motion the mark holds for the same time, then the attribute goes. */
+@media (prefers-reduced-motion: reduce) {
+  [data-target-flash] {
+    animation: none;
+  }
+}
+
 /* A guide's next step slides in from where the reader's eye already is; reduced motion makes it instant above. */
 @keyframes step-in {
   from {

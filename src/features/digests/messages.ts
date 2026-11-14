@@ -9,11 +9,6 @@ const en = {
   page: "Digests",
   intro:
     "Manage regular notifications with a digest for the day, the week and so on. A digest can take data from any connected source, such as chats, mail, meetings and tasks, and shows it on one tidy page, here and in Telegram or mail.",
-  schedules: "Schedules and digests",
-  schedulesIntro:
-    "An agent writes each digest on its schedule: what to collect, how it looks and where it goes. A digest that arrives shows in the bell.",
-  allDigests: "All digests",
-  backToAgents: "Back to Agents",
   readAgain: "Read again",
   reading: "Reading…",
   readFailed: "Couldn't read the digests.",
@@ -22,6 +17,12 @@ const en = {
   emptyTitle: "No days yet",
   emptyBody: "The first one appears here after the digest runs: at its time, or now with Get now.",
   title: (day: string) => `Digest for ${day}`,
+  failures: "Digests whose last run failed",
+  failedLine: (title: string, when: string) => `“${title}” failed ${when}: it wrote no digest.`,
+  failedHint: "Open it to read what the agent wrote, then Get now to run it again.",
+  openFailed: (title: string) => `Open “${title}”`,
+  failedRun:
+    "This run failed: instead of a digest, the agent wrote what went wrong. Get now runs it again once the cause is fixed.",
   textRun: "This digest was written before WireCat could lay digests out as a page, so here is its text as it was.",
   quiet: "A quiet morning: nothing urgent.",
   quietStale: "Nothing new, but sync needs attention.",
@@ -98,11 +99,6 @@ const ru: typeof en = {
   page: "Сводки",
   intro:
     "Управляйте регулярными уведомлениями со сводкой за день, неделю и т.п. Сводка может брать данные из любых подключённых источников: чатов, почты, встреч, задач, и показывает их на одной аккуратной странице, здесь и в Telegram или почте.",
-  schedules: "Расписания и сводки",
-  schedulesIntro:
-    "Каждую сводку агент пишет по её расписанию: что собрать, как она выглядит и куда её отправить. Пришедшая сводка появляется в колокольчике.",
-  allDigests: "Все сводки",
-  backToAgents: "Назад к агентам",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   readFailed: "Не удалось прочитать сводки.",
@@ -111,6 +107,12 @@ const ru: typeof en = {
   emptyTitle: "Дней пока нет",
   emptyBody: "Первая появится здесь после запуска: в назначенное время или сразу, по кнопке «Получить сейчас».",
   title: (day) => `Сводка: ${day}`,
+  failures: "Сводки, чей последний запуск не удался",
+  failedLine: (title, when) => `«${title}» не удалась ${when}: сводка не написана.`,
+  failedHint: "Откройте её, чтобы прочитать, что написал агент, и нажмите «Получить сейчас», чтобы запустить снова.",
+  openFailed: (title) => `Открыть «${title}»`,
+  failedRun:
+    "Этот запуск не удался: вместо сводки агент написал, что пошло не так. «Получить сейчас» запустит её снова, когда причина будет устранена.",
   textRun:
     "Эта сводка написана до того, как WireCat научился показывать сводки страницей, поэтому здесь её текст как есть.",
   quiet: "Тихое утро: ничего срочного.",
@@ -188,11 +190,6 @@ const es: typeof en = {
   page: "Resúmenes",
   intro:
     "Gestiona notificaciones periódicas con un resumen del día, la semana, etc. Un resumen puede tomar datos de cualquier fuente conectada, como chats, correo, reuniones y tareas, y los muestra en una página ordenada, aquí y en Telegram o el correo.",
-  schedules: "Horarios y resúmenes",
-  schedulesIntro:
-    "Un agente escribe cada resumen según su horario: qué reunir, cómo se ve y adónde va. Un resumen que llega aparece en la campana.",
-  allDigests: "Todos los resúmenes",
-  backToAgents: "Volver a Agentes",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   readFailed: "No se pudieron leer los resúmenes.",
@@ -201,6 +198,12 @@ const es: typeof en = {
   emptyTitle: "Aún no hay días",
   emptyBody: "El primero aparece aquí cuando el resumen se ejecuta: a su hora, o ahora con «Obtener ahora».",
   title: (day) => `Resumen del ${day}`,
+  failures: "Resúmenes cuya última ejecución falló",
+  failedLine: (title, when) => `«${title}» falló ${when}: no escribió ningún resumen.`,
+  failedHint: "Ábrelo para leer lo que escribió el agente y pulsa «Obtener ahora» para ejecutarlo de nuevo.",
+  openFailed: (title) => `Abrir «${title}»`,
+  failedRun:
+    "Esta ejecución falló: en lugar de un resumen, el agente escribió qué salió mal. «Obtener ahora» la ejecuta de nuevo cuando se corrija la causa.",
   textRun:
     "Este resumen se escribió antes de que WireCat pudiera mostrar los resúmenes como una página, así que aquí está su texto tal cual.",
   quiet: "Mañana tranquila: nada urgente.",

@@ -8,7 +8,7 @@ import { useNav } from "@/shared/nav"
 import { safeStorage } from "@/shared/safe-storage"
 import { MORNING, useDigests } from "./store"
 
-/** The archive page's section id: a sub-route, not a sidebar item. */
+/** The Digests tab's section id: a tab of Tools, not a sidebar item. */
 export const DIGESTS_SECTION = "digests"
 
 export { MORNING }
@@ -160,7 +160,7 @@ export const useDigestBook = create<State>()(
         },
         openDigest: (open) => {
           set({ open, failed: null })
-          // A digest opens on the archive page, also from the schedules on the Agents tab.
+          // A digest opens on the Digests tab, wherever it was made from.
           if (open !== null) useNav.getState().go(DIGESTS_SECTION)
         },
         save: (spec, create) =>

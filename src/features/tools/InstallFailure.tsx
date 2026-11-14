@@ -10,10 +10,13 @@ type Fix = { open: boolean; id: string; toggle(): void }
 
 const doing = (session: InstallSession) => (session.operation === "install" ? "Installing" : "Uninstalling")
 
-/** Report and Fix beside a failed install or uninstall; a cancelled one has nothing to report. */
+// Something else running holds the tool: waiting or stopping it is the fix, so there is nothing to report or hand an agent.
+const HELD = new Set(["syncing", "signingIn", "busy"])
+
+/** Report and Fix beside a failed install or uninstall; a cancelled or held one has nothing to report. */
 export function InstallFailure({ tool, session, fix }: { tool: CatalogTool; session: InstallSession; fix: Fix }) {
   const outcome = session.outcome
-  if (outcome?.event !== "failed" || outcome.reason === "cancelled") return null
+  if (outcome?.event !== "failed" || outcome.reason === "cancelled" || HELD.has(outcome.reason)) return null
   return (
     <>
       <ReportThis

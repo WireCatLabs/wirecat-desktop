@@ -1,5 +1,5 @@
 import { ArrowLeft, CalendarCheck, CalendarX, LoaderCircle, Play, Trash2, TriangleAlert } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { dayTitle } from "@/domain/digest"
 import { formatUsd } from "@/domain/mail-agent"
@@ -42,7 +42,7 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
   const name = item.name === MORNING ? undefined : item.name
 
   return (
-    <div className="flex flex-col gap-[1.2rem]">
+    <div data-digest-view className="flex flex-col gap-[1.2rem] rounded-rack">
       <div className="flex flex-col gap-3">
         <div>
           <Button
@@ -98,7 +98,7 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
           <BriefCard name={name} />
           <TemplatesCard name={name} />
         </div>
-        <Days name={item.name} />
+        <Days name={item.name} lastFailed={item.last !== null && !item.last.ok} />
       </div>
     </div>
   )
@@ -247,7 +247,7 @@ function RemoveButton({ item, title }: { item: DigestItem; title: string }) {
 }
 
 /** The latest report beside the list of past days; a link to a day opens it here. */
-function Days({ name }: { name: string }) {
+function Days({ name, lastFailed }: { name: string; lastFailed: boolean }) {
   const m = useMessages(digestMessages)
   const one = useMessages(bookMessages).one
   const later = useMessages(scheduleMessages).history.builtLater
@@ -267,6 +267,17 @@ function Days({ name }: { name: string }) {
 
   const mine = shownName === name ? days : null
   const date = mine?.some((d) => d.date === chosen) ? chosen : (mine?.[0]?.date ?? null)
+  const list = useRef<HTMLElement>(null)
+  // A day a link opened may sit far down the list: its own scroll brings it into view, the page stays put.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the day shown or the list changes
+  useEffect(() => {
+    const nav = list.current
+    const day = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !day) return
+    const box = nav.getBoundingClientRect()
+    const at = day.getBoundingClientRect()
+    if (at.top < box.top || at.bottom > box.bottom) nav.scrollTop += at.top - box.top - (box.height - at.height) / 2
+  }, [date, mine])
 
   if (error)
     return (
@@ -282,9 +293,10 @@ function Days({ name }: { name: string }) {
         aria-label={one.latest}
         className="grid min-w-0 items-start gap-[1rem] @2xl:grid-cols-[minmax(0,1fr)_13rem]"
       >
-        <div className="min-w-0">{date && <Day date={date} />}</div>
+        <div className="min-w-0">{date && <Day date={date} failed={lastFailed && date === mine[0]?.date} />}</div>
         {/* Its own scroll: picking an old day moves neither the page nor the list (rule 9). */}
         <nav
+          ref={list}
           aria-label={m.days}
           className="flex max-h-[32rem] flex-col gap-[0.2rem] overflow-y-auto overscroll-contain border-line border-t pt-3 @2xl:sticky @2xl:top-4 @2xl:max-h-[calc(100vh-8rem)] @2xl:border-t-0 @2xl:border-l @2xl:pt-0 @2xl:pl-3"
         >
@@ -314,7 +326,8 @@ function Days({ name }: { name: string }) {
   )
 }
 
-function Day({ date }: { date: string }) {
+/** `failed`: the newest day of a digest whose last run failed; its text is the agent's account of why, not a digest. */
+function Day({ date, failed }: { date: string; failed: boolean }) {
   const m = useMessages(digestMessages)
   const shown = useDigests((s) => s.shown[date])
   const [now] = useState(() => Date.now())
@@ -336,7 +349,9 @@ function Day({ date }: { date: string }) {
         <ReportView report={shown.report} now={now} />
       ) : (
         <>
-          <p className="text-[0.88rem] text-ink-dim">{m.textRun}</p>
+          <p className={cx("text-[0.88rem]", failed ? "font-medium text-bad" : "text-ink-dim")}>
+            {failed ? m.failedRun : m.textRun}
+          </p>
           <pre className="mt-3 font-sans text-[0.95rem] whitespace-pre-wrap text-ink-soft">{shown.text}</pre>
         </>
       )}
