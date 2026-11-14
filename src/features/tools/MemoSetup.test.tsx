@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
-import type { NotesFolder, NotesSetup } from "@/platform/bindings"
+import type { NotesFolder, NotesSetup, ObsidianVault } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { MemoSetup } from "./MemoSetup"
 import { syncProblem } from "./notes-setup"
@@ -25,10 +25,11 @@ const notes: NotesFolder = { id: "3", name: "Notes", path: "~/Notes", format: "o
 const ready = (
   folders: NotesFolder[],
   downloaded = false,
-  { inUse = "embeddinggemma", e5Downloaded = false } = {},
+  { inUse = "embeddinggemma", e5Downloaded = false, vaults = [] as ObsidianVault[] } = {},
 ): NotesSetup => ({
   state: "ready",
   folders,
+  vaults,
   models: [
     { ...gemma, downloaded, inUse: inUse === gemma.id },
     { ...e5, downloaded: e5Downloaded, inUse: inUse === e5.id },
@@ -61,10 +62,90 @@ it("walks from the system folder window to the first read of the notes", async (
 
   fireEvent.click(screen.getByRole("button", { name: "Choose a folder…" }))
   expect(await screen.findByText("~/Notes")).toBeInTheDocument()
-  expect(add).toHaveBeenCalledWith("memo", "/home/a/Notes")
+  expect(add).toHaveBeenCalledWith("memo", "/home/a/Notes", false)
 
   fireEvent.click(screen.getByRole("button", { name: "Read my notes" }))
   expect(await screen.findByText(/214 notes read\./)).toBeInTheDocument()
+})
+
+it("connects a vault Obsidian lists, and shows it among the folders as Obsidian", async () => {
+  const vault = { name: "Personal", path: "/home/a/Obsidian/Personal", shown: "~/Obsidian/Personal" }
+  const added: NotesFolder = { id: "4", name: "Personal", path: "~/Obsidian/Personal", format: "obsidian" }
+  let setup = ready([], false, { vaults: [vault] })
+  vi.spyOn(platform, "notesSetupStatus").mockImplementation(async () => setup)
+  const pick = vi.spyOn(platform, "notesPickFolder")
+  const add = vi.spyOn(platform, "notesFolderAdd").mockImplementation(async () => {
+    setup = ready([added])
+    return { result: "added", folder: added }
+  })
+  render(<MemoSetup tool={memo} />)
+
+  expect(await screen.findByRole("list", { name: "Obsidian vaults on this computer" })).toHaveTextContent(
+    "~/Obsidian/Personal",
+  )
+  fireEvent.click(screen.getByRole("button", { name: "Connect the Obsidian vault Personal" }))
+  expect(await screen.findByText("Added Personal as Obsidian notes. The next step reads it.")).toBeInTheDocument()
+  expect(add).toHaveBeenCalledWith("memo", "/home/a/Obsidian/Personal", true)
+  expect(pick).not.toHaveBeenCalled()
+  expect(screen.getByRole("list", { name: "Folders Memo reads" })).toHaveTextContent("Obsidian")
+})
+
+it("says a folder picked as a vault is read as plain Markdown when it has no .obsidian folder", async () => {
+  const plain: NotesFolder = { id: "5", name: "Work", path: "~/Notes/Work", format: "markdown" }
+  vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([]))
+  vi.spyOn(platform, "notesPickFolder").mockResolvedValue("/home/a/Notes/Work")
+  vi.spyOn(platform, "notesFolderAdd").mockResolvedValue({ result: "added", folder: plain })
+  render(<MemoSetup tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Connect an Obsidian vault…" }))
+  expect(await screen.findByText(/Added Work as plain Markdown: it has no \.obsidian folder/)).toBeInTheDocument()
+})
+
+it("offers the vaults inside a plain folder one by one, or the folder itself as Markdown", async () => {
+  const inside = [
+    { name: "Personal", path: "/home/a/Obsidian/Personal", shown: "~/Obsidian/Personal" },
+    { name: "Team", path: "/home/a/Obsidian/Team", shown: "~/Obsidian/Team" },
+  ]
+  const folder = (name: string, format: string): NotesFolder => ({ id: name, name, path: `~/Obsidian/${name}`, format })
+  vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([]))
+  vi.spyOn(platform, "notesPickFolder").mockResolvedValue("/home/a/Obsidian")
+  const add = vi.spyOn(platform, "notesFolderAdd").mockImplementation(async (_id, path, plain) => {
+    if (path === "/home/a/Obsidian")
+      return plain
+        ? { result: "added", folder: folder("Obsidian", "markdown") }
+        : { result: "holdsVaults", vaults: inside }
+    return { result: "added", folder: folder(path.split("/").pop() as string, "obsidian") }
+  })
+  render(<MemoSetup tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Choose a folder…" }))
+  const offered = await screen.findByRole("list", { name: "Obsidian vaults in Obsidian" })
+  expect(screen.getByText(/Obsidian is no Obsidian vault, but it holds 2 vaults/)).toBeInTheDocument()
+  expect(offered).toHaveTextContent("~/Obsidian/Team")
+
+  fireEvent.click(screen.getByRole("button", { name: "Connect the Obsidian vault Personal" }))
+  await act(async () => {})
+  expect(add).toHaveBeenLastCalledWith("memo", "/home/a/Obsidian/Personal", true)
+  expect(screen.getByRole("list", { name: "Obsidian vaults in Obsidian" })).not.toHaveTextContent("Personal")
+  expect(screen.queryByRole("button", { name: "Add Obsidian as plain Markdown" })).toBeNull()
+})
+
+it("adds a plain folder that holds vaults as Markdown when the owner chooses that first", async () => {
+  const inside = [{ name: "Team", path: "/home/a/Obsidian/Team", shown: "~/Obsidian/Team" }]
+  const plainFolder: NotesFolder = { id: "9", name: "Obsidian", path: "~/Obsidian", format: "markdown" }
+  vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([]))
+  vi.spyOn(platform, "notesPickFolder").mockResolvedValue("/home/a/Obsidian")
+  const add = vi
+    .spyOn(platform, "notesFolderAdd")
+    .mockImplementation(async (_id, _path, plain) =>
+      plain ? { result: "added", folder: plainFolder } : { result: "holdsVaults", vaults: inside },
+    )
+  render(<MemoSetup tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Choose a folder…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Add Obsidian as plain Markdown" }))
+  expect(await screen.findByText("Added Obsidian as plain Markdown files. The next step reads it.")).toBeInTheDocument()
+  expect(add).toHaveBeenLastCalledWith("memo", "/home/a/Obsidian", true)
 })
 
 it("says what to do when memo cannot read the folder", async () => {

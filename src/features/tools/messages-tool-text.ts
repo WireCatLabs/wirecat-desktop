@@ -7,7 +7,7 @@ export const RU_TAGLINE: Record<string, string> = {
   zm: "Записи и расшифровки встреч\u00a0· поиск",
   drive: "Папки и документы\u00a0· поиск\u00a0· редактирование",
   gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
-  memo: "Заметки, люди и воспоминания\u00a0· поиск по всему",
+  memo: "Заметки, файлы и хранилища Obsidian\u00a0· поиск по всему",
   email: "Ваша почта по IMAP, с поиском на вашем компьютере",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
@@ -21,7 +21,7 @@ export const RU_SUMMARY: Record<string, string> = {
   drive:
     "Импортируйте выбранные папки Google, ищите по документам локально и храните теги, заметки и воспоминания со ссылкой на источник.",
   gcal: "Копируйте события Google Календаря на этот компьютер, ищите по ним без сети и давайте агенту контекст каждой встречи.",
-  memo: "Ваши заметки и сообщения в одном месте для ИИ-агента: поиск, теги, люди и воспоминания — на вашем компьютере.",
+  memo: "Ваши заметки, файлы, хранилища Obsidian и сообщения в одном месте для ИИ-агента: поиск, теги, люди и воспоминания, на вашем компьютере.",
   email:
     "Gmail, Outlook и другая почта IMAP, скопированная на ваш компьютер: ищите по ней без сети, читайте переписку целиком и смотрите, докуда дошла каждая синхронизация. Синхронизация никогда не меняет ваш ящик.",
   bitrix:
@@ -36,7 +36,7 @@ export const ES_TAGLINE: Record<string, string> = {
   zm: "Grabaciones y transcripciones\u00a0· búsqueda",
   drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
-  memo: "Notas, personas y memorias\u00a0· búsqueda en todo",
+  memo: "Notas, archivos y bóvedas de Obsidian\u00a0· búsqueda",
   email: "Tu correo por IMAP, con búsqueda en tu ordenador",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
@@ -50,7 +50,7 @@ export const ES_SUMMARY: Record<string, string> = {
   drive:
     "Importa carpetas de Google seleccionadas, busca en los documentos en local y guarda etiquetas, notas y memorias con su fuente.",
   gcal: "Copia los eventos de Google Calendar a este equipo, búscalos sin conexión y da a tu agente el contexto de cada reunión.",
-  memo: "Tus notas y mensajes en un solo lugar para tu agente de IA: búsqueda, etiquetas, personas y memorias, en tu ordenador.",
+  memo: "Tus notas, archivos, bóvedas de Obsidian y mensajes en un solo lugar para tu agente de IA: búsqueda, etiquetas, personas y memorias, en tu ordenador.",
   email:
     "Gmail, Outlook y otro correo IMAP copiado a tu equipo: búscalo sin conexión, lee hilos enteros y mira hasta dónde llegó cada sincronización. La sincronización nunca cambia tu buzón.",
   bitrix:

@@ -3,7 +3,7 @@ import { type ReactNode, useCallback, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import type { SyncSummary } from "@/domain/sync"
 import { useMessages } from "@/i18n"
-import type { NotesFolder, NotesModel, NotesProblem, NotesSetup } from "@/platform/bindings"
+import type { NotesFolder, NotesModel, NotesProblem, NotesSetup, ObsidianVault } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ExtLink } from "@/shared/ExtLink"
 import { errorText } from "@/shared/errors"
@@ -18,7 +18,12 @@ import { type NotesSetupText, notesSetupMessages } from "./messages-notes-setup"
 import { searchModelMessages } from "./messages-search-model"
 import { megabytes, syncProblem } from "./notes-setup"
 
-type FolderStep = { phase: "idle" } | { phase: "picking" | "adding" } | { phase: "added"; name: string } | Failed
+type FolderStep =
+  | { phase: "idle" }
+  | { phase: "picking" | "adding" }
+  | { phase: "added"; name: string; format: string; vault: boolean }
+  | { phase: "holdsVaults"; name: string; path: string; vaults: ObsidianVault[]; connected: boolean }
+  | Failed
 type Count = { done: number; total: number; label: string | null }
 type RemoveStep =
   | { phase: "idle" | "removing" }
@@ -63,20 +68,53 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
   }, [tool.id])
   useEffect(load, [load])
 
-  const pickFolder = async () => {
+  /**
+   * Rust picks the format: `obsidian` for a folder in a vault, `markdown` otherwise. Without `plain`, a plain folder
+   * holding vaults is not added yet: the card offers its vaults first. True once the folder is added.
+   */
+  const addFolder = async (path: string, vault: boolean, plain: boolean): Promise<boolean> => {
+    setFolderStep({ phase: "adding" })
+    try {
+      const answer = await platform.notesFolderAdd(tool.id, path, plain)
+      if (answer.result === "failed") {
+        setFolderStep({ phase: "failed", problem: answer.problem })
+        return false
+      }
+      if (answer.result === "holdsVaults") {
+        const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path
+        setFolderStep({ phase: "holdsVaults", name, path, vaults: answer.vaults, connected: false })
+        return false
+      }
+      setFolderStep({ phase: "added", name: answer.folder.name, format: answer.folder.format, vault })
+      setSyncStep({ phase: "idle" })
+      load()
+      return true
+    } catch {
+      setFolderStep({ phase: "failed", problem: "other" })
+      return false
+    }
+  }
+
+  const pick = async (vault: boolean) => {
     setFolderStep({ phase: "picking" })
     try {
       const path = await platform.notesPickFolder()
       if (path === null) return setFolderStep({ phase: "idle" })
-      setFolderStep({ phase: "adding" })
-      const answer = await platform.notesFolderAdd(tool.id, path)
-      if (answer.result === "failed") return setFolderStep({ phase: "failed", problem: answer.problem })
-      setFolderStep({ phase: "added", name: answer.folder.name })
-      setSyncStep({ phase: "idle" })
-      load()
+      await addFolder(path, vault, false)
     } catch {
       setFolderStep({ phase: "failed", problem: "other" })
     }
+  }
+  const pickFolder = () => pick(false)
+
+  const connectVault = (vault: ObsidianVault) => addFolder(vault.path, true, true)
+
+  /** One vault of a plain folder; the others stay offered until each is connected. */
+  const connectInside = async (vault: ObsidianVault) => {
+    if (folderStep.phase !== "holdsVaults") return
+    // memo refuses a folder around one it reads, so once a vault inside is read the folder itself is no choice.
+    const left = { ...folderStep, vaults: folderStep.vaults.filter((v) => v.path !== vault.path), connected: true }
+    if ((await connectVault(vault)) && left.vaults.length > 0) setFolderStep(left)
   }
 
   const removeFolder = async (folder: NotesFolder, deleteNotes: boolean) => {
@@ -164,6 +202,7 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
   const ready = setup?.state === "ready" ? setup : null
   const folders = ready?.folders ?? []
   const models = ready?.models ?? []
+  const vaults = ready?.vaults ?? []
   const working = folderStep.phase === "picking" || folderStep.phase === "adding" || syncStep.phase === "running"
   const downloading = ["downloading", "preparing", "switching"].includes(modelStep.phase)
 
@@ -189,10 +228,15 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
           <FolderStepView
             m={m}
             folders={folders}
+            vaults={vaults}
             step={folderStep}
             removal={removeStep}
             disabled={working || downloading}
             onPick={pickFolder}
+            onPickVault={() => pick(true)}
+            onConnect={connectVault}
+            onConnectInside={connectInside}
+            onAddPlain={(path) => addFolder(path, false, true)}
             onRemove={(f) => removeFolder(f, false)}
             onRemoveDelete={setConfirming}
           />
@@ -293,14 +337,21 @@ function Problem({ m, problem, action }: { m: NotesSetupText; problem: NotesProb
 function FolderStepView(props: {
   m: NotesSetupText
   folders: NotesFolder[]
+  vaults: ObsidianVault[]
   step: FolderStep
   removal: RemoveStep
   disabled: boolean
   onPick: () => void
+  onPickVault: () => void
+  onConnect: (vault: ObsidianVault) => void
+  onConnectInside: (vault: ObsidianVault) => void
+  onAddPlain: (path: string) => void
   onRemove: (folder: NotesFolder) => void
   onRemoveDelete: (folder: NotesFolder) => void
 }) {
-  const { m, folders, step, removal, disabled, onPick, onRemove, onRemoveDelete } = props
+  const { m, folders, vaults, step, removal, disabled, onPick, onPickVault, onConnect, onRemove, onRemoveDelete } =
+    props
+  const { onConnectInside, onAddPlain } = props
   const busy = step.phase === "picking" || step.phase === "adding"
   return (
     <Step n={1} m={m} title={m.folderTitle} done={folders.length > 0} what={m.folderWhat}>
@@ -309,6 +360,7 @@ function FolderStepView(props: {
         {folders.map((f) => (
           <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="selectable min-w-0 break-all font-mono text-ink">{f.path}</span>
+            <Pill tone={f.format === "obsidian" ? "brand" : "neutral"}>{m.format(f.format)}</Pill>
             <span className="flex gap-1">
               <Button
                 size="sm"
@@ -332,9 +384,34 @@ function FolderStepView(props: {
           </li>
         ))}
       </ul>
+      <Collapse open={vaults.length > 0}>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[0.9rem] font-medium text-ink">{m.vaultsFound}</span>
+          <ul aria-label={m.vaultsFound} className="flex flex-col gap-1 text-[0.9rem]">
+            {vaults.map((v) => (
+              <li key={v.path} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-medium text-ink">{v.name}</span>
+                <span className="selectable min-w-0 break-all font-mono text-ink-soft">{v.shown}</span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  aria-label={m.connectVaultFor(v.name)}
+                  disabled={disabled}
+                  onClick={() => onConnect(v)}
+                >
+                  {m.connectVault}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Collapse>
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant={folders.length === 0 ? "primary" : "secondary"} disabled={disabled} onClick={onPick}>
           {folders.length === 0 ? m.choose : m.chooseAnother}
+        </Button>
+        <Button size="sm" variant="secondary" disabled={disabled} onClick={onPickVault}>
+          {m.chooseVault}
         </Button>
         {busy && (
           <span className="text-[0.9rem] text-ink-dim" aria-live="polite">
@@ -343,10 +420,43 @@ function FolderStepView(props: {
         )}
         {step.phase === "added" && (
           <span className="text-[0.9rem] text-ink-soft" aria-live="polite">
-            {m.folderAdded(step.name)}
+            {m.folderAdded(step.name, step.format, step.vault)}
           </span>
         )}
       </div>
+      <Collapse open={step.phase === "holdsVaults"}>
+        {step.phase === "holdsVaults" && (
+          <div className="flex flex-col gap-1.5 rounded-control border border-line-strong px-3 py-2.5">
+            <p className="text-[0.9rem] text-ink-soft" aria-live="polite">
+              {m.holdsVaults(step.name, step.vaults.length)}
+            </p>
+            <ul aria-label={m.vaultsInside(step.name)} className="flex flex-col gap-1 text-[0.9rem]">
+              {step.vaults.map((v) => (
+                <li key={v.path} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-medium text-ink">{v.name}</span>
+                  <span className="selectable min-w-0 break-all font-mono text-ink-soft">{v.shown}</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    aria-label={m.connectVaultFor(v.name)}
+                    disabled={disabled}
+                    onClick={() => onConnectInside(v)}
+                  >
+                    {m.connectVault}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            {!step.connected && (
+              <div>
+                <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onAddPlain(step.path)}>
+                  {m.addPlain(step.name)}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Collapse>
       <Problem
         m={m}
         problem={step.phase === "failed" ? step.problem : null}

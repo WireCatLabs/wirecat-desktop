@@ -6,14 +6,28 @@ const en = {
   what: "Memo reads the notes in the folders you choose, on this computer. It keeps a searchable copy in its own store and never changes your files. Three steps, the last one optional.",
   folderTitle: "Choose your notes folders",
   folderWhat:
-    "A system window opens. Pick the folder where you keep your notes (Obsidian or plain Markdown files). You can add more than one.",
+    "Connect an Obsidian vault, or choose any folder of Markdown files. WireCat checks whether a folder belongs to a vault, so Memo reads its tags and [[links]] the way Obsidian does. You can add more than one.",
   choose: "Choose a folder…",
   chooseAnother: "Add another folder…",
+  chooseVault: "Connect an Obsidian vault…",
+  vaultsFound: "Obsidian vaults on this computer",
+  connectVault: "Connect",
+  connectVaultFor: (name: string) => `Connect the Obsidian vault ${name}`,
+  format: (format: string) => (format === "obsidian" ? "Obsidian" : "Markdown"),
   picking: "Waiting for the folder window…",
   adding: "Adding the folder…",
   foldersLabel: "Folders Memo reads",
   noFolder: "No folder yet.",
-  folderAdded: (name: string) => `Added ${name}. The next step reads it.`,
+  holdsVaults: (name: string, count: number) =>
+    `${name} is no Obsidian vault, but it holds ${plural("en", count, { one: "one vault", other: "# vaults" })}. Connect ${count === 1 ? "it" : "them one by one"}, so Memo reads tags and links the way Obsidian does, or add ${name} as plain Markdown.`,
+  vaultsInside: (name: string) => `Obsidian vaults in ${name}`,
+  addPlain: (name: string) => `Add ${name} as plain Markdown`,
+  folderAdded: (name: string, format: string, vault: boolean) =>
+    format === "obsidian"
+      ? `Added ${name} as Obsidian notes. The next step reads it.`
+      : vault
+        ? `Added ${name} as plain Markdown: it has no .obsidian folder. For a vault, choose the folder Obsidian opens.`
+        : `Added ${name} as plain Markdown files. The next step reads it.`,
   removeKeep: "Remove",
   removeKeepFor: (name: string) => `Remove ${name} and keep its notes searchable`,
   removeDelete: "Remove and delete notes…",
@@ -94,14 +108,28 @@ const ru: typeof en = {
   what: "Memo читает заметки из папок, которые вы выберете, на этом компьютере. Он хранит копию для поиска в своём хранилище и не меняет ваши файлы. Три шага, последний необязательный.",
   folderTitle: "Выберите папки с заметками",
   folderWhat:
-    "Откроется системное окно. Выберите папку, где лежат ваши заметки (Obsidian или обычные файлы Markdown). Можно добавить несколько папок.",
+    "Подключите хранилище Obsidian или выберите любую папку с файлами Markdown. WireCat проверяет, входит ли папка в хранилище, и Memo читает теги и [[ссылки]] так же, как Obsidian. Можно добавить несколько папок.",
   choose: "Выбрать папку…",
   chooseAnother: "Добавить ещё папку…",
+  chooseVault: "Подключить хранилище Obsidian…",
+  vaultsFound: "Хранилища Obsidian на этом компьютере",
+  connectVault: "Подключить",
+  connectVaultFor: (name: string) => `Подключить хранилище Obsidian ${name}`,
+  format: (format: string) => (format === "obsidian" ? "Obsidian" : "Markdown"),
   picking: "Ждём окно выбора папки…",
   adding: "Добавляем папку…",
   foldersLabel: "Папки, которые читает Memo",
   noFolder: "Папок пока нет.",
-  folderAdded: (name: string) => `Папка ${name} добавлена. Следующий шаг её прочитает.`,
+  holdsVaults: (name: string, count: number) =>
+    `Папка ${name} не хранилище Obsidian, но в ней ${plural("ru", count, { one: "# хранилище", few: "# хранилища", many: "# хранилищ", other: "# хранилища" })}. Подключите ${count === 1 ? "его" : "их по одному"}, чтобы Memo читал теги и ссылки так же, как Obsidian, или добавьте ${name} как обычный Markdown.`,
+  vaultsInside: (name: string) => `Хранилища Obsidian в папке ${name}`,
+  addPlain: (name: string) => `Добавить ${name} как обычный Markdown`,
+  folderAdded: (name: string, format: string, vault: boolean) =>
+    format === "obsidian"
+      ? `Папка ${name} добавлена как заметки Obsidian. Следующий шаг её прочитает.`
+      : vault
+        ? `Папка ${name} добавлена как обычный Markdown: в ней нет папки .obsidian. Для хранилища выберите папку, которую открывает Obsidian.`
+        : `Папка ${name} добавлена как обычные файлы Markdown. Следующий шаг её прочитает.`,
   removeKeep: "Убрать",
   removeKeepFor: (name: string) => `Убрать ${name}, заметки останутся в поиске`,
   removeDelete: "Убрать и удалить заметки…",
@@ -198,14 +226,28 @@ const es: typeof en = {
   what: "Memo lee las notas de las carpetas que elijas, en este equipo. Guarda una copia para buscar en su propio almacén y nunca cambia tus archivos. Tres pasos, el último opcional.",
   folderTitle: "Elige tus carpetas de notas",
   folderWhat:
-    "Se abre una ventana del sistema. Elige la carpeta donde guardas tus notas (Obsidian o archivos Markdown normales). Puedes añadir más de una.",
+    "Conecta una bóveda de Obsidian o elige cualquier carpeta con archivos Markdown. WireCat comprueba si la carpeta forma parte de una bóveda, y así Memo lee sus etiquetas y [[enlaces]] como Obsidian. Puedes añadir más de una.",
   choose: "Elegir una carpeta…",
   chooseAnother: "Añadir otra carpeta…",
+  chooseVault: "Conectar una bóveda de Obsidian…",
+  vaultsFound: "Bóvedas de Obsidian en este equipo",
+  connectVault: "Conectar",
+  connectVaultFor: (name: string) => `Conectar la bóveda de Obsidian ${name}`,
+  format: (format: string) => (format === "obsidian" ? "Obsidian" : "Markdown"),
   picking: "Esperando la ventana de carpetas…",
   adding: "Añadiendo la carpeta…",
   foldersLabel: "Carpetas que lee Memo",
   noFolder: "Aún no hay ninguna carpeta.",
-  folderAdded: (name: string) => `Se añadió ${name}. El paso siguiente la lee.`,
+  holdsVaults: (name: string, count: number) =>
+    `${name} no es una bóveda de Obsidian, pero ${plural("es", count, { one: "contiene una", other: "contiene # bóvedas" })}. ${count === 1 ? "Conéctala" : "Conéctalas una a una"} para que Memo lea las etiquetas y los enlaces como Obsidian, o añade ${name} como Markdown normal.`,
+  vaultsInside: (name: string) => `Bóvedas de Obsidian en ${name}`,
+  addPlain: (name: string) => `Añadir ${name} como Markdown normal`,
+  folderAdded: (name: string, format: string, vault: boolean) =>
+    format === "obsidian"
+      ? `Se añadió ${name} como notas de Obsidian. El paso siguiente la lee.`
+      : vault
+        ? `Se añadió ${name} como Markdown normal: no tiene carpeta .obsidian. Para una bóveda, elige la carpeta que abre Obsidian.`
+        : `Se añadió ${name} como archivos Markdown normales. El paso siguiente la lee.`,
   removeKeep: "Quitar",
   removeKeepFor: (name: string) => `Quitar ${name} y dejar sus notas en la búsqueda`,
   removeDelete: "Quitar y borrar notas…",

@@ -453,11 +453,79 @@ pub fn manager_for(path: &Path) -> &'static str {
     }
 }
 
+/// A path as the interface shows it: the home folder at its start as `~`, without Windows' `\\?\` prefix.
 pub fn tilde(s: &str) -> String {
-    match home() {
-        Some(h) => s.replace(&*h.to_string_lossy(), "~"),
-        None => s.to_string(),
+    tilde_with(s, home().as_deref())
+}
+
+/// Windows' long-path form as people write the path: `\\?\C:\x` is `C:\x`, `\\?\UNC\srv\share` is `\\srv\share`.
+/// Any other `\\?\` path, such as a volume GUID, stays as it is.
+pub fn plain_windows(s: &str) -> String {
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{rest}");
     }
+    match s.strip_prefix(r"\\?\") {
+        Some(rest) if is_drive(rest) => rest.to_string(),
+        _ => s.to_string(),
+    }
+}
+
+fn is_drive(s: &str) -> bool {
+    let mut c = s.chars();
+    c.next().is_some_and(|d| d.is_ascii_alphabetic()) && c.next() == Some(':')
+}
+
+fn tilde_with(s: &str, home: Option<&Path>) -> String {
+    let plain = plain_windows(s);
+    let s = plain.as_str();
+    match home.map(|h| Path::new(s).strip_prefix(h)) {
+        Some(Ok(rest)) if rest.as_os_str().is_empty() => "~".to_string(),
+        Some(Ok(rest)) => format!("~{}{}", std::path::MAIN_SEPARATOR, rest.to_string_lossy()),
+        _ => s.to_string(),
+    }
+}
+
+/// Every path inside a text, such as a tool's error, with the home folder as `~`. Only a whole path part matches:
+/// with home `/home/a`, `/home/ab` stays.
+pub fn tilde_text(s: &str) -> String {
+    tilde_text_with(s, home().as_deref())
+}
+
+/// `plain_windows` for every long-path form inside a text.
+fn plain_windows_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(at) = rest.find(r"\\?\") {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 4..];
+        if let Some(unc) = after.strip_prefix(r"UNC\") {
+            out.push_str(r"\\");
+            rest = unc;
+        } else {
+            if !is_drive(after) {
+                out.push_str(r"\\?\");
+            }
+            rest = after;
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+fn tilde_text_with(s: &str, home: Option<&Path>) -> String {
+    let s = plain_windows_text(s);
+    let Some(home) = home.map(|h| h.to_string_lossy().into_owned()).filter(|h| h.len() > 1) else { return s };
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s.as_str();
+    while let Some(at) = rest.find(&home) {
+        let after = &rest[at + home.len()..];
+        let whole = after.chars().next().is_none_or(|c| !(c.is_alphanumeric() || matches!(c, '_' | '-' | '.')));
+        out.push_str(&rest[..at]);
+        out.push_str(if whole { "~" } else { &home });
+        rest = after;
+    }
+    out.push_str(rest);
+    out
 }
 
 /// `tools::detect` reports paths with `~`; turn them back into real ones.
@@ -510,6 +578,41 @@ mod tests {
         assert!(validate_shell("/usr/bin/../bin/zsh", &listed).is_err());
         assert!(validate_shell("zsh", &listed).is_err());
         assert!(validate_shell("", &listed).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn shows_the_home_folder_as_tilde_only_where_a_path_starts_with_it() {
+        let home = Some(Path::new("/home/a"));
+        assert_eq!(tilde_with("/home/a", home), "~");
+        assert_eq!(tilde_with("/home/a/Notes", home), "~/Notes");
+        assert_eq!(tilde_with("/home/ab/Notes", home), "/home/ab/Notes");
+        assert_eq!(tilde_with("/srv/home/a/Notes", home), "/srv/home/a/Notes");
+        assert_eq!(tilde_with("/home/a/Notes", None), "/home/a/Notes");
+        assert_eq!(tilde_text_with("cannot open /home/a/x and /home/ab/y", home), "cannot open ~/x and /home/ab/y");
+        assert_eq!(tilde_text_with("in /home/a: denied; /home/a.bak", home), "in ~: denied; /home/a.bak");
+    }
+
+    #[test]
+    fn writes_a_windows_long_path_as_people_write_it() {
+        assert_eq!(plain_windows(r"\\?\C:\Users\a"), r"C:\Users\a");
+        assert_eq!(plain_windows(r"\\?\UNC\srv\share\Notes"), r"\\srv\share\Notes");
+        assert_eq!(plain_windows(r"\\?\Volume{1}\x"), r"\\?\Volume{1}\x");
+        assert_eq!(plain_windows("/home/a"), "/home/a");
+        assert_eq!(
+            plain_windows_text(r"open \\?\UNC\srv\share\x and \\?\D:\y and \\?\Volume{1}"),
+            r"open \\srv\share\x and D:\y and \\?\Volume{1}"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn shows_a_windows_path_without_its_long_path_prefix() {
+        let home = Some(Path::new(r"C:\Users\a"));
+        assert_eq!(tilde_with(r"\\?\C:\Users\a\Notes", home), r"~\Notes");
+        assert_eq!(tilde_with(r"\\?\D:\Vault", home), r"D:\Vault");
+        assert_eq!(tilde_with(r"C:\Users\ab\Notes", home), r"C:\Users\ab\Notes");
+        assert_eq!(tilde_text_with(r"open \\?\C:\Users\a\x failed", home), r"open ~\x failed");
     }
 
     #[test]

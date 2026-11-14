@@ -1705,10 +1705,10 @@
     {
       "id": "memo",
       "name": "Memo",
-      "tagline": "Notes, people and memories\u00a0· search across everything",
+      "tagline": "Notes, files and Obsidian vaults\u00a0· search everything",
       "bin": "memo",
       "package": "@wirecat/cli-memo",
-      "summary": "Your notes and messages in one place for your AI agent: search, tags, people and memories, on your computer.",
+      "summary": "Your notes, files, Obsidian vaults and messages in one place for your AI agent: search, tags, people and memories, on your computer.",
       "docs": "https://wirecat.dev/en/docs/memo",
       "repo": "https://github.com/WireCatLabs/cli-memo",
       "profiles": null,
@@ -1873,7 +1873,7 @@
       "notesSetup": {
         "minVersion": "0.131.71",
         "folders": ["folders", "list", "--no-record", "--json"],
-        "add": ["folders", "add", "{path}", "--no-record", "--json"],
+        "add": ["folders", "add", "{path}", "--format", "{format}", "--no-record", "--json"],
         "remove": ["folders", "remove", "{id}", "--record", "--json"],
         "removeDelete": ["folders", "remove", "{id}", "--allow-delete", "--yes", "--record", "--json"],
         "sync": ["sync", "--only", "notes", "--record", "--json"],

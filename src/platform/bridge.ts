@@ -439,7 +439,7 @@ function createTauri(): Platform {
     searchHarderRun: (id, query, limit) => call(HarderAnswerSchema, "search_harder_run", { id, query, limit }),
     notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
     notesPickFolder: () => invoke("notes_pick_folder"),
-    notesFolderAdd: (id, path) => invoke("notes_folder_add", { id, path }),
+    notesFolderAdd: (id, path, plain) => invoke("notes_folder_add", { id, path, plain }),
     notesFolderRemove: (id, folder, deleteNotes) => invoke("notes_folder_remove", { id, folder, deleteNotes }),
     notesSync: (id, onEvent) => {
       const channel = new Channel<SyncEvent>()
