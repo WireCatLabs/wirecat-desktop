@@ -12,7 +12,7 @@ on 2026-11-10 and 2026-11-11. A row is removed once its fix is merged; a row hal
 | Guide link at the end of an intro | `PageHeader`'s `guide` prop | an `<a>`/`<button>` with `ExternalLink` per page |
 | A page with a board (Clients, Tasks) | `PageHeader compact` in every view (the same title, intro behind an "i", guide link beside it), `FilterBar inline`, and in board view `Page fill` with `Board fill`: the board takes the window's height left and its columns scroll inside | a column height guessed from the window (`calc(100dvh-…)`) |
 | Read again / Check again | `RefreshButton` (`src/ui/RefreshButton.tsx`; `variant`, `iconOnly`) | a `Button` with its own `RefreshCw` and spinner |
-| Search field with filter chips | `FilterBar`, `FilterMenu`, `ToggleChip` | — (all four pages already use it) |
+| Search field with filter chips | `FilterBar`, `FilterMenu`, `ToggleChip` | — (Tasks, Memory and Documents use it; Meetings puts `QueryBar` beside the same chips) |
 | A one-of-few switch: view, status tab, range, "by people / by chats" | `Segmented` (`size="md"` with labels; `count` per option) | a hand `fieldset` of radios or `aria-pressed` buttons |
 | Content tabs (panels under them) | `Tabs`/`TabList` with `LineTab` (`src/ui/Tabs.tsx`): `md` in a panel (a tool's settings and JSON), `lg` for a page's tabs (`app/TabbedPage.tsx`: Tools and Agents, Data and Storage) | a tab styled by hand; a `Segmented` for content tabs |
 | Table | `DataTable` | a `<table>` for a list of records (a key–value list or a chart legend may stay a table) |
@@ -29,8 +29,9 @@ on 2026-11-10 and 2026-11-11. A row is removed once its fix is merged; a row hal
 | Buttons | `Button` (`primary` once per surface, `secondary` for Cancel and any row action, `ghost` for Back, Close, an icon alone, `danger`; `sm` in headers and rows); no ellipsis in a label | a styled `<button>`, a ghost as a row's only action |
 | A link inside a sentence | `LinkButton` (`src/ui/LinkButton.tsx`) in the app, `ExtLink` to a web page | a `<button>` with `text-brand` |
 | Heading of a block on a page | `SectionTitle` (`src/ui/SectionTitle.tsx`) | a size per page |
-| A tree of choices that narrows a list (Documents' folders) | `TreeList` (`src/ui/TreeList.tsx`): the WAI-ARIA tree, one tab stop, children folded inside their item | nested buttons or a list indented by hand |
-| Meetings on a week of hours | `TimeGrid` (`src/ui/TimeGrid.tsx`): hour gutter, overlap columns with "+N", the now line, one tab stop | absolutely placed blocks drawn by a page |
+| A tree of choices that narrows a list (Documents' accounts and folders, opened from a chip in the filter row) | `TreeList` (`src/ui/TreeList.tsx`): the WAI-ARIA tree, one tab stop, children folded inside their item | nested buttons or a list indented by hand |
+| Meetings on a week of hours | `TimeGrid` (`src/ui/TimeGrid.tsx`) with `layoutDay`: hour gutter, overlaps as Google Calendar draws them (same start side by side, a later one over the earlier, each keeping a strip), "+N" only where no readable span is left, the now line, one tab stop | absolutely placed blocks drawn by a page |
+| A query field with suggestions (fields, values, titles) | `QueryBar` (`src/features/query`): Search, Logs, Meetings | an input with a list of its own |
 | A month of days | `MonthGrid` (`src/ui/MonthGrid.tsx`): the WAI-ARIA grid, one tab stop, Enter into a cell | a `<table>` or a CSS grid of buttons |
 | Find in a text (a config file, a transcript) | `FindBar` (`src/ui/FindBar.tsx`): count, Enter and Shift+Enter, the arrows, Escape clears | an input with its own counter and buttons |
 | Dialog | `Dialog` | — (checked: no `aria-modal` or `fixed inset-0` outside `ui/`; Bell and Calendar are popovers, not dialogs) |
