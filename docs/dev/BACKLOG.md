@@ -109,11 +109,11 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 
 ## The meeting card
 
-- **Needs cli-core first.** The card shows all a meeting row carries. The calendar fields the store keeps reach no
-  row: the event's own page (`calendar_entries.url`, Google's htmlLink, for an "Open in Google Calendar" action),
-  each attendee's response, the owner's own response, recurrence and series, the conference's name and the calendar
-  attachments. They go into cli-core's meeting listing (`meetingEntry` and `meetingEntryDetails` in
-  `src/entities/listings.ts`, filled in `src/services/listings.ts`); gcal already stores them.
+- **Needs a memo release.** The card reads the calendar's page, the answers to the invitation, the series' rule, the
+  conference and the event's Drive files from cli-core's meeting listing (cli-core PR #2970). A memo built on a
+  cli-core before it sends none of them, and the card shows what it has.
+- **Needs zoom-cli first.** Zoom's meeting page: the store keeps only a Zoom meeting's join link, so a meeting from
+  Zoom has no "Open in Zoom" next to "Join on Zoom".
 - **Needs cli-core first.** A recording's link (a row says only that one exists), the deals, companies, chats and
   mail linked to a meeting, and a `location:` field for `meetings list`, so the search can suggest places.
 
