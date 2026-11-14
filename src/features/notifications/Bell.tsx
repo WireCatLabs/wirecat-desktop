@@ -120,7 +120,10 @@ function Panel({ id, leaving }: { id: string; leaving: boolean }) {
   const [hidden] = useState(() => dismissed)
   const heading = useRef<HTMLHeadingElement>(null)
   const headingId = useId()
-  const shown = [...visibleDigests({ digests, dismissed: hidden }), ...visible({ items, dismissed: hidden })]
+  // Security notices always lead, above digests and other news (owner, answer A); each group keeps its order.
+  const shown = [...visibleDigests({ digests, dismissed: hidden }), ...visible({ items, dismissed: hidden })].toSorted(
+    (a, b) => Number(b.severity === "security") - Number(a.severity === "security"),
+  )
   const left = [...visibleDigests({ digests, dismissed }), ...visible({ items, dismissed })]
 
   useEffect(() => focusInPlace(heading.current), [])

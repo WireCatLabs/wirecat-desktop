@@ -23,7 +23,15 @@ const security: Notification = {
 describe("App notifications", () => {
   beforeEach(() => {
     useOnboarding.setState({ status: "done", open: false })
-    useNotifications.setState({ items: [], read: [], dismissed: [], checked: false, failed: false, open: false })
+    useNotifications.setState({
+      items: [],
+      digests: [],
+      read: [],
+      dismissed: [],
+      checked: false,
+      failed: false,
+      open: false,
+    })
     useSeen.setState({ seen: [] })
   })
   afterEach(() => vi.restoreAllMocks())
@@ -69,6 +77,33 @@ describe("App notifications", () => {
     await user.click(bell)
     expect(dock).toHaveBeenLastCalledWith(0)
     expect(dock).toHaveBeenCalledTimes(4)
+  })
+
+  it("puts a security notice above a newer digest and newer news", async () => {
+    const info = { ...security, id: "info-1", severity: "info" as const, title: { en: "Search arrives" } }
+    const digest = {
+      id: "digest:1",
+      severity: "digest" as const,
+      date: "2026-11-14",
+      title: "Morning digest",
+      body: "Three chats.",
+      at: new Date().toISOString(),
+    }
+    useNotifications.setState({ digests: [digest] })
+    vi.spyOn(platform, "notifications").mockResolvedValue([
+      { ...info, publishedAt: new Date().toISOString() },
+      security,
+    ])
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole("button", { name: /security notice is unread/ }))
+
+    const panel = screen.getByRole("dialog", { name: "Notifications" })
+    const titles = within(panel)
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent)
+    expect(titles).toEqual(["Update Telegram now", "Morning digest", "Search arrives"])
   })
 
   it("removes a notification for good when the owner dismisses it", async () => {
