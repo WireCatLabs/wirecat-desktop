@@ -1871,7 +1871,7 @@
         "agentConsent": { "minVersion": "0.131.86" }
       },
       "notesSetup": {
-        "minVersion": "0.131.71",
+        "minVersion": "0.134.0",
         "folders": ["folders", "list", "--no-record", "--json"],
         "add": ["folders", "add", "{path}", "--format", "{format}", "--no-record", "--json"],
         "remove": ["folders", "remove", "{id}", "--record", "--json"],
