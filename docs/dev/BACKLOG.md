@@ -27,6 +27,10 @@ Plans: [memory page][2026-10-31-memory-page], [Add to memory][2026-11-01-memory-
 - **Needs drive first.** Add a Google Doc through drive.
 - **Needs memo first.** Add an image's text, or an audio recording.
 - **Needs memo first.** `memo sources preview <url>`; the app shows no preview without it.
+- **Desktop.** At memo setup, ask how search builds embeddings: on this computer only (free, private, slower) or
+  through a provider's API key (faster, paid, the text leaves the computer). The pros and cons sit behind a
+  "What's the difference?" link. The same choice stays in Settings to change at any time (owner, IDEA-2651,
+  2026-11-14). memo already embeds through a provider; Desktop offers only the local model.
 - **Desktop.** A source's facts shown apart from the owner's, and a bulk arrival folded into one card (UX-125.c,
   UX-125.d).
 
