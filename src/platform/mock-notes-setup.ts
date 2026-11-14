@@ -13,7 +13,8 @@ import type { Platform } from "./types"
 // the store), `?memo-fail=download` (no network), `?memo-fail=disk` (no space left), `?memo-fail=old` (the download
 // command is unknown to this memo), `?memo-fail=remove` (a sync holds the store), `?memo-fail=remove-old` (this memo has
 // no `folders remove`). Progress lines: counts for the sync and the download by default, `?notes-progress=old` for a
-// memo that prints none (the bars have no end).
+// memo that prints none (the bars have no end). Obsidian: two vaults Obsidian lists by default, `?obsidian=none` lists
+// none; `?memo-pick=vault` picks a folder in a vault (added as `obsidian`), any other pick is plain `markdown`.
 const GEMMA = {
   id: "embeddinggemma",
   title: "EmbeddingGemma 300M, 4-bit",
@@ -29,6 +30,11 @@ const E5 = {
   terms: null,
 }
 const PICKED = "/home/slava/Notes/Work"
+const PICKED_VAULT = "/home/slava/Obsidian/Personal"
+const VAULTS = [
+  { name: "Personal", path: PICKED_VAULT, shown: "~/Obsidian/Personal" },
+  { name: "Research", path: "/home/slava/Documents/Research", shown: "~/Documents/Research" },
+]
 
 export function notesSetupMock(
   params: URLSearchParams,
@@ -60,6 +66,7 @@ export function notesSetupMock(
             ? ["embeddinggemma"]
             : [],
   )
+  const vaults = params.get("obsidian") === "none" ? [] : [...VAULTS]
   let inUse = modelScenario === "e5" || modelScenario === "both" ? "e5-small" : "embeddinggemma"
   const models = () => [GEMMA, E5].map((m) => ({ ...m, downloaded: downloaded.has(m.id), inUse: m.id === inUse }))
   let stopped = false
@@ -69,11 +76,12 @@ export function notesSetupMock(
     async notesSetupStatus(): Promise<NotesSetup> {
       await delay(400)
       if (scenario === "old") return { state: "old", version: "0.131.2", need: "0.131.71" }
-      return { state: "ready", folders: [...folders], models: models() }
+      return { state: "ready", folders: [...folders], models: models(), vaults: [...vaults] }
     },
     async notesPickFolder() {
       await delay(500)
-      return params.get("memo-pick") === "cancel" ? null : PICKED
+      const pick = params.get("memo-pick")
+      return pick === "cancel" ? null : pick === "vault" ? PICKED_VAULT : PICKED
     },
     async notesFolderAdd(_id, path) {
       await delay(700)
@@ -83,9 +91,11 @@ export function notesSetupMock(
         id: String(4 + folders.length),
         name: path.split("/").pop() ?? path,
         path: path.replace("/home/slava", "~"),
-        format: "obsidian",
+        format: VAULTS.some((v) => path.startsWith(v.path)) ? "obsidian" : "markdown",
       }
       if (!found) folders.push(folder)
+      const listed = vaults.findIndex((v) => v.path === path)
+      if (listed >= 0) vaults.splice(listed, 1)
       return { result: "added", folder }
     },
     async notesFolderRemove(_id, folder, deleteNotes) {

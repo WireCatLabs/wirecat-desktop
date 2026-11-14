@@ -1073,7 +1073,7 @@ export type NotesProblem =
 
 export type NotesSetup = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
 /**  `models` is empty when memo's list names none of the catalog's choices. */
-{ state: "ready"; folders: NotesFolder[]; models: NotesModel[] };
+{ state: "ready"; folders: NotesFolder[]; models: NotesModel[]; vaults: ObsidianVault[] };
 
 /**  The issuer's metadata, for typing into a browser app that cannot find it itself (BUG-15). */
 export type OAuthSettings = {
@@ -1081,6 +1081,15 @@ export type OAuthSettings = {
 	authorizationEndpoint: string,
 	tokenEndpoint: string,
 	registrationEndpoint: string | null,
+};
+
+/**  A vault Obsidian itself lists on this computer that memo does not read yet. */
+export type ObsidianVault = {
+	name: string,
+	/**  The real path, the one `notes_folder_add` takes. */
+	path: string,
+	/**  With the home folder as `~`. */
+	shown: string,
 };
 
 export type Offer = {

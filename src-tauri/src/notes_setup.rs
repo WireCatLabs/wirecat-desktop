@@ -21,7 +21,7 @@ const GRACE: Duration = Duration::from_secs(5);
 pub struct NotesSetupSource {
     pub min_version: String,
     pub folders: Vec<String>,
-    /// `{path}` is filled only with a folder `checked_folder` accepted.
+    /// `{path}` is filled only with a folder `checked_folder` accepted, `{format}` by `format_of` that folder.
     pub add: Vec<String>,
     /// `{id}` is filled only with an id `checked_folder_id` accepted. Keeps the folder's notes searchable.
     pub remove: Vec<String>,
@@ -64,6 +64,17 @@ pub struct NotesFolder {
     /// On this computer, with the home folder as `~`. `None` for a folder another computer or Drive keeps.
     pub path: Option<String>,
     pub format: String,
+}
+
+/// A vault Obsidian itself lists on this computer that memo does not read yet.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ObsidianVault {
+    pub name: String,
+    /// The real path, the one `notes_folder_add` takes.
+    pub path: String,
+    /// With the home folder as `~`.
+    pub shown: String,
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
@@ -117,6 +128,7 @@ pub enum NotesSetup {
     Ready {
         folders: Vec<NotesFolder>,
         models: Vec<NotesModel>,
+        vaults: Vec<ObsidianVault>,
     },
 }
 
@@ -177,6 +189,66 @@ pub fn checked_folder(path: &str) -> Result<String, NotesProblem> {
 /// A folder id memo printed: letters, digits and `_.-`, never starting with `-`, so memo cannot read it as an option.
 pub fn checked_folder_id(id: &str) -> Result<&str, NotesProblem> {
     if is_label(id) && !id.contains(':') { Ok(id) } else { Err(NotesProblem::Other) }
+}
+
+/// memo reads `#word` as a tag and `[[link]]` as a link only in `obsidian` folders, so a plain Markdown folder must say
+/// `markdown`. A vault, or any folder inside one, has Obsidian's own `.obsidian` folder at its top.
+pub fn format_of(dir: &Path) -> &'static str {
+    if dir.ancestors().any(|a| a.join(".obsidian").is_dir()) { "obsidian" } else { "markdown" }
+}
+
+/// Where Obsidian keeps `obsidian.json`, its own list of vaults: its settings folder from obsidian.md/help/data-storage,
+/// and the same folder inside a Flatpak or Snap install on Linux.
+fn vault_lists() -> Vec<std::path::PathBuf> {
+    let Some(home) = paths::home() else { return Vec::new() };
+    let mut dirs = Vec::new();
+    if cfg!(target_os = "macos") {
+        dirs.push(home.join("Library/Application Support/obsidian"));
+    } else if cfg!(windows) {
+        dirs.extend(std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("obsidian")));
+    } else {
+        let config = std::env::var_os("XDG_CONFIG_HOME")
+            .map(std::path::PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .unwrap_or_else(|| home.join(".config"));
+        dirs.push(config.join("obsidian"));
+        dirs.push(home.join(".var/app/md.obsidian.Obsidian/config/obsidian"));
+        dirs.push(home.join("snap/obsidian/current/.config/obsidian"));
+    }
+    dirs.into_iter().map(|d| d.join("obsidian.json")).collect()
+}
+
+/// The vault paths in one `obsidian.json`: `{"vaults": {"<id>": {"path": "/abs", "ts": …}}}`. Obsidian does not
+/// document the file, so anything else reads as no vaults and the folder window still works.
+fn vaults_in(json: &str) -> Vec<String> {
+    let Ok(v) = serde_json::from_str::<Value>(json) else { return Vec::new() };
+    v["vaults"].as_object().into_iter().flatten().filter_map(|(_, x)| x["path"].as_str().map(str::to_string)).collect()
+}
+
+/// Every listed vault that still is one (a readable folder with `.obsidian`) and that memo does not read yet, by name.
+fn vaults_of(lists: &[std::path::PathBuf], added: &[std::path::PathBuf]) -> Vec<ObsidianVault> {
+    let mut seen: Vec<std::path::PathBuf> = added.iter().filter_map(|p| p.canonicalize().ok()).collect();
+    let mut found = Vec::new();
+    for list in lists {
+        let Ok(meta) = std::fs::metadata(list) else { continue };
+        if meta.len() > 1 << 20 {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(list) else { continue };
+        for path in vaults_in(&text) {
+            let Ok(real) = checked_folder(&path) else { continue };
+            let real = std::path::PathBuf::from(real);
+            if !real.join(".obsidian").is_dir() || seen.contains(&real) {
+                continue;
+            }
+            let Some(name) = real.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
+            let path = real.to_string_lossy().into_owned();
+            found.push(ObsidianVault { name, shown: paths::tilde(&path), path });
+            seen.push(real);
+        }
+    }
+    found.sort_by_key(|v| v.name.to_lowercase());
+    found
 }
 
 fn with(words: &[String], key: &str, value: &str) -> Vec<String> {
@@ -299,7 +371,9 @@ pub fn status(tool: &Tool) -> Result<NotesSetup, String> {
     };
     // Without the model list the card still works for folders; the search step then stays hidden.
     let models = list_models(tool, src).unwrap_or_default();
-    Ok(NotesSetup::Ready { folders: folders_of(&list), models })
+    let added: Vec<_> =
+        list["items"].as_array().into_iter().flatten().filter_map(|i| i["path"].as_str()).map(paths::untilde).collect();
+    Ok(NotesSetup::Ready { folders: folders_of(&list), models, vaults: vaults_of(&vault_lists(), &added) })
 }
 
 pub fn add_folder(tool: &Tool, path: &str) -> Result<NotesFolderAdded, String> {
@@ -308,7 +382,8 @@ pub fn add_folder(tool: &Tool, path: &str) -> Result<NotesFolderAdded, String> {
         Ok(p) => p,
         Err(problem) => return Ok(NotesFolderAdded::Failed { problem }),
     };
-    let (out, json) = crate::skills::call(tool, &with(&src.add, "{path}", &path), CALL)?;
+    let words = with(&with(&src.add, "{path}", &path), "{format}", format_of(Path::new(&path)));
+    let (out, json) = crate::skills::call(tool, &words, CALL)?;
     if out.code == Some(0)
         && let Some(folder) = json.as_ref().map(crate::skills::body).and_then(folder_of)
     {
@@ -475,6 +550,68 @@ mod tests {
         let long = "1".repeat(65);
         for bad in ["", "-1", "--yes", "../x", "/a", "a b", "a;b", "google-drive:1", "1\n2", long.as_str()] {
             assert_eq!(checked_folder_id(bad), Err(NotesProblem::Other), "{bad}");
+        }
+    }
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("wirecat-notes-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn a_vault_and_the_folders_inside_it_are_obsidian_and_others_plain_markdown() {
+        let root = temp_dir("format");
+        let vault = root.join("Vault");
+        std::fs::create_dir_all(vault.join(".obsidian")).unwrap();
+        std::fs::create_dir_all(vault.join("Daily/2026")).unwrap();
+        std::fs::create_dir_all(root.join("Plain")).unwrap();
+        assert_eq!(format_of(&vault), "obsidian");
+        assert_eq!(format_of(&vault.join("Daily/2026")), "obsidian");
+        assert_eq!(format_of(&root.join("Plain")), "markdown");
+        std::fs::create_dir_all(root.join("File")).unwrap();
+        std::fs::write(root.join("File/.obsidian"), "not a folder").unwrap();
+        assert_eq!(format_of(&root.join("File")), "markdown");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn the_folder_and_its_format_are_the_only_words_filled_in() {
+        let add = &memo_src().add;
+        let words = with(&with(add, "{path}", "/a b/c"), "{format}", "markdown");
+        assert_eq!(words.join(" "), "folders add /a b/c --format markdown --no-record --json");
+    }
+
+    #[test]
+    fn offers_the_vaults_obsidian_lists_that_still_exist_and_are_not_read_yet() {
+        let root = temp_dir("vaults");
+        for v in ["Work", "archive", "Added"] {
+            std::fs::create_dir_all(root.join(v).join(".obsidian")).unwrap();
+        }
+        std::fs::create_dir_all(root.join("NoLonger")).unwrap();
+        let p = |n: &str| root.join(n).to_string_lossy().into_owned();
+        let list = root.join("obsidian.json");
+        let json = serde_json::json!({"vaults": {
+            "a1": {"path": p("Work"), "ts": 1, "open": true},
+            "b2": {"path": p("archive"), "ts": 2},
+            "c3": {"path": p("Added"), "ts": 3},
+            "d4": {"path": p("NoLonger"), "ts": 4},
+            "e5": {"path": p("Gone"), "ts": 5},
+            "f6": {"path": "relative/vault", "ts": 6}
+        }});
+        std::fs::write(&list, json.to_string()).unwrap();
+        let found = vaults_of(&[list.clone(), list, root.join("missing.json")], &[root.join("Added")]);
+        let names: Vec<&str> = found.iter().map(|v| v.name.as_str()).collect();
+        assert_eq!(names, ["archive", "Work"]);
+        assert_eq!(found[1].path, root.join("Work").canonicalize().unwrap().to_string_lossy());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_vault_list_obsidian_changed_reads_as_none() {
+        for bad in ["", "[]", "{}", r#"{"vaults": []}"#, r#"{"vaults": {"a": {"path": 3}}}"#, "not json"] {
+            assert!(vaults_in(bad).is_empty(), "{bad}");
         }
     }
 
