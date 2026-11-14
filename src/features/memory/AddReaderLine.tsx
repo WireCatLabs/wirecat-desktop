@@ -4,8 +4,7 @@ import { chosenReader, readerOff } from "@/domain/memory-add"
 import { ReaderChoice } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
-import { goAiModel } from "@/shared/go-ai-model"
-import { useNav } from "@/shared/nav"
+import { goAiModel, goSettingsAt } from "@/shared/go-ai-model"
 import { useReaders } from "@/shared/readers-store"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
@@ -49,7 +48,7 @@ export function ReaderLine() {
     return (
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] text-ink-soft">
         {m.noReader}
-        <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("settings")}>
+        <Button size="sm" variant="ghost" onClick={() => goSettingsAt("readers")}>
           {m.goSettings}
         </Button>
       </p>
@@ -82,7 +81,7 @@ function InlineChoice({ readers }: { readers: Reader[] }) {
       <ReaderChoice readers={readers} describedBy={hint} />
       <p className="flex flex-wrap items-center gap-x-3 text-[0.9rem] text-ink-dim">
         {m.otherReaders}
-        <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("settings")}>
+        <Button size="sm" variant="ghost" onClick={() => goSettingsAt("readers")}>
           {m.goSettings}
         </Button>
       </p>

@@ -8,7 +8,7 @@ import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { DigestItem, DigestSpec, Route, RouteChoices } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { costed, useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
-import { useNav } from "@/shared/nav"
+import { goSettingsAt } from "@/shared/go-ai-model"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
@@ -566,7 +566,7 @@ export function NoHarness() {
   const m = useMessages(bookMessages).form
   return (
     <p className="text-[0.92rem] text-warn-ink">
-      {m.noHarness} <LinkButton onClick={() => useNav.getState().go("settings")}>{m.toAgents}</LinkButton>
+      {m.noHarness} <LinkButton onClick={() => goSettingsAt("background-agent")}>{m.toAgents}</LinkButton>
     </p>
   )
 }

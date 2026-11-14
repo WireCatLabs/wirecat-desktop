@@ -30,7 +30,7 @@ describe("Digests", () => {
   it("lists one day per digest, newest first, and lays the newest out with its sections", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Agents/ }))
+    await user.click(screen.getByRole("tab", { name: /^Digests/ }))
     await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
     const days = await screen.findByRole("navigation", { name: "Days" })
     expect(within(days).getAllByRole("button")).toHaveLength(4)
@@ -47,7 +47,7 @@ describe("Digests", () => {
   it("opens an item's task, and a task group's list, inside the app", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Agents/ }))
+    await user.click(screen.getByRole("tab", { name: /^Digests/ }))
     await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
     await user.click(await screen.findByRole("button", { name: "Open: Reconciliation for North Wind" }))
     expect(await screen.findByRole("dialog")).toHaveTextContent("Task HRB-14")
@@ -62,7 +62,7 @@ describe("Digests", () => {
   it("shows an older run's text as it was", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Agents/ }))
+    await user.click(screen.getByRole("tab", { name: /^Digests/ }))
     await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
     const days = await screen.findByRole("navigation", { name: "Days" })
     await user.click(within(days).getAllByRole("button")[3] as HTMLElement)

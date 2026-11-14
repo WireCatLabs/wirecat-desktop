@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { Page, PageAsTab, PageHeader } from "@/shared/Page"
@@ -14,7 +14,8 @@ import { type SectionId, tabsOf } from "./sections"
  * A sidebar page made of tabs (Tools and Agents, Analytics and Storage): one title, the tabs under it, the selected
  * tab's page below. The selected tab is the section on screen, so a reload, back and forward and every old link to
  * the tab's page land on it. The frame stays mounted across tabs, so the focus stays on the tab the keyboard moved to;
- * the new tab's page fades in under it.
+ * the new tab's page fades in under it. Every tab's chunk loads with the page, so a switch never shows the loading
+ * placeholder for a frame, and the new tab starts half visible, so no frame is blank.
  */
 export function TabbedPage({ page, active }: { page: SectionId; active: string }) {
   const m = useMessages(appMessages)
@@ -22,6 +23,9 @@ export function TabbedPage({ page, active }: { page: SectionId; active: string }
   const badges = useBadges(active)
   const Shown = tabs.find((t) => t.id === active)?.page
   const [actions, setActions] = useState<HTMLDivElement | null>(null)
+  useEffect(() => {
+    for (const t of tabsOf(page)) t.page?.preload()
+  }, [page])
   return (
     <Page>
       <PageHeader title={m.nav[page]} section={page} />
@@ -55,7 +59,7 @@ export function TabbedPage({ page, active }: { page: SectionId; active: string }
           <div ref={setActions} className="flex min-w-0 flex-wrap items-center gap-2" />
         </div>
         {/* Keyed: the library keeps a panel's first id, so a reused panel would name the tab it was mounted for. */}
-        <TabPanel key={active} id={active} className="reveal">
+        <TabPanel key={active} id={active} className="tab-in">
           {/* Per tab: a broken tab keeps the tabs, so the other one still opens. */}
           <ErrorBoundary scope="page">
             <CrashScenario section={active} />

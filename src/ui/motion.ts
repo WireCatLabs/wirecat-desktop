@@ -281,3 +281,77 @@ export function keepBelow(el: HTMLElement | null) {
   observer.observe(el, { childList: true, subtree: true, characterData: true, attributes: true })
   return () => observer.disconnect()
 }
+
+/** How long a link's target stays marked after it is brought into view. */
+const FLASH_MS = 1800
+
+/**
+ * Marks the element a link took the owner to, so the eye finds it among its neighbours: a brand outline that fades out,
+ * or a still one for the same time under reduced motion (`index.css`, `[data-target-flash]`).
+ */
+function flash(el: HTMLElement) {
+  el.removeAttribute("data-target-flash")
+  // Read layout between the two, so a second link to the same target plays the mark again.
+  void el.offsetWidth
+  el.setAttribute("data-target-flash", "")
+  setTimeout(() => el.removeAttribute("data-target-flash"), FLASH_MS)
+}
+
+const TARGET_WAIT_MS = 4000
+// A page switch puts back the page's last scroll a frame after it mounts; scrolling before that would be undone.
+const SETTLE_FRAMES = 2
+
+/**
+ * Brings the target of an in-app link into view once it exists: the page loads lazily and reads its rows first, so the
+ * target shows up a moment after the link was followed. It is scrolled to the top of the view, marked with `flash`,
+ * and focus moves to `focus(target)` (or the target itself) without scrolling again. A panel folding above it moves
+ * it, so its place is checked once more after the panel's time.
+ */
+export function revealTarget(
+  find: () => HTMLElement | null,
+  options: { focus?: (target: HTMLElement) => HTMLElement | null | undefined; wait?: number } = {},
+) {
+  const until = performance.now() + (options.wait ?? TARGET_WAIT_MS)
+  let frames = 0
+  const look = () => {
+    const el = find()
+    if (!el) {
+      if (performance.now() < until) requestAnimationFrame(look)
+      return
+    }
+    if (++frames < SETTLE_FRAMES) return void requestAnimationFrame(look)
+    const smooth = reducedMotion() ? "auto" : "smooth"
+    el.scrollIntoView?.({ block: "start", behavior: smooth })
+    flash(el)
+    const focus = options.focus ? options.focus(el) : el
+    if (focus) {
+      if (focus === el && !el.hasAttribute("tabindex") && !el.matches("a,button,input,select,textarea")) {
+        el.setAttribute("tabindex", "-1")
+      }
+      focus.focus({ preventScroll: true })
+    }
+    setTimeout(() => {
+      if (!el.isConnected) return
+      const at = el.getBoundingClientRect().top - (scrollerOf(el)?.getBoundingClientRect().top ?? 0)
+      if (Math.abs(at - Number.parseFloat(getComputedStyle(el).scrollMarginTop || "0")) > 8)
+        el.scrollIntoView?.({ block: "start", behavior: smooth })
+    }, PANEL_MS + 80)
+  }
+  requestAnimationFrame(look)
+}
+
+/**
+ * Scrolls just enough to show `el` whole once it has grown below the view, but never past its top: a tool's settings
+ * opening under its row come into view with the row still on screen.
+ */
+export function showGrown(el: Element | null) {
+  if (!el) return
+  const scroller = scrollerOf(el)
+  if (!scroller) return
+  const view = scroller.getBoundingClientRect()
+  const box = el.getBoundingClientRect()
+  const below = box.bottom - view.bottom
+  if (below <= 0) return
+  const by = Math.min(below, box.top - view.top - 16)
+  if (by > 0) scroller.scrollBy?.({ top: by, behavior: reducedMotion() ? "auto" : "smooth" })
+}

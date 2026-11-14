@@ -1,20 +1,20 @@
-import { ArrowLeft } from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
-import type { DigestBook, DigestSpec } from "@/platform/bindings"
+import { ago } from "@/i18n/ago"
+import type { DigestBook, DigestItem, DigestSpec } from "@/platform/bindings"
 import { useDigestDay } from "@/shared/digest-day"
-import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
 import { PageError } from "@/shared/PageError"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
-import { LinkButton } from "@/ui/LinkButton"
+import { revealTarget } from "@/ui/motion"
+import { noticeBox } from "@/ui/notice"
 import { RefreshButton } from "@/ui/RefreshButton"
-import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { CreateDialog, draftOf, Starter, type Template } from "./CreateDigest"
-import { DigestTable } from "./DigestTable"
+import { DigestTable, titleOf } from "./DigestTable"
 import { DigestView } from "./DigestView"
 import { digestMessages } from "./messages"
 import { bookMessages } from "./messages-book"
@@ -48,7 +48,10 @@ function useBook() {
 
 type Book = ReturnType<typeof useBook>
 
-/** The archive: every digest, and one digest's settings and what it wrote. Reached from the Agents tab, not the sidebar. */
+/**
+ * The Digests tab of Tools: the presets to make a digest above every digest and its schedule, and one digest's settings
+ * and what it wrote. A link, the bell or a notice opens a digest here and marks it.
+ */
 export function DigestsPage() {
   const m = useMessages(digestMessages)
   const view = useBook()
@@ -59,68 +62,61 @@ export function DigestsPage() {
     if (open && view.ready && !item) openDigest(null)
   }, [open, view.ready, item, openDigest])
   const linked = useDigestDay((s) => s.digest)
+  const ready = view.ready
   useEffect(() => {
-    if (!linked) return
-    openDigest(linked)
+    if (!linked || !ready) return
     useDigestDay.setState({ digest: null })
-  }, [linked, openDigest])
+    // A link names the morning digest; a computer with only named digests has none, so the list is where it lands.
+    const known = ready.digests.some((d) => d.name === linked)
+    openDigest(known ? linked : null)
+    revealTarget(() =>
+      document.querySelector<HTMLElement>(known ? "[data-digest-view]" : "[data-digest-failures], [data-digest-table]"),
+    )
+  }, [linked, ready, openDigest])
 
   return (
     <Page>
-      <PageHeader
-        title={m.page}
-        section={DIGESTS_SECTION}
-        intro={m.intro}
-        back={
-          // An open digest has its own Back to the list.
-          !item && (
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={<ArrowLeft className="size-4" aria-hidden />}
-              onClick={() => useNav.getState().go("agents")}
-            >
-              {m.backToAgents}
-            </Button>
-          )
-        }
-        actions={<ReadAgain view={view} />}
-      />
+      <PageHeader title={m.page} section={DIGESTS_SECTION} intro={m.intro} actions={<ReadAgain view={view} />} />
       <Crossfade swap={item ? item.name : "list"}>
-        {item ? <DigestView item={item} can={view.can} harness={view.harness} /> : <DigestList view={view} archive />}
+        {item ? <DigestView item={item} can={view.can} harness={view.harness} /> : <DigestList view={view} />}
       </Crossfade>
     </Page>
   )
 }
 
 /**
- * "Schedules and digests" on the Agents tab (owner, NEED-32 A): the presets to make a digest above the digests and
- * their schedules. A digest opens on the archive page, which "All digests" also opens.
+ * The digests whose last run failed, above everything else, so a failure the owner heard about is the first thing on
+ * the tab. Each opens its digest, where the agent's words and Get now are.
  */
-export function DigestSchedules() {
+function FailedDigests({ digests }: { digests: DigestItem[] }) {
   const m = useMessages(digestMessages)
-  const view = useBook()
+  const b = useMessages(bookMessages)
+  const lang = useLang()
   const heading = useId()
+  const openDigest = useDigestBook((s) => s.openDigest)
+  const failed = digests.filter((d) => d.last && !d.last.ok)
+  if (failed.length === 0) return null
   return (
-    <section aria-labelledby={heading} className="flex flex-col gap-[1rem]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1 basis-[24rem]">
-          <SectionTitle id={heading}>{m.schedules}</SectionTitle>
-          <p className="mt-2 max-w-[70ch] text-body text-ink-soft">
-            {m.schedulesIntro}{" "}
-            <LinkButton
-              onClick={() => {
-                useDigestBook.getState().openDigest(null)
-                useNav.getState().go(DIGESTS_SECTION)
-              }}
-            >
-              {m.allDigests}
-            </LinkButton>
-          </p>
-        </div>
-        <ReadAgain view={view} />
-      </div>
-      <DigestList view={view} />
+    <section data-digest-failures aria-labelledby={heading} className={noticeBox("bad")}>
+      <h2 id={heading} className="sr-only">
+        {m.failures}
+      </h2>
+      <ul className="flex flex-col gap-2">
+        {failed.map((d) => (
+          <li key={d.name} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <TriangleAlert className="size-4 shrink-0 text-bad" aria-hidden />
+            <span className="min-w-0 flex-1 basis-[20rem] text-body">
+              <span className="font-medium text-ink">
+                {m.failedLine(titleOf(d, b), ago(d.last?.at ?? 0, Date.now(), lang))}
+              </span>{" "}
+              <span className="text-ink-soft">{m.failedHint}</span>
+            </span>
+            <Button size="sm" variant="secondary" onClick={() => openDigest(d.name)}>
+              {m.openFailed(titleOf(d, b))}
+            </Button>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
@@ -134,8 +130,7 @@ function ReadAgain({ view }: { view: Book }) {
   )
 }
 
-/** `archive`: only the digests' table; their presets and other schedules live on the Agents tab (owner, NEED-32 A). */
-function DigestList({ view, archive = false }: { view: Book; archive?: boolean }) {
+function DigestList({ view }: { view: Book }) {
   const m = useMessages(digestMessages)
   const b = useMessages(bookMessages)
   const s = useMessages(scheduleMessages)
@@ -154,9 +149,9 @@ function DigestList({ view, archive = false }: { view: Book; archive?: boolean }
   if (book === null)
     return (
       <div className="flex flex-col gap-[1.5rem]">
-        {!archive && <Skeleton className="h-[10.25rem] w-full" label={m.reading} />}
+        <Skeleton className="h-[10.25rem] w-full" label={m.reading} />
         <div className="flex flex-col gap-[0.7rem]">
-          <Skeleton className="h-[2.8rem] w-full" label={archive ? m.reading : undefined} />
+          <Skeleton className="h-[2.8rem] w-full" />
           <Skeleton className="h-[16.75rem] w-full" />
         </div>
       </div>
@@ -166,7 +161,7 @@ function DigestList({ view, archive = false }: { view: Book; archive?: boolean }
     return <ToolNeeded gap={{ kind: "old", tool: "memo", version: book.version, need: book.need }} />
   return (
     <div className="flex flex-col gap-[1.5rem]">
-      <Ready book={book} can={can} harness={harness} onPick={pick} archive={archive} />
+      <Ready book={book} can={can} harness={harness} onPick={pick} />
       <CreateDialog start={creating} can={can} harness={harness} onClose={() => setCreating(null)} />
     </div>
   )
@@ -177,23 +172,23 @@ function Ready(props: {
   can: Can
   harness: boolean
   onPick: (t: Template) => void
-  archive: boolean
 }) {
-  const { book, can, harness, onPick, archive } = props
+  const { book, can, harness, onPick } = props
   return (
     <>
       {!harness && <NoHarness />}
       {!can.named && <OlderMemo />}
+      <FailedDigests digests={book.digests} />
       {book.digests.length === 0 ? (
         <Starter can={can} onPick={onPick} morningRests={book.morningRests} />
       ) : (
         <>
           {/* An older memo keeps one digest: nothing more can be created until it updates. */}
-          {can.named && !archive && <Starter can={can} onPick={onPick} morningRests={book.morningRests} compact />}
+          {can.named && <Starter can={can} onPick={onPick} morningRests={book.morningRests} compact />}
           <DigestTable digests={book.digests} harness={harness} />
         </>
       )}
-      {book.others.length > 0 && !archive && <OtherSchedules others={book.others} />}
+      {book.others.length > 0 && <OtherSchedules others={book.others} />}
     </>
   )
 }

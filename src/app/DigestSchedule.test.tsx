@@ -68,7 +68,7 @@ async function openPage(book?: DigestBook) {
   if (book) vi.spyOn(platform, "digestBook").mockResolvedValue(book)
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole("tab", { name: /^Agents/ }))
+  await user.click(screen.getByRole("tab", { name: /^Digests/ }))
   return user
 }
 
@@ -137,6 +137,32 @@ describe("the table of digests", () => {
     expect(screen.getByRole("region", { name: "What to collect" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "All digests" }))
     expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
+  })
+})
+
+describe("a digest whose last run failed", () => {
+  it("leads the tab with it, and its page says the newest day is the agent's account of the failure", async () => {
+    const failed = {
+      ...morning,
+      last: { at: new Date(Date.now() - 3_600_000).toISOString(), ok: false, costUsd: null },
+    }
+    vi.spyOn(platform, "digestList").mockResolvedValue([
+      { date: "2026-11-14", stamp: "2026-11-14T06-30-00Z", summary: null, report: false, backfill: false },
+    ])
+    vi.spyOn(platform, "digestShow").mockResolvedValue({
+      date: "2026-11-14",
+      stamp: "2026-11-14T06-30-00Z",
+      document: null,
+      text: "memo review agenda failed: command.crashed",
+    })
+    const user = await openPage(ready([failed, weekly]))
+    const failures = await screen.findByRole("region", { name: "Digests whose last run failed" })
+    expect(failures).toHaveTextContent("“Morning digest” failed 1 h ago: it wrote no digest.")
+    expect(failures).not.toHaveTextContent("Weekly digest")
+    await user.click(within(failures).getByRole("button", { name: "Open “Morning digest”" }))
+    expect(await screen.findByText("memo review agenda failed: command.crashed")).toBeInTheDocument()
+    expect(screen.getByText(/This run failed: instead of a digest/)).toBeInTheDocument()
+    expect(screen.queryByText(/here is its text as it was/)).not.toBeInTheDocument()
   })
 })
 

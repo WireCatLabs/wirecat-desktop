@@ -31,6 +31,10 @@ type ToolsState = {
   error: LoadError
   /** `fresh` (Check again) asks every copy and npm again instead of reusing answers for unchanged programs. */
   refresh(fresh?: boolean): Promise<void>
+  /** When the last check ended, in ms; 0 before the first. */
+  refreshedAt: number
+  /** The Tools tab opening: a check unless one ran a moment ago, so switching tabs back does not flash "Looking…". */
+  refreshIfStale(): void
   /** Set when the last installed tool was just removed, so the app can offer to delete the data left behind. */
   offerClear: boolean
   /** `check` asks first whether the newest version keeps the shared store usable for the other installed tools. */
@@ -44,6 +48,8 @@ type ToolsState = {
   dismiss(id: string): void
   toggle(id: string): void
 }
+
+const STALE_AFTER_MS = 60_000
 
 export const useTools = create<ToolsState>((set, get) => {
   const patchSession = (id: string, f: (s: InstallSession) => InstallSession) =>
@@ -177,6 +183,7 @@ export const useTools = create<ToolsState>((set, get) => {
     offerClear: false,
     expanded: null,
     refreshing: false,
+    refreshedAt: 0,
     checkingLatest: false,
     checked: false,
     error: null,
@@ -199,8 +206,12 @@ export const useTools = create<ToolsState>((set, get) => {
       } catch (e) {
         set({ error: { message: errorText(e) } })
       } finally {
-        set({ refreshing: false })
+        set({ refreshing: false, refreshedAt: Date.now() })
       }
+    },
+    refreshIfStale() {
+      if (get().refreshing || Date.now() - get().refreshedAt < STALE_AFTER_MS) return
+      void get().refresh()
     },
 
     install: (id, options) => {

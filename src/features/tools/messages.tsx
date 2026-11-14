@@ -105,6 +105,8 @@ const en = {
     done: "Done",
     log: "Output log",
     waitingOutput: "Waiting for output…",
+    noOutput: "Nothing ran, so there is no output.",
+    stopSync: "Stop the sync",
   },
   details: {
     installFirst: (name: string) => `Install ${name} to connect an account and run health checks.`,
@@ -439,6 +441,8 @@ const ru: typeof en = {
     done: "Готово",
     log: "Журнал вывода",
     waitingOutput: "Ждём вывода…",
+    noOutput: "Ничего не запускалось, поэтому вывода нет.",
+    stopSync: "Остановить синхронизацию",
   },
   details: {
     installFirst: (name) => `Установите ${name}, чтобы подключить аккаунт и проверять его работу.`,
@@ -777,6 +781,8 @@ const es: typeof en = {
     done: "Listo",
     log: "Registro de salida",
     waitingOutput: "Esperando la salida…",
+    noOutput: "No se ejecutó nada, así que no hay salida.",
+    stopSync: "Detener la sincronización",
   },
   details: {
     installFirst: (name) => `Instala ${name} para conectar una cuenta y comprobar su estado.`,

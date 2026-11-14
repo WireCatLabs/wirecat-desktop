@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DocumentRow } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { useTools } from "@/shared/tools-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -125,5 +126,19 @@ describe("Documents", () => {
     await user.click(screen.getByRole("button", { name: /^Documents/ }))
     expect(await screen.findByText(/needs Memo 0.133.0 or newer/)).toBeInTheDocument()
     expect(screen.queryByRole("table", { name: "Documents" })).toBeNull()
+
+    useTools.setState({ install: vi.fn(async () => {}) })
+    const scroll = vi.fn()
+    Object.defineProperty(Element.prototype, "scrollIntoView", { value: scroll, configurable: true })
+    await user.click(screen.getByRole("button", { name: "Update Memo" }))
+    // The link lands on Memo's row, not the top of Tools: brought into view, marked and focused.
+    const memo = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>('[data-tool="memo"]')
+      expect(el).toHaveAttribute("data-target-flash")
+      return el as HTMLElement
+    })
+    expect(scroll.mock.contexts).toContain(memo)
+    expect(within(memo).getAllByRole("button", { expanded: true })[0]).toHaveFocus()
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView")
   })
 })

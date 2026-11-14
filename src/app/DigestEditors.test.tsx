@@ -16,7 +16,7 @@ afterEach(() => vi.restoreAllMocks())
 async function openCard(name: string) {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole("tab", { name: /^Agents/ }))
+  await user.click(screen.getByRole("tab", { name: /^Digests/ }))
   await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
   const card = await screen.findByRole("region", { name })
   return { user, card }

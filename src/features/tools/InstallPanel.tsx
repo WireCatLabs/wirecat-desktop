@@ -1,5 +1,6 @@
-import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react"
+import { AlertTriangle, CheckCircle2, RotateCcw, Square } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { type CatalogTool, ownerId, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { agentsReading } from "@/domain/skills"
@@ -15,6 +16,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
+import { PANEL_MS, showGrown } from "@/ui/motion"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallFailure, installProblem } from "./InstallFailure"
@@ -22,6 +24,7 @@ import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { AlongsideLine, PreflightNotice } from "./PreflightNotice"
 import { SkillOffer } from "./SkillOffer"
+import { useSync } from "./sync-store"
 
 type Words = ToolsText["install"]
 
@@ -143,6 +146,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
                   session={session}
                   fix={{ open: fixOpen, id: fixId, toggle: () => setFixOpen((o) => !o) }}
                 />
+                {outcome?.event === "failed" && outcome.reason === "syncing" && <StopSyncs tool={tool} m={m} />}
                 {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
                   <Button
                     size="sm"
@@ -159,9 +163,11 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => {
+                    onClick={(e) => {
+                      const row = e.currentTarget.closest("li")
                       dismiss(tool.id)
                       useTools.setState({ expanded: tool.id })
+                      setTimeout(() => showGrown(row), PANEL_MS * 2)
                     }}
                   >
                     {m.addAccount}
@@ -172,7 +178,13 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
                     size="sm"
                     // The skill offer's button is the next thing to do; Done steps back beside it.
                     variant={outcome.event === "failed" ? "ghost" : offersSkill ? "secondary" : "primary"}
-                    onClick={() => dismiss(tool.id)}
+                    onClick={(e) => {
+                      const row = e.currentTarget.closest("li")
+                      dismiss(tool.id)
+                      // The settings that replace the result are taller and read their accounts first: once they have
+                      // settled, the rest of them comes into view under the row.
+                      setTimeout(() => showGrown(row), PANEL_MS * 2)
+                    }}
                   >
                     {outcome.event === "failed" ? m.close : m.done}
                   </Button>
@@ -185,7 +197,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
             <FixPanel id={fixId} open={fixOpen} problem={installProblem(tool, session, outcome)} />
           )}
           <Collapse open={showLog}>
-            <Log lines={session.log} m={m} />
+            <Log lines={session.log} ended={Boolean(outcome)} m={m} />
           </Collapse>
         </div>
       </div>
@@ -238,11 +250,43 @@ function FailureText(props: { outcome: Failed; operation: InstallSession["operat
   )
 }
 
-function Log({ lines, m }: { lines: string[]; m: Words }) {
+/** The package's syncs that hold the update, stopped at the owner's word; Try again then finds it free. */
+function StopSyncs({ tool, m }: { tool: CatalogTool; m: Words }) {
+  const mine = (key: string) => ownerId(key.split(":")[0] ?? "") === ownerId(tool.id)
+  const running = useSync(
+    useShallow((s) =>
+      Object.entries(s.runs)
+        .filter(([key, run]) => run.phase === "running" && mine(key))
+        .map(([key]) => key),
+    ),
+  )
+  const stopping = useSync((s) => running.every((key) => s.runs[key]?.stopping))
+  if (running.length === 0) return null
+  const stop = () => {
+    for (const key of running) {
+      const [id = "", profile = ""] = key.split(":")
+      useSync.getState().stop(id, profile || null)
+    }
+  }
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      busy={stopping}
+      icon={<Square className="size-3.5" aria-hidden />}
+      onClick={stop}
+    >
+      {m.stopSync}
+    </Button>
+  )
+}
+
+/** `ended`: the run is over; a refusal before anything ran has no output, which waiting would not explain. */
+function Log({ lines, ended, m }: { lines: string[]; ended: boolean; m: Words }) {
   const ref = useRef<HTMLPreElement>(null)
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to the bottom whenever a line arrives
   useEffect(() => {
-    ref.current?.scrollTo({ top: ref.current.scrollHeight })
+    ref.current?.scrollTo?.({ top: ref.current.scrollHeight })
   }, [lines.length])
   return (
     <pre
@@ -253,7 +297,7 @@ function Log({ lines, m }: { lines: string[]; m: Words }) {
       aria-label={m.log}
       className="selectable mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-button [overflow-wrap:anywhere] border border-line bg-app p-3 font-mono text-[0.85rem] leading-relaxed text-ink-soft"
     >
-      {lines.length ? lines.join("\n") : m.waitingOutput}
+      {lines.length ? lines.join("\n") : ended ? m.noOutput : m.waitingOutput}
     </pre>
   )
 }

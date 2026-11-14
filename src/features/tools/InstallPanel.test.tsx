@@ -1,11 +1,12 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { InstallSession } from "@/domain/status"
 import { useAgents } from "@/shared/agents-store"
 import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
 import { render, screen, within } from "@/testing/render"
+import { useSync } from "./sync-store"
 import { ToolRow } from "./ToolRow"
 
 const done = (version: string): InstallSession => ({
@@ -111,5 +112,42 @@ describe("the skill offer after a first install", () => {
     useTools.setState({ sessions: { tg: { ...done("0.89.0"), outcome } } })
     rows(["tg"])
     expect(screen.queryByRole("region", { name: "Teach your AI agents to use Telegram" })).toBeNull()
+  })
+})
+
+describe("an update refused while the tool syncs", () => {
+  const held: InstallSession = {
+    operation: "install",
+    step: "check",
+    log: [],
+    outcome: { event: "failed", reason: "syncing", message: "Held by syncing.", hint: null },
+  }
+
+  it("says the sync holds it, offers to stop the sync, and does not wait for output that will never come", async () => {
+    const stop = vi.fn()
+    useSync.setState({
+      runs: {
+        "bitrix:work": {
+          phase: "running",
+          startedAt: Date.now(),
+          endedAt: null,
+          stage: null,
+          progress: null,
+          stopping: false,
+          summary: null,
+          failure: null,
+        },
+      },
+      stop,
+    })
+    useTools.setState({ sessions: { bitrix: held } })
+    rows(["bitrix"])
+    const panel = row("Bitrix24")
+    expect(panel).toHaveTextContent("This tool is syncing right now, so it can't be updated or removed")
+    expect(panel).not.toHaveTextContent("Another operation")
+    await userEvent.click(within(panel).getByRole("button", { name: "Stop the sync" }))
+    expect(stop).toHaveBeenCalledWith("bitrix", "work")
+    await userEvent.click(within(panel).getByRole("button", { name: /Show log/ }))
+    expect(within(panel).getByRole("log")).toHaveTextContent("Nothing ran, so there is no output.")
   })
 })

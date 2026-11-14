@@ -40,24 +40,28 @@ describe("Navigation", () => {
     expect(names("Data and settings")).toEqual(["Logs", "Settings"])
   })
 
-  it("opens the old Agents and Storage pages as tabs, and the old Digests page as the archive", async () => {
-    const user = userEvent.setup()
+  it("opens the old Agents, Storage and Digests pages as tabs", async () => {
     render(<App />)
+    expect(
+      within(screen.getByRole("tablist", { name: "Tools" }))
+        .getAllByRole("tab")
+        .map((t) => t.textContent),
+    ).toEqual(["Tools", "Agents", "Digests"])
 
     act(() => useNav.getState().go("agents"))
     expect(sidebarPage()).toHaveAccessibleName(/^Tools/)
     expect(selectedTab("Tools")).toHaveAccessibleName(/^Agents/)
-    expect(await screen.findByRole("heading", { name: "Schedules and digests" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Digests" })).not.toBeInTheDocument()
 
     act(() => useNav.getState().go("storage"))
     expect(sidebarPage()).toHaveAccessibleName(/^Analytics/)
     expect(selectedTab("Analytics")).toHaveAccessibleName(/^Storage/)
 
+    // `?section=digests`, a saved page and a digest's notice all name the old archive's id: it is the tab now.
     act(() => useNav.getState().go("digests"))
-    expect(await screen.findByRole("heading", { level: 1, name: "Digests" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { current: "page" })).not.toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Back to Agents" }))
-    expect(selectedTab("Tools")).toHaveAccessibleName(/^Agents/)
+    expect(sidebarPage()).toHaveAccessibleName(/^Tools/)
+    expect(selectedTab("Tools")).toHaveAccessibleName(/^Digests/)
+    expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
   })
 
   it("keeps the tab as the page's address: saved for the next start, and stepped through with back and forward", async () => {
@@ -95,17 +99,9 @@ describe("Navigation", () => {
     expect(useNav.getState().active).toBe("tools")
   })
 
-  it("opens the archive from All digests, and a digest that arrived from its notice in the bell", async () => {
+  it("opens the digest that arrived from its notice in the bell on the Digests tab, and marks it", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Agents/ }))
-    await user.click(await screen.findByRole("button", { name: "All digests" }))
-    expect(useNav.getState().active).toBe("digests")
-    expect(await screen.findByRole("heading", { level: 1, name: "Digests" })).toBeInTheDocument()
-    expect(await screen.findByRole("button", { name: "Open Morning digest" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Create digest" })).not.toBeInTheDocument()
-    expect(screen.queryByText("Other schedules")).not.toBeInTheDocument()
-
     act(() =>
       useNotifications.getState().addDigest({ date: today(), stamp: "s1", title: "Digest for today", body: "Calm" }),
     )
@@ -113,6 +109,9 @@ describe("Navigation", () => {
     await user.click(await screen.findByRole("button", { name: "Open the digest" }))
     await waitFor(() => expect(screen.getByRole("region", { name: "Settings" })).toBeInTheDocument())
     expect(useNav.getState().active).toBe("digests")
+    expect(selectedTab("Tools")).toHaveAccessibleName(/^Digests/)
+    await waitFor(() => expect(document.querySelector("[data-digest-view]")).toHaveAttribute("data-target-flash"))
+    expect(document.querySelector("[data-digest-view]")).toHaveFocus()
   })
 
   it("keeps the tabs when one tab breaks, so the other still opens", async () => {
@@ -133,9 +132,10 @@ describe("Navigation", () => {
     const user = userEvent.setup()
     render(<App />)
     act(() => useNav.getState().go("digests"))
-    expect(await screen.findByRole("button", { name: "Back to Agents" })).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
     await screen.findByRole("region", { name: "Settings" })
-    expect(screen.queryByRole("button", { name: "Back to Agents" })).not.toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name: "All digests" })).toHaveLength(1)
+    await user.click(screen.getByRole("button", { name: "All digests" }))
+    expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
   })
 })

@@ -53,7 +53,7 @@ function Readers({ gap }: { gap: Gap | null }) {
   }, [gap])
 
   return (
-    <section aria-labelledby={head} className="flex flex-col gap-3">
+    <section id="readers" aria-labelledby={head} className="flex scroll-mt-4 flex-col gap-3">
       <div>
         <SectionTitle as="h3" id={head}>
           {m.heading}

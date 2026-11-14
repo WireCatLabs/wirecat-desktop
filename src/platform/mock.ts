@@ -551,6 +551,12 @@ export function createMock(os: Platform["os"]): Platform {
       cancelled = false
       const pkg = PACKAGES[id] ?? id
       onEvent({ event: "step", step: "check" })
+      // `?held=<tool>[:signin|busy]`: Rust refuses at once, as when a sync (or a sign-in, or another update) holds it.
+      const [heldTool, holder] = (params.get("held") ?? "").split(":")
+      if (heldTool === id) {
+        const reason = holder === "signin" ? "signingIn" : holder === "busy" ? "busy" : "syncing"
+        return onEvent({ event: "failed", reason, message: `Held by ${reason}.`, hint: null })
+      }
       const version = LATEST[id] ?? "1.0.0"
       const repo = `https://github.com/WireCatLabs/${pkg.replace("@wirecat/", "")}`
       onEvent({ event: "log", line: `Checking that ${pkg} ${version} was built by ${repo}…`, stderr: false })
