@@ -7,6 +7,7 @@ import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { AiModelSetting } from "./AiModelSetting"
 import { BackgroundAgentSetting } from "./BackgroundAgentSetting"
+import { ChatAgentSetting } from "./ChatAgentSetting"
 import { CommunitySetting } from "./CommunitySetting"
 import { LocalOnlySetting } from "./LocalOnlySetting"
 import { MachineSetting } from "./MachineSetup"
@@ -38,6 +39,7 @@ export function AppPreferences() {
       <div className="mt-6 flex flex-col gap-6">
         <AiModelSetting />
         <BackgroundAgentSetting />
+        <ChatAgentSetting />
         <LocalOnlySetting />
         <PictureReadingSetting />
         <ReadersSetting />

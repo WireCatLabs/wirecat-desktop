@@ -30,6 +30,7 @@ Search first. Most things this app needs exist once already.
 | Russian counts (one, few, many) | `pluralRu` in [i18n/index.ts](../../../src/i18n/index.ts) |
 | A record without one key | `without` in [domain/record.ts](../../../src/domain/record.ts) |
 | A tool's query keys | `toolKeys` in [shared/query.ts](../../../src/shared/query.ts) |
+| Whether Connect sets a chat-driven agent's profiles read only, and its switch (Settings and the Connect dialog) | [shared/chat-agent-limit-store.ts](../../../src/shared/chat-agent-limit-store.ts), [shared/ChatAgentLimitSwitch.tsx](../../../src/shared/ChatAgentLimitSwitch.tsx) |
 | A button that opens a web page, with its link to copy beside it | [shared/OpenLink.tsx](../../../src/shared/OpenLink.tsx) |
 | A client's calls (cli-core's `meetings`), each opening in place in the tool that recorded it | [shared/ClientCalls.tsx](../../../src/shared/ClientCalls.tsx) |
 | An inline web link, the only one (a one-way rule); any other element that opens a page gets `externalHref(url)` so right-click can copy it | [shared/ExtLink.tsx](../../../src/shared/ExtLink.tsx), [shared/external-href.ts](../../../src/shared/external-href.ts) |

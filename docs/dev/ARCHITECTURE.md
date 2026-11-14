@@ -667,9 +667,12 @@ agent's recent sessions and the tasks it holds.
   PATH (read from its systemd unit, else the system PATH), and OpenClaw from its gateway's, fixed with
   `tools.exec.pathPrepend`; the check shows the shell-profile line or OpenClaw's own `config set` to copy, never runs it.
   `chats.rs` reads which chat apps drive them, by name only: Hermes's `gateway_state.json`, OpenClaw's
-  `channels list --json`. **Connect** (any found agent) installs the chosen tools' skills, then for a chat-driven agent
-  sets the profiles the owner ticks to read only (`config set permissions.<group> readonly` for each catalog group,
-  then the tool's own count of what still writes), then checks that agent's PATH. Nothing is preselected; MCP is not
+  `channels list --json`. **Connect** (any found agent) installs the chosen tools' skills, then checks that agent's
+  PATH. A chat-driven agent's profiles keep their levels by default. With the switch "Connect chat agents read only"
+  on (off by default, shared by the dialog and Settings: `src/shared/chat-agent-limit-store.ts`), Connect first sets
+  the profiles the owner leaves ticked to read only (`config set permissions.<group> readonly` for each catalog group
+  the owner has not blocked, then the tool's own count of what still writes). The earlier levels are not recorded, so
+  turning the switch off changes nothing already written, and the switch says so. No tool is preselected; MCP is not
   part of it. No tool removes its skill yet, so **Disconnect** lists the folders to delete and who else reads them.
 
 Every write on the page (skill install, MCP add or remove, task release) opens a dialog with the exact command.
