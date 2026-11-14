@@ -19,7 +19,16 @@ export type DaySegment = {
 }
 
 export type Placed =
-  | { type: "event"; key: string; startMin: number; endMin: number; left: number; width: number }
+  | {
+      type: "event"
+      key: string
+      startMin: number
+      endMin: number
+      left: number
+      width: number
+      /** Minutes from its start before a later block covers it: what of its text stays readable. */
+      open: number
+    }
   | { type: "more"; startMin: number; endMin: number; keys: string[]; left: number; width: number }
 
 /** An all-day or multi-day meeting across one week row, by day index 0–6, clipped to the row. */
@@ -106,15 +115,19 @@ type Box = Item & { left: number; right: number }
 
 const EPS = 1e-9
 
-/** How wide, as fractions of a day's width, a block must be to read, and the strip a covered block keeps. */
-export type Room = { block: number; indent: number }
+/**
+ * As fractions of a day's width: how wide a block must be to read, the strip a covered block keeps, and the gutter at
+ * the right edge a "+N" takes.
+ */
+export type Room = { block: number; indent: number; more: number }
 
 /**
  * Overlapping meetings as Google Calendar draws them. Meetings that start within a title's height (`minMinutes`) of
  * the one before sit side by side; a meeting that starts later is drawn over the earlier ones, shifted right so each
- * keeps its title above and a strip (`room.indent`) at its left edge. A meeting with no span at least `room.block`
- * wide is counted in a "+N", drawn small where it leaves the others their strips. Overlap is judged on the drawn
- * height, so two short calls a minute apart never draw over each other. The result is in paint order: a later block
+ * keeps its title above and a strip (`room.indent`) at its left edge. Overlap is judged on the drawn height, so two
+ * short calls a minute apart never draw over each other. A run of overlapping meetings that cannot all be shown at
+ * least `room.block` wide is laid out again left of a gutter (`room.more`), and one "+N" at the run's start in that
+ * gutter counts every meeting it hides, so a "+N" never covers a block. The result is in paint order: a later block
  * covers an earlier one.
  */
 export function layoutDay(segments: readonly DaySegment[], room: Room, minMinutes: number): Placed[] {
@@ -145,35 +158,33 @@ const overlaps = (a: { startMin: number; endMin: number }, b: { startMin: number
   a.startMin < b.endMin && b.startMin < a.endMin
 
 function placeCluster(items: Item[], room: Room, title: number): Placed[] {
-  const block = Math.min(1, room.block)
+  const whole = cascade(items, room, title, 1)
+  if (whole.hidden.length === 0) return events(whole.boxes)
+  const gutter = Math.min(room.more, 0.5)
+  const { boxes, hidden } = cascade(items, room, title, 1 - gutter)
+  const first = items[0] as Item
+  return [
+    ...events(boxes),
+    {
+      type: "more",
+      startMin: first.startMin,
+      endMin: first.startMin + title,
+      keys: hidden.map((h) => h.key),
+      left: 1 - gutter,
+      width: gutter,
+    },
+  ]
+}
+
+/**
+ * The blocks of one run inside `[0, limit]`: each group of meetings that start together takes the widest span that
+ * leaves the blocks under it their strips, split evenly among as many as fit; the rest are hidden.
+ */
+function cascade(items: Item[], room: Room, title: number, limit: number): { boxes: Box[]; hidden: Item[] } {
+  const block = Math.min(limit, room.block)
   const indent = Math.min(block, room.indent)
-  const marker = Math.min(block, 2 * indent)
-  const out: Placed[] = []
-  // What a later block must leave its strip to: every block and "+N" drawn so far.
-  const drawn: Box[] = []
-  // A group with no span at all: into a "+N" already drawn at its start, else a narrow one of its own where it
-  // leaves the others their strips, else at the right edge.
-  const narrow = Math.min(marker, 0.2)
-  const orphan = (group: Item[]) => {
-    for (const m of markers(group)) {
-      const near = out.find(
-        (p): p is Extract<Placed, { type: "more" }> =>
-          p.type === "more" && p.startMin <= m.startMin && m.startMin < p.endMin,
-      )
-      if (near) {
-        for (const k of m.keys) near.keys.push(k)
-        continue
-      }
-      const spot = freeSpot(
-        drawn.filter((p) => overlaps(p, m)),
-        indent,
-        narrow,
-      )
-      const left = spot ? spot.right - narrow : 1 - narrow
-      drawn.push({ key: "", startMin: m.startMin, endMin: m.endMin, left, right: left + narrow })
-      out.push({ ...m, left, width: narrow })
-    }
-  }
+  const boxes: Box[] = []
+  const hidden: Item[] = []
   for (let i = 0; i < items.length; ) {
     const group = [items[i] as Item]
     while (i + group.length < items.length) {
@@ -183,80 +194,60 @@ function placeCluster(items: Item[], room: Room, title: number): Placed[] {
     }
     i += group.length
     const spot = freeSpot(
-      drawn.filter((p) => group.some((g) => overlaps(p, g))),
+      boxes.filter((p) => group.some((g) => overlaps(p, g))),
       indent,
       block,
+      limit,
     )
     if (!spot) {
-      orphan(group)
+      for (const g of group) hidden.push(g)
       continue
     }
-    const span = spot.right - spot.left
-    const all = Math.floor(span / block + EPS) >= group.length
-    // A group that does not fit keeps the right of its span for its own "+N", beside at least one it shows.
-    const own = all ? 0 : Math.max(span * 0.2, Math.min(marker, span - block))
-    const fit = all ? group.length : Math.max(1, Math.floor((span - own) / block + EPS))
-    const width = (span - own) / fit
+    const fit = Math.min(group.length, Math.max(1, Math.floor((spot.right - spot.left) / block + EPS)))
+    const width = (spot.right - spot.left) / fit
     group.slice(0, fit).forEach((g, n) => {
-      const box = { ...g, left: spot.left + n * width, right: spot.left + (n + 1) * width }
-      drawn.push(box)
-      out.push(event(box))
+      boxes.push({ ...g, left: spot.left + n * width, right: spot.left + (n + 1) * width })
     })
-    const rest = group.slice(fit)
-    if (rest.length > 0) {
-      const more = {
-        type: "more" as const,
-        startMin: rest.reduce((n, g) => Math.min(n, g.startMin), DAY_MINUTES),
-        endMin: rest.reduce((n, g) => Math.max(n, g.endMin), 0),
-        keys: rest.map((g) => g.key),
-        left: spot.right - own,
-        width: own,
-      }
-      drawn.push({ key: "", startMin: more.startMin, endMin: more.endMin, left: more.left, right: spot.right })
-      out.push(more)
-    }
+    for (const g of group.slice(fit)) hidden.push(g)
   }
-  return out
+  return { boxes, hidden }
 }
 
 /**
  * The widest span at least `min` wide, leftmost on a tie, that leaves every block under it its left strip: a new block
  * either covers a block from past its strip, or stops at its left edge.
  */
-function freeSpot(under: readonly Box[], indent: number, min: number): { left: number; right: number } | null {
+function freeSpot(
+  under: readonly Box[],
+  indent: number,
+  min: number,
+  limit: number,
+): { left: number; right: number } | null {
   let best: { left: number; right: number } | null = null
-  const lefts = [...new Set([0, ...under.map((p) => p.left + indent)])].sort((a, b) => a - b)
+  const lefts = [...new Set([0, ...under.map((p) => p.left + indent)])].filter((l) => l < limit).sort((a, b) => a - b)
   for (const left of lefts) {
     const ahead = under.filter((p) => p.left + indent > left + EPS)
     if (ahead.some((p) => p.left < left - EPS)) continue
-    const right = ahead.reduce((r, p) => Math.min(r, p.left), 1)
+    const right = ahead.reduce((r, p) => Math.min(r, p.left), limit)
     if (right - left >= min - EPS && (!best || right - left > best.right - best.left + EPS)) best = { left, right }
   }
   return best
 }
 
-const event = (b: Box): Placed => ({
-  type: "event",
-  key: b.key,
-  startMin: b.startMin,
-  endMin: b.endMin,
-  left: b.left,
-  width: b.right - b.left,
-})
-
-/** One "+N" per run of hidden meetings whose times overlap, counting every one of them. */
-function markers(hidden: Item[]): Omit<Extract<Placed, { type: "more" }>, "left" | "width">[] {
-  const sorted = [...hidden].sort((a, b) => a.startMin - b.startMin)
-  const runs: { type: "more"; startMin: number; endMin: number; keys: string[] }[] = []
-  for (const s of sorted) {
-    const last = runs.at(-1)
-    if (last && s.startMin < last.endMin) {
-      last.endMin = Math.max(last.endMin, s.endMin)
-      last.keys.push(s.key)
-    } else runs.push({ type: "more", startMin: s.startMin, endMin: s.endMin, keys: [s.key] })
-  }
-  return runs
-}
+/** Boxes in paint order as blocks, each knowing when the first block drawn over it starts. */
+const events = (boxes: readonly Box[]): Placed[] =>
+  boxes.map((b, i) => ({
+    type: "event",
+    key: b.key,
+    startMin: b.startMin,
+    endMin: b.endMin,
+    left: b.left,
+    width: b.right - b.left,
+    open: boxes
+      .slice(i + 1)
+      .filter((o) => overlaps(o, b) && o.left < b.right - EPS && b.left < o.right - EPS)
+      .reduce((n, o) => Math.min(n, o.startMin - b.startMin), b.endMin - b.startMin),
+  }))
 
 /**
  * Day-long meetings of one week row in lanes: by first day, longer first, then key, each in the lowest lane free over
