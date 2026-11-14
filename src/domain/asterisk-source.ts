@@ -1,7 +1,8 @@
 /**
  * pbx (asterisk-cli) reads a profile's calls from where `config set` points it: Master.csv on this computer, or a CDR database.
- * The plan saves these settings before `session start` checks them (asterisk-cli `src/config.ts`, 0.3.0). The method
- * is `cdr_source` itself; only a database takes a password, on stdin.
+ * The plan saves these settings before `session start` checks them (asterisk-cli `src/config.ts`, 0.4.0). The method
+ * is `cdr_source` itself; only a database takes a password, on stdin. `phone_region` names the countries whose
+ * numbers the phone lines write without their code, so a caller links to a contact by the full number.
  */
 export const ASTERISK = "pbx"
 
@@ -33,8 +34,84 @@ export function sourceProblem(method: string | null, typed: Record<string, strin
   return null
 }
 
+/** The countries cli-core's phone rules know (`PHONE_COUNTRIES` in `@wirecat/cli-core`), in its order. */
+export const PHONE_COUNTRIES = [
+  "us",
+  "ca",
+  "gb",
+  "ie",
+  "es",
+  "pt",
+  "fr",
+  "be",
+  "nl",
+  "lu",
+  "de",
+  "at",
+  "ch",
+  "li",
+  "it",
+  "mt",
+  "si",
+  "hr",
+  "ba",
+  "rs",
+  "me",
+  "mk",
+  "al",
+  "gr",
+  "cy",
+  "bg",
+  "ro",
+  "md",
+  "hu",
+  "sk",
+  "cz",
+  "pl",
+  "lt",
+  "lv",
+  "ee",
+  "fi",
+  "se",
+  "no",
+  "dk",
+  "is",
+  "ua",
+  "by",
+  "ru",
+  "kz",
+  "ge",
+  "am",
+  "tr",
+] as const
+
+/** The region of the first system language that names one pbx knows: `ru-RU` is Russia, a bare `ru` names none. */
+export function localCountry(languages: readonly string[]): string | null {
+  for (const tag of languages) {
+    let region: string | undefined
+    try {
+      region = new Intl.Locale(tag).region?.toLowerCase()
+    } catch {
+      continue
+    }
+    if (region && (PHONE_COUNTRIES as readonly string[]).includes(region)) return region
+  }
+  return null
+}
+
+/** The countries chosen, in the order chosen; `fallback` until the owner touches the list. */
+export const phoneRegions = (typed: Record<string, string>, fallback: string | null): string[] => {
+  const saved = typed.phone_region
+  if (saved === undefined) return fallback ? [fallback] : []
+  return saved.split(",").filter(Boolean)
+}
+
 /** What `config set` saves, `cdr_source` first; an optional field left empty keeps the tool's default. */
-export function sourceSettings(method: string | null, typed: Record<string, string>): [string, string][] {
+export function sourceSettings(
+  method: string | null,
+  typed: Record<string, string>,
+  country: string | null,
+): [string, string][] {
   const fields = sourceFields(method)
   if (!method || fields.length === 0) return []
   const set: [string, string][] = [["cdr_source", method]]
@@ -42,5 +119,7 @@ export function sourceSettings(method: string | null, typed: Record<string, stri
     const value = field === "db_tls" ? String(typed[field] === "true") : (typed[field]?.trim() ?? "")
     if (value) set.push([field, value])
   }
+  const regions = phoneRegions(typed, country)
+  if (regions.length > 0) set.push(["phone_region", regions.join(",")])
   return set
 }

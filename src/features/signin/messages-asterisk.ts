@@ -34,6 +34,11 @@ const en = {
   needField: "Fill this in to go on.",
   portWrong: "A port is a number from 1 to 65535.",
   needPassword: "Type the database user's password first.",
+  countries: "Countries of your phone lines",
+  countriesHint:
+    "Callers are matched to your contacts by phone number. Asterisk often writes a number without its country code, so pick the countries your phone lines serve. Calls from other countries arrive with their + code anyway.",
+  countryList: "Countries",
+  noCountry: "None chosen",
   what: "What happens",
   steps: {
     csv: [
@@ -54,7 +59,7 @@ const en = {
       "The calls are copied to this computer only.",
     ],
   },
-  more: "The time zone of the records, the country of local numbers and the recordings' file names are on the Settings page.",
+  more: "The time zone of the records and the recordings' file names are on the Settings page.",
   transcribe: (profile: string) =>
     `To turn recordings into text, run in a terminal once: pbx models download gigaam-v3, then pbx ${profile} meetings transcribe. WAV and GSM recordings need ffmpeg.`,
 }
@@ -96,6 +101,11 @@ const ru: AsteriskText = {
   needField: "Заполните, чтобы продолжить.",
   portWrong: "Порт — это число от 1 до 65535.",
   needPassword: "Сначала введите пароль пользователя базы.",
+  countries: "Страны ваших телефонных линий",
+  countriesHint:
+    "Звонящих связывают с контактами по номеру телефона. Asterisk часто пишет номер без кода страны, поэтому выберите страны, которые обслуживают ваши линии. Звонки из других стран и так приходят с кодом через +.",
+  countryList: "Страны",
+  noCountry: "Не выбраны",
   what: "Что произойдёт",
   steps: {
     csv: [
@@ -116,7 +126,7 @@ const ru: AsteriskText = {
       "Звонки копируются только на этот компьютер.",
     ],
   },
-  more: "Часовой пояс записей, страна местных номеров и имена файлов записей — на странице «Настройки».",
+  more: "Часовой пояс записей и имена файлов записей — на странице «Настройки».",
   transcribe: (profile) =>
     `Чтобы превратить записи в текст, один раз выполните в терминале: pbx models download gigaam-v3, затем pbx ${profile} meetings transcribe. Для записей WAV и GSM нужен ffmpeg.`,
 }
@@ -156,6 +166,11 @@ const es: AsteriskText = {
   needField: "Rellena esto para continuar.",
   portWrong: "Un puerto es un número del 1 al 65535.",
   needPassword: "Escribe primero la contraseña del usuario de la base de datos.",
+  countries: "Países de tus líneas telefónicas",
+  countriesHint:
+    "Las llamadas se enlazan con tus contactos por el número de teléfono. Asterisk suele escribir el número sin el prefijo del país, así que elige los países que atienden tus líneas. Las llamadas de otros países llegan igualmente con su prefijo +.",
+  countryList: "Países",
+  noCountry: "Ninguno elegido",
   what: "Qué pasará",
   steps: {
     csv: [
@@ -179,7 +194,7 @@ const es: AsteriskText = {
       "Las llamadas se copian solo a este equipo.",
     ],
   },
-  more: "La zona horaria de los registros, el país de los números locales y los nombres de archivo de las grabaciones están en la página Ajustes.",
+  more: "La zona horaria de los registros y los nombres de archivo de las grabaciones están en la página Ajustes.",
   transcribe: (profile) =>
     `Para pasar las grabaciones a texto, ejecuta una vez en un terminal: pbx models download gigaam-v3, y después pbx ${profile} meetings transcribe. Las grabaciones WAV y GSM necesitan ffmpeg.`,
 }

@@ -1,15 +1,24 @@
 import { FolderOpen, ShieldCheck } from "lucide-react"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId, useMemo, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
-import { isRequired, type SourceField, sourceFields, sourceProblem } from "@/domain/asterisk-source"
+import {
+  isRequired,
+  localCountry,
+  PHONE_COUNTRIES,
+  phoneRegions,
+  type SourceField,
+  sourceFields,
+  sourceProblem,
+} from "@/domain/asterisk-source"
 import { findTool, signInMethods } from "@/domain/catalog"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { methodOf, setPassword, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
+import { FilterMenu } from "@/ui/FilterMenu"
 import { wideFieldClass } from "@/ui/field"
 import { SecretField } from "@/ui/SecretField"
 import { Numbered } from "./MailSteps"
@@ -36,6 +45,7 @@ export function AsteriskSource() {
             <SourceInput key={field} field={field} m={m} />
           ))}
           {database && <Password m={m} />}
+          <PhoneCountries m={m} />
           {planError && <ErrorNotice>{planError}</ErrorNotice>}
         </section>
         <section className="flex flex-col gap-2.5">
@@ -182,6 +192,43 @@ function PickFolder({ field, label }: { field: SourceField; label: string }) {
     >
       {label}
     </Button>
+  )
+}
+
+/** Asterisk writes a caller as the line sent it, often without the country code; pbx needs the countries to link it. */
+function PhoneCountries({ m }: { m: AsteriskText }) {
+  const lang = useLang()
+  const source = useSignIn((s) => s.source)
+  const selected = phoneRegions(source, localCountry(navigator.languages))
+  const options = useMemo(() => {
+    const names = new Intl.DisplayNames([lang], { type: "region" })
+    return PHONE_COUNTRIES.map((code) => ({
+      value: code,
+      label: names.of(code.toUpperCase()) ?? code,
+      hint: code.toUpperCase(),
+    })).sort((a, b) => a.label.localeCompare(b.label, lang))
+  }, [lang])
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-[0.9rem] font-medium text-ink">{m.countries}</p>
+      <p className="text-[0.85rem] text-ink-soft">{m.countriesHint}</p>
+      <div className="flex">
+        <FilterMenu
+          label={m.countryList}
+          empty={m.noCountry}
+          search
+          options={options}
+          selected={selected}
+          onChange={(codes) =>
+            useSignIn.setState((s) => ({
+              source: { ...s.source, phone_region: codes.join(",") },
+              planMissing: null,
+              planError: null,
+            }))
+          }
+        />
+      </div>
+    </div>
   )
 }
 
