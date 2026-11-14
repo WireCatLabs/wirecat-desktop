@@ -48,6 +48,8 @@ export const useMeetings = create<State>()((set) => ({
   type(query) {
     set({ query })
     clearTimeout(typing)
+    // A field still waiting for its value ("person:") would ask memo for nothing and empty the page meanwhile.
+    if (/(^|\s)-?[a-z_]+:$/i.test(query.trim())) return
     typing = setTimeout(() => set({ asked: query.trim(), page: 1 }), TYPING_MS)
   },
   setQuery(query) {

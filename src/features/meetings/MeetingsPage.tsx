@@ -1,11 +1,13 @@
 import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Rows3 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { dayOf, shift, shiftMonth, weekStart } from "@/domain/days"
 import { instantOf, monthWindow, weekWindow } from "@/domain/meeting-layout"
 import { gapFromRead } from "@/domain/needs"
 import { setField, valuesOf } from "@/domain/query-terms"
-import { formatNumber, useLang, useMessages } from "@/i18n"
-import type { MeetingsRead } from "@/platform/bindings"
+import { parseQuery } from "@/domain/runs"
+import { QueryBar } from "@/features/query"
+import { formatNumber, type Lang, useLang, useMessages } from "@/i18n"
+import type { MeetingRow, MeetingsRead } from "@/platform/bindings"
 import { errorText } from "@/shared/errors"
 import { Page, PageHeader } from "@/shared/Page"
 import { PageError } from "@/shared/PageError"
@@ -14,7 +16,7 @@ import { ToolNeeded } from "@/shared/ToolNeeded"
 import { Button } from "@/ui/Button"
 import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
 import { EmptyState } from "@/ui/EmptyState"
-import { FilterBar, ToggleChip } from "@/ui/FilterBar"
+import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { NoticeChips } from "@/ui/NoticeChips"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
@@ -27,7 +29,11 @@ import { MeetingsTable } from "./MeetingsTable"
 import { MonthView } from "./MonthView"
 import { MEETING_KINDS, meetingMessages } from "./messages"
 import { useMeetings, type View } from "./store"
+import { meetingValues, suggestMeetings } from "./suggest"
 import { WeekView } from "./WeekView"
+
+/** The query language the bar speaks, shared by every WireCat tool. */
+const queryDocs = (lang: Lang) => `https://wirecat.dev/${lang}/docs/tg/query-language`
 
 const capital = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1)
 
@@ -78,6 +84,22 @@ export function MeetingsPage() {
   })()
 
   const field = (name: string, values: string[]) => setQuery(setField(query, name, values))
+  const parsed = useMemo(() => parseQuery(query), [query])
+  // Every meeting read in this visit, so suggestions do not shrink to what the query already narrowed the page to.
+  const [seen, setSeen] = useState<ReadonlyMap<string, MeetingRow>>(new Map())
+  useEffect(() => {
+    if (ready?.meetings.some((r) => !seen.has(r.ref)))
+      setSeen((s) => new Map([...s, ...ready.meetings.map((r) => [r.ref, r] as const)]))
+  }, [ready, seen])
+  const values = useMemo(() => meetingValues([...seen.values()], accounts, m), [seen, accounts, m])
+  const suggest = useCallback(
+    (q: string, cursor: number, all: boolean) => suggestMeetings(q, cursor, all, values, m),
+    [values, m],
+  )
+  const named = useCallback(
+    (name: string, value: string) => values.person.find((p) => name === "person" && p.value === value)?.label ?? null,
+    [values],
+  )
   const filtering = asked !== ""
   const kind = view === "month" ? "month" : "week"
 
@@ -145,42 +167,48 @@ export function MeetingsPage() {
               announce={ready ? m.range(title, ready.meetings.length) : ""}
             />
           )}
-          <FilterBar
-            inline
-            query={query}
-            onQuery={type}
-            onClear={() => setQuery("")}
-            label={m.search}
-            placeholder={m.searchHint}
-          >
-            <FilterMenu
-              label={m.kind}
-              options={MEETING_KINDS.map((k) => ({ value: k, label: m.kinds[k] }))}
-              selected={valuesOf(query, "kind")}
-              onChange={(v) => field("kind", v)}
+          <div className="flex flex-wrap items-start gap-[0.7rem]">
+            <QueryBar
+              query={query}
+              parsed={parsed}
+              problems={parsed.problems}
+              problem={null}
+              suggest={suggest}
+              words={{ label: m.search, placeholder: m.searchHint, hint: m.queryHint }}
+              docs={queryDocs(lang)}
+              onChange={type}
+              named={named}
             />
-            <FilterMenu
-              label={m.source}
-              single
-              options={accounts.map((a) => {
-                const [provider = a, account = ""] = a.split(/:(.*)/s)
-                return { value: a, label: account || provider, icon: <SourceIcon provider={provider} labelled /> }
-              })}
-              selected={valuesOf(query, "source")}
-              onChange={(v) => field("source", v)}
-            />
-            <ToggleChip
-              on={valuesOf(query, "has_transcript").includes("true")}
-              onChange={(on) => field("has_transcript", on ? ["true"] : [])}
-            >
-              {m.withTranscript}
-            </ToggleChip>
-            {ready && !calendar && (
-              <span className="ml-auto font-mono text-[0.85rem] text-ink-dim tabular-nums">
-                {m.found(ready.total, `${formatNumber(ready.total, lang)}${ready.totalMore ? "+" : ""}`)}
-              </span>
-            )}
-          </FilterBar>
+            <div className="flex flex-wrap items-center gap-[0.7rem] pt-[0.3rem]">
+              <FilterMenu
+                label={m.kind}
+                options={MEETING_KINDS.map((k) => ({ value: k, label: m.kinds[k] }))}
+                selected={valuesOf(query, "kind")}
+                onChange={(v) => field("kind", v)}
+              />
+              <FilterMenu
+                label={m.source}
+                single
+                options={accounts.map((a) => {
+                  const [provider = a, account = ""] = a.split(/:(.*)/s)
+                  return { value: a, label: account || provider, icon: <SourceIcon provider={provider} labelled /> }
+                })}
+                selected={valuesOf(query, "source")}
+                onChange={(v) => field("source", v)}
+              />
+              <ToggleChip
+                on={valuesOf(query, "has_transcript").includes("true")}
+                onChange={(on) => field("has_transcript", on ? ["true"] : [])}
+              >
+                {m.withTranscript}
+              </ToggleChip>
+              {ready && !calendar && (
+                <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">
+                  {m.found(ready.total, `${formatNumber(ready.total, lang)}${ready.totalMore ? "+" : ""}`)}
+                </span>
+              )}
+            </div>
+          </div>
           {cutDay && (
             <NoticeChips
               label={m.views[kind]}

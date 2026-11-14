@@ -30,6 +30,8 @@ pub struct MeetingSource {
     pub label: String,
     /// `calendar` or `meeting`: which kind of record of this row the source gave.
     pub via: String,
+    /// The calendar's own name inside the account, for a calendar copy.
+    pub calendar: Option<String>,
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
@@ -129,6 +131,8 @@ pub struct MeetingSummary {
     pub overview: Option<String>,
     pub sections: Vec<MeetingSection>,
     pub next_steps: Vec<String>,
+    /// The notes document the summary came from, `https` only.
+    pub url: Option<String>,
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
@@ -248,6 +252,7 @@ fn row_of(v: &Value) -> Option<MeetingRow> {
                     source: text(s, "source")?,
                     label: text(s, "label").unwrap_or_default(),
                     via: text(s, "via").unwrap_or_default(),
+                    calendar: text(s, "calendar"),
                 })
             })
             .collect(),
@@ -313,6 +318,7 @@ fn details_of(v: &Value) -> Option<MeetingDetails> {
                     .filter_map(|x| Some(MeetingSection { label: text(x, "label")?, text: text(x, "text")? }))
                     .collect(),
                 next_steps: strings(s, "next_steps"),
+                url: text(s, "url").filter(|u| u.starts_with("https://")),
             })
             .collect(),
         transcript: transcript_of(&v["transcript"]),
@@ -513,6 +519,20 @@ mod tests {
         assert_eq!(d.summaries[0].sections[0].text, "Up 4%");
         assert_eq!(d.findings[0].id, "12");
         assert_eq!(d.description.as_deref(), Some("Agenda"));
+        assert_eq!(d.meeting.sources[0].calendar.as_deref(), Some("primary"));
+        assert_eq!(d.summaries[0].url, None);
+    }
+
+    #[test]
+    fn keeps_a_summary_notes_link_only_when_it_is_https() {
+        let mut v = row();
+        v["summaries"] = json!([
+            { "source": "meet", "sections": [], "next_steps": [], "url": "https://docs.google.com/document/d/1" },
+            { "source": "meet", "sections": [], "next_steps": [], "url": "javascript:alert(1)" }
+        ]);
+        let d = details_of(&v).unwrap();
+        assert_eq!(d.summaries[0].url.as_deref(), Some("https://docs.google.com/document/d/1"));
+        assert_eq!(d.summaries[1].url, None);
     }
 
     #[test]

@@ -101,16 +101,23 @@ export function splitByDay(m: MeetingTime, days: readonly string[]): Map<string,
   return out
 }
 
-type Slot = { key: string; startMin: number; endMin: number; column: number }
+type Item = { key: string; startMin: number; endMin: number }
+type Box = Item & { left: number; right: number }
+
+const EPS = 1e-9
+
+/** How wide, as fractions of a day's width, a block must be to read, and the strip a covered block keeps. */
+export type Room = { block: number; indent: number }
 
 /**
- * Overlapping meetings side by side (FullCalendar's `eventMaxStack`, react-big-calendar's `no-overlap`), as a sweep:
- * clusters of meetings that overlap through a chain, the lowest free column in each, then at most `maxColumns`
- * drawn and the rest counted in "+N" markers. Overlap is judged on the drawn height (`minMinutes`), so two short
- * calls a minute apart never draw over each other.
+ * Overlapping meetings as Google Calendar draws them. Meetings that start within a title's height (`minMinutes`) of
+ * the one before sit side by side; a meeting that starts later is drawn over the earlier ones, shifted right so each
+ * keeps its title above and a strip (`room.indent`) at its left edge. A meeting with no span at least `room.block`
+ * wide is counted in a "+N", drawn small where it leaves the others their strips. Overlap is judged on the drawn
+ * height, so two short calls a minute apart never draw over each other. The result is in paint order: a later block
+ * covers an earlier one.
  */
-export function layoutDay(segments: readonly DaySegment[], maxColumns: number, minMinutes: number): Placed[] {
-  const cap = Math.max(1, Math.floor(maxColumns))
+export function layoutDay(segments: readonly DaySegment[], room: Room, minMinutes: number): Placed[] {
   const items = segments
     .map((s) => {
       const startMin = Math.min(s.startMin, DAY_MINUTES - minMinutes)
@@ -119,20 +126,15 @@ export function layoutDay(segments: readonly DaySegment[], maxColumns: number, m
     .sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
 
   const placed: Placed[] = []
-  let cluster: Slot[] = []
-  let ends: number[] = []
+  let cluster: Item[] = []
   let clusterEnd = -1
   const close = () => {
-    if (cluster.length) for (const p of placeCluster(cluster, ends.length, cap)) placed.push(p)
+    if (cluster.length) for (const p of placeCluster(cluster, room, minMinutes)) placed.push(p)
     cluster = []
-    ends = []
   }
   for (const item of items) {
     if (item.startMin >= clusterEnd) close()
-    let column = ends.findIndex((end) => end <= item.startMin)
-    if (column === -1) column = ends.push(item.endMin) - 1
-    else ends[column] = item.endMin
-    cluster.push({ ...item, column })
+    cluster.push(item)
     clusterEnd = Math.max(clusterEnd, item.endMin)
   }
   close()
@@ -142,42 +144,102 @@ export function layoutDay(segments: readonly DaySegment[], maxColumns: number, m
 const overlaps = (a: { startMin: number; endMin: number }, b: { startMin: number; endMin: number }) =>
   a.startMin < b.endMin && b.startMin < a.endMin
 
-function placeCluster(slots: Slot[], need: number, cap: number): Placed[] {
-  if (need <= cap) return spread(slots, need, need)
-  if (cap === 1) {
-    const drawn = slots.filter((s) => s.column === 0)
-    const hidden = slots.filter((s) => s.column > 0)
-    return [...drawn.map((s) => event(s, 0, 0.8)), ...markers(hidden).map((m) => ({ ...m, left: 0.8, width: 0.2 }))]
+function placeCluster(items: Item[], room: Room, title: number): Placed[] {
+  const block = Math.min(1, room.block)
+  const indent = Math.min(block, room.indent)
+  const marker = Math.min(block, 2 * indent)
+  const out: Placed[] = []
+  // What a later block must leave its strip to: every block and "+N" drawn so far.
+  const drawn: Box[] = []
+  const unplaced: Item[] = []
+  for (let i = 0; i < items.length; ) {
+    const group = [items[i] as Item]
+    while (i + group.length < items.length) {
+      const next = items[i + group.length] as Item
+      if (next.startMin >= (group.at(-1) as Item).startMin + title) break
+      group.push(next)
+    }
+    i += group.length
+    const spot = freeSpot(
+      drawn.filter((p) => group.some((g) => overlaps(p, g))),
+      indent,
+      block,
+    )
+    if (!spot) {
+      for (const g of group) unplaced.push(g)
+      continue
+    }
+    const span = spot.right - spot.left
+    const all = Math.floor(span / block + EPS) >= group.length
+    // A group that does not fit keeps the right of its span for its own "+N", beside at least one it shows.
+    const own = all ? 0 : Math.max(span * 0.2, Math.min(marker, span - block))
+    const fit = all ? group.length : Math.max(1, Math.floor((span - own) / block + EPS))
+    const width = (span - own) / fit
+    group.slice(0, fit).forEach((g, n) => {
+      const box = { ...g, left: spot.left + n * width, right: spot.left + (n + 1) * width }
+      drawn.push(box)
+      out.push(event(box))
+    })
+    const rest = group.slice(fit)
+    if (rest.length > 0) {
+      const more = {
+        type: "more" as const,
+        startMin: rest.reduce((n, g) => Math.min(n, g.startMin), DAY_MINUTES),
+        endMin: rest.reduce((n, g) => Math.max(n, g.endMin), 0),
+        keys: rest.map((g) => g.key),
+        left: spot.right - own,
+        width: own,
+      }
+      drawn.push({ key: "", startMin: more.startMin, endMin: more.endMin, left: more.left, right: spot.right })
+      out.push(more)
+    }
   }
-  const drawnColumns = cap - 1
-  const drawn = slots.filter((s) => s.column < drawnColumns)
-  const hidden = slots.filter((s) => s.column >= drawnColumns)
-  return [
-    ...spread(drawn, drawnColumns, cap),
-    ...markers(hidden).map((m) => ({ ...m, left: drawnColumns / cap, width: 1 / cap })),
-  ]
+  // Meetings with no span at all join a "+N" at their time, or get a narrow one where it leaves the others their
+  // strips, else at the right edge.
+  const narrow = Math.min(marker, 0.2)
+  for (const m of markers(unplaced)) {
+    const near = out.find((p): p is Extract<Placed, { type: "more" }> => p.type === "more" && overlaps(p, m))
+    if (near) {
+      for (const k of m.keys) near.keys.push(k)
+      continue
+    }
+    const spot = freeSpot(
+      drawn.filter((p) => overlaps(p, m)),
+      indent,
+      narrow,
+    )
+    out.push({ ...m, left: spot ? spot.right - narrow : 1 - narrow, width: narrow })
+  }
+  return out
 }
 
-/** Each drawn block widens over the columns to its right that stay free for its whole time. */
-function spread(slots: Slot[], columns: number, shown: number): Placed[] {
-  return slots.map((s) => {
-    let span = 1
-    while (s.column + span < columns && !slots.some((o) => o.column === s.column + span && overlaps(o, s))) span++
-    return event(s, s.column / shown, span / shown)
-  })
+/**
+ * The widest span at least `min` wide, leftmost on a tie, that leaves every block under it its left strip: a new block
+ * either covers a block from past its strip, or stops at its left edge.
+ */
+function freeSpot(under: readonly Box[], indent: number, min: number): { left: number; right: number } | null {
+  let best: { left: number; right: number } | null = null
+  const lefts = [...new Set([0, ...under.map((p) => p.left + indent)])].sort((a, b) => a - b)
+  for (const left of lefts) {
+    const ahead = under.filter((p) => p.left + indent > left + EPS)
+    if (ahead.some((p) => p.left < left - EPS)) continue
+    const right = ahead.reduce((r, p) => Math.min(r, p.left), 1)
+    if (right - left >= min - EPS && (!best || right - left > best.right - best.left + EPS)) best = { left, right }
+  }
+  return best
 }
 
-const event = (s: Slot, left: number, width: number): Placed => ({
+const event = (b: Box): Placed => ({
   type: "event",
-  key: s.key,
-  startMin: s.startMin,
-  endMin: s.endMin,
-  left,
-  width,
+  key: b.key,
+  startMin: b.startMin,
+  endMin: b.endMin,
+  left: b.left,
+  width: b.right - b.left,
 })
 
 /** One "+N" per run of hidden meetings whose times overlap, counting every one of them. */
-function markers(hidden: Slot[]): Omit<Extract<Placed, { type: "more" }>, "left" | "width">[] {
+function markers(hidden: Item[]): Omit<Extract<Placed, { type: "more" }>, "left" | "width">[] {
   const sorted = [...hidden].sort((a, b) => a.startMin - b.startMin)
   const runs: { type: "more"; startMin: number; endMin: number; keys: string[] }[] = []
   for (const s of sorted) {

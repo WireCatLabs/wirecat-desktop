@@ -1,5 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
+import { layoutDay } from "@/domain/meeting-layout"
 import { render, screen } from "@/testing/render"
 import { type Placed, TimeGrid } from "./TimeGrid"
 
@@ -71,5 +72,46 @@ describe("TimeGrid", () => {
   it("names each day's column with its date and how many it holds", () => {
     grid()
     expect(screen.getByRole("group", { name: "2026-11-09, 2" })).toBeInTheDocument()
+  })
+
+  it("reaches every one of three overlapping meetings by arrow and Enter, the later ones drawn over the earlier", async () => {
+    const user = userEvent.setup()
+    const onOpen = vi.fn()
+    const seg = (key: string, startMin: number, endMin: number) => ({
+      key,
+      startMin,
+      endMin,
+      fromBefore: false,
+      goesOn: false,
+    })
+    const day = layoutDay(
+      [seg("a", 540, 660), seg("b", 570, 630), seg("c", 600, 720)],
+      { block: 0.25, indent: 0.25 },
+      22.5,
+    )
+    render(
+      <TimeGrid
+        label="Week"
+        days={DAYS}
+        head={(d) => ({ short: d.slice(8), name: d })}
+        allDayLabel="all day"
+        layout={() => new Map([["2026-11-09", day]])}
+        renderItem={(key) => key}
+        itemLabel={(key) => key}
+        columnName={(d, n) => `${d}, ${n}`}
+        onOpen={onOpen}
+        renderMore={() => null}
+      />,
+    )
+    const [a, b, c] = ["a", "b", "c"].map((k) => screen.getByRole("button", { name: k }))
+    expect([a, b, c].map((el) => Math.round(Number.parseFloat(el?.style.left ?? "")))).toEqual([0, 25, 50])
+    // Later in the DOM paints on top: the meeting that starts later covers the earlier one.
+    expect(a?.compareDocumentPosition(c as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    await user.tab()
+    expect(a).toHaveFocus()
+    await user.keyboard("{ArrowDown}")
+    expect(b).toHaveFocus()
+    await user.keyboard("{ArrowDown}{Enter}")
+    expect(onOpen).toHaveBeenCalledWith("c")
   })
 })
