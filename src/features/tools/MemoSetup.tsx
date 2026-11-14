@@ -22,7 +22,7 @@ type FolderStep =
   | { phase: "idle" }
   | { phase: "picking" | "adding" }
   | { phase: "added"; name: string; format: string; vault: boolean }
-  | { phase: "holdsVaults"; name: string; path: string; vaults: ObsidianVault[] }
+  | { phase: "holdsVaults"; name: string; path: string; vaults: ObsidianVault[]; connected: boolean }
   | Failed
 type Count = { done: number; total: number; label: string | null }
 type RemoveStep =
@@ -82,7 +82,7 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
       }
       if (answer.result === "holdsVaults") {
         const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path
-        setFolderStep({ phase: "holdsVaults", name, path, vaults: answer.vaults })
+        setFolderStep({ phase: "holdsVaults", name, path, vaults: answer.vaults, connected: false })
         return false
       }
       setFolderStep({ phase: "added", name: answer.folder.name, format: answer.folder.format, vault })
@@ -112,7 +112,8 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
   /** One vault of a plain folder; the others stay offered until each is connected. */
   const connectInside = async (vault: ObsidianVault) => {
     if (folderStep.phase !== "holdsVaults") return
-    const left = { ...folderStep, vaults: folderStep.vaults.filter((v) => v.path !== vault.path) }
+    // memo refuses a folder around one it reads, so once a vault inside is read the folder itself is no choice.
+    const left = { ...folderStep, vaults: folderStep.vaults.filter((v) => v.path !== vault.path), connected: true }
     if ((await connectVault(vault)) && left.vaults.length > 0) setFolderStep(left)
   }
 
@@ -446,11 +447,13 @@ function FolderStepView(props: {
                 </li>
               ))}
             </ul>
-            <div>
-              <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onAddPlain(step.path)}>
-                {m.addPlain(step.name)}
-              </Button>
-            </div>
+            {!step.connected && (
+              <div>
+                <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onAddPlain(step.path)}>
+                  {m.addPlain(step.name)}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Collapse>

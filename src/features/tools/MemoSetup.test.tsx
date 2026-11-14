@@ -127,8 +127,23 @@ it("offers the vaults inside a plain folder one by one, or the folder itself as 
   await act(async () => {})
   expect(add).toHaveBeenLastCalledWith("memo", "/home/a/Obsidian/Personal", true)
   expect(screen.getByRole("list", { name: "Obsidian vaults in Obsidian" })).not.toHaveTextContent("Personal")
+  expect(screen.queryByRole("button", { name: "Add Obsidian as plain Markdown" })).toBeNull()
+})
 
-  fireEvent.click(screen.getByRole("button", { name: "Add Obsidian as plain Markdown" }))
+it("adds a plain folder that holds vaults as Markdown when the owner chooses that first", async () => {
+  const inside = [{ name: "Team", path: "/home/a/Obsidian/Team", shown: "~/Obsidian/Team" }]
+  const plainFolder: NotesFolder = { id: "9", name: "Obsidian", path: "~/Obsidian", format: "markdown" }
+  vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([]))
+  vi.spyOn(platform, "notesPickFolder").mockResolvedValue("/home/a/Obsidian")
+  const add = vi
+    .spyOn(platform, "notesFolderAdd")
+    .mockImplementation(async (_id, _path, plain) =>
+      plain ? { result: "added", folder: plainFolder } : { result: "holdsVaults", vaults: inside },
+    )
+  render(<MemoSetup tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Choose a folder…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Add Obsidian as plain Markdown" }))
   expect(await screen.findByText("Added Obsidian as plain Markdown files. The next step reads it.")).toBeInTheDocument()
   expect(add).toHaveBeenLastCalledWith("memo", "/home/a/Obsidian", true)
 })

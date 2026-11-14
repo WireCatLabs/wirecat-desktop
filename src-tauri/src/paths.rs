@@ -458,8 +458,26 @@ pub fn tilde(s: &str) -> String {
     tilde_with(s, home().as_deref())
 }
 
+/// Windows' long-path form as people write the path: `\\?\C:\x` is `C:\x`, `\\?\UNC\srv\share` is `\\srv\share`.
+/// Any other `\\?\` path, such as a volume GUID, stays as it is.
+pub fn plain_windows(s: &str) -> String {
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{rest}");
+    }
+    match s.strip_prefix(r"\\?\") {
+        Some(rest) if is_drive(rest) => rest.to_string(),
+        _ => s.to_string(),
+    }
+}
+
+fn is_drive(s: &str) -> bool {
+    let mut c = s.chars();
+    c.next().is_some_and(|d| d.is_ascii_alphabetic()) && c.next() == Some(':')
+}
+
 fn tilde_with(s: &str, home: Option<&Path>) -> String {
-    let s = s.strip_prefix(r"\\?\").unwrap_or(s);
+    let plain = plain_windows(s);
+    let s = plain.as_str();
     match home.map(|h| Path::new(s).strip_prefix(h)) {
         Some(Ok(rest)) if rest.as_os_str().is_empty() => "~".to_string(),
         Some(Ok(rest)) => format!("~{}{}", std::path::MAIN_SEPARATOR, rest.to_string_lossy()),
@@ -473,8 +491,29 @@ pub fn tilde_text(s: &str) -> String {
     tilde_text_with(s, home().as_deref())
 }
 
+/// `plain_windows` for every long-path form inside a text.
+fn plain_windows_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(at) = rest.find(r"\\?\") {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 4..];
+        if let Some(unc) = after.strip_prefix(r"UNC\") {
+            out.push_str(r"\\");
+            rest = unc;
+        } else {
+            if !is_drive(after) {
+                out.push_str(r"\\?\");
+            }
+            rest = after;
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 fn tilde_text_with(s: &str, home: Option<&Path>) -> String {
-    let s = s.replace(r"\\?\", "");
+    let s = plain_windows_text(s);
     let Some(home) = home.map(|h| h.to_string_lossy().into_owned()).filter(|h| h.len() > 1) else { return s };
     let mut out = String::with_capacity(s.len());
     let mut rest = s.as_str();
@@ -552,6 +591,18 @@ mod tests {
         assert_eq!(tilde_with("/home/a/Notes", None), "/home/a/Notes");
         assert_eq!(tilde_text_with("cannot open /home/a/x and /home/ab/y", home), "cannot open ~/x and /home/ab/y");
         assert_eq!(tilde_text_with("in /home/a: denied; /home/a.bak", home), "in ~: denied; /home/a.bak");
+    }
+
+    #[test]
+    fn writes_a_windows_long_path_as_people_write_it() {
+        assert_eq!(plain_windows(r"\\?\C:\Users\a"), r"C:\Users\a");
+        assert_eq!(plain_windows(r"\\?\UNC\srv\share\Notes"), r"\\srv\share\Notes");
+        assert_eq!(plain_windows(r"\\?\Volume{1}\x"), r"\\?\Volume{1}\x");
+        assert_eq!(plain_windows("/home/a"), "/home/a");
+        assert_eq!(
+            plain_windows_text(r"open \\?\UNC\srv\share\x and \\?\D:\y and \\?\Volume{1}"),
+            r"open \\srv\share\x and D:\y and \\?\Volume{1}"
+        );
     }
 
     #[cfg(windows)]

@@ -192,7 +192,7 @@ pub fn checked_folder(path: &str) -> Result<String, NotesProblem> {
     if !real.is_dir() || std::fs::read_dir(&real).is_err() {
         return Err(NotesProblem::FolderUnreadable);
     }
-    real.to_str().map(str::to_string).ok_or(NotesProblem::FolderUnreadable)
+    real.to_str().map(paths::plain_windows).ok_or(NotesProblem::FolderUnreadable)
 }
 
 /// A folder id memo printed: letters, digits and `_.-`, never starting with `-`, so memo cannot read it as an option.
@@ -244,10 +244,21 @@ fn vault(path: &Path) -> Option<ObsidianVault> {
     Some(ObsidianVault { name, shown: paths::tilde(&path), path })
 }
 
+/// A path as it is compared with another: links followed and Windows' `\\?\` form written plainly, so memo's
+/// `\\?\C:\Notes` and Obsidian's `C:\Notes` are one folder. Only the path itself is resolved, nothing inside it.
+fn normal(path: &Path) -> std::path::PathBuf {
+    let real = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    std::path::PathBuf::from(paths::plain_windows(&real.to_string_lossy()))
+}
+
+fn overlaps(seen: &[std::path::PathBuf], path: &Path) -> bool {
+    seen.iter().any(|s| s.starts_with(path) || path.starts_with(s))
+}
+
 /// Every listed vault whose folder still exists and that overlaps no folder memo reads, by name. Nothing inside a vault
-/// is read here, so macOS asks no permission when the card opens; Connect checks the folder in full.
+/// is read here, so macOS should ask no permission when the card opens; Connect checks the folder in full.
 fn vaults_of(lists: &[std::path::PathBuf], added: &[std::path::PathBuf]) -> Vec<ObsidianVault> {
-    let mut seen: Vec<std::path::PathBuf> = added.to_vec();
+    let mut seen: Vec<std::path::PathBuf> = added.iter().map(|p| normal(p)).collect();
     let mut found = Vec::new();
     for list in lists {
         let Ok(meta) = std::fs::metadata(list) else { continue };
@@ -255,9 +266,12 @@ fn vaults_of(lists: &[std::path::PathBuf], added: &[std::path::PathBuf]) -> Vec<
             continue;
         }
         let Ok(text) = std::fs::read_to_string(list) else { continue };
-        for path in vaults_in(&text).into_iter().map(std::path::PathBuf::from) {
-            let overlaps = seen.iter().any(|s| s.starts_with(&path) || path.starts_with(s));
-            if !path.is_absolute() || overlaps || !path.is_dir() {
+        for listed in vaults_in(&text).into_iter().map(std::path::PathBuf::from) {
+            if !listed.is_absolute() || !listed.is_dir() {
+                continue;
+            }
+            let path = normal(&listed);
+            if overlaps(&seen, &path) {
                 continue;
             }
             if let Some(v) = vault(&path) {
@@ -273,26 +287,39 @@ fn vaults_of(lists: &[std::path::PathBuf], added: &[std::path::PathBuf]) -> Vec<
 /// Directories to look into per level, so a huge folder answers fast.
 const SCAN_LIMIT: usize = 500;
 
-/// Obsidian vaults one or two levels down in a folder the owner picked, by name. Hidden folders are skipped.
-fn vaults_inside(dir: &Path) -> Vec<ObsidianVault> {
+/// System and tool folders no one keeps a vault in. Looking into some of them makes macOS ask for permission.
+const NOT_SCANNED: [&str; 6] = ["Library", "AppData", "Applications", "System", "node_modules", "snap"];
+
+/// Obsidian vaults one or two levels down in a folder the owner picked that memo does not read yet, by name. Hidden
+/// and system folders are skipped. The home folder, or one above it, is not looked into at all: two levels from there
+/// are Documents, Desktop and Downloads, which macOS guards with a prompt each.
+fn vaults_inside(dir: &Path, home: Option<&Path>, added: &[std::path::PathBuf]) -> Vec<ObsidianVault> {
+    if home.is_some_and(|h| normal(h).starts_with(normal(dir))) {
+        return Vec::new();
+    }
+    let seen: Vec<std::path::PathBuf> = added.iter().map(|p| normal(p)).collect();
     let subdirs = |d: &Path| -> Vec<std::path::PathBuf> {
         std::fs::read_dir(d)
             .into_iter()
             .flatten()
             .flatten()
-            .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+            .filter(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                !name.starts_with('.') && !NOT_SCANNED.contains(&name.as_str())
+            })
             .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
             .take(SCAN_LIMIT)
             .map(|e| e.path())
             .collect()
     };
+    let is_new_vault = |p: &Path| p.join(".obsidian").is_dir() && !overlaps(&seen, &normal(p));
     let mut found = Vec::new();
     for child in subdirs(dir) {
         if child.join(".obsidian").is_dir() {
-            found.extend(vault(&child));
+            found.extend(vault(&child).filter(|_| is_new_vault(&child)));
             continue;
         }
-        found.extend(subdirs(&child).iter().filter(|g| g.join(".obsidian").is_dir()).filter_map(|g| vault(g)));
+        found.extend(subdirs(&child).iter().filter(|g| is_new_vault(g)).filter_map(|g| vault(g)));
     }
     found.sort_by_key(|v| v.name.to_lowercase());
     found
@@ -436,7 +463,11 @@ pub fn add_folder(tool: &Tool, path: &str, plain: bool) -> Result<NotesFolderAdd
     };
     let format = format_of(Path::new(&path));
     if !plain && format == "markdown" {
-        let vaults = vaults_inside(Path::new(&path));
+        let added = match crate::skills::call(tool, &src.folders, CALL) {
+            Ok((out, Some(list))) if out.code == Some(0) => added_paths(&list),
+            _ => Vec::new(),
+        };
+        let vaults = vaults_inside(Path::new(&path), paths::home().as_deref(), &added);
         if !vaults.is_empty() {
             return Ok(NotesFolderAdded::HoldsVaults { vaults });
         }
@@ -671,6 +702,41 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn a_vault_memo_reads_by_a_link_is_not_offered_again() {
+        let root = temp_dir("vault-link");
+        std::fs::create_dir_all(root.join("Real/.obsidian")).unwrap();
+        std::os::unix::fs::symlink(root.join("Real"), root.join("Link")).unwrap();
+        let list = root.join("obsidian.json");
+        let json = serde_json::json!({"vaults": {"a": {"path": root.join("Link").to_string_lossy(), "ts": 1}}});
+        std::fs::write(&list, json.to_string()).unwrap();
+        assert_eq!(vaults_of(std::slice::from_ref(&list), &[root.join("Real")]), Vec::new());
+        assert_eq!(vaults_of(&[list], &[]).len(), 1);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_vault_memo_stored_in_the_long_path_form_is_not_offered_again() {
+        let root = temp_dir("vault-long");
+        std::fs::create_dir_all(root.join("Vault/.obsidian")).unwrap();
+        let plain = root.join("Vault");
+        let long = std::path::PathBuf::from(format!(r"\\?\{}", plain.display()));
+        let list = root.join("obsidian.json");
+        let json = serde_json::json!({"vaults": {"a": {"path": plain.to_string_lossy(), "ts": 1}}});
+        std::fs::write(&list, json.to_string()).unwrap();
+        assert_eq!(vaults_of(&[list], &[long]), Vec::new());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn compares_a_long_windows_path_and_a_plain_one_as_one_folder() {
+        let seen = [normal(Path::new(r"\\?\C:\Notes"))];
+        assert!(overlaps(&seen, Path::new(r"C:\Notes")));
+        assert!(!overlaps(&seen, Path::new(r"C:\Other")));
+    }
+
     #[test]
     fn the_folders_memo_reads_here_are_the_ones_with_a_path() {
         let list = serde_json::json!({"items": [
@@ -688,9 +754,15 @@ mod tests {
         for d in ["Notes/.obsidian", "Work/Client/.obsidian", "Deep/a/b/.obsidian", ".hidden/.obsidian", "Plain/x"] {
             std::fs::create_dir_all(root.join(d)).unwrap();
         }
-        let names: Vec<String> = vaults_inside(&root).into_iter().map(|v| v.name).collect();
+        let names: Vec<String> = vaults_inside(&root, None, &[]).into_iter().map(|v| v.name).collect();
         assert_eq!(names, ["Client", "Notes"]);
-        assert_eq!(vaults_inside(&root.join("Plain")), Vec::new());
+        assert_eq!(vaults_inside(&root.join("Plain"), None, &[]), Vec::new());
+        let read = vaults_inside(&root, None, &[root.join("Notes"), root.join("Work")]);
+        assert_eq!(read, Vec::new());
+        std::fs::create_dir_all(root.join("Library/Vault/.obsidian")).unwrap();
+        assert_eq!(vaults_inside(&root, None, &[root.join("Notes"), root.join("Work")]), Vec::new());
+        assert_eq!(vaults_inside(&root, Some(&root.join("Notes")), &[]), Vec::new());
+        assert_eq!(vaults_inside(&root.join("Work"), Some(&root), &[]).len(), 1);
         std::fs::remove_dir_all(root).unwrap();
     }
 
