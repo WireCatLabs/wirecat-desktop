@@ -18,7 +18,7 @@ const PLACED = new Map<string, Placed[]>([
   ["2026-11-14", [block("sat-8", 480)]],
 ])
 
-function grid(onOpen = vi.fn()) {
+function grid(onOpen = vi.fn(), itemTip?: (key: string) => string) {
   render(
     <TimeGrid
       label="Week"
@@ -28,6 +28,7 @@ function grid(onOpen = vi.fn()) {
       layout={() => PLACED}
       renderItem={(key) => key}
       itemLabel={(key) => key}
+      {...(itemTip ? { itemTip } : {})}
       columnName={(day, n) => `${day}, ${n}`}
       onOpen={onOpen}
       renderMore={() => null}
@@ -55,6 +56,16 @@ describe("TimeGrid", () => {
     await user.keyboard("{End}{Enter}")
     expect(onOpen).toHaveBeenCalledWith("sat-8")
     expect(screen.getAllByRole("button").filter((b) => b.tabIndex === 0)).toHaveLength(1)
+  })
+
+  it("shows a block's tip when the keyboard moves onto it, and Escape hides it", async () => {
+    const user = userEvent.setup()
+    grid(vi.fn(), (key) => `tip of ${key}`)
+    await user.tab()
+    await user.keyboard("{ArrowDown}")
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("tip of mon-14")
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
   })
 
   it("names each day's column with its date and how many it holds", () => {

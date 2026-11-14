@@ -4,6 +4,7 @@ import {
   type ReactNode,
   type RefObject,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -13,6 +14,7 @@ import { useLang } from "@/i18n"
 import { dayOf } from "./Calendar"
 import { cx } from "./cx"
 import { focusInPlace } from "./motion"
+import { TipPanel, useTip } from "./Tooltip"
 
 const HOUR_REM = 4
 /** The drawn minimum: one line of text, 1.5rem at 4rem an hour. */
@@ -46,6 +48,8 @@ type Props = {
   /** What a block shows, its full name for screen readers, and what a click does. */
   renderItem: (key: string, day: string, place: Extract<Placed, { type: "event" }>) => ReactNode
   itemLabel: (key: string, day: string) => string
+  /** What hover and keyboard focus show over a block, for what a short block has no room to print. */
+  itemTip?: (key: string, day: string) => ReactNode
   /** A day column's name for screen readers, from its date and how many meetings it holds. */
   columnName: (day: string, count: number) => string
   onOpen: (key: string) => void
@@ -230,25 +234,18 @@ export function TimeGrid(props: Props) {
                 ) : (
                   items.map((p) =>
                     p.type === "event" ? (
-                      <button
+                      <Block
                         key={p.key}
-                        type="button"
-                        data-stop={p.key}
-                        aria-label={itemLabel(p.key, day)}
-                        tabIndex={p.key === current ? 0 : -1}
+                        place={p}
+                        label={itemLabel(p.key, day)}
+                        tip={props.itemTip?.(p.key, day)}
+                        current={p.key === current}
                         onFocus={() => setActive(p.key)}
                         onKeyDown={(e) => onKey(e, p.key)}
-                        onClick={() => onOpen(p.key)}
-                        className="reveal absolute cursor-pointer px-[1px] text-left"
-                        style={{
-                          top: rem(p.startMin),
-                          height: rem(p.endMin - p.startMin),
-                          left: `${p.left * 100}%`,
-                          width: `${p.width * 100}%`,
-                        }}
+                        onOpen={() => onOpen(p.key)}
                       >
                         {props.renderItem(p.key, day, p)}
-                      </button>
+                      </Block>
                     ) : (
                       <div
                         key={`more-${p.startMin}`}
@@ -280,6 +277,59 @@ export function TimeGrid(props: Props) {
         </div>
       </div>
     </section>
+  )
+}
+
+/** Long enough that a pointer crossing the week on its way elsewhere opens nothing. */
+const TIP_DELAY = 450
+
+function Block(props: {
+  place: Extract<Placed, { type: "event" }>
+  label: string
+  tip: ReactNode
+  current: boolean
+  onFocus: () => void
+  onKeyDown: (e: KeyboardEvent) => void
+  onOpen: () => void
+  children: ReactNode
+}) {
+  const { place: p, tip: content } = props
+  const anchor = useRef<HTMLButtonElement>(null)
+  const tipId = useId()
+  // Keyboard only: a click opens the dialog, and the focus it hands back on close must not pop a tip over the week.
+  const tip = useTip({ delay: TIP_DELAY, keyboardOnly: true, disabled: !content })
+  return (
+    <button
+      ref={anchor}
+      type="button"
+      data-stop={p.key}
+      aria-label={props.label}
+      tabIndex={props.current ? 0 : -1}
+      {...tip.hover}
+      onFocus={(e) => {
+        props.onFocus()
+        tip.focus.onFocus(e)
+      }}
+      onBlur={tip.focus.onBlur}
+      onPointerDown={tip.hide}
+      onKeyDown={props.onKeyDown}
+      onClick={props.onOpen}
+      className="reveal absolute cursor-pointer px-[1px] text-left"
+      style={{
+        top: rem(p.startMin),
+        height: rem(p.endMin - p.startMin),
+        left: `${p.left * 100}%`,
+        width: `${p.width * 100}%`,
+      }}
+    >
+      {props.children}
+      {/* Mounted only while open: a busy week holds hundreds of blocks. */}
+      {tip.open && (
+        <TipPanel id={tipId} anchor={anchor} open className="w-auto max-w-[20rem] px-2 py-1">
+          {content}
+        </TipPanel>
+      )}
+    </button>
   )
 }
 

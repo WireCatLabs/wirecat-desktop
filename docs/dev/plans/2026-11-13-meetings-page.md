@@ -210,16 +210,17 @@ uses a per-calendar colour: state is said by shape, icon and the existing tokens
 | Kind icon | lucide `Video` for a meeting, `CalendarDays` for a bare calendar event | `Phone`, or the messenger's `ServiceIcon` for a messenger call |
 | Title | the meeting's title | the other side's name, else the number as memo prints it (mono) |
 
-- **Lines by height** (week): under 45 minutes, one line "10:00 Title"; from 45 minutes (3rem), the title on the
-  first line and the time and source icons on the second.
+- **Lines by height** (week): under 45 minutes, one line with the title alone (kind icon and badges beside it while
+  they fit); from 45 minutes (3rem), the title on the first line and the time and badges on the second. A month line
+  is the title alone too. The time is always in the block's name for screen readers, its tip and the details.
 - **Badges**, at the block's bottom right, icons only (named for screen readers, `useTip` on hover): transcript
   (`FileText`), summary (`AlignLeft`), recording (`Disc`). Findings waiting for the owner: a small `warn` lamp
   (`Lamp` `sm`) with the count beside it in the week and table; the lamp alone in a month line.
 - **Time states**: a past event's text steps back to `ink-soft`; an event happening now carries the `doing` lamp; a
   cancelled calendar event (if memo says so) is struck through in `ink-dim`.
-- **Hover** on a week block or a month line whose title is cut shows a `TipPanel` with the full title, the time and
-  the sources (`useTip`, as board cards do): at 960 px a day is about 100 px wide. Click and Enter open the details;
-  the tip is never the only way to a fact.
+- **Tip**: hover or keyboard focus on a week block or a month line shows a `TipPanel` with the full title and the
+  start and end (`useTip` with `keyboardOnly`, as board cards do): at 960 px a day is about 100 px wide. Click and
+  Enter open the details; the tip is never the only way to a fact.
 
 ## Details
 

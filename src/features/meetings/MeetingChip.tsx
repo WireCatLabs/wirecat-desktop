@@ -84,7 +84,6 @@ export function MeetingBlock({
       <span className="flex min-w-0 items-center gap-[0.3rem]">
         {now(meeting) && <Lamp tone="doing" size="sm" />}
         <KindIcon meeting={meeting} />
-        {!two && <span className="shrink-0 font-mono text-[0.85rem]">{start}</span>}
         <span className="truncate font-medium">{meeting.title ?? m.columns.title}</span>
         {!two && <Badges meeting={meeting} count={false} />}
       </span>
@@ -101,8 +100,34 @@ export function MeetingBlock({
   )
 }
 
-/** A meeting as one line of a month cell or the day's list: kind, start in mono, title. */
-export function MeetingLine({ meeting }: { meeting: MeetingRow }) {
+/** A meeting's full title and when it runs, for the tip over a block or a month line that has no room for them. */
+export function MeetingTip({ meeting }: { meeting: MeetingRow }) {
+  const lang = useLang()
+  const m = useMessages(meetingMessages)
+  const { startedAt: from, endedAt: to } = meeting
+  const sameDay = !from || !to || new Date(from).toDateString() === new Date(to).toDateString()
+  const at = (iso: string | null) =>
+    sameDay || !iso
+      ? timeText(iso, lang)
+      : `${new Date(iso).toLocaleDateString(lang, { weekday: "short", day: "numeric" })} ${timeText(iso, lang)}`
+  return (
+    <>
+      <span className="block font-medium text-ink">{meeting.title ?? m.columns.title}</span>
+      {!meeting.allDay && from && (
+        <span className="block font-mono text-[0.85rem]">
+          {at(from)}
+          {to && `–${at(to)}`}
+        </span>
+      )}
+    </>
+  )
+}
+
+/**
+ * A meeting as one line of a month cell or the day's list: kind, start in mono, title. A month cell is too narrow for
+ * both, so it drops the start (`time={false}`) and leaves it to the line's name and tip.
+ */
+export function MeetingLine({ meeting, time = true }: { meeting: MeetingRow; time?: boolean }) {
   const lang = useLang()
   const m = useMessages(meetingMessages)
   return (
@@ -114,7 +139,7 @@ export function MeetingLine({ meeting }: { meeting: MeetingRow }) {
       )}
     >
       <KindIcon meeting={meeting} />
-      {!meeting.allDay && (
+      {time && !meeting.allDay && (
         <span className="shrink-0 font-mono text-[0.85rem]">{timeText(meeting.startedAt, lang)}</span>
       )}
       <span className="truncate">{meeting.title ?? m.columns.title}</span>

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useId, useMemo, useRef, useState } from "react"
 import { dayOf } from "@/domain/days"
 import { layoutWeekRow, placeWindow, timeOf } from "@/domain/meeting-layout"
 import { useLang, useMessages } from "@/i18n"
@@ -6,12 +6,43 @@ import type { MeetingRow } from "@/platform/bindings"
 import { showMeeting } from "@/shared/meeting-open"
 import { Button } from "@/ui/Button"
 import { MonthGrid } from "@/ui/MonthGrid"
+import { TipPanel, useTip } from "@/ui/Tooltip"
 import { DayList } from "./DayList"
 import { meetingLabel } from "./label"
-import { MeetingLine } from "./MeetingChip"
+import { MeetingLine, MeetingTip } from "./MeetingChip"
 import { meetingMessages } from "./messages"
 
 const open = (meeting: MeetingRow) => showMeeting(meeting.ref, meeting.title)
+/** Long enough that a pointer crossing the month on its way elsewhere opens nothing. */
+const TIP_DELAY = 450
+
+/** A meeting in a month cell: the title alone, its time in the name and the tip, as a short week block. */
+function MonthLine({ meeting, label }: { meeting: MeetingRow; label: string }) {
+  const anchor = useRef<HTMLButtonElement>(null)
+  const tipId = useId()
+  // Keyboard only: a click opens the dialog, and the focus it hands back on close must not pop a tip over the month.
+  const tip = useTip({ delay: TIP_DELAY, keyboardOnly: true })
+  return (
+    <button
+      ref={anchor}
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      {...tip.hover}
+      {...tip.focus}
+      onPointerDown={tip.hide}
+      onClick={() => open(meeting)}
+      className="reveal min-w-0 cursor-pointer rounded-control px-[0.2rem] text-left hover:bg-app-2"
+    >
+      <MeetingLine meeting={meeting} time={false} />
+      {tip.open && (
+        <TipPanel id={tipId} anchor={anchor} open className="w-auto max-w-[20rem] px-2 py-1">
+          <MeetingTip meeting={meeting} />
+        </TipPanel>
+      )}
+    </button>
+  )
+}
 
 export function MonthView({
   days,
@@ -91,18 +122,7 @@ export function MonthView({
             <>
               {refs.slice(0, fits).map((ref) => {
                 const meeting = byRef.get(ref)
-                return meeting ? (
-                  <button
-                    key={ref}
-                    type="button"
-                    tabIndex={-1}
-                    aria-label={meetingLabel(meeting, m, lang)}
-                    onClick={() => open(meeting)}
-                    className="reveal min-w-0 cursor-pointer rounded-control px-[0.2rem] text-left hover:bg-app-2"
-                  >
-                    <MeetingLine meeting={meeting} />
-                  </button>
-                ) : null
+                return meeting ? <MonthLine key={ref} meeting={meeting} label={meetingLabel(meeting, m, lang)} /> : null
               })}
               {refs.length > fits && (
                 <Button

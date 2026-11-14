@@ -6,7 +6,7 @@ import { showMeeting } from "@/shared/meeting-open"
 import { MIN_MINUTES, TimeGrid } from "@/ui/TimeGrid"
 import { DayList } from "./DayList"
 import { meetingLabel } from "./label"
-import { MeetingBlock, MeetingLine } from "./MeetingChip"
+import { MeetingBlock, MeetingLine, MeetingTip } from "./MeetingChip"
 import { meetingMessages } from "./messages"
 
 /** The all-day row is always two lanes high, so moving between weeks never moves the hours under it. */
@@ -116,6 +116,10 @@ export function WeekView({
           return [meetingLabel(meeting, m, lang), s?.fromBefore && m.fromBefore, s?.goesOn && m.continues]
             .filter(Boolean)
             .join(", ")
+        }}
+        itemTip={(key) => {
+          const meeting = byRef.get(key)
+          return meeting ? <MeetingTip meeting={meeting} /> : null
         }}
         columnName={(day, n) => m.dayCount(head(day).name, n)}
         onOpen={(key) => {
