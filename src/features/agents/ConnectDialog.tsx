@@ -6,6 +6,8 @@ import type { SkillTarget } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { AccountTitle } from "@/shared/AccountTitle"
+import { ChatAgentLimitSwitch } from "@/shared/ChatAgentLimitSwitch"
+import { useChatAgentLimit } from "@/shared/chat-agent-limit-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
@@ -96,6 +98,7 @@ export function ConnectDialog({
   const profiles = useConnect((s) => s.profiles)
   const installs = useTools((s) => s.installs)
   const running = flow.phase === "running"
+  const limit = useChatAgentLimit((s) => s.on)
   const m = useMessages(agentsMessages)
 
   const chosen = view.skills.filter((s) => flow.tools.includes(s.tool.id))
@@ -125,8 +128,9 @@ export function ConnectDialog({
       groups: groups.map((g) => g.key),
     }))
   })
-  // Only a chat-driven agent takes orders from other people; for it, writing is what the owner opts into.
-  const readOnly = chat ? readOnlyChoices.filter((c) => !flow.writable.includes(c.key)) : []
+  // Only a chat-driven agent takes orders from other people. Its profiles keep their levels unless the owner turned
+  // the limit on; then writing is what the owner opts into, profile by profile.
+  const readOnly = chat && limit ? readOnlyChoices.filter((c) => !flow.writable.includes(c.key)) : []
 
   const commands = [
     ...chosen.map((s) => catalogCommand(s.tool, s.tool.skill?.install ?? [], { target: s.target })),
@@ -214,23 +218,24 @@ export function ConnectDialog({
               <span id={`${toolsId}-none`}>{m.chooseATool}</span>
             </ErrorNotice>
           </Collapse>
-          {chat && <ChatWarning agentName={agent.name} />}
+          {chat && <ChatWarning agentName={agent.name} limited={limit} />}
           {chatOthers.length > 0 && (
             <div role="note" className={cx("flex items-start gap-2 text-body", noticeBox("warn"))}>
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
-              <p className="max-w-[70ch]">{m.chatSharers(chatOthers)}</p>
+              <p className="max-w-[70ch]">{m.chatSharers(chatOthers, limit)}</p>
             </div>
           )}
           {chat && (
             <fieldset className="flex flex-col gap-1">
               <legend className="mb-1 text-[0.9rem] font-medium text-ink-dim">{m.readOnly}</legend>
-              <p className="mb-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.readOnlyIntro(agent.name)}</p>
-              {chosen.length === 0 && <p className="text-[0.9rem] text-ink-dim">{m.chooseTool}</p>}
-              {unlimited.length > 0 && (
-                <p className="max-w-[70ch] text-[0.9rem] text-warn">{m.cannotLimit(unlimited, agent.name)}</p>
-              )}
-              {readOnlyChoices.length > 0 &&
-                readOnlyChoices.map((c) => {
+              <ChatAgentLimitSwitch />
+              <Collapse open={limit} className="flex flex-col gap-1 pt-2">
+                <p className="mb-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.readOnlyIntro(agent.name)}</p>
+                {chosen.length === 0 && <p className="text-[0.9rem] text-ink-dim">{m.chooseTool}</p>}
+                {unlimited.length > 0 && (
+                  <p className="max-w-[70ch] text-[0.9rem] text-warn">{m.cannotLimit(unlimited, agent.name)}</p>
+                )}
+                {readOnlyChoices.map((c) => {
                   const id = `connect-ro-${c.key}`
                   return (
                     <label key={c.key} htmlFor={id} className="flex min-h-8 items-center gap-3 px-2">
@@ -248,6 +253,7 @@ export function ConnectDialog({
                     </label>
                   )
                 })}
+              </Collapse>
             </fieldset>
           )}
           {commands.length > 0 && (
@@ -266,7 +272,7 @@ export function ConnectDialog({
   )
 }
 
-function ChatWarning({ agentName }: { agentName: string }) {
+function ChatWarning({ agentName, limited }: { agentName: string; limited: boolean }) {
   const chats = useConnectFlow((s) => s.chats)
   const m = useMessages(agentsMessages)
   if (!chats || chats.state === "loading")
@@ -279,7 +285,9 @@ function ChatWarning({ agentName }: { agentName: string }) {
     <div role="note" className={cx("flex items-start gap-2 text-body", noticeBox("warn"))}>
       <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
       <p className="max-w-[70ch]">
-        {chats.state === "ready" ? m.chatsReady(agentName, apps, stopped) : m.chatsFailed(agentName, chats.error)}
+        {chats.state === "ready"
+          ? m.chatsReady(agentName, apps, stopped, limited)
+          : m.chatsFailed(agentName, chats.error, limited)}
       </p>
     </div>
   )

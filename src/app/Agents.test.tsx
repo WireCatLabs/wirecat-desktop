@@ -231,7 +231,27 @@ describe("Agents", () => {
     expect(install).toHaveBeenCalledTimes(1)
   })
 
-  it("offers read only for the chosen profiles of a chat-driven agent and the OpenClaw PATH fix", async () => {
+  it("connects a chat-driven agent without touching its profiles' levels by default", async () => {
+    const set = vi.spyOn(platform, "settingsSet")
+    const user = await openAgents()
+    await user.click(await foundTab(/^OpenClaw/))
+    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" })
+    await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
+    const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
+    expect(within(dialog).getByRole("switch", { name: "Connect chat agents read only" })).not.toBeChecked()
+    expect(within(dialog).getByText(/Anyone who can message the agent's bot/)).toBeInTheDocument()
+    expect(await within(dialog).findByRole("note")).not.toHaveTextContent("start read only")
+
+    await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
+    expect(within(dialog).queryByRole("checkbox", { name: "Telegram · personal" })).not.toBeInTheDocument()
+    expect(within(dialog).queryByText(/permissions\.messages readonly/)).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
+    expect(await within(dialog).findByText("Telegram skill")).toBeInTheDocument()
+    await waitFor(() => expect(within(dialog).queryByRole("button", { name: "Connecting…" })).not.toBeInTheDocument())
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it("with the limit on, offers read only for a chat-driven agent's profiles, and the OpenClaw PATH fix", async () => {
     const set = vi.spyOn(platform, "settingsSet")
     const user = await openAgents()
     await user.click(await foundTab(/^OpenClaw/))
@@ -240,7 +260,10 @@ describe("Agents", () => {
 
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
+    await user.click(within(dialog).getByRole("switch", { name: "Connect chat agents read only" }))
     expect(await within(dialog).findByRole("note")).toHaveTextContent("answers in Discord and WhatsApp")
+    expect(within(dialog).getByRole("note")).toHaveTextContent("The profiles below start read only.")
+    expect(within(dialog).getByText(/Connect them again to set their profiles read only/)).toBeInTheDocument()
     expect(within(dialog).getByText("Choose a tool to see its profiles.")).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
@@ -289,6 +312,7 @@ describe("Agents", () => {
     await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" })
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
+    await user.click(within(dialog).getByRole("switch", { name: "Connect chat agents read only" }))
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
     await within(dialog).findByRole("checkbox", { name: "Telegram · work" })
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))

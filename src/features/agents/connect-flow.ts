@@ -41,7 +41,7 @@ type Flow = {
   phase: "choose" | "running" | "done"
   /** Nothing is chosen until the owner ticks it. */
   tools: string[]
-  /** `<tool>/<profile>` the owner unticked: every other profile offered is set read only (SEC-117). */
+  /** `<tool>/<profile>` the owner unticked; with the chat agent limit on, every other one offered is set read only. */
   writable: string[]
   chats: Loaded<Chats> | null
   steps: Step[]
