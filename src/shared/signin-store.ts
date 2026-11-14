@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { ASTERISK, sourceProblem, sourceSettings } from "@/domain/asterisk-source"
+import { ASTERISK, localCountry, sourceProblem, sourceSettings } from "@/domain/asterisk-source"
 import {
   type AppProblem,
   appIdShaped,
@@ -587,7 +587,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const setting = chosen?.clientId
       const saves: [string, string][] = [
         ...(setting && ownId.trim() ? [[setting, ownId.trim()] as [string, string]] : []),
-        ...(tool === ASTERISK ? sourceSettings(method, get().source) : []),
+        ...(tool === ASTERISK ? sourceSettings(method, get().source, localCountry(navigator.languages)) : []),
       ]
       const run = () => get().start(tool, profile, onFinish ?? undefined, method)
       const go = () => {
