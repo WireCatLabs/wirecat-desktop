@@ -106,7 +106,7 @@ describe("Meetings", () => {
     await user.click(block)
     const dialog = await screen.findByRole("dialog", { name: "Board review" })
     expect(await within(dialog).findByText(/3 findings wait for you/)).toBeInTheDocument()
-    expect(within(dialog).getByRole("button", { name: /Open in Zoom/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: /Join on Zoom/ })).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(block).toHaveFocus())
 
