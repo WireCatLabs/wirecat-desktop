@@ -7,6 +7,7 @@ import type { Gap } from "@/domain/needs"
 import { openToolAt } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ChatHeader } from "@/platform/bindings"
+import { openSection, openTool } from "@/shared/go-tool"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
 import { ToolNeeded } from "@/shared/ToolNeeded"
@@ -118,7 +119,7 @@ function Body({ shown, target }: { shown: Shown; target: ConversationTarget }) {
   const m = useMessages(conversationMessages)
   const tool = toolOfProvider(target.provider)
   const tools = (
-    <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("tools")}>
+    <Button size="sm" variant="secondary" onClick={() => (tool ? openTool(tool) : openSection("tools"))}>
       {m.openTools}
     </Button>
   )

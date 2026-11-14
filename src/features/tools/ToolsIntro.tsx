@@ -2,7 +2,7 @@ import { X } from "lucide-react"
 import { useState } from "react"
 import { TOOLS_INTRO_KEY } from "@/domain/storage-keys"
 import { useMessages } from "@/i18n"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { safeStorage } from "@/shared/safe-storage"
 import { useTools } from "@/shared/tools-store"
@@ -17,11 +17,10 @@ const writeHidden = () => safeStorage.setItem(TOOLS_INTRO_KEY, "hidden")
 export function ToolsIntro() {
   const [hidden, setHidden] = useState(readHidden)
   const none = useTools((s) => s.checked && !Object.values(s.installs).some((copies) => copies.length > 0))
-  const go = useNav((s) => s.go)
   const m = useMessages(toolsMessages).intro
   if (hidden && !none) return null
   const em = (text: string) => <span className="font-medium text-ink">{text}</span>
-  const link = (text: string) => <LinkButton onClick={() => go("agents")}>{text}</LinkButton>
+  const link = (text: string) => <LinkButton onClick={() => openSection("agents")}>{text}</LinkButton>
   const steps = [m.install(em), m.signIn(em), m.connect(link)]
 
   return (

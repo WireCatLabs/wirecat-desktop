@@ -29,3 +29,12 @@ export function openToolAt(id: string, place: ToolPlace) {
   useTools.setState({ expanded: id })
   revealTarget(() => placeOf(id, place), { focus: (section) => focusTarget(id, place, section) })
 }
+
+/**
+ * A page or tab a link names as a whole ("Open Agents"): its top comes into view, since a tab switch keeps the scroll
+ * the last tab had and the link's button may sit far down it.
+ */
+export function openSection(section: string) {
+  useNav.getState().go(section)
+  revealTarget(() => document.querySelector<HTMLElement>("main > *"), { mark: false, focus: () => null })
+}

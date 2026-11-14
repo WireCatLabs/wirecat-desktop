@@ -17,7 +17,7 @@ import {
   Video,
   Wrench,
 } from "lucide-react"
-import { type ComponentType, createElement, lazy, type SVGProps } from "react"
+import { type ComponentType, createElement, lazy, type SVGProps, useState } from "react"
 
 type Loaded = { default: ComponentType }
 type PageLoader = ComponentType & { preload(): void }
@@ -38,8 +38,12 @@ function lazyPage(load: () => Promise<Loaded>): PageLoader {
     return pending
   }
   const Lazy = lazy(fetch)
+  // The choice holds for the mount: switching from `Lazy` to `loaded` later would remount the page and lose its state.
   // biome-ignore lint/correctness/noComponentHookFactories: made once per page when this module loads, never in a render
-  const Page = () => createElement(loaded ?? Lazy)
+  const Page = () => {
+    const [Shown] = useState(() => loaded ?? Lazy)
+    return createElement(Shown)
+  }
   Page.preload = () => void fetch().catch(() => undefined)
   return Page
 }

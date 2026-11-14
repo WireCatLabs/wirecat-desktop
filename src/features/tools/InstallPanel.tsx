@@ -8,7 +8,7 @@ import { type DataDeletion, type InstallOutcome, type InstallSession, type Skill
 import { FixPanel } from "@/features/fix"
 import { formatList, useMessages } from "@/i18n"
 import { useAgents } from "@/shared/agents-store"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { ReportThis } from "@/shared/ReportThis"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -216,7 +216,7 @@ function SkillsResult({ skills, m }: { skills: SkillRefresh; m: Words }) {
             {m.skillsFailed} {skills.failed}
           </span>
         </p>
-        <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("agents")}>
+        <Button size="sm" variant="secondary" onClick={() => openSection("agents")}>
           {m.openAgents}
         </Button>
       </div>

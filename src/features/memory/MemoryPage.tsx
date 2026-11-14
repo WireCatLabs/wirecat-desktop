@@ -14,7 +14,7 @@ import { gapFromRead } from "@/domain/needs"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { DemoNote } from "@/shared/DemoNote"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { Page, PageHeader } from "@/shared/Page"
 import { PageError } from "@/shared/PageError"
 import { ToolNeeded } from "@/shared/ToolNeeded"
@@ -141,7 +141,7 @@ export function MemoryPage() {
                 <EmptyState
                   title={m.emptyTitle}
                   action={
-                    <Button size="sm" onClick={() => useNav.getState().go("agents")}>
+                    <Button size="sm" onClick={() => openSection("agents")}>
                       {m.goAgents}
                     </Button>
                   }

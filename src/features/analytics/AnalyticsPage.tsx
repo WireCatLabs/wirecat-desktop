@@ -3,7 +3,7 @@ import { useEffect } from "react"
 import type { Period } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { Page, PageHeader } from "@/shared/Page"
 import { ServiceIcon } from "@/shared/ServiceIcon"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -80,7 +80,7 @@ function Filters() {
     return MESSENGERS.some((x) => sources[x.id]?.state === "loading") ? null : (
       <>
         <span className="text-[0.9rem] text-ink-soft">{m.noProfilesYet}</span>
-        <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("tools")}>
+        <Button size="sm" variant="secondary" onClick={() => openSection("tools")}>
           {m.openTools}
         </Button>
       </>

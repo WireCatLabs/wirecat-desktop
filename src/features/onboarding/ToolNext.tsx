@@ -6,6 +6,7 @@ import { openConnect, openToolAt, useProfiles } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { externalHref } from "@/shared/external-href"
+import { openSection } from "@/shared/go-tool"
 import { useNav } from "@/shared/nav"
 import { Collapse } from "@/ui/Collapse"
 import { ExpandChevron } from "@/ui/ExpandChevron"
@@ -39,7 +40,7 @@ function useItems(tool: CatalogTool, leave: (then: () => void) => void): Item[] 
       key: "skill",
       label: m.skill,
       hint: m.skillHint,
-      open: () => leave(() => useNav.getState().go("agents")),
+      open: () => leave(() => openSection("agents")),
     },
     Boolean(tool.mcpServer) && {
       key: "mcp",

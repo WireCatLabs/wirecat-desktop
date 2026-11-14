@@ -8,7 +8,7 @@ import { openTool } from "@/features/tools"
 import { formatList, LANGS, type Lang, useLang, useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
 import { ExtLink } from "@/shared/ExtLink"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { Page, PageHeader } from "@/shared/Page"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -558,7 +558,7 @@ function Needs(props: { guide: Guide; fit: Fit; messenger: string | null; ctx: C
       <Lamp size="sm" tone="idle" />
       <span>{m.needs(missingNames)}</span>
       {messengerMissing ? (
-        <button type="button" className={link} onClick={() => useNav.getState().go("tools")}>
+        <button type="button" className={link} onClick={() => openSection("tools")}>
           {m.getMessenger}
         </button>
       ) : (

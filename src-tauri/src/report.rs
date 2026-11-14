@@ -14,7 +14,7 @@ const RUNS_WAIT: Duration = Duration::from_secs(10);
 const MAX_BODY: usize = 1024 * 1024;
 // A dead address fails fast; a full report on a slow or VPN link still has time to upload.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-const SEND_TIMEOUT: Duration = Duration::from_secs(120);
+const SEND_TIMEOUT: Duration = Duration::from_mins(2);
 
 /// Everything about this computer a report carries, masked, so the dialog can show it before anything is sent.
 #[derive(Serialize, Deserialize)]

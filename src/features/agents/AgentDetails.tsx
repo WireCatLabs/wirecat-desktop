@@ -6,8 +6,8 @@ import { useLogs } from "@/features/logs"
 import { useLang, useMessages } from "@/i18n"
 import type { Agent } from "@/platform/agents-schemas"
 import { useAgents } from "@/shared/agents-store"
+import { openSection, openTool } from "@/shared/go-tool"
 import { useNav } from "@/shared/nav"
-import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
@@ -27,10 +27,7 @@ const box = "rounded-inset border border-line bg-app"
 const foundWords = (a: Agent, m: AgentsMessages) => (a.foundBy === "program" ? m.foundProgram : m.foundFolder)
 
 /** Opens the tool's Manage panel on Tools, where its profiles are signed in. */
-export function openManage(tool: string) {
-  useTools.setState({ expanded: tool })
-  useNav.getState().go("tools")
-}
+export const openManage = (tool: string) => openTool(tool)
 
 /** Everything about one agent after its skills: other fixes, sessions, tasks, and MCP folded away. */
 export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): void }) {
@@ -166,7 +163,6 @@ function Notes({ items }: { items: readonly CheckItem[] }) {
 }
 
 function CheckRow({ item }: { item: CheckItem }) {
-  const go = useNav((s) => s.go)
   const m = useMessages(agentsMessages)
   return (
     <li className="flex flex-col gap-2 px-4 py-2.5">
@@ -180,7 +176,7 @@ function CheckRow({ item }: { item: CheckItem }) {
         </div>
         {item.fix?.kind === "path" && <PathFixButton tools={item.fix.tools} />}
         {item.fix?.kind === "tools" && (
-          <Button size="sm" onClick={() => go("tools")}>
+          <Button size="sm" onClick={() => openSection("tools")}>
             {m.openTools}
           </Button>
         )}

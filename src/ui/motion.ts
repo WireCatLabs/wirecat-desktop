@@ -309,7 +309,12 @@ const SETTLE_FRAMES = 2
  */
 export function revealTarget(
   find: () => HTMLElement | null,
-  options: { focus?: (target: HTMLElement) => HTMLElement | null | undefined; wait?: number } = {},
+  options: {
+    focus?: (target: HTMLElement) => HTMLElement | null | undefined
+    wait?: number
+    /** false for a whole tab or page, which needs bringing into view but no outline. */
+    mark?: boolean
+  } = {},
 ) {
   const until = performance.now() + (options.wait ?? TARGET_WAIT_MS)
   let frames = 0
@@ -321,8 +326,9 @@ export function revealTarget(
     }
     if (++frames < SETTLE_FRAMES) return void requestAnimationFrame(look)
     const smooth = reducedMotion() ? "auto" : "smooth"
+    // First, so its scroll margin holds for this scroll.
+    if (options.mark !== false) flash(el)
     el.scrollIntoView?.({ block: "start", behavior: smooth })
-    flash(el)
     const focus = options.focus ? options.focus(el) : el
     if (focus) {
       if (focus === el && !el.hasAttribute("tabindex") && !el.matches("a,button,input,select,textarea")) {
@@ -333,8 +339,8 @@ export function revealTarget(
     setTimeout(() => {
       if (!el.isConnected) return
       const at = el.getBoundingClientRect().top - (scrollerOf(el)?.getBoundingClientRect().top ?? 0)
-      if (Math.abs(at - Number.parseFloat(getComputedStyle(el).scrollMarginTop || "0")) > 8)
-        el.scrollIntoView?.({ block: "start", behavior: smooth })
+      const margin = options.mark === false ? 0 : Number.parseFloat(getComputedStyle(el).scrollMarginTop || "0")
+      if (Math.abs(at - margin) > 8) el.scrollIntoView?.({ block: "start", behavior: smooth })
     }, PANEL_MS + 80)
   }
   requestAnimationFrame(look)

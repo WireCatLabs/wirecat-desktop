@@ -4,7 +4,7 @@ import { findTool, tools } from "@/domain/catalog"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { formatList, useLang, useMessages } from "@/i18n"
 import { nameOf, useAccountNames } from "@/shared/account-names-store"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -104,7 +104,7 @@ export function ConfigPage() {
         <Collapse open={noneInstalled}>
           <p className="flex flex-wrap items-center gap-3 text-[0.95rem] text-ink-soft">
             {m.noneInstalled}
-            <Button variant="secondary" size="sm" onClick={() => useNav.getState().go("tools")}>
+            <Button variant="secondary" size="sm" onClick={() => openSection("tools")}>
               {m.openTools}
             </Button>
           </p>

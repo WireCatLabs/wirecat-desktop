@@ -6,7 +6,7 @@ import { MachineChoicesList, MachineSetting, machineMessages } from "@/features/
 import { NodeNotice } from "@/features/system"
 import { InstallLine, toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
-import { useNav } from "@/shared/nav"
+import { openSection } from "@/shared/go-tool"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -260,7 +260,7 @@ export function Done() {
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
         {/* Quiet on purpose: the tour at the foot leads, and these stay one click away (owner, 2026-11-05). */}
         <div className="-ml-3 flex flex-wrap gap-2">
-          <Button variant="ghost" size="sm" onClick={() => go(() => useNav.getState().go("agents"))}>
+          <Button variant="ghost" size="sm" onClick={() => go(() => openSection("agents"))}>
             {m.agents}
           </Button>
         </div>
