@@ -129,6 +129,25 @@ describe("layoutDay", () => {
     expect(more(four).map((p) => [p.keys.length, p.left, p.width])).toEqual([[2, 0.75, 0.25]])
   })
 
+  it("marks a meeting with no readable span by a +N at its own time, not one that starts later", () => {
+    const placed = layoutDay(
+      [
+        seg("sprint", h(13), h(15)),
+        seg("demo", h(13), h(14)),
+        seg("interview", h(13.5), h(14.5)),
+        seg("ops", h(14), h(15)),
+        seg("coffee", h(14.25), h(14.75)),
+      ],
+      { block: 0.5, indent: 0.12 },
+      MIN,
+    )
+    expect(events(placed).map((p) => p.key)).toEqual(["sprint", "demo", "ops"])
+    expect(more(placed).map((p) => [p.keys, p.startMin])).toEqual([
+      [["interview"], h(13.5)],
+      [["coffee"], h(14.25)],
+    ])
+  })
+
   it("leaves every block and +N its title line and left strip, and gives the same picture twice", () => {
     let seed = 7
     const random = () => {

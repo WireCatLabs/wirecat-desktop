@@ -19,8 +19,8 @@ import { TipPanel, useTip } from "./Tooltip"
 const HOUR_REM = 4
 /** The drawn minimum: one line of text, 1.5rem at 4rem an hour. */
 export const MIN_MINUTES = (1.5 / HOUR_REM) * 60
-/** The narrowest block that still shows its icon and a few letters of its title. */
-const BLOCK_REM = 3.6
+/** The narrowest block that still shows its icon and about five letters of its title. */
+const BLOCK_REM = 4.6
 /** What a block keeps at its left edge where a later one is drawn over it: its bar and its icon. */
 const INDENT_REM = 1.15
 

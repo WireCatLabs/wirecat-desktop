@@ -151,7 +151,29 @@ function placeCluster(items: Item[], room: Room, title: number): Placed[] {
   const out: Placed[] = []
   // What a later block must leave its strip to: every block and "+N" drawn so far.
   const drawn: Box[] = []
-  const unplaced: Item[] = []
+  // A group with no span at all: into a "+N" already drawn at its start, else a narrow one of its own where it
+  // leaves the others their strips, else at the right edge.
+  const narrow = Math.min(marker, 0.2)
+  const orphan = (group: Item[]) => {
+    for (const m of markers(group)) {
+      const near = out.find(
+        (p): p is Extract<Placed, { type: "more" }> =>
+          p.type === "more" && p.startMin <= m.startMin && m.startMin < p.endMin,
+      )
+      if (near) {
+        for (const k of m.keys) near.keys.push(k)
+        continue
+      }
+      const spot = freeSpot(
+        drawn.filter((p) => overlaps(p, m)),
+        indent,
+        narrow,
+      )
+      const left = spot ? spot.right - narrow : 1 - narrow
+      drawn.push({ key: "", startMin: m.startMin, endMin: m.endMin, left, right: left + narrow })
+      out.push({ ...m, left, width: narrow })
+    }
+  }
   for (let i = 0; i < items.length; ) {
     const group = [items[i] as Item]
     while (i + group.length < items.length) {
@@ -166,7 +188,7 @@ function placeCluster(items: Item[], room: Room, title: number): Placed[] {
       block,
     )
     if (!spot) {
-      for (const g of group) unplaced.push(g)
+      orphan(group)
       continue
     }
     const span = spot.right - spot.left
@@ -193,22 +215,6 @@ function placeCluster(items: Item[], room: Room, title: number): Placed[] {
       drawn.push({ key: "", startMin: more.startMin, endMin: more.endMin, left: more.left, right: spot.right })
       out.push(more)
     }
-  }
-  // Meetings with no span at all join a "+N" at their time, or get a narrow one where it leaves the others their
-  // strips, else at the right edge.
-  const narrow = Math.min(marker, 0.2)
-  for (const m of markers(unplaced)) {
-    const near = out.find((p): p is Extract<Placed, { type: "more" }> => p.type === "more" && overlaps(p, m))
-    if (near) {
-      for (const k of m.keys) near.keys.push(k)
-      continue
-    }
-    const spot = freeSpot(
-      drawn.filter((p) => overlaps(p, m)),
-      indent,
-      narrow,
-    )
-    out.push({ ...m, left: spot ? spot.right - narrow : 1 - narrow, width: narrow })
   }
   return out
 }
