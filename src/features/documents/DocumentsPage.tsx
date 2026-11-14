@@ -8,7 +8,6 @@ import { RefreshButton } from "@/ui/RefreshButton"
 import { readAgain, useDocumentsPage, useDocumentsRead } from "./api"
 import { DocumentDialog } from "./DocumentDialog"
 import { DocumentsTable } from "./DocumentsTable"
-import { FolderTree } from "./FolderTree"
 import { documentMessages } from "./messages"
 import { useDocuments } from "./store"
 
@@ -25,7 +24,7 @@ export function DocumentsPage() {
   const list = useDocumentsPage(asked, page, size, !read.error && !gap)
 
   return (
-    <Page className="@container">
+    <Page>
       <PageHeader
         title={m.title}
         section="documents"
@@ -55,11 +54,7 @@ export function DocumentsPage() {
       ) : gap ? (
         <ToolNeeded gap={gap} />
       ) : (
-        // The tree beside the list it narrows; below about 52rem of page they stack, as the Agents tab does.
-        <div className="grid items-start gap-[1.5rem] @min-[52rem]:grid-cols-[15rem_minmax(0,1fr)] @min-[80rem]:grid-cols-[17rem_minmax(0,1fr)]">
-          <FolderTree sources={sources} />
-          <DocumentsTable sources={sources} list={list} />
-        </div>
+        <DocumentsTable sources={sources} list={list} />
       )}
       <DocumentDialog />
     </Page>

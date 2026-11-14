@@ -999,6 +999,8 @@ export type MeetingSource = {
 	label: string,
 	/**  `calendar` or `meeting`: which kind of record of this row the source gave. */
 	via: string,
+	/**  The calendar's own name inside the account, for a calendar copy. */
+	calendar: string | null,
 };
 
 export type MeetingSummary = {
@@ -1007,6 +1009,8 @@ export type MeetingSummary = {
 	overview: string | null,
 	sections: MeetingSection[],
 	nextSteps: string[],
+	/**  The notes document the summary came from, `https` only. */
+	url: string | null,
 };
 
 export type MeetingsRead = { kind: "missing" } | 

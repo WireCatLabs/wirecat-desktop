@@ -35,12 +35,13 @@ describe("Documents", () => {
   beforeEach(() => useOnboarding.setState({ status: "done", open: false }))
   afterEach(() => vi.restoreAllMocks())
 
-  it("lists every account's documents, and a folder in the tree narrows the list", async () => {
+  it("lists every account's documents, and a folder in the Account chip's tree narrows the list", async () => {
     const list = vi.spyOn(platform, "documentsList")
     const user = userEvent.setup()
     const table = await openDocuments(user)
     expect(await within(table).findByRole("button", { name: /Q4 plan/ })).toBeInTheDocument()
 
+    await user.click(screen.getByRole("button", { name: /^Account/ }))
     const tree = screen.getByRole("tree", { name: "Folders" })
     await user.click(within(tree).getByText("ana@example.org"))
     await user.click(await within(tree).findByText("Projects"))
@@ -54,15 +55,15 @@ describe("Documents", () => {
     )
   })
 
-  it("drops the chosen folder when the Account chip moves to another account", async () => {
+  it("drops the chosen folder when the tree moves to another account", async () => {
     const list = vi.spyOn(platform, "documentsList")
     const user = userEvent.setup()
     await openDocuments(user)
+    await user.click(screen.getByRole("button", { name: /^Account/ }))
     const tree = screen.getByRole("tree", { name: "Folders" })
     await user.click(within(tree).getByText("ana@example.org"))
     await user.click(await within(tree).findByText("Projects"))
-    await user.click(screen.getByRole("button", { name: /^Account/ }))
-    await user.click(await screen.findByRole("option", { name: /Synthetic notes/ }))
+    await user.click(within(tree).getByText("Synthetic notes"))
     await waitFor(() => expect(list).toHaveBeenLastCalledWith('source:"notes:1"', 1, 25))
   })
 

@@ -107,6 +107,16 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
   flag in an account's "Mail rules", read only. Reading the web app with the browser's cookies is dropped: there is
   nothing there to read.
 
+## The meeting card
+
+- **Needs cli-core first.** The card shows all a meeting row carries. The calendar fields the store keeps reach no
+  row: the event's own page (`calendar_entries.url`, Google's htmlLink, for an "Open in Google Calendar" action),
+  each attendee's response, the owner's own response, recurrence and series, the conference's name and the calendar
+  attachments. They go into cli-core's meeting listing (`meetingEntry` and `meetingEntryDetails` in
+  `src/entities/listings.ts`, filled in `src/services/listings.ts`); gcal already stores them.
+- **Needs cli-core first.** A recording's link (a row says only that one exists), the deals, companies, chats and
+  mail linked to a meeting, and a `location:` field for `meetings list`, so the search can suggest places.
+
 ## Checks ([review 2026-11-12](review-2026-11-12.md))
 
 - **Desktop.** In CI only, since they need Chrome: `scripts/scroll-hold.mjs` and `scripts/layout-shift.mjs` on the

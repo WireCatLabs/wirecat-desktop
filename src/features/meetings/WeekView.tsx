@@ -3,7 +3,7 @@ import { layoutDay, layoutWeekRow, placeWindow, timeOf } from "@/domain/meeting-
 import { useLang, useMessages } from "@/i18n"
 import type { MeetingRow } from "@/platform/bindings"
 import { showMeeting } from "@/shared/meeting-open"
-import { MIN_MINUTES, TimeGrid } from "@/ui/TimeGrid"
+import { MIN_MINUTES, type Room, TimeGrid } from "@/ui/TimeGrid"
 import { DayList } from "./DayList"
 import { meetingLabel } from "./label"
 import { MeetingBlock, MeetingLine, MeetingTip } from "./MeetingChip"
@@ -43,7 +43,7 @@ export function WeekView({
     [segments],
   )
   const layout = useCallback(
-    (columns: number) => new Map(days.map((d) => [d, layoutDay(segments.get(d) ?? [], columns, MIN_MINUTES)])),
+    (room: Room) => new Map(days.map((d) => [d, layoutDay(segments.get(d) ?? [], room, MIN_MINUTES)])),
     [days, segments],
   )
   const lanes = useMemo(() => layoutWeekRow(rows[0] ?? [], ALL_DAY_LANES), [rows])

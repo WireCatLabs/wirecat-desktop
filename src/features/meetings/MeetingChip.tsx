@@ -30,7 +30,11 @@ const timeText = (iso: string | null, lang: string) =>
 /** What a meeting carries, as icons; each is named in the meeting's own label, so they stay hidden here. */
 function Badges({ meeting, count }: { meeting: MeetingRow; count: boolean }) {
   return (
-    <span className="ml-auto inline-flex shrink-0 items-center gap-[0.2rem] text-ink-dim" aria-hidden>
+    // A block squeezed beside others keeps its few letters of title rather than its icons.
+    <span
+      className="ml-auto hidden shrink-0 items-center gap-[0.2rem] text-ink-dim @min-[7rem]:inline-flex"
+      aria-hidden
+    >
       {meeting.hasTranscript && <FileText className="size-[0.8rem]" />}
       {meeting.hasSummary && <AlignLeft className="size-[0.8rem]" />}
       {meeting.hasRecording && <Disc className="size-[0.8rem]" />}
@@ -72,7 +76,9 @@ export function MeetingBlock({
   return (
     <span
       className={cx(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-control px-[0.35rem] py-[0.1rem] text-[0.85rem] leading-[1.25rem]",
+        "@container flex h-full min-h-0 flex-col overflow-hidden rounded-control px-[0.35rem] py-[0.1rem] text-[0.85rem] leading-[1.25rem]",
+        // A ring of the page's colour keeps a block's edge readable where a later one is drawn over it.
+        "shadow-[0_0_0_1px_var(--app)]",
         "transition-colors duration-(--motion-fast) hover:border-ink-dim",
         call
           ? "border border-line-strong border-dashed bg-app"

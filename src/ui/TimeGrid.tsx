@@ -19,11 +19,15 @@ import { TipPanel, useTip } from "./Tooltip"
 const HOUR_REM = 4
 /** The drawn minimum: one line of text, 1.5rem at 4rem an hour. */
 export const MIN_MINUTES = (1.5 / HOUR_REM) * 60
-/** A column narrower than this holds one block beside a "+N" marker. */
-const COLUMN_REM = 4.5
-const MAX_COLUMNS = 4
+/** The narrowest block that still shows its icon and about five letters of its title. */
+const BLOCK_REM = 4.6
+/** What a block keeps at its left edge where a later one is drawn over it: its bar and its icon. */
+const INDENT_REM = 1.15
 
 const DAY_MINUTES = 1_440
+
+/** How wide a readable block is and what a covered one keeps, as fractions of a day column's width. */
+export type Room = { block: number; indent: number }
 
 /** Where the caller's layout put a block or a "+N" marker: minutes from midnight, and fractions of the day's width. */
 export type Placed =
@@ -43,8 +47,8 @@ type Props = {
   /** The bars above the hours, placed by the caller in a 7-column, 2-row grid. */
   allDay?: ReactNode
   allDayLabel: string
-  /** Each day's blocks, placed for `columns` side by side at most: the grid measures how many fit. */
-  layout: (columns: number) => ReadonlyMap<string, readonly Placed[]>
+  /** Each day's blocks, placed for the room a day column gives: the grid measures it. */
+  layout: (room: Room) => ReadonlyMap<string, readonly Placed[]>
   /** What a block shows, its full name for screen readers, and what a click does. */
   renderItem: (key: string, day: string, place: Extract<Placed, { type: "event" }>) => ReactNode
   itemLabel: (key: string, day: string) => string
@@ -70,12 +74,12 @@ export function TimeGrid(props: Props) {
   const { label, days, head, onDay, allDay, allDayLabel, layout, itemLabel, onOpen, unread, unreadLabel, jump } = props
   const lang = useLang()
   const scroller = useRef<HTMLDivElement>(null)
-  const columns = useColumns(scroller)
+  const room = useRoom(scroller)
   const now = useNow()
   const today = dayOf(now)
   const [active, setActive] = useState<string | null>(null)
 
-  const placed = useMemo(() => layout(columns), [layout, columns])
+  const placed = useMemo(() => layout(room), [layout, room])
   // The roving order: by day, then by time; one meeting across midnight is one stop, on its first day here.
   const stops = useMemo(() => {
     const seen = new Set<string>()
@@ -314,7 +318,7 @@ function Block(props: {
       onPointerDown={tip.hide}
       onKeyDown={props.onKeyDown}
       onClick={props.onOpen}
-      className="reveal absolute cursor-pointer px-[1px] text-left"
+      className="reveal absolute cursor-pointer px-[1px] text-left focus-visible:z-[5]"
       style={{
         top: rem(p.startMin),
         height: rem(p.endMin - p.startMin),
@@ -333,23 +337,31 @@ function Block(props: {
   )
 }
 
-/** How many blocks fit side by side in a day column, from one observer on the grid. */
-function useColumns(scroller: RefObject<HTMLDivElement | null>) {
-  const [columns, setColumns] = useState(2)
+/** A day column's room for blocks, from one observer on the grid; it changes only when the fractions do. */
+function useRoom(scroller: RefObject<HTMLDivElement | null>) {
+  const [room, setRoom] = useState<Room>({ block: 0.5, indent: 0.25 })
   useEffect(() => {
     const box = scroller.current
     if (!box || typeof ResizeObserver === "undefined") return
     const measure = () => {
       const remPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-      const day = (box.clientWidth - 3.6 * remPx) / 7
-      setColumns(Math.min(MAX_COLUMNS, Math.max(1, Math.floor(day / (COLUMN_REM * remPx)))))
+      const day = (box.clientWidth - 3.6 * remPx) / 7 / remPx
+      if (day <= 0) return
+      const next = { block: Math.min(1, BLOCK_REM / day), indent: Math.min(0.5, INDENT_REM / day) }
+      // Rounded, so a window dragged a pixel wider does not lay the week out again.
+      const round = (n: number) => Math.round(n * 100) / 100
+      setRoom((r) =>
+        round(r.block) === round(next.block) && round(r.indent) === round(next.indent)
+          ? r
+          : { block: round(next.block), indent: round(next.indent) },
+      )
     }
     const observer = new ResizeObserver(measure)
     observer.observe(box)
     measure()
     return () => observer.disconnect()
   }, [scroller])
-  return columns
+  return room
 }
 
 /** The clock, once a minute: one timer for the now-line, nothing else re-renders on time. */

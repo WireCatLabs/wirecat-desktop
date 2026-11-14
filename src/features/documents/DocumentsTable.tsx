@@ -16,6 +16,7 @@ import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import type { useDocumentsPage } from "./api"
+import { FolderTree } from "./FolderTree"
 import { DOCUMENT_KINDS, type DocumentKind, documentMessages } from "./messages"
 import { useDocuments } from "./store"
 
@@ -69,19 +70,7 @@ export function DocumentsTable({
         selected={valuesOf(query, "kind")}
         onChange={(v) => field("kind", v)}
       />
-      <FilterMenu
-        label={m.source}
-        single
-        options={(sources ?? []).map((s) => ({
-          value: s.source,
-          label: s.label,
-          icon: <SourceIcon provider={s.provider} />,
-          count: s.count,
-        }))}
-        selected={valuesOf(query, "source")}
-        // Another account's folders are not this one's: the folder goes with the account it was in.
-        onChange={(v) => setQuery(setField(query, "source", v, "source|folder"))}
-      />
+      <FolderTree sources={sources} />
       <ToggleChip
         on={valuesOf(query, "has_text").includes("true")}
         onChange={(on) => field("has_text", on ? ["true"] : [])}

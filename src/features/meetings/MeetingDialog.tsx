@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react"
+import { Fragment, useMemo, useState } from "react"
 import { instantOf } from "@/domain/meeting-layout"
 import { openDocument } from "@/features/documents"
 import { openTarget } from "@/features/links"
 import { openPerson } from "@/features/people"
 import { useLang, useMessages } from "@/i18n"
-import type { MeetingDetails, MeetingRow } from "@/platform/bindings"
+import type { MeetingDetails } from "@/platform/bindings"
+import { ExtLink } from "@/shared/ExtLink"
 import { errorText } from "@/shared/errors"
 import { useMeetingOpen } from "@/shared/meeting-open"
 import { OpenLink } from "@/shared/OpenLink"
@@ -15,6 +16,8 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { LinkButton } from "@/ui/LinkButton"
+import { Pill } from "@/ui/Pill"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { LineTab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { useMeeting } from "./api"
@@ -38,7 +41,7 @@ export function MeetingDialog() {
       onClose={close}
       wide="xl"
       scroll
-      tall
+      tall={!!first?.transcript}
     >
       {ref && <Details key={ref} read={read} />}
     </Dialog>
@@ -93,7 +96,24 @@ function Details({ read }: { read: Read }) {
   )
 }
 
-/** The date and time in the computer's zone, the meeting's own zone when it differs, and where it came from. */
+/** Join links by their service, from the address: memo names a link by the account that gave it, not the app. */
+const JOIN_SERVICES: [RegExp, string][] = [
+  [/(^|\.)meet\.google\.com$/, "Google Meet"],
+  [/(^|\.)zoom\.(us|com)$/, "Zoom"],
+  [/(^|\.)teams\.(microsoft|live)\.com$/, "Microsoft Teams"],
+  [/(^|\.)telemost\.yandex\.(ru|com)$/, "Telemost"],
+]
+const serviceOfUrl = (url: string) => {
+  let host = url
+  try {
+    host = new URL(url).hostname
+  } catch {
+    // Rust passes https links only; an unreadable one keeps its own text.
+  }
+  return JOIN_SERVICES.find(([re]) => re.test(host))?.[1] ?? host.replace(/^www\./, "")
+}
+
+/** The date and time in the computer's zone, the meeting's own zone when it differs, where it came from, and its links. */
 function Head({ details }: { details: MeetingDetails }) {
   const m = useMessages(meetingMessages)
   const lang = useLang()
@@ -119,8 +139,9 @@ function Head({ details }: { details: MeetingDetails }) {
     }
   }
   const services = [...new Map(meeting.sources.map((s) => [s.provider, s])).values()]
+  const status = meeting.status ? m.status[meeting.status] : undefined
   return (
-    <div className="flex flex-col gap-[0.6rem]">
+    <div className="flex flex-col gap-[0.7rem]">
       <p className="flex flex-wrap items-center gap-x-[0.9rem] gap-y-1 text-[0.95rem] text-ink-soft">
         {when && <span className="font-mono text-[0.9rem] tabular-nums">{when}</span>}
         {services.map((s) => (
@@ -129,12 +150,13 @@ function Head({ details }: { details: MeetingDetails }) {
             {sourceOf(s.provider).name}
           </span>
         ))}
+        {status && <Pill tone={meeting.status === "cancelled" ? "bad" : "warn"}>{status}</Pill>}
       </p>
       {meeting.links.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {meeting.links.map((l) => (
-            <OpenLink key={l.url} url={l.url}>
-              {m.openIn(sourceOf(l.source).name)}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {meeting.links.map((l, i) => (
+            <OpenLink key={l.url} url={l.url} variant={i === 0 ? "primary" : "secondary"}>
+              {m.joinOn(serviceOfUrl(l.url))}
             </OpenLink>
           ))}
         </div>
@@ -143,17 +165,24 @@ function Head({ details }: { details: MeetingDetails }) {
   )
 }
 
+const hasMain = (d: MeetingDetails) =>
+  d.findings.some((f) => f.pending > 0) || d.summaries.length > 0 || d.description !== null
+
 function Body({ details, children }: { details: MeetingDetails; children: React.ReactNode }) {
   const m = useMessages(meetingMessages)
   const [tab, setTab] = useState("overview")
   const transcript = details.transcript
-  const overview = (
-    <div className="grid gap-[1.4rem] lg:grid-cols-[minmax(0,1fr)_17rem]">
-      <div className="flex min-w-0 flex-col gap-[1.1rem]">
+  const main = hasMain(details)
+  const aside = <Aside details={details} />
+  const overview = !main ? (
+    aside
+  ) : (
+    <div className="grid gap-[1.6rem] lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="flex min-w-0 flex-col gap-[1.2rem]">
         <Findings details={details} />
         <Summary details={details} />
       </div>
-      <Aside meeting={details.meeting} />
+      {aside}
     </div>
   )
   if (!transcript) return overview
@@ -207,59 +236,98 @@ function Summary({ details }: { details: MeetingDetails }) {
   const m = useMessages(meetingMessages)
   const prose = "selectable max-w-[70ch] text-body whitespace-pre-wrap"
   return (
-    <section className="flex flex-col gap-[0.6rem]">
-      <h3 className="font-medium">{m.summary}</h3>
-      {details.summaries.length === 0 ? (
-        <p className="text-ink-soft">{m.noSummary}</p>
-      ) : (
-        details.summaries.map((s, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: memo lists a meeting's summaries once, in one order
-          <div key={i} className="flex flex-col gap-[0.5rem]">
-            {s.overview && <p className={prose}>{s.overview}</p>}
-            {s.sections.map((x) => (
-              <div key={x.label}>
-                <p className="font-medium text-[0.95rem]">{x.label}</p>
-                <p className={prose}>{x.text}</p>
-              </div>
-            ))}
-            {s.nextSteps.length > 0 && (
-              <div>
-                <p className="font-medium text-[0.95rem]">{m.nextSteps}</p>
-                <ul className="list-disc pl-[1.2rem] text-body">
-                  {s.nextSteps.map((n) => (
-                    <li key={n} className="selectable">
-                      {n}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ))
+    <>
+      {details.summaries.length > 0 && (
+        <section className="flex flex-col gap-[0.6rem]">
+          <SectionTitle as="h3">{m.summary}</SectionTitle>
+          {details.summaries.map((s, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: memo lists a meeting's summaries once, in one order
+            <div key={i} className="flex flex-col gap-[0.5rem]">
+              {s.overview && <p className={prose}>{s.overview}</p>}
+              {s.sections.map((x) => (
+                <div key={x.label}>
+                  <p className="font-medium text-[0.95rem]">{x.label}</p>
+                  <p className={prose}>{x.text}</p>
+                </div>
+              ))}
+              {s.nextSteps.length > 0 && (
+                <div>
+                  <p className="font-medium text-[0.95rem]">{m.nextSteps}</p>
+                  <ul className="list-disc pl-[1.2rem] text-body">
+                    {s.nextSteps.map((n) => (
+                      <li key={n} className="selectable">
+                        {n}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {s.url && (
+                <div>
+                  <OpenLink url={s.url}>{m.openNotes}</OpenLink>
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
       )}
       {details.description && (
-        <>
-          <h3 className="font-medium">{m.description}</h3>
+        <section className="flex flex-col gap-[0.6rem]">
+          <SectionTitle as="h3">{m.description}</SectionTitle>
           <p className={`${prose} text-ink-soft`}>{details.description}</p>
-        </>
+        </section>
       )}
-    </section>
+    </>
   )
 }
 
-function Aside({ meeting }: { meeting: MeetingRow }) {
+/** Where, which calendar, the recording, who took part and the documents: each only when memo knows it. */
+function Aside({ details }: { details: MeetingDetails }) {
   const m = useMessages(meetingMessages)
+  const meeting = details.meeting
+  const calendars = [...new Set(meeting.sources.flatMap((s) => (s.calendar ? [`${s.calendar} · ${s.account}`] : [])))]
+  const location = details.location
+  const facts = [
+    location && {
+      term: m.where,
+      value: location.startsWith("https://") ? (
+        <ExtLink href={location}>{location}</ExtLink>
+      ) : (
+        <span className="selectable whitespace-pre-wrap">{location}</span>
+      ),
+    },
+    calendars.length > 0 && { term: m.calendar, value: <span className="selectable">{calendars.join(", ")}</span> },
+    meeting.hasRecording && { term: m.recording, value: m.recordingKept },
+  ].filter((f) => !!f)
+  const people = meeting.participants
+  const empty = facts.length === 0 && people.length === 0 && meeting.documents.length === 0
+  if (empty && !hasMain(details)) return <p className="text-[0.95rem] text-ink-soft">{m.onlyTime}</p>
+  if (empty) return null
   return (
-    <aside className="flex min-w-0 flex-col gap-[1.2rem]">
-      <section className="flex flex-col gap-[0.4rem]">
-        <h3 className="font-medium">
-          {m.participants} <span className="font-mono text-[0.85rem] text-ink-dim">{meeting.participantsCount}</span>
-        </h3>
-        {meeting.participants.length === 0 ? (
-          <p className="text-[0.95rem] text-ink-soft">{m.nobody}</p>
-        ) : (
+    <aside className="flex min-w-0 flex-col gap-[1.3rem]">
+      {facts.length > 0 && (
+        <section className="flex flex-col gap-[0.5rem]">
+          <SectionTitle as="h3">{m.facts}</SectionTitle>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-[0.4rem] text-[0.95rem]">
+            {facts.map((f) => (
+              <Fragment key={f.term}>
+                <dt className="text-ink-soft">{f.term}</dt>
+                <dd className="min-w-0 break-words">{f.value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        </section>
+      )}
+      {people.length > 0 && (
+        <section className="flex flex-col gap-[0.5rem]">
+          <SectionTitle as="h3">
+            {m.participants}{" "}
+            <span className="font-mono font-normal text-[0.85rem] text-ink-dim">
+              {Math.max(meeting.participantsCount, people.length)}
+            </span>
+          </SectionTitle>
           <ul className="flex flex-col gap-[0.35rem] text-[0.95rem]">
-            {meeting.participants.map((p, i) => {
+            {people.map((p, i) => {
               const name = p.person?.name ?? p.name
               return (
                 // biome-ignore lint/suspicious/noArrayIndexKey: a participant may have neither a ref nor an address
@@ -280,15 +348,18 @@ function Aside({ meeting }: { meeting: MeetingRow }) {
                     <span className="selectable font-mono text-[0.88rem]">{p.email}</span>
                   )}
                   {p.organizer && <span className="text-[0.85rem] text-ink-dim">{m.organizer}</span>}
+                  {name && p.email && !p.person && (
+                    <span className="selectable min-w-0 truncate font-mono text-[0.85rem] text-ink-dim">{p.email}</span>
+                  )}
                 </li>
               )
             })}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
       {meeting.documents.length > 0 && (
-        <section className="flex flex-col gap-[0.4rem]">
-          <h3 className="font-medium">{m.documents}</h3>
+        <section className="flex flex-col gap-[0.5rem]">
+          <SectionTitle as="h3">{m.documents}</SectionTitle>
           <ul className="flex flex-col gap-[0.35rem] text-[0.95rem]">
             {meeting.documents.map((d) => (
               <li key={d.ref}>

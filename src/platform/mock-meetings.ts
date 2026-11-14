@@ -11,8 +11,9 @@ import { delay } from "./mock-delay"
 import { memoDefault, OLD_MEMO } from "./mock-memo"
 import type { Platform } from "./types"
 
-// memo's `meetings list|show` (`?section=meetings`): this week's meetings and calls around today, with three at one
-// time, a multi-day offsite, a call past midnight and a long transcript, plus two months of history for the table.
+// memo's `meetings list|show` (`?section=meetings`): this week's meetings and calls around today, with two, three and
+// five at one time, a multi-day offsite, a call past midnight, a full card (Board review) and a nearly empty one (ML
+// Project), and a long transcript, plus two months of history for the table.
 // `?meetings=empty` has none, `many` 1 400 so the table pages and a month window is cut at 500, `fail` refuses
 // every read, `old` and `missing` are a memo too old or not installed; `?meetings-fail=show` refuses one meeting.
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
@@ -35,6 +36,7 @@ const CALENDAR: MeetingSource = {
   source: "google-calendar:ana@example.org",
   label: "Google Calendar · ana@example.org",
   via: "calendar",
+  calendar: "Work",
 }
 const ZOOM: MeetingSource = {
   provider: "zoom",
@@ -42,6 +44,7 @@ const ZOOM: MeetingSource = {
   source: "zoom:ana@example.org",
   label: "Zoom · ana@example.org",
   via: "meeting",
+  calendar: null,
 }
 const PHONE: MeetingSource = {
   provider: "phone",
@@ -49,6 +52,7 @@ const PHONE: MeetingSource = {
   source: "phone:import",
   label: "Phone",
   via: "meeting",
+  calendar: null,
 }
 const TELEGRAM: MeetingSource = {
   provider: "telegram",
@@ -56,6 +60,7 @@ const TELEGRAM: MeetingSource = {
   source: "telegram:personal",
   label: "Telegram · personal",
   via: "meeting",
+  calendar: null,
 }
 
 const LENA: MeetingParticipant = {
@@ -98,7 +103,8 @@ const row = (i: number, s: Seed): MeetingRow => {
   }
 }
 
-const zoomLink = { source: "zoom", url: "https://zoom.us/j/1000000001" }
+const zoomLink = { source: "zoom:ana@example.org", url: "https://zoom.us/j/1000000001" }
+const meetLink = { source: "google-calendar:ana@example.org", url: "https://meet.google.com/abc-defg-hij" }
 
 function week(): Seed[] {
   const standups = [-3, -2, -1, 0, 1].map(
@@ -119,7 +125,7 @@ function week(): Seed[] {
       start: local(0, 12),
       end: local(0, 15),
       sources: [CALENDAR, ZOOM],
-      links: [zoomLink],
+      links: [meetLink, zoomLink],
       participants: [LENA, KAI, GUEST],
       participantsCount: 3,
       hasRecording: true,
@@ -160,6 +166,28 @@ function week(): Seed[] {
       participantsCount: 1,
     },
     { title: "1:1 Lena", start: local(2, 16), end: local(2, 16.5), sources: [CALENDAR], participants: [LENA] },
+    { title: "Roadmap", start: local(-1, 14), end: local(-1, 16), sources: [CALENDAR] },
+    { title: "Budget check-in", start: local(-1, 14.75), end: local(-1, 15.5), sources: [CALENDAR] },
+    {
+      title: "Sprint planning",
+      start: local(-2, 13),
+      end: local(-2, 15),
+      sources: [CALENDAR, ZOOM],
+      links: [zoomLink],
+    },
+    { title: "Client demo", start: local(-2, 13), end: local(-2, 14), sources: [CALENDAR] },
+    { title: "Interview", start: local(-2, 13.5), end: local(-2, 14.5), sources: [CALENDAR], participants: [GUEST] },
+    { title: "Ops review", start: local(-2, 14), end: local(-2, 15), sources: [CALENDAR] },
+    { title: "Coffee chat", start: local(-2, 14.25), end: local(-2, 14.75), sources: [CALENDAR] },
+    {
+      title: "ML Project",
+      kind: "event",
+      start: local(-3, 11),
+      end: local(-3, 13),
+      sources: [CALENDAR],
+      participants: [],
+      participantsCount: 0,
+    },
   ]
 }
 
@@ -226,7 +254,7 @@ function show(ref: string, cursor: number): MeetingDetails {
   return {
     meeting,
     description: meeting.title === "Board review" ? "Agenda: the fourth quarter plan and the hiring budget." : null,
-    location: null,
+    location: meeting.title === "Board review" ? "Atlas room, third floor" : null,
     summaries: meeting.hasSummary
       ? [
           {
@@ -235,6 +263,7 @@ function show(ref: string, cursor: number): MeetingDetails {
             overview: "The board agreed on the fourth quarter plan and asked for a hiring budget by Friday.",
             sections: [{ label: "Budget", text: "The synthetic budget grows by four percent." }],
             nextSteps: ["Lena sends the plan to the board", "Kai drafts the hiring budget"],
+            url: "https://docs.google.com/document/d/synthetic-notes",
           },
         ]
       : [],
