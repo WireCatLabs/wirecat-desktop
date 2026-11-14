@@ -5,11 +5,17 @@
       "deb": {
         "desktopTemplate": "linux/wirecat.desktop",
         "conflicts": ["wire-cat"],
-        "replaces": ["wire-cat"]
+        "replaces": ["wire-cat"],
+        "files": {
+          "/usr/share/metainfo/dev.wirecat.desktop.metainfo.xml": "linux/wirecat.metainfo.xml"
+        }
       },
       "rpm": {
         "desktopTemplate": "linux/wirecat.desktop",
-        "obsoletes": ["wire-cat"]
+        "obsoletes": ["wire-cat"],
+        "files": {
+          "/usr/share/metainfo/dev.wirecat.desktop.metainfo.xml": "linux/wirecat.metainfo.xml"
+        }
       }
     }
   }
