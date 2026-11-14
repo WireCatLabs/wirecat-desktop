@@ -679,7 +679,7 @@ mod tests {
             {"id": "22", "name": "google-drive:1", "format": "markdown", "path": null, "kept_by": "drive"}
         ]});
         assert_eq!(added_paths(&list), [std::path::PathBuf::from("/srv/notes")]);
-        assert!(added_paths(&serde_json::json!({})).is_empty());
+        assert_eq!(added_paths(&serde_json::json!({})), Vec::<std::path::PathBuf>::new());
     }
 
     #[test]
@@ -690,14 +690,14 @@ mod tests {
         }
         let names: Vec<String> = vaults_inside(&root).into_iter().map(|v| v.name).collect();
         assert_eq!(names, ["Client", "Notes"]);
-        assert!(vaults_inside(&root.join("Plain")).is_empty());
+        assert_eq!(vaults_inside(&root.join("Plain")), Vec::new());
         std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
     fn a_vault_list_obsidian_changed_reads_as_none() {
         for bad in ["", "[]", "{}", r#"{"vaults": []}"#, r#"{"vaults": {"a": {"path": 3}}}"#, "not json"] {
-            assert!(vaults_in(bad).is_empty(), "{bad}");
+            assert_eq!(vaults_in(bad), Vec::<String>::new(), "{bad}");
         }
     }
 
