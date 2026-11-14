@@ -271,6 +271,7 @@ body {
   a[href],
   summary,
   [role="button"],
+  [role="tab"]:not([aria-disabled="true"]),
   label:has(> input:not(:disabled)),
   label:has(> .control-box > input:not(:disabled)) {
     cursor: pointer;
