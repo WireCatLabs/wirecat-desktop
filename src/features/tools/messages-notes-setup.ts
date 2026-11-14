@@ -18,9 +18,13 @@ const en = {
   adding: "Adding the folder…",
   foldersLabel: "Folders Memo reads",
   noFolder: "No folder yet.",
+  holdsVaults: (name: string, count: number) =>
+    `${name} is no Obsidian vault, but it holds ${plural("en", count, { one: "one vault", other: "# vaults" })}. Connect ${count === 1 ? "it" : "them one by one"}, so Memo reads tags and links the way Obsidian does, or add ${name} as plain Markdown.`,
+  vaultsInside: (name: string) => `Obsidian vaults in ${name}`,
+  addPlain: (name: string) => `Add ${name} as plain Markdown`,
   folderAdded: (name: string, format: string, vault: boolean) =>
     format === "obsidian"
-      ? `Added the Obsidian vault ${name}. The next step reads it.`
+      ? `Added ${name} as Obsidian notes. The next step reads it.`
       : vault
         ? `Added ${name} as plain Markdown: it has no .obsidian folder. For a vault, choose the folder Obsidian opens.`
         : `Added ${name} as plain Markdown files. The next step reads it.`,
@@ -116,9 +120,13 @@ const ru: typeof en = {
   adding: "Добавляем папку…",
   foldersLabel: "Папки, которые читает Memo",
   noFolder: "Папок пока нет.",
+  holdsVaults: (name: string, count: number) =>
+    `Папка ${name} не хранилище Obsidian, но в ней ${plural("ru", count, { one: "# хранилище", few: "# хранилища", many: "# хранилищ", other: "# хранилища" })}. Подключите ${count === 1 ? "его" : "их по одному"}, чтобы Memo читал теги и ссылки так же, как Obsidian, или добавьте ${name} как обычный Markdown.`,
+  vaultsInside: (name: string) => `Хранилища Obsidian в папке ${name}`,
+  addPlain: (name: string) => `Добавить ${name} как обычный Markdown`,
   folderAdded: (name: string, format: string, vault: boolean) =>
     format === "obsidian"
-      ? `Хранилище Obsidian ${name} добавлено. Следующий шаг его прочитает.`
+      ? `Папка ${name} добавлена как заметки Obsidian. Следующий шаг её прочитает.`
       : vault
         ? `Папка ${name} добавлена как обычный Markdown: в ней нет папки .obsidian. Для хранилища выберите папку, которую открывает Obsidian.`
         : `Папка ${name} добавлена как обычные файлы Markdown. Следующий шаг её прочитает.`,
@@ -230,9 +238,13 @@ const es: typeof en = {
   adding: "Añadiendo la carpeta…",
   foldersLabel: "Carpetas que lee Memo",
   noFolder: "Aún no hay ninguna carpeta.",
+  holdsVaults: (name: string, count: number) =>
+    `${name} no es una bóveda de Obsidian, pero ${plural("es", count, { one: "contiene una", other: "contiene # bóvedas" })}. ${count === 1 ? "Conéctala" : "Conéctalas una a una"} para que Memo lea las etiquetas y los enlaces como Obsidian, o añade ${name} como Markdown normal.`,
+  vaultsInside: (name: string) => `Bóvedas de Obsidian en ${name}`,
+  addPlain: (name: string) => `Añadir ${name} como Markdown normal`,
   folderAdded: (name: string, format: string, vault: boolean) =>
     format === "obsidian"
-      ? `Se añadió la bóveda de Obsidian ${name}. El paso siguiente la lee.`
+      ? `Se añadió ${name} como notas de Obsidian. El paso siguiente la lee.`
       : vault
         ? `Se añadió ${name} como Markdown normal: no tiene carpeta .obsidian. Para una bóveda, elige la carpeta que abre Obsidian.`
         : `Se añadió ${name} como archivos Markdown normales. El paso siguiente la lee.`,

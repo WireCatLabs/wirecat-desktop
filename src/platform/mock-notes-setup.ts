@@ -14,7 +14,8 @@ import type { Platform } from "./types"
 // command is unknown to this memo), `?memo-fail=remove` (a sync holds the store), `?memo-fail=remove-old` (this memo has
 // no `folders remove`). Progress lines: counts for the sync and the download by default, `?notes-progress=old` for a
 // memo that prints none (the bars have no end). Obsidian: two vaults Obsidian lists by default, `?obsidian=none` lists
-// none; `?memo-pick=vault` picks a folder in a vault (added as `obsidian`), any other pick is plain `markdown`.
+// none; `?memo-pick=vault` picks a folder in a vault (added as `obsidian`), `?memo-pick=parent` a plain folder that
+// holds two vaults (the card offers them before adding it as `markdown`), any other pick is plain `markdown`.
 const GEMMA = {
   id: "embeddinggemma",
   title: "EmbeddingGemma 300M, 4-bit",
@@ -31,6 +32,11 @@ const E5 = {
 }
 const PICKED = "/home/slava/Notes/Work"
 const PICKED_VAULT = "/home/slava/Obsidian/Personal"
+const PICKED_PARENT = "/home/slava/Obsidian"
+const INSIDE = [
+  { name: "Personal", path: PICKED_VAULT, shown: "~/Obsidian/Personal" },
+  { name: "Team", path: "/home/slava/Obsidian/Team", shown: "~/Obsidian/Team" },
+]
 const VAULTS = [
   { name: "Personal", path: PICKED_VAULT, shown: "~/Obsidian/Personal" },
   { name: "Research", path: "/home/slava/Documents/Research", shown: "~/Documents/Research" },
@@ -81,17 +87,18 @@ export function notesSetupMock(
     async notesPickFolder() {
       await delay(500)
       const pick = params.get("memo-pick")
-      return pick === "cancel" ? null : pick === "vault" ? PICKED_VAULT : PICKED
+      return pick === "cancel" ? null : pick === "vault" ? PICKED_VAULT : pick === "parent" ? PICKED_PARENT : PICKED
     },
-    async notesFolderAdd(_id, path) {
+    async notesFolderAdd(_id, path, plain) {
       await delay(700)
       if (fail === "folder") return { result: "failed", problem: "folderUnreadable" }
+      if (path === PICKED_PARENT && !plain) return { result: "holdsVaults", vaults: [...INSIDE] }
       const found = folders.find((f) => f.path === path.replace("/home/slava", "~"))
       const folder = found ?? {
         id: String(4 + folders.length),
         name: path.split("/").pop() ?? path,
         path: path.replace("/home/slava", "~"),
-        format: VAULTS.some((v) => path.startsWith(v.path)) ? "obsidian" : "markdown",
+        format: [...VAULTS, ...INSIDE].some((v) => path.startsWith(v.path)) ? "obsidian" : "markdown",
       }
       if (!found) folders.push(folder)
       const listed = vaults.findIndex((v) => v.path === path)

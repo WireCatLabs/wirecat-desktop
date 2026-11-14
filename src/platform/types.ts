@@ -720,8 +720,11 @@ export type Platform = {
   notesSetupStatus(id: string): Promise<NotesSetup>
   /** The system's own folder window; the chosen path, or null when the owner closes it. */
   notesPickFolder(): Promise<string | null>
-  /** memo's `folders add` for a path the window returned; Rust checks it first. Failures come as a closed problem. */
-  notesFolderAdd(id: string, path: string): Promise<NotesFolderAdded>
+  /**
+   * memo's `folders add` for a path the window or Obsidian's list returned; Rust checks it first. Without `plain`, a
+   * folder that is no vault but holds vaults is not added and its vaults come back. Failures are a closed problem.
+   */
+  notesFolderAdd(id: string, path: string, plain: boolean): Promise<NotesFolderAdded>
   /** memo's `folders remove`; with `deleteNotes` also that folder's notes in memo's store (never files on disk). */
   notesFolderRemove(id: string, folder: string, deleteNotes: boolean): Promise<NotesFolderRemoved>
   /** memo's `sync --only notes`; the same events as `syncRun`, stopped with `syncStop(id, null)`. */

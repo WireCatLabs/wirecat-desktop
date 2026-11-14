@@ -36,7 +36,7 @@ export const ES_TAGLINE: Record<string, string> = {
   zm: "Grabaciones y transcripciones\u00a0· búsqueda",
   drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
-  memo: "Notas, archivos y bóvedas de Obsidian\u00a0· busca en todo",
+  memo: "Notas, archivos y bóvedas de Obsidian\u00a0· búsqueda",
   email: "Tu correo por IMAP, con búsqueda en tu ordenador",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",

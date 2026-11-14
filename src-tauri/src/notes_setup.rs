@@ -135,8 +135,17 @@ pub enum NotesSetup {
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "result")]
 pub enum NotesFolderAdded {
-    Added { folder: NotesFolder },
-    Failed { problem: NotesProblem },
+    Added {
+        folder: NotesFolder,
+    },
+    /// Not added: a plain folder with Obsidian vaults one or two levels down, which read better one by one. Adding it
+    /// anyway is `add_folder` with `plain`.
+    HoldsVaults {
+        vaults: Vec<ObsidianVault>,
+    },
+    Failed {
+        problem: NotesProblem,
+    },
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
@@ -192,7 +201,11 @@ pub fn checked_folder_id(id: &str) -> Result<&str, NotesProblem> {
 }
 
 /// memo reads `#word` as a tag and `[[link]]` as a link only in `obsidian` folders, so a plain Markdown folder must say
-/// `markdown`. A vault, or any folder inside one, has Obsidian's own `.obsidian` folder at its top.
+/// `markdown`. A vault, or any folder inside one, has Obsidian's own `.obsidian` folder at its top. memo's own
+/// `folders add` picks the same way when it is given no `--format`.
+///
+/// A `.obsidian` folder in the home folder (a vault opened at `~`) makes every folder under home `obsidian`. That is
+/// how Obsidian itself reads them, so it is kept, not treated as a mistake.
 pub fn format_of(dir: &Path) -> &'static str {
     if dir.ancestors().any(|a| a.join(".obsidian").is_dir()) { "obsidian" } else { "markdown" }
 }
@@ -225,9 +238,16 @@ fn vaults_in(json: &str) -> Vec<String> {
     v["vaults"].as_object().into_iter().flatten().filter_map(|(_, x)| x["path"].as_str().map(str::to_string)).collect()
 }
 
-/// Every listed vault that still is one (a readable folder with `.obsidian`) and that memo does not read yet, by name.
+fn vault(path: &Path) -> Option<ObsidianVault> {
+    let name = path.file_name()?.to_string_lossy().into_owned();
+    let path = path.to_string_lossy().into_owned();
+    Some(ObsidianVault { name, shown: paths::tilde(&path), path })
+}
+
+/// Every listed vault whose folder still exists and that overlaps no folder memo reads, by name. Nothing inside a vault
+/// is read here, so macOS asks no permission when the card opens; Connect checks the folder in full.
 fn vaults_of(lists: &[std::path::PathBuf], added: &[std::path::PathBuf]) -> Vec<ObsidianVault> {
-    let mut seen: Vec<std::path::PathBuf> = added.iter().filter_map(|p| p.canonicalize().ok()).collect();
+    let mut seen: Vec<std::path::PathBuf> = added.to_vec();
     let mut found = Vec::new();
     for list in lists {
         let Ok(meta) = std::fs::metadata(list) else { continue };
@@ -235,20 +255,52 @@ fn vaults_of(lists: &[std::path::PathBuf], added: &[std::path::PathBuf]) -> Vec<
             continue;
         }
         let Ok(text) = std::fs::read_to_string(list) else { continue };
-        for path in vaults_in(&text) {
-            let Ok(real) = checked_folder(&path) else { continue };
-            let real = std::path::PathBuf::from(real);
-            if !real.join(".obsidian").is_dir() || seen.contains(&real) {
+        for path in vaults_in(&text).into_iter().map(std::path::PathBuf::from) {
+            let overlaps = seen.iter().any(|s| s.starts_with(&path) || path.starts_with(s));
+            if !path.is_absolute() || overlaps || !path.is_dir() {
                 continue;
             }
-            let Some(name) = real.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
-            let path = real.to_string_lossy().into_owned();
-            found.push(ObsidianVault { name, shown: paths::tilde(&path), path });
-            seen.push(real);
+            if let Some(v) = vault(&path) {
+                found.push(v);
+                seen.push(path);
+            }
         }
     }
     found.sort_by_key(|v| v.name.to_lowercase());
     found
+}
+
+/// Directories to look into per level, so a huge folder answers fast.
+const SCAN_LIMIT: usize = 500;
+
+/// Obsidian vaults one or two levels down in a folder the owner picked, by name. Hidden folders are skipped.
+fn vaults_inside(dir: &Path) -> Vec<ObsidianVault> {
+    let subdirs = |d: &Path| -> Vec<std::path::PathBuf> {
+        std::fs::read_dir(d)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+            .take(SCAN_LIMIT)
+            .map(|e| e.path())
+            .collect()
+    };
+    let mut found = Vec::new();
+    for child in subdirs(dir) {
+        if child.join(".obsidian").is_dir() {
+            found.extend(vault(&child));
+            continue;
+        }
+        found.extend(subdirs(&child).iter().filter(|g| g.join(".obsidian").is_dir()).filter_map(|g| vault(g)));
+    }
+    found.sort_by_key(|v| v.name.to_lowercase());
+    found
+}
+
+/// The folders memo reads on this computer, as real paths.
+fn added_paths(list: &Value) -> Vec<std::path::PathBuf> {
+    list["items"].as_array().into_iter().flatten().filter_map(|i| i["path"].as_str()).map(paths::untilde).collect()
 }
 
 fn with(words: &[String], key: &str, value: &str) -> Vec<String> {
@@ -371,18 +423,25 @@ pub fn status(tool: &Tool) -> Result<NotesSetup, String> {
     };
     // Without the model list the card still works for folders; the search step then stays hidden.
     let models = list_models(tool, src).unwrap_or_default();
-    let added: Vec<_> =
-        list["items"].as_array().into_iter().flatten().filter_map(|i| i["path"].as_str()).map(paths::untilde).collect();
-    Ok(NotesSetup::Ready { folders: folders_of(&list), models, vaults: vaults_of(&vault_lists(), &added) })
+    let vaults = vaults_of(&vault_lists(), &added_paths(&list));
+    Ok(NotesSetup::Ready { folders: folders_of(&list), models, vaults })
 }
 
-pub fn add_folder(tool: &Tool, path: &str) -> Result<NotesFolderAdded, String> {
+/// Without `plain`, a folder that is no vault but holds vaults is not added: the card offers them one by one first.
+pub fn add_folder(tool: &Tool, path: &str, plain: bool) -> Result<NotesFolderAdded, String> {
     let src = source(tool)?;
     let path = match checked_folder(path) {
         Ok(p) => p,
         Err(problem) => return Ok(NotesFolderAdded::Failed { problem }),
     };
-    let words = with(&with(&src.add, "{path}", &path), "{format}", format_of(Path::new(&path)));
+    let format = format_of(Path::new(&path));
+    if !plain && format == "markdown" {
+        let vaults = vaults_inside(Path::new(&path));
+        if !vaults.is_empty() {
+            return Ok(NotesFolderAdded::HoldsVaults { vaults });
+        }
+    }
+    let words = with(&with(&src.add, "{path}", &path), "{format}", format);
     let (out, json) = crate::skills::call(tool, &words, CALL)?;
     if out.code == Some(0)
         && let Some(folder) = json.as_ref().map(crate::skills::body).and_then(folder_of)
@@ -584,27 +643,54 @@ mod tests {
     }
 
     #[test]
-    fn offers_the_vaults_obsidian_lists_that_still_exist_and_are_not_read_yet() {
+    fn offers_the_listed_vaults_that_exist_and_overlap_no_folder_memo_reads() {
         let root = temp_dir("vaults");
-        for v in ["Work", "archive", "Added"] {
-            std::fs::create_dir_all(root.join(v).join(".obsidian")).unwrap();
+        for v in ["Work", "archive", "Added", "Parent/Inner", "Outer", "File"] {
+            std::fs::create_dir_all(root.join(v)).unwrap();
         }
-        std::fs::create_dir_all(root.join("NoLonger")).unwrap();
+        std::fs::remove_dir(root.join("File")).unwrap();
+        std::fs::write(root.join("File"), "x").unwrap();
         let p = |n: &str| root.join(n).to_string_lossy().into_owned();
         let list = root.join("obsidian.json");
         let json = serde_json::json!({"vaults": {
             "a1": {"path": p("Work"), "ts": 1, "open": true},
             "b2": {"path": p("archive"), "ts": 2},
             "c3": {"path": p("Added"), "ts": 3},
-            "d4": {"path": p("NoLonger"), "ts": 4},
-            "e5": {"path": p("Gone"), "ts": 5},
-            "f6": {"path": "relative/vault", "ts": 6}
+            "d4": {"path": p("Parent/Inner"), "ts": 4},
+            "e5": {"path": p("Outer"), "ts": 5},
+            "f6": {"path": p("Gone"), "ts": 6},
+            "g7": {"path": p("File"), "ts": 7},
+            "h8": {"path": "relative/vault", "ts": 8}
         }});
         std::fs::write(&list, json.to_string()).unwrap();
-        let found = vaults_of(&[list.clone(), list, root.join("missing.json")], &[root.join("Added")]);
+        let added = [root.join("Added"), root.join("Parent"), root.join("Outer/Daily")];
+        let found = vaults_of(&[list.clone(), list, root.join("missing.json")], &added);
         let names: Vec<&str> = found.iter().map(|v| v.name.as_str()).collect();
         assert_eq!(names, ["archive", "Work"]);
-        assert_eq!(found[1].path, root.join("Work").canonicalize().unwrap().to_string_lossy());
+        assert_eq!(found[1].path, p("Work"));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn the_folders_memo_reads_here_are_the_ones_with_a_path() {
+        let list = serde_json::json!({"items": [
+            {"id": "1", "path": "/srv/notes", "format": "markdown"},
+            {"id": "7", "name": "Vault", "format": "obsidian", "path": null},
+            {"id": "22", "name": "google-drive:1", "format": "markdown", "path": null, "kept_by": "drive"}
+        ]});
+        assert_eq!(added_paths(&list), [std::path::PathBuf::from("/srv/notes")]);
+        assert!(added_paths(&serde_json::json!({})).is_empty());
+    }
+
+    #[test]
+    fn finds_the_vaults_one_or_two_levels_down_and_no_deeper() {
+        let root = temp_dir("inside");
+        for d in ["Notes/.obsidian", "Work/Client/.obsidian", "Deep/a/b/.obsidian", ".hidden/.obsidian", "Plain/x"] {
+            std::fs::create_dir_all(root.join(d)).unwrap();
+        }
+        let names: Vec<String> = vaults_inside(&root).into_iter().map(|v| v.name).collect();
+        assert_eq!(names, ["Client", "Notes"]);
+        assert!(vaults_inside(&root.join("Plain")).is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 

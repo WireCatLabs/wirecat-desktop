@@ -28,10 +28,14 @@ pub async fn notes_pick_folder(app: AppHandle) -> Result<Option<String>, AppErro
 }
 
 #[tauri::command]
-pub async fn notes_folder_add(id: String, path: String) -> Result<notes_setup::NotesFolderAdded, AppError> {
+pub async fn notes_folder_add(
+    id: String,
+    path: String,
+    plain: bool,
+) -> Result<notes_setup::NotesFolderAdded, AppError> {
     crate::log::command("notes_folder_add", async move {
         let tool = known_tool(&id)?;
-        attempt(move || notes_setup::add_folder(tool, &path)).await
+        attempt(move || notes_setup::add_folder(tool, &path, plain)).await
     })
     .await
 }

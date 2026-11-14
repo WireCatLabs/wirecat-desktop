@@ -1030,7 +1030,12 @@ export type NotesFolder = {
 	format: string,
 };
 
-export type NotesFolderAdded = { result: "added"; folder: NotesFolder } | { result: "failed"; problem: NotesProblem };
+export type NotesFolderAdded = { result: "added"; folder: NotesFolder } | 
+/**
+ *  Not added: a plain folder with Obsidian vaults one or two levels down, which read better one by one. Adding it
+ *  anyway is `add_folder` with `plain`.
+ */
+{ result: "holdsVaults"; vaults: ObsidianVault[] } | { result: "failed"; problem: NotesProblem };
 
 export type NotesFolderRemoved = { result: "removed"; notesDeleted: number | null } | { result: "failed"; problem: NotesProblem };
 

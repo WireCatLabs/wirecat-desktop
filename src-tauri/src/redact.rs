@@ -60,7 +60,7 @@ fn is_scalar_list(v: &Value) -> bool {
 }
 
 pub fn text(s: &str) -> String {
-    let mut out = crate::paths::tilde(s);
+    let mut out = crate::paths::tilde_text(s);
     for (re, with) in sensitive_text() {
         out = re.replace_all(&out, *with).into_owned();
     }
