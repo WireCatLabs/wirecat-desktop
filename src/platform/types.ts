@@ -64,6 +64,7 @@ import type {
   MailAgent,
   MailRules,
   MeetingDetails,
+  MeetingFound,
   MeetingsRead,
   NotesFolderAdded,
   NotesFolderRemoved,
@@ -450,6 +451,15 @@ export type Platform = {
   ): Promise<MeetingsRead>
   /** One meeting with its transcript lines from `cursor`, a line position. */
   meetingsShow(ref: string, cursor: number): Promise<MeetingDetails>
+  /**
+   * A meeting in the tool that records the provider's meetings, as `profile`: by the provider's own id (a link's) or
+   * its `meeting:` ref, with where its recording is.
+   */
+  meetingFind(provider: string, profile: string, meeting: string): Promise<MeetingFound>
+  /** The recording's bytes; Rust reads only the file the tool names for this meeting now. */
+  meetingRecordingRead(provider: string, profile: string, meeting: string): Promise<ArrayBuffer>
+  /** The recording in the system's own player. */
+  meetingRecordingOpen(provider: string, profile: string, meeting: string): Promise<void>
   /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
   peopleRead(kind?: PersonKind): Promise<PeopleRead>
   /** How many people memo holds of each kind; empty from a memo older than kinds. */

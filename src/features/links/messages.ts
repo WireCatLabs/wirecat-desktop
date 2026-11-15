@@ -26,6 +26,7 @@ const en = {
     person: "this person",
     project: "this project",
     sync: "this tool's sync",
+    meeting: "this call or meeting",
   } satisfies Record<Kind, string>,
 }
 
@@ -52,6 +53,7 @@ const ru: typeof en = {
     person: "этого человека",
     project: "этот проект",
     sync: "синхронизацию этого инструмента",
+    meeting: "этот звонок или встречу",
   },
 }
 
@@ -78,6 +80,7 @@ const es: typeof en = {
     person: "esta persona",
     project: "este proyecto",
     sync: "la sincronización de esta herramienta",
+    meeting: "esta llamada o reunión",
   },
 }
 

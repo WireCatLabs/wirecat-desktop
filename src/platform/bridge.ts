@@ -287,6 +287,11 @@ function createTauri(): Platform {
     meetingsList: (query, window, page, limit) =>
       invoke("meetings_list", { query, from: window?.from ?? null, to: window?.to ?? null, page, limit }),
     meetingsShow: (ref, cursor) => invoke("meetings_show", { reference: ref, cursor }),
+    meetingFind: (provider, profile, meeting) => invoke("meeting_find", { provider, profile, meeting }),
+    meetingRecordingRead: (provider, profile, meeting) =>
+      invoke("meeting_recording_read", { provider, profile, meeting }),
+    meetingRecordingOpen: (provider, profile, meeting) =>
+      invoke("meeting_recording_open", { provider, profile, meeting }),
     peopleRead: (kind) => call(PeopleReadSchema, "people_read", { kind: kind ?? null }),
     peopleKinds: () => call(KindCountsSchema, "people_kinds"),
     peoplePage: ({ kind, page, size, query, sort }) =>

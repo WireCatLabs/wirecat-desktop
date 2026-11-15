@@ -7,6 +7,7 @@ import fixture from "./links-v1.fixture.json"
 import source from "./links-v1.fixture.source.json"
 
 const valid = fixture.valid as { ref: string; path: string; web: string; app: string; target: DeepLinkTarget }[]
+const targetOnly = fixture.target_only as { path: string; web: string; app: string; target: DeepLinkTarget }[]
 
 describe("the v1 link grammar, as cli-core's shared fixture states it", () => {
   // An edit here instead of in cli-core would let the two parsers drift apart again: change cli-core, copy the file
@@ -23,6 +24,13 @@ describe("the v1 link grammar, as cli-core's shared fixture states it", () => {
     expect(appLink(one.target)).toBe(one.app)
     expect(linkTargetOf(one.ref)).toEqual(one.target)
     expect(referenceOf(one.target)).toBe(one.ref)
+  })
+
+  it.each(targetOnly.map((one) => [one.path, one] as const))("reads and writes %s, which no ref names", (_, one) => {
+    for (const text of [one.path, one.web, one.app]) expect(parseLink(text)).toEqual(one.target)
+    expect(formatLink(one.target)).toBe(one.path)
+    expect(appLink(one.target)).toBe(one.app)
+    expect(referenceOf(one.target)).toBe(one.app)
   })
 
   it.each(fixture.refused.map((one) => [one.why, one.path] as const))("refuses %s", (_, path) => {
@@ -45,7 +53,16 @@ describe("the v1 link grammar, as cli-core's shared fixture states it", () => {
   })
 
   it("names nothing for a ref no link opens", () => {
-    for (const ref of ["person:", "project: ", "account:max/1", "msg:max/1/2", "chat:tg//1", "task:", "plain"])
+    for (const ref of [
+      "person:",
+      "project: ",
+      "account:max/1",
+      "msg:max/1/2",
+      "chat:tg//1",
+      "task:",
+      "plain",
+      "meeting:4/77",
+    ])
       expect(linkTargetOf(ref)).toBeNull()
   })
 })

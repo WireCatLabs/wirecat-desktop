@@ -99,6 +99,7 @@ fn types() -> Types {
         .register::<crate::documents::DocumentDetails>()
         .register::<crate::meetings::MeetingsRead>()
         .register::<crate::meetings::MeetingDetails>()
+        .register::<crate::call_recording::MeetingFound>()
 }
 
 fn render() -> String {

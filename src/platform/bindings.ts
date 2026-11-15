@@ -948,6 +948,12 @@ export type MeetingFindings = {
 	pending: number,
 };
 
+export type MeetingFound = {
+	/**  `meeting:<account>/<meeting>`: what memo's `meetings show` takes. */
+	ref: string,
+	recording: Recording,
+};
+
 export type MeetingLink = {
 	source: string,
 	url: string,
@@ -1026,6 +1032,8 @@ export type MeetingSource = {
 	ownResponse: string | null,
 	/**  The conference's product, as the calendar names it. */
 	conference: string | null,
+	/**  The record this source gave: `meeting:<account>/<id>` for a meeting's, which its recording tool reads. */
+	ref: string | null,
 };
 
 export type MeetingSummary = {
@@ -1427,6 +1435,18 @@ export type Readiness = {
 	/**  The Node.js the app downloaded, if any; `active` when the app runs tools with it. */
 	managed: Managed | null,
 };
+
+export type Recording = 
+/**  The tool lists no recording for this meeting. */
+{ kind: "none" } | 
+/**  The tool lists one but says nothing of where it is: it is older than the `local_path` of its attachments. */
+{ kind: "unknown"; name: string | null } | 
+/**  Not on this computer: on the phone system, or at the meeting service. */
+{ kind: "elsewhere"; name: string | null } | 
+/**  The tool names a file that is not there any more. */
+{ kind: "gone"; name: string | null } | { kind: "here"; name: string | null; mime: string | null; size: number; 
+/**  Over `MAX_PLAYED`: offered to the system's player only. */
+tooLarge: boolean };
 
 export type Rejected = {
 	source: ToolSource,

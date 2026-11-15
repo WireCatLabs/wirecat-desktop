@@ -241,6 +241,8 @@ function mockProfiles(id: string): Profile[] | null {
       { name: "work", signedIn: false },
     ]
   }
+  // pbx's profile is its Asterisk's name, as a meeting link names the account.
+  if (id === "pbx") return [{ name: "office", signedIn: true }]
   return [{ name: "personal", signedIn: id === "max" || id === "drive" ? true : null }]
 }
 

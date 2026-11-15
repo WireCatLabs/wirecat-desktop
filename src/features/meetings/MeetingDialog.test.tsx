@@ -31,6 +31,7 @@ const row: MeetingRow = {
       pageUrl: "https://www.google.com/calendar/event?eid=abc",
       ownResponse: "tentative",
       conference: "Google Meet",
+      ref: "event:665",
     },
   ],
   participants: [
@@ -157,5 +158,42 @@ describe("The meeting card", () => {
     expect(within(dialog).getAllByRole("button", { name: /Open Q4 plan on Documents/ })).toHaveLength(1)
     expect(within(dialog).getByText("Budget.xlsx")).toBeVisible()
     expect(within(dialog).getByText("not read from Drive yet")).toBeVisible()
+  })
+
+  it("says a pbx call's recording stays on the phone system, and offers no player for it", async () => {
+    const call: MeetingRow = {
+      ...row,
+      ref: "event:800",
+      kind: "call",
+      title: "201 → +34 600 555 022",
+      links: [],
+      sources: [
+        {
+          provider: "asterisk",
+          account: "office",
+          source: "asterisk:office",
+          label: "Asterisk · office",
+          via: "meeting",
+          calendar: null,
+          pageUrl: null,
+          ownResponse: null,
+          conference: null,
+          ref: "meeting:4/71",
+        },
+      ],
+    }
+    vi.spyOn(platform, "meetingsShow").mockResolvedValue(details(call))
+    vi.spyOn(platform, "listProfiles").mockResolvedValue([{ name: "office", signedIn: true }])
+    const find = vi.spyOn(platform, "meetingFind").mockResolvedValue({
+      ref: "meeting:4/71",
+      recording: { kind: "elsewhere", name: "in-201.WAV" },
+    })
+    render(<MeetingDialog />)
+    showMeeting("event:800", call.title)
+    const dialog = await screen.findByRole("dialog")
+    expect(await within(dialog).findByText(/On the phone system, not on this computer/)).toBeVisible()
+    expect(find).toHaveBeenCalledWith("asterisk", "office", "meeting:4/71")
+    expect(within(dialog).queryByRole("button", { name: "Listen" })).not.toBeInTheDocument()
+    expect(within(dialog).queryByText("Kept by the meeting service")).not.toBeInTheDocument()
   })
 })

@@ -173,6 +173,11 @@ src-tauri/src/
                 context (0.650.0 and later; an older CLI names none and the card shows nothing). A call opens in the
                 tool whose catalog `meetings.provider` recorded it, as the profile the owner picks: `meetings show` and
                 `meetings transcript`. Titles and transcripts are other people's words: plain text, never logged.
+  call_recording.rs a meeting link's stored meeting and a meeting's recording, through the recording tool's
+                `meetings show` as the profile its account names (a provider id or a `meeting:` ref). The window
+                never sends a path: playing (bytes, up to 200 MB, `media-src blob:`) or opening in the system's
+                player reads the attachment's `local_path` again and takes only an audio file that exists. A
+                recording with no `local_path` (pbx over SFTP, a meeting service) is never fetched.
   memory_review.rs a memory or fact whose source changed: memo's source review read with `review show` and
                 decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
   memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted

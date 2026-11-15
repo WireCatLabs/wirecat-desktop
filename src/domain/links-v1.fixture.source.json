@@ -1,6 +1,6 @@
 {
   "repository": "WireCatLabs/cli-core",
   "path": "test/fixtures/links-v1.json",
-  "commit": "0d41705f5b271ddd510e33c5fd9c517d600fdd69",
-  "sha256": "55d0e29d1db4e8aa39e250a4f1367b2ed3f18f217cf344b376dc1aa3cd0a7f40"
+  "commit": "9ad907aa97e7bdb5db90972312c3fdb72f6df3cc",
+  "sha256": "2927fcd21adf67be628592f5f68798a1ac119697c98581676998c808d0136fca"
 }

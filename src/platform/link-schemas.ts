@@ -15,6 +15,7 @@ const DeepLinkTargetSchema = v.union([
   v.object({ type: v.literal("person"), id: part }),
   v.object({ type: v.literal("project"), id: part }),
   v.object({ type: v.literal("sync"), tool: part, account: v.exactOptional(part) }),
+  v.object({ type: v.literal("meeting"), provider: part, account: part, meeting: part }),
 ]) satisfies v.GenericSchema<unknown, DeepLinkTarget>
 
 export const OpenedSchema = v.object({ target: v.nullable(DeepLinkTargetSchema) })
