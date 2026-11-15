@@ -228,6 +228,30 @@
       }
     }
   ],
+  "target_only": [
+    {
+      "path": "/v1/meeting/asterisk/office/1731571200.42",
+      "web": "https://wirecat.dev/o#/v1/meeting/asterisk/office/1731571200.42",
+      "app": "wirecat://open/v1/meeting/asterisk/office/1731571200.42",
+      "target": {
+        "type": "meeting",
+        "provider": "asterisk",
+        "account": "office",
+        "meeting": "1731571200.42"
+      }
+    },
+    {
+      "path": "/v1/meeting/zoom/owner%40example.com/85012345678",
+      "web": "https://wirecat.dev/o#/v1/meeting/zoom/owner%40example.com/85012345678",
+      "app": "wirecat://open/v1/meeting/zoom/owner%40example.com/85012345678",
+      "target": {
+        "type": "meeting",
+        "provider": "zoom",
+        "account": "owner@example.com",
+        "meeting": "85012345678"
+      }
+    }
+  ],
   "refused": [
     {
       "path": "/v2/chat/telegram/1001/4004",
@@ -308,6 +332,14 @@
     {
       "path": "javascript:alert(1)",
       "why": "not a WireCat link"
+    },
+    {
+      "path": "/v1/meeting/asterisk/office",
+      "why": "a meeting link without its meeting"
+    },
+    {
+      "path": "/v1/meeting/asterisk/office/1731571200.42/2",
+      "why": "a meeting link with a part too many"
     }
   ],
   "ignored_query": [

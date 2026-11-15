@@ -1,4 +1,4 @@
-import { tools } from "@/domain/catalog"
+import { findTool, tools } from "@/domain/catalog"
 import { isConversation } from "@/domain/conversation"
 import { type DeepLinkTarget, toolOfProvider } from "@/domain/links"
 import { projectNamed, projectQuery, taskQuery } from "@/domain/tasks"
@@ -8,7 +8,9 @@ import { useTasks } from "@/features/tasks"
 import { openToolAt } from "@/features/tools"
 import { platform } from "@/platform/bridge"
 import { useDigestDay } from "@/shared/digest-day"
+import { openMeeting } from "@/shared/meeting-open"
 import { useNav } from "@/shared/nav"
+import { listProfiles } from "@/shared/query"
 import { type Shown, useLinks } from "./store"
 
 /** The hidden section a link opens when it has no page of its own; it is never saved as the page to reopen. */
@@ -58,6 +60,21 @@ async function openProposal(target: Extract<DeepLinkTarget, { type: "proposal" }
   useNav.getState().go("memory")
 }
 
+/** The account a meeting link names is the recording tool's profile (pbx's store account is the profile's name). */
+async function openMeetingLink(target: Extract<DeepLinkTarget, { type: "meeting" }>) {
+  const tool = findTool(toolOfProvider(target.provider))
+  if (!tool) return show({ kind: "unsupported", target })
+  const profiles = await listProfiles(tool.id).catch(() => null)
+  if (!profiles?.some((p) => p.name === target.account)) return show({ kind: "missing", target })
+  let ref: string
+  try {
+    ref = (await platform.meetingFind(target.provider, target.account, target.meeting)).ref
+  } catch {
+    return show({ kind: "missing", target })
+  }
+  openMeeting(ref)
+}
+
 /**
  * Takes the owner where a link points. It only ever opens a page: a proposal opens its row with Approve and Reject
  * beside it, and nothing is pressed for the owner. `null` is a link Rust refused.
@@ -78,6 +95,8 @@ export async function openTarget(target: DeepLinkTarget | null) {
       return openDigest(target)
     case "project":
       return openProject(target)
+    case "meeting":
+      return openMeetingLink(target)
     case "sync": {
       const id = toolOfProvider(target.tool)
       if (!tools.some((t) => t.id === id)) return show({ kind: "unsupported", target })

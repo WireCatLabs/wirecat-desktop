@@ -22,6 +22,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { LineTab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { useMeeting } from "./api"
 import { meetingMessages } from "./messages"
+import { Recording, recordingSource } from "./Recording"
 import { TranscriptView } from "./TranscriptView"
 
 const close = () => useMeetingOpen.setState({ ref: null })
@@ -204,6 +205,7 @@ function Head({ details }: { details: MeetingDetails }) {
           ))}
         </div>
       )}
+      <Recording meeting={meeting} />
     </div>
   )
 }
@@ -353,7 +355,7 @@ function Aside({ details }: { details: MeetingDetails }) {
     meeting.recurrence && { term: m.repeats, value: repeatText(meeting.recurrence, lang, m) },
     conferences.length > 0 && { term: m.conference, value: conferences.join(", ") },
     answers.length > 0 && { term: m.yourAnswer, value: answers.join(", ") },
-    meeting.hasRecording && { term: m.recording, value: m.recordingKept },
+    meeting.hasRecording && !recordingSource(meeting) && { term: m.recording, value: m.recordingKept },
   ].filter((f) => !!f)
   const people = meeting.participants
   const empty = facts.length === 0 && people.length === 0 && meeting.documents.length === 0 && files.length === 0

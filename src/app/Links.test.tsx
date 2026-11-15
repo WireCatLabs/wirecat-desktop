@@ -7,7 +7,7 @@ import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
-import { act, render, screen, waitFor } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 let deliver: (target: DeepLinkTarget | null) => void = () => {}
@@ -81,6 +81,32 @@ describe("wirecat:// links", () => {
     render(<App />)
     link({ type: "task", id: "NOPE-1" })
     expect(await screen.findByRole("heading", { name: "This item is not on this computer" })).toBeInTheDocument()
+  })
+
+  it("open a call from its pbx link, as the profile the link names, and play its recording here", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("maybe")
+    URL.createObjectURL = vi.fn(() => "blob:recording")
+    URL.revokeObjectURL = vi.fn()
+    const read = vi.spyOn(platform, "meetingRecordingRead")
+    render(<App />)
+    link({ type: "meeting", provider: "asterisk", account: "office", meeting: "1731571200.42#3" })
+    const dialog = await screen.findByRole("dialog")
+    expect(await within(dialog).findByRole("heading", { name: "+34 600 555 014 → 201" })).toBeInTheDocument()
+    expect(useNav.getState().active).toBe("meetings")
+    expect(read).not.toHaveBeenCalled()
+    await user.click(await within(dialog).findByRole("button", { name: "Listen" }))
+    expect(await within(dialog).findByLabelText("Recording")).toHaveAttribute("src", "blob:recording")
+    expect(read).toHaveBeenCalledWith("asterisk", "office", "meeting:4/77")
+  })
+
+  it("say a call is missing when its account is no profile of the tool, and never try another profile", async () => {
+    const find = vi.spyOn(platform, "meetingFind")
+    render(<App />)
+    link({ type: "meeting", provider: "asterisk", account: "warehouse", meeting: "1731571200.42#3" })
+    expect(await screen.findByRole("heading", { name: "This item is not on this computer" })).toBeInTheDocument()
+    expect(screen.getByText("wirecat://open/v1/meeting/asterisk/warehouse/1731571200.42%233")).toBeInTheDocument()
+    expect(find).not.toHaveBeenCalled()
   })
 
   it("wait for the first-run setup to close", async () => {

@@ -1,6 +1,7 @@
 import { valuesOf } from "@/domain/query-terms"
 import type {
   MeetingDetails,
+  MeetingFound,
   MeetingPage,
   MeetingParticipant,
   MeetingRow,
@@ -40,6 +41,7 @@ const CALENDAR: MeetingSource = {
   pageUrl: "https://www.google.com/calendar/event?eid=ZXhhbXBsZQ",
   ownResponse: "accepted",
   conference: "Google Meet",
+  ref: null,
 }
 const ZOOM: MeetingSource = {
   provider: "zoom",
@@ -51,6 +53,7 @@ const ZOOM: MeetingSource = {
   pageUrl: null,
   ownResponse: null,
   conference: null,
+  ref: null,
 }
 const PHONE: MeetingSource = {
   provider: "phone",
@@ -62,6 +65,7 @@ const PHONE: MeetingSource = {
   pageUrl: null,
   ownResponse: null,
   conference: null,
+  ref: null,
 }
 const TELEGRAM: MeetingSource = {
   provider: "telegram",
@@ -73,7 +77,22 @@ const TELEGRAM: MeetingSource = {
   pageUrl: null,
   ownResponse: null,
   conference: null,
+  ref: null,
 }
+
+/** A pbx profile's call: the source names its store record, which pbx's `meetings show` reads. */
+const pbx = (meeting: number): MeetingSource => ({
+  provider: "asterisk",
+  account: "office",
+  source: "asterisk:office",
+  label: "Asterisk · office",
+  via: "meeting",
+  calendar: null,
+  pageUrl: null,
+  ownResponse: null,
+  conference: null,
+  ref: `meeting:4/${meeting}`,
+})
 
 const LENA: MeetingParticipant = {
   name: "Lena Ortiz",
@@ -169,6 +188,26 @@ function week(): Seed[] {
       participants: [KAI],
       participantsCount: 1,
       hasTranscript: true,
+    },
+    {
+      title: "+34 600 555 014 → 201",
+      kind: "call",
+      start: local(-1, 16),
+      end: local(-1, 16.05),
+      sources: [pbx(77)],
+      participants: [LENA],
+      participantsCount: 1,
+      hasRecording: true,
+    },
+    {
+      title: "201 → +34 600 555 022",
+      kind: "call",
+      start: local(-2, 9),
+      end: local(-2, 9.1),
+      sources: [pbx(71)],
+      participants: [KAI],
+      participantsCount: 1,
+      hasRecording: true,
     },
     { title: "Design review", start: local(1, 10), end: local(1, 11), sources: [CALENDAR] },
     { title: "Hiring sync", start: local(1, 10), end: local(1, 11), sources: [CALENDAR] },
@@ -274,7 +313,10 @@ const PART = 100
 
 function show(ref: string, cursor: number): MeetingDetails {
   // A document names a meeting by its record (`meeting:<account>/<id>`); memo's show takes that ref too.
-  const meeting = rows().find((r) => r.ref === ref || (ref.startsWith("meeting:") && r.ref === "event:665"))
+  const all = rows()
+  const meeting =
+    all.find((r) => r.ref === ref || r.sources.some((s) => s.ref === ref)) ??
+    all.find((r) => ref.startsWith("meeting:") && r.ref === "event:665")
   if (!meeting) throw new Error(`no meeting ${ref} in the store`)
   const total = meeting.title === "Board review" ? 1_240 : 24
   return {
@@ -316,7 +358,64 @@ function show(ref: string, cursor: number): MeetingDetails {
 
 const FAILED = "another memo sync holds the store; try again when it ends"
 
-export function meetingsMock(): Pick<Platform, "meetingsList" | "meetingsShow"> {
+/**
+ * pbx's two calls by their record or their own id (`<uniqueid>#<sequence>`, as a link names it): 77's recording is a
+ * file here, 71's stays on the phone system. `?recording=gone|old|large|gsm` changes 77's: the file was removed, a pbx
+ * too old to say where, a file too large to play, a GSM file the window cannot play.
+ */
+const CALLS: Record<string, { ref: string; here: boolean }> = {
+  "meeting:4/77": { ref: "meeting:4/77", here: true },
+  "1731571200.42#3": { ref: "meeting:4/77", here: true },
+  "meeting:4/71": { ref: "meeting:4/71", here: false },
+  "1731484800.17#1": { ref: "meeting:4/71", here: false },
+}
+
+function found(provider: string, profile: string, meeting: string): MeetingFound {
+  const call = provider === "asterisk" && profile === "office" ? CALLS[meeting] : undefined
+  if (!call) throw new Error(`pbx: no meeting ${meeting} in the store (meeting.not-found)`)
+  const name = call.here ? "out-201-1731571200.42.wav" : "in-201-1731484800.17.WAV"
+  if (!call.here) return { ref: call.ref, recording: { kind: "elsewhere", name } }
+  const variant = params.get("recording")
+  if (variant === "gone") return { ref: call.ref, recording: { kind: "gone", name } }
+  if (variant === "old") return { ref: call.ref, recording: { kind: "unknown", name } }
+  const gsm = variant === "gsm"
+  const size = variant === "large" ? 300 * 1024 * 1024 : TONE_SECONDS * RATE * 2 + 44
+  return {
+    ref: call.ref,
+    recording: { kind: "here", name, mime: gsm ? "audio/x-gsm" : "audio/wav", size, tooLarge: variant === "large" },
+  }
+}
+
+const RATE = 8_000
+const TONE_SECONDS = 3
+
+/** A synthetic recording: three seconds of a soft 440 Hz tone, 16-bit mono WAV at a phone line's 8 kHz. */
+function tone(): ArrayBuffer {
+  const samples = TONE_SECONDS * RATE
+  const view = new DataView(new ArrayBuffer(44 + samples * 2))
+  const text = (at: number, word: string) => {
+    for (let i = 0; i < word.length; i++) view.setUint8(at + i, word.charCodeAt(i))
+  }
+  text(0, "RIFF")
+  view.setUint32(4, 36 + samples * 2, true)
+  text(8, "WAVEfmt ")
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, RATE, true)
+  view.setUint32(28, RATE * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  text(36, "data")
+  view.setUint32(40, samples * 2, true)
+  for (let i = 0; i < samples; i++) view.setInt16(44 + i * 2, Math.sin((2 * Math.PI * 440 * i) / RATE) * 6_000, true)
+  return view.buffer
+}
+
+export function meetingsMock(): Pick<
+  Platform,
+  "meetingsList" | "meetingsShow" | "meetingFind" | "meetingRecordingRead" | "meetingRecordingOpen"
+> {
   return {
     async meetingsList(query, window, page, limit) {
       await delay(450)
@@ -346,6 +445,18 @@ export function meetingsMock(): Pick<Platform, "meetingsList" | "meetingsShow"> 
       await delay(400)
       if (failing === "show") throw new Error(FAILED)
       return show(ref, cursor)
+    },
+    async meetingFind(provider, profile, meeting) {
+      await delay(350)
+      return found(provider, profile, meeting)
+    },
+    async meetingRecordingRead(provider, profile, meeting) {
+      await delay(300)
+      if (found(provider, profile, meeting).recording.kind !== "here") throw new Error("not on this computer")
+      return tone()
+    },
+    async meetingRecordingOpen() {
+      await delay(300)
     },
   }
 }

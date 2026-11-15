@@ -39,6 +39,9 @@ pub struct MeetingSource {
     pub own_response: Option<String>,
     /// The conference's product, as the calendar names it.
     pub conference: Option<String>,
+    /// The record this source gave: `meeting:<account>/<id>` for a meeting's, which its recording tool reads.
+    #[serde(rename = "ref")]
+    pub reference: Option<String>,
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
@@ -278,6 +281,7 @@ fn row_of(v: &Value) -> Option<MeetingRow> {
                     page_url: text(s, "page_url").filter(|u| u.starts_with("https://")),
                     own_response: text(s, "own_response"),
                     conference: text(s, "conference"),
+                    reference: text(s, "ref").filter(|r| meeting_ref(r).is_ok()),
                 })
             })
             .collect(),
@@ -558,6 +562,7 @@ mod tests {
         assert_eq!(d.findings[0].id, "12");
         assert_eq!(d.description.as_deref(), Some("Agenda"));
         assert_eq!(d.meeting.sources[0].calendar.as_deref(), Some("primary"));
+        assert_eq!(d.meeting.sources[0].reference.as_deref(), Some("event:665"));
         assert_eq!(d.summaries[0].url, None);
     }
 

@@ -181,6 +181,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     },
     async listProfiles(id) {
       await delay(300)
+      if (id === "pbx") return [{ name: "office", signedIn: true }]
       return id === "memo" ? null : [{ name: "personal", signedIn: true }]
     },
     async syncLast(id) {

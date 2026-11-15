@@ -62,6 +62,12 @@ pub enum Target {
         #[serde(skip_serializing_if = "Option::is_none")]
         account: Option<String>,
     },
+    /// A call or meeting by the provider's own ids; the tool that recorded it finds the stored row.
+    Meeting {
+        provider: String,
+        account: String,
+        meeting: String,
+    },
 }
 
 /// What the interface gets for one link: where it goes, or nothing for a link it must not follow. The refused text
@@ -178,6 +184,7 @@ fn target_of(parts: Vec<String>) -> Option<Target> {
         "project" if one(1) => Target::Project { id: at(0) },
         "sync" if one(1) => Target::Sync { tool: at(0), account: None },
         "sync" if one(2) => Target::Sync { tool: at(0), account: Some(at(1)) },
+        "meeting" if one(3) => Target::Meeting { provider: at(0), account: at(1), meeting: at(2) },
         _ => return None,
     })
 }
@@ -262,7 +269,10 @@ mod tests {
     #[test]
     fn reads_every_valid_link_of_the_shared_fixture() {
         let f = fixture();
-        for one in f["valid"].as_array().unwrap() {
+        let valid = f["valid"].as_array().unwrap();
+        let target_only = f["target_only"].as_array().unwrap();
+        assert!(!target_only.is_empty(), "the fixture's meeting links");
+        for one in valid.iter().chain(target_only) {
             let app = one["app"].as_str().unwrap();
             let target = parse(app).unwrap_or_else(|| panic!("refused {app}"));
             assert_eq!(serde_json::to_value(&target).unwrap(), one["target"], "{app}");

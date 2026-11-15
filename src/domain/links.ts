@@ -19,6 +19,8 @@ export type DeepLinkTarget =
   /** A project's store id or its key, as `project:<key>` names it. */
   | { type: "project"; id: string }
   | { type: "sync"; tool: string; account?: string }
+  /** A call or meeting by the provider's own ids (`asterisk`, the pbx profile, the call's id there): no store ref. */
+  | { type: "meeting"; provider: string; account: string; meeting: string }
 
 // Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
 const TOOL_OF: Record<string, string> = {
@@ -28,6 +30,7 @@ const TOOL_OF: Record<string, string> = {
   "whatsapp-bot": "wa",
   "max-bot": "max",
   zoom: "zm",
+  asterisk: "pbx",
   mail: "email",
   calendar: "gcal",
   // cli-core's calendar accounts, as memo's meetings name their source.
@@ -67,6 +70,8 @@ const partsOf = (target: DeepLinkTarget): string[] => {
       return ["project", target.id]
     case "sync":
       return target.account === undefined ? ["sync", target.tool] : ["sync", target.tool, target.account]
+    case "meeting":
+      return ["meeting", target.provider, target.account, target.meeting]
   }
 }
 
@@ -96,6 +101,8 @@ const targetOfParts = (parts: string[]): DeepLinkTarget | null => {
     case "sync":
       if (rest.length === 1) return { type: "sync", tool: a }
       return rest.length === 2 ? { type: "sync", tool: a, account: b } : null
+    case "meeting":
+      return rest.length === 3 ? { type: "meeting", provider: a, account: b, meeting: c } : null
     default:
       return null
   }
@@ -184,6 +191,9 @@ export const referenceOf = (target: DeepLinkTarget): string => {
     case "person":
     case "project":
       return `${target.type}:${target.id}`
+    // `meeting:` names a store row, which a provider's ids are not; the link itself is what an agent can be given.
+    case "meeting":
+      return appLink(target)
     default:
       return formatLink(target)
         .slice(LINK_VERSION.length + 2)

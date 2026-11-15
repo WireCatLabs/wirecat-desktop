@@ -11,6 +11,7 @@ mod backup;
 mod bindings;
 mod bots;
 mod cache;
+mod call_recording;
 mod calls;
 mod catalog;
 mod chats;
@@ -382,6 +383,9 @@ pub fn run() {
             commands::documents::documents_reveal,
             commands::meetings::meetings_list,
             commands::meetings::meetings_show,
+            commands::meetings::meeting_find,
+            commands::meetings::meeting_recording_read,
+            commands::meetings::meeting_recording_open,
             commands::people::people_split_decide,
             commands::people::people_doubts,
             commands::people::people_keep,
