@@ -18,13 +18,15 @@ const row = (ref: string, title: string, person?: { ref: string; name: string })
   status: "confirmed",
   links: [],
   sources: [],
-  participants: person ? [{ name: person.name, email: null, person, organizer: false }] : [],
+  participants: person ? [{ name: person.name, email: null, person, organizer: false, response: null }] : [],
   participantsCount: person ? 1 : 0,
   hasRecording: false,
   hasTranscript: false,
   hasSummary: false,
   documents: [],
   pendingFindings: 0,
+  seriesId: null,
+  recurrence: null,
 })
 
 describe("Searching meetings", () => {

@@ -113,6 +113,39 @@ const serviceOfUrl = (url: string) => {
   return JOIN_SERVICES.find(([re]) => re.test(host))?.[1] ?? host.replace(/^www\./, "")
 }
 
+/** A calendar's page by its product name, which no language translates; another calendar by its tool's name. */
+const PAGE_SERVICES: Record<string, string> = { "google-calendar": "Google Calendar" }
+
+const WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
+
+/** An `RRULE:` line in words; a rule with parts this does not read is shown as calendars write it. */
+function repeatText(rule: string, lang: string, m: (typeof meetingMessages)["en"]) {
+  const parts = new Map(
+    rule
+      .replace(/^RRULE:/i, "")
+      .split(";")
+      .map((p) => p.split("=") as [string, string]),
+  )
+  const n = Number(parts.get("INTERVAL") ?? 1)
+  if (!Number.isInteger(n) || n < 1) return rule
+  const byDay = (parts.get("BYDAY") ?? "").split(",").filter(Boolean)
+  // 1 January 2024 was a Monday.
+  const day = (code: string) =>
+    new Date(2024, 0, 1 + WEEKDAYS.indexOf(code)).toLocaleDateString(lang, { weekday: "short" })
+  switch (parts.get("FREQ")) {
+    case "DAILY":
+      return m.every.day(n)
+    case "WEEKLY":
+      return byDay.every((d) => WEEKDAYS.includes(d)) ? m.every.week(n, byDay.map(day).join(", ")) : rule
+    case "MONTHLY":
+      return m.every.month(n)
+    case "YEARLY":
+      return m.every.year(n)
+    default:
+      return rule.replace(/^RRULE:/i, "")
+  }
+}
+
 /** The date and time in the computer's zone, the meeting's own zone when it differs, where it came from, and its links. */
 function Head({ details }: { details: MeetingDetails }) {
   const m = useMessages(meetingMessages)
@@ -139,6 +172,11 @@ function Head({ details }: { details: MeetingDetails }) {
     }
   }
   const services = [...new Map(meeting.sources.map((s) => [s.provider, s])).values()]
+  const pages = meeting.sources.filter((s) => s.pageUrl)
+  const pageName = (s: (typeof pages)[number]) => {
+    const name = PAGE_SERVICES[s.provider] ?? sourceOf(s.provider).name
+    return pages.filter((o) => o.provider === s.provider).length > 1 ? `${name} · ${s.account}` : name
+  }
   const status = meeting.status ? m.status[meeting.status] : undefined
   return (
     <div className="flex flex-col gap-[0.7rem]">
@@ -152,11 +190,16 @@ function Head({ details }: { details: MeetingDetails }) {
         ))}
         {status && <Pill tone={meeting.status === "cancelled" ? "bad" : "warn"}>{status}</Pill>}
       </p>
-      {meeting.links.length > 0 && (
+      {meeting.links.length + pages.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {meeting.links.map((l, i) => (
             <OpenLink key={l.url} url={l.url} variant={i === 0 ? "primary" : "secondary"}>
               {m.joinOn(serviceOfUrl(l.url))}
+            </OpenLink>
+          ))}
+          {pages.map((s) => (
+            <OpenLink key={s.pageUrl} url={s.pageUrl ?? ""} variant="secondary">
+              {m.openIn(pageName(s))}
             </OpenLink>
           ))}
         </div>
@@ -284,9 +327,19 @@ function Summary({ details }: { details: MeetingDetails }) {
 /** Where, which calendar, the recording, who took part and the documents: each only when memo knows it. */
 function Aside({ details }: { details: MeetingDetails }) {
   const m = useMessages(meetingMessages)
+  const lang = useLang()
   const meeting = details.meeting
   const calendars = [...new Set(meeting.sources.flatMap((s) => (s.calendar ? [`${s.calendar} · ${s.account}`] : [])))]
   const location = details.location
+  const conferences = [...new Set(meeting.sources.flatMap((s) => (s.conference ? [s.conference] : [])))]
+  const answered = meeting.sources.filter((s) => s.ownResponse)
+  // Each calendar keeps its own answer; with two, each is named, never one chosen for both.
+  const answers = answered.map((s) => {
+    const word = m.ownResponses[s.ownResponse ?? ""] ?? s.ownResponse
+    return answered.length > 1 ? `${word} (${s.calendar ?? s.account})` : word
+  })
+  const known = new Set(meeting.documents.map((d) => d.ref))
+  const files = details.attachments.filter((a) => !a.document || !known.has(a.document))
   const facts = [
     location && {
       term: m.where,
@@ -297,10 +350,13 @@ function Aside({ details }: { details: MeetingDetails }) {
       ),
     },
     calendars.length > 0 && { term: m.calendar, value: <span className="selectable">{calendars.join(", ")}</span> },
+    meeting.recurrence && { term: m.repeats, value: repeatText(meeting.recurrence, lang, m) },
+    conferences.length > 0 && { term: m.conference, value: conferences.join(", ") },
+    answers.length > 0 && { term: m.yourAnswer, value: answers.join(", ") },
     meeting.hasRecording && { term: m.recording, value: m.recordingKept },
   ].filter((f) => !!f)
   const people = meeting.participants
-  const empty = facts.length === 0 && people.length === 0 && meeting.documents.length === 0
+  const empty = facts.length === 0 && people.length === 0 && meeting.documents.length === 0 && files.length === 0
   if (empty && !hasMain(details)) return <p className="text-[0.95rem] text-ink-soft">{m.onlyTime}</p>
   if (empty) return null
   return (
@@ -348,6 +404,11 @@ function Aside({ details }: { details: MeetingDetails }) {
                     <span className="selectable font-mono text-[0.88rem]">{p.email}</span>
                   )}
                   {p.organizer && <span className="text-[0.85rem] text-ink-dim">{m.organizer}</span>}
+                  {p.response && (
+                    <span className={`text-[0.85rem] ${p.response === "declined" ? "text-bad" : "text-ink-dim"}`}>
+                      {m.responses[p.response] ?? p.response}
+                    </span>
+                  )}
                   {name && p.email && !p.person && (
                     <span className="selectable min-w-0 truncate font-mono text-[0.85rem] text-ink-dim">{p.email}</span>
                   )}
@@ -357,21 +418,31 @@ function Aside({ details }: { details: MeetingDetails }) {
           </ul>
         </section>
       )}
-      {meeting.documents.length > 0 && (
+      {meeting.documents.length + files.length > 0 && (
         <section className="flex flex-col gap-[0.5rem]">
           <SectionTitle as="h3">{m.documents}</SectionTitle>
           <ul className="flex flex-col gap-[0.35rem] text-[0.95rem]">
-            {meeting.documents.map((d) => (
-              <li key={d.ref}>
-                <LinkButton
-                  aria-label={m.openDocument(d.title ?? d.ref)}
-                  onClick={() => {
-                    close()
-                    openDocument(d.ref, d.title ?? "")
-                  }}
-                >
-                  {d.title ?? d.ref}
-                </LinkButton>
+            {[
+              ...meeting.documents.map((d) => ({ key: d.ref, ref: d.ref, title: d.title ?? d.ref })),
+              ...files.map((a) => ({ key: a.fileId, ref: a.document, title: a.title ?? a.fileId })),
+            ].map((d) => (
+              <li key={d.key} className="flex min-w-0 flex-wrap items-baseline gap-x-[0.4rem]">
+                {d.ref ? (
+                  <LinkButton
+                    aria-label={m.openDocument(d.title)}
+                    onClick={() => {
+                      close()
+                      openDocument(d.ref ?? "", d.title)
+                    }}
+                  >
+                    {d.title}
+                  </LinkButton>
+                ) : (
+                  <>
+                    <span className="selectable">{d.title}</span>
+                    <span className="text-[0.85rem] text-ink-dim">{m.notStored}</span>
+                  </>
+                )}
               </li>
             ))}
           </ul>

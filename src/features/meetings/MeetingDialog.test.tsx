@@ -1,3 +1,4 @@
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import type { MeetingDetails, MeetingRow } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -27,10 +28,19 @@ const row: MeetingRow = {
       label: "Google Calendar · ana@example.org",
       via: "calendar",
       calendar: "Work",
+      pageUrl: "https://www.google.com/calendar/event?eid=abc",
+      ownResponse: "tentative",
+      conference: "Google Meet",
     },
   ],
   participants: [
-    { name: "Lena Ortiz", email: "lena@example.org", person: { ref: "person:7", name: "Lena Ortiz" }, organizer: true },
+    {
+      name: "Lena Ortiz",
+      email: "lena@example.org",
+      person: { ref: "person:7", name: "Lena Ortiz" },
+      organizer: true,
+      response: "accepted",
+    },
   ],
   participantsCount: 1,
   hasRecording: true,
@@ -38,12 +48,15 @@ const row: MeetingRow = {
   hasSummary: true,
   documents: [],
   pendingFindings: 0,
+  seriesId: null,
+  recurrence: null,
 }
 
 const details = (meeting: MeetingRow, more: Partial<MeetingDetails> = {}): MeetingDetails => ({
   meeting,
   description: null,
   location: null,
+  attachments: [],
   summaries: [],
   transcript: null,
   findings: [],
@@ -86,7 +99,16 @@ describe("The meeting card", () => {
       ref: "event:700",
       title: "ML Project",
       links: [],
-      sources: [{ ...(row.sources[0] as MeetingRow["sources"][number]), calendar: null }],
+      // As a memo from before the calendar's page, answers and series: no field, so nothing to show.
+      sources: [
+        {
+          ...(row.sources[0] as MeetingRow["sources"][number]),
+          calendar: null,
+          pageUrl: null,
+          ownResponse: null,
+          conference: null,
+        },
+      ],
       participants: [],
       participantsCount: 0,
       hasRecording: false,
@@ -98,5 +120,42 @@ describe("The meeting card", () => {
     const dialog = await screen.findByRole("dialog")
     expect(await within(dialog).findByText(/The calendar gave only the time of this meeting/)).toBeVisible()
     expect(within(dialog).queryByRole("heading", { name: /Participants|Summary|Details/ })).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole("button", { name: /Open in/ })).not.toBeInTheDocument()
+  })
+
+  it("opens the event in its calendar, and shows the answers, how it repeats and the event's Drive files", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue(undefined)
+    const repeated: MeetingRow = {
+      ...row,
+      recurrence: "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE",
+      seriesId: "31",
+      documents: [{ ref: "document:40", title: "Q4 plan", role: "attachment" }],
+      participants: [
+        ...row.participants,
+        { name: "Kai Moreno", email: "kai@example.org", person: null, organizer: false, response: "declined" },
+      ],
+    }
+    vi.spyOn(platform, "meetingsShow").mockResolvedValue(
+      details(repeated, {
+        attachments: [
+          { fileId: "q4", title: "Q4 plan", document: "document:40" },
+          { fileId: "budget", title: "Budget.xlsx", document: null },
+        ],
+      }),
+    )
+    const user = userEvent.setup()
+    render(<MeetingDialog />)
+    showMeeting("event:665", "Board review")
+    const dialog = await screen.findByRole("dialog")
+    await user.click(await within(dialog).findByRole("button", { name: /Open in Google Calendar/ }))
+    expect(open).toHaveBeenCalledWith("https://www.google.com/calendar/event?eid=abc")
+    expect(within(dialog).getByText("Every 2 weeks on Mon, Wed")).toBeVisible()
+    expect(within(dialog).getByText("Google Meet")).toBeVisible()
+    expect(within(dialog).getByText("Maybe")).toBeVisible()
+    expect(within(dialog).getByText("accepted")).toBeVisible()
+    expect(within(dialog).getByText("declined")).toBeVisible()
+    expect(within(dialog).getAllByRole("button", { name: /Open Q4 plan on Documents/ })).toHaveLength(1)
+    expect(within(dialog).getByText("Budget.xlsx")).toBeVisible()
+    expect(within(dialog).getByText("not read from Drive yet")).toBeVisible()
   })
 })

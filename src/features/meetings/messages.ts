@@ -99,6 +99,31 @@ const en = {
   tryAgain: "Try again",
   openPerson: (name: string) => `Open ${name} on Contacts`,
   openDocument: (title: string) => `Open ${title} on Documents`,
+  openIn: (service: string) => `Open in ${service}`,
+  repeats: "Repeats",
+  conference: "Conference",
+  yourAnswer: "Your answer",
+  ownResponses: {
+    accepted: "Going",
+    declined: "Not going",
+    tentative: "Maybe",
+    "needs-action": "Not answered",
+    delegated: "Delegated",
+  } as Record<string, string>,
+  responses: {
+    accepted: "accepted",
+    declined: "declined",
+    tentative: "maybe",
+    "needs-action": "no answer",
+    delegated: "delegated",
+  } as Record<string, string>,
+  every: {
+    day: (n: number) => (n === 1 ? "Every day" : `Every ${n} days`),
+    week: (n: number, days: string) => `${n === 1 ? "Every week" : `Every ${n} weeks`}${days ? ` on ${days}` : ""}`,
+    month: (n: number) => (n === 1 ? "Every month" : `Every ${n} months`),
+    year: (n: number) => (n === 1 ? "Every year" : `Every ${n} years`),
+  },
+  notStored: "not read from Drive yet",
 }
 
 const ru: typeof en = {
@@ -189,6 +214,32 @@ const ru: typeof en = {
   tryAgain: "Попробовать снова",
   openPerson: (name: string) => `Открыть ${name} в Контактах`,
   openDocument: (title: string) => `Открыть «${title}» в Документах`,
+  openIn: (service: string) => `Открыть в ${service}`,
+  repeats: "Повторяется",
+  conference: "Конференция",
+  yourAnswer: "Ваш ответ",
+  ownResponses: {
+    accepted: "Иду",
+    declined: "Не иду",
+    tentative: "Возможно",
+    "needs-action": "Нет ответа",
+    delegated: "Передано",
+  },
+  responses: {
+    accepted: "придёт",
+    declined: "не придёт",
+    tentative: "возможно",
+    "needs-action": "нет ответа",
+    delegated: "передал(а)",
+  },
+  every: {
+    day: (n: number) => (n === 1 ? "Каждый день" : `Каждые ${n} ${pluralRu(n, ["день", "дня", "дней"])}`),
+    week: (n: number, days: string) =>
+      `${n === 1 ? "Каждую неделю" : `Каждые ${n} ${pluralRu(n, ["неделю", "недели", "недель"])}`}${days ? `: ${days}` : ""}`,
+    month: (n: number) => (n === 1 ? "Каждый месяц" : `Каждые ${n} ${pluralRu(n, ["месяц", "месяца", "месяцев"])}`),
+    year: (n: number) => (n === 1 ? "Каждый год" : `Каждые ${n} ${pluralRu(n, ["год", "года", "лет"])}`),
+  },
+  notStored: "ещё не прочитан из Drive",
 }
 
 const es: typeof en = {
@@ -279,6 +330,31 @@ const es: typeof en = {
   tryAgain: "Reintentar",
   openPerson: (name: string) => `Abrir a ${name} en Contactos`,
   openDocument: (title: string) => `Abrir ${title} en Documentos`,
+  openIn: (service: string) => `Abrir en ${service}`,
+  repeats: "Se repite",
+  conference: "Videollamada",
+  yourAnswer: "Tu respuesta",
+  ownResponses: {
+    accepted: "Asistiré",
+    declined: "No asistiré",
+    tentative: "Quizás",
+    "needs-action": "Sin responder",
+    delegated: "Delegada",
+  },
+  responses: {
+    accepted: "asistirá",
+    declined: "no asistirá",
+    tentative: "quizás",
+    "needs-action": "sin respuesta",
+    delegated: "delegó",
+  },
+  every: {
+    day: (n: number) => (n === 1 ? "Cada día" : `Cada ${n} días`),
+    week: (n: number, days: string) => `${n === 1 ? "Cada semana" : `Cada ${n} semanas`}${days ? `: ${days}` : ""}`,
+    month: (n: number) => (n === 1 ? "Cada mes" : `Cada ${n} meses`),
+    year: (n: number) => (n === 1 ? "Cada año" : `Cada ${n} años`),
+  },
+  notStored: "aún no leído de Drive",
 }
 
 export const meetingMessages: Messages<typeof en> = { en, ru, es }

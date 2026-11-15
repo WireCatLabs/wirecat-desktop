@@ -917,10 +917,18 @@ export type McpServerStatus = {
 	clients: McpClient[],
 };
 
+/**  A Drive file attached to the calendar event; `document` once a Drive account stored it. */
+export type MeetingAttachment = {
+	fileId: string,
+	title: string | null,
+	document: string | null,
+};
+
 export type MeetingDetails = {
 	meeting: MeetingRow,
 	description: string | null,
 	location: string | null,
+	attachments: MeetingAttachment[],
 	summaries: MeetingSummary[],
 	transcript: Transcript | null,
 	findings: MeetingFindings[],
@@ -963,6 +971,8 @@ export type MeetingParticipant = {
 	email: string | null,
 	person: MeetingPerson | null,
 	organizer: boolean,
+	/**  The answer to the calendar's invitation; none for a meeting's participant or from an older memo. */
+	response: string | null,
 };
 
 export type MeetingPerson = {
@@ -991,6 +1001,9 @@ export type MeetingRow = {
 	hasSummary: boolean,
 	documents: MeetingDocument[],
 	pendingFindings: number,
+	/**  The calendar series it is an occurrence of, and that series' `RRULE:` line. */
+	seriesId: string | null,
+	recurrence: string | null,
 };
 
 export type MeetingSection = {
@@ -1007,6 +1020,12 @@ export type MeetingSource = {
 	via: string,
 	/**  The calendar's own name inside the account, for a calendar copy. */
 	calendar: string | null,
+	/**  A calendar copy's own page at its provider, `https` only; a memo from before it, or a meeting's record, has none. */
+	pageUrl: string | null,
+	/**  How this calendar's owner answered the invitation: `accepted`, `tentative`, `declined`, `needs-action`. */
+	ownResponse: string | null,
+	/**  The conference's product, as the calendar names it. */
+	conference: string | null,
 };
 
 export type MeetingSummary = {

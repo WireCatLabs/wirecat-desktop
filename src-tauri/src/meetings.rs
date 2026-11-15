@@ -23,6 +23,7 @@ pub struct MeetingsPageSource {
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct MeetingSource {
     pub provider: String,
     pub account: String,
@@ -32,6 +33,12 @@ pub struct MeetingSource {
     pub via: String,
     /// The calendar's own name inside the account, for a calendar copy.
     pub calendar: Option<String>,
+    /// A calendar copy's own page at its provider, `https` only; a memo from before it, or a meeting's record, has none.
+    pub page_url: Option<String>,
+    /// How this calendar's owner answered the invitation: `accepted`, `tentative`, `declined`, `needs-action`.
+    pub own_response: Option<String>,
+    /// The conference's product, as the calendar names it.
+    pub conference: Option<String>,
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
@@ -53,6 +60,8 @@ pub struct MeetingParticipant {
     pub email: Option<String>,
     pub person: Option<MeetingPerson>,
     pub organizer: bool,
+    /// The answer to the calendar's invitation; none for a meeting's participant or from an older memo.
+    pub response: Option<String>,
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
@@ -88,6 +97,18 @@ pub struct MeetingRow {
     pub has_summary: bool,
     pub documents: Vec<MeetingDocument>,
     pub pending_findings: u64,
+    /// The calendar series it is an occurrence of, and that series' `RRULE:` line.
+    pub series_id: Option<String>,
+    pub recurrence: Option<String>,
+}
+
+/// A Drive file attached to the calendar event; `document` once a Drive account stored it.
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingAttachment {
+    pub file_id: String,
+    pub title: Option<String>,
+    pub document: Option<String>,
 }
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
@@ -171,6 +192,7 @@ pub struct MeetingDetails {
     pub meeting: MeetingRow,
     pub description: Option<String>,
     pub location: Option<String>,
+    pub attachments: Vec<MeetingAttachment>,
     pub summaries: Vec<MeetingSummary>,
     pub transcript: Option<Transcript>,
     pub findings: Vec<MeetingFindings>,
@@ -253,6 +275,9 @@ fn row_of(v: &Value) -> Option<MeetingRow> {
                     label: text(s, "label").unwrap_or_default(),
                     via: text(s, "via").unwrap_or_default(),
                     calendar: text(s, "calendar"),
+                    page_url: text(s, "page_url").filter(|u| u.starts_with("https://")),
+                    own_response: text(s, "own_response"),
+                    conference: text(s, "conference"),
                 })
             })
             .collect(),
@@ -263,6 +288,7 @@ fn row_of(v: &Value) -> Option<MeetingRow> {
                 email: text(p, "email"),
                 person: person_of(&p["person"]),
                 organizer: flag(p, "organizer"),
+                response: text(p, "response"),
             })
             .collect(),
         participants_count: count(v, "participants_count"),
@@ -276,6 +302,8 @@ fn row_of(v: &Value) -> Option<MeetingRow> {
             })
             .collect(),
         pending_findings: count(v, "pending_findings"),
+        series_id: text(v, "series_id"),
+        recurrence: text(v, "recurrence"),
     })
 }
 
@@ -307,6 +335,16 @@ fn details_of(v: &Value) -> Option<MeetingDetails> {
         meeting: row_of(v)?,
         description: text(v, "description"),
         location: text(v, "location"),
+        attachments: items_at(v, "attachments")
+            .iter()
+            .filter_map(|a| {
+                Some(MeetingAttachment {
+                    file_id: text(a, "file_id")?,
+                    title: text(a, "title"),
+                    document: text(a, "document"),
+                })
+            })
+            .collect(),
         summaries: items_at(v, "summaries")
             .iter()
             .map(|s| MeetingSummary {
@@ -533,6 +571,35 @@ mod tests {
         let d = details_of(&v).unwrap();
         assert_eq!(d.summaries[0].url.as_deref(), Some("https://docs.google.com/document/d/1"));
         assert_eq!(d.summaries[1].url, None);
+    }
+
+    #[test]
+    fn reads_the_calendar_page_answers_series_and_files_and_leaves_them_out_for_an_older_memo() {
+        let old = details_of(&row()).unwrap();
+        assert_eq!((old.meeting.sources[0].page_url.as_deref(), old.meeting.recurrence.as_deref()), (None, None));
+        assert_eq!(old.meeting.participants[0].response, None);
+        assert_eq!(old.attachments, Vec::new());
+
+        let mut v = row();
+        v["sources"][0]["page_url"] = json!("https://www.google.com/calendar/event?eid=abc");
+        v["sources"][0]["own_response"] = json!("tentative");
+        v["sources"][0]["conference"] = json!("Google Meet");
+        v["participants"][0]["response"] = json!("accepted");
+        v["series_id"] = json!("12");
+        v["recurrence"] = json!("RRULE:FREQ=WEEKLY;BYDAY=MO");
+        v["attachments"] = json!([{ "file_id": "f1", "title": "Agenda", "document": "document:40" },
+                                  { "title": "no id" }]);
+        let d = details_of(&v).unwrap();
+        let s = &d.meeting.sources[0];
+        assert_eq!(s.page_url.as_deref(), Some("https://www.google.com/calendar/event?eid=abc"));
+        assert_eq!((s.own_response.as_deref(), s.conference.as_deref()), (Some("tentative"), Some("Google Meet")));
+        assert_eq!(d.meeting.participants[0].response.as_deref(), Some("accepted"));
+        assert_eq!(d.meeting.recurrence.as_deref(), Some("RRULE:FREQ=WEEKLY;BYDAY=MO"));
+        assert_eq!(d.attachments.len(), 1);
+        assert_eq!(d.attachments[0].document.as_deref(), Some("document:40"));
+
+        v["sources"][0]["page_url"] = json!("javascript:alert(1)");
+        assert_eq!(details_of(&v).unwrap().meeting.sources[0].page_url, None);
     }
 
     #[test]

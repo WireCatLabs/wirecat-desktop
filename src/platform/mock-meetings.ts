@@ -37,6 +37,9 @@ const CALENDAR: MeetingSource = {
   label: "Google Calendar · ana@example.org",
   via: "calendar",
   calendar: "Work",
+  pageUrl: "https://www.google.com/calendar/event?eid=ZXhhbXBsZQ",
+  ownResponse: "accepted",
+  conference: "Google Meet",
 }
 const ZOOM: MeetingSource = {
   provider: "zoom",
@@ -45,6 +48,9 @@ const ZOOM: MeetingSource = {
   label: "Zoom · ana@example.org",
   via: "meeting",
   calendar: null,
+  pageUrl: null,
+  ownResponse: null,
+  conference: null,
 }
 const PHONE: MeetingSource = {
   provider: "phone",
@@ -53,6 +59,9 @@ const PHONE: MeetingSource = {
   label: "Phone",
   via: "meeting",
   calendar: null,
+  pageUrl: null,
+  ownResponse: null,
+  conference: null,
 }
 const TELEGRAM: MeetingSource = {
   provider: "telegram",
@@ -61,6 +70,9 @@ const TELEGRAM: MeetingSource = {
   label: "Telegram · personal",
   via: "meeting",
   calendar: null,
+  pageUrl: null,
+  ownResponse: null,
+  conference: null,
 }
 
 const LENA: MeetingParticipant = {
@@ -68,14 +80,22 @@ const LENA: MeetingParticipant = {
   email: "lena@example.org",
   person: { ref: "person:7", name: "Lena Ortiz" },
   organizer: true,
+  response: "accepted",
 }
 const KAI: MeetingParticipant = {
   name: "Kai Moreno",
   email: "kai@example.org",
   person: { ref: "person:4", name: "Kai Moreno" },
   organizer: false,
+  response: "tentative",
 }
-const GUEST: MeetingParticipant = { name: null, email: "guest@example.net", person: null, organizer: false }
+const GUEST: MeetingParticipant = {
+  name: null,
+  email: "guest@example.net",
+  person: null,
+  organizer: false,
+  response: "declined",
+}
 
 type Seed = Partial<MeetingRow> & { title: string; start: Date; end: Date }
 
@@ -99,6 +119,8 @@ const row = (i: number, s: Seed): MeetingRow => {
     hasSummary: false,
     documents: [],
     pendingFindings: 0,
+    seriesId: null,
+    recurrence: null,
     ...rest,
   }
 }
@@ -112,9 +134,11 @@ function week(): Seed[] {
       title: "Standup",
       start: local(d, 9.5),
       end: local(d, 9.75),
-      sources: [CALENDAR, ZOOM],
+      sources: [{ ...CALENDAR, conference: "Zoom Meeting" }, ZOOM],
       links: [zoomLink],
       hasTranscript: d < 0,
+      seriesId: "31",
+      recurrence: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
     }),
   )
   return [
@@ -133,6 +157,8 @@ function week(): Seed[] {
       hasSummary: true,
       documents: [{ ref: "document:40", title: "Q4 plan", role: "attachment" }],
       pendingFindings: 3,
+      seriesId: "18",
+      recurrence: "RRULE:FREQ=MONTHLY;INTERVAL=3",
     },
     {
       title: "Kai Moreno",
@@ -255,6 +281,13 @@ function show(ref: string, cursor: number): MeetingDetails {
     meeting,
     description: meeting.title === "Board review" ? "Agenda: the fourth quarter plan and the hiring budget." : null,
     location: meeting.title === "Board review" ? "Atlas room, third floor" : null,
+    attachments:
+      meeting.title === "Board review"
+        ? [
+            { fileId: "q4-plan", title: "Q4 plan", document: "document:40" },
+            { fileId: "hiring", title: "Hiring budget.xlsx", document: null },
+          ]
+        : [],
     summaries: meeting.hasSummary
       ? [
           {

@@ -23,6 +23,8 @@ const meeting = (minutes: number): MeetingRow => ({
   hasSummary: false,
   documents: [],
   pendingFindings: 0,
+  seriesId: null,
+  recurrence: null,
 })
 const time = (d: Date) => d.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })
 
