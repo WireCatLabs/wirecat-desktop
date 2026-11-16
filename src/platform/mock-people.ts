@@ -1,5 +1,6 @@
 import { WHATSAPP_PHONE } from "@/domain/people"
 import { CommandError, TOO_OLD } from "./command-error"
+import { agentMergesOf, NORA_MERGE, WEAK } from "./mock-agent-merges"
 import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
@@ -104,16 +105,7 @@ function seed(): Held[] {
         account("telegram:6060", "Nora", [["1", "personal"]], "initial", 25, "nora_v"),
         account("whatsapp:34600606060", "Nora Vidal", [["7", "personal"]], "agent", 1),
       ],
-      [
-        {
-          id: "merge:60-61",
-          from: "person:61",
-          identities: ["whatsapp:34600606060"],
-          method: "agent",
-          at: ago(DAY),
-          agent: { name: "claude-code", reason: "Nora's mobile is the same in Telegram and WhatsApp." },
-        },
-      ],
+      [NORA_MERGE],
     ),
     person("person:4", "Kai Moreno", [
       account(
@@ -356,11 +348,7 @@ const MATCHES: Match[] = [
     proposer: { kind: "rule", name: "rule" },
     ...UNSHARED,
     score: 0.7,
-    strength: {
-      strong: false,
-      weak: "company",
-      facts: [{ kind: "phone", value: "+34912400188", others: 0, strong: false, weak: "company" }],
-    },
+    strength: WEAK.company,
   },
   // One shared mailbox three people sign from: memo suggests the pairs and never joins them by itself.
   ...(
@@ -384,11 +372,7 @@ const MATCHES: Match[] = [
       score: 0.4,
       shared: "role",
       mailbox: "info@harbour.example",
-      strength: {
-        strong: false,
-        weak: "role-address",
-        facts: [{ kind: "email", value: "info@harbour.example", others: 1, strong: false, weak: "role-address" }],
-      },
+      strength: WEAK.role,
     }),
   ),
   {
@@ -404,7 +388,7 @@ const MATCHES: Match[] = [
     proposer: { kind: "agent", name: "claude-code" },
     ...UNSHARED,
     score: null,
-    strength: { strong: false, weak: "nothing-shared", facts: [] },
+    strength: WEAK.nothing,
   },
 ]
 
@@ -611,28 +595,7 @@ export function peopleMock(): Pick<
         kinded,
         companyMailbox,
         oneCompany,
-        // As memo: an agent's join is listed until it is undone.
-        agentMerges:
-          scenario === "none"
-            ? []
-            : people.flatMap((p) =>
-                p.merges
-                  .filter((x) => x.method === "agent")
-                  .map((x) => ({
-                    id: x.id,
-                    person: p.ref,
-                    from: x.from,
-                    identities: x.identities,
-                    agent: x.agent?.name ?? null,
-                    reason: x.agent?.reason ?? null,
-                    at: x.at,
-                    evidence: {
-                      strong: true,
-                      weak: null,
-                      facts: [{ kind: "phone", value: "+34600606060", others: 0, strong: true, weak: null }],
-                    },
-                  })),
-              ),
+        agentMerges: scenario === "none" ? [] : agentMergesOf(people),
         agentMergesMore: false,
       }
     },
