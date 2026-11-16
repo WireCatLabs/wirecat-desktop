@@ -188,11 +188,13 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
   const [password, setTyped] = useState("")
   const chosen = tool ? methodOf(tool, method) : undefined
   const askPassword = Boolean(chosen?.password) && !ownFile
+  // A token read on stdin with no address (notion) is not an app password: the field says what it is.
+  const token = Boolean(chosen?.stdin) && !chosen?.address
   const addressNeed = useFieldError(`${id}-address`, {
     live: { problem: missing === "address" ? m.needAddress : null },
   })
   const passwordNeed = useFieldError(`${id}-password`, {
-    live: { problem: missing === "password" ? m.needPassword : null },
+    live: { problem: missing === "password" ? (token ? m.needToken : m.needPassword) : null },
   })
   const failAddress = addressNeed.fail
   const failPassword = passwordNeed.fail
@@ -230,7 +232,7 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
       {askPassword && (
         <>
           <label htmlFor={`${id}-password`} className="mt-1 text-[0.9rem] font-medium text-ink">
-            {m.password}
+            {token ? m.token : m.password}
           </label>
           <input
             id={`${id}-password`}

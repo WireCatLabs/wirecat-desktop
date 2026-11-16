@@ -1034,3 +1034,19 @@ describe("going back inside the dialog", () => {
     expect(useSignIn.getState().phase).toBe("progress")
   })
 })
+
+describe("signing in to Notion", () => {
+  it("asks for the token in the window and gives it to the run, not as an app password", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("notion", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Notion" })
+    expect(within(dialog).queryByLabelText("App password")).not.toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText("Token"), "ntn_example")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("notion", "token", "work", expect.any(Function), {
+        password: "ntn_example",
+      }),
+    )
+  })
+})
