@@ -38,6 +38,11 @@ describe("breakdownRows", () => {
     expect(rows[1]?.detail).toBe("1 account · 4 messages")
   })
 
+  it("traces phone calls to the program that collects them", () => {
+    const calls: BreakdownLike = { ...breakdown, providers: [g("beeline", null, { accounts: 1, meetings: 3 })] }
+    expect(breakdownRows(calls, "provider", String, words)[0]?.detail).toMatch(/^via wcat-beeline · /)
+  })
+
   it("adds providers up per year, newest first", () => {
     const rows = breakdownRows(breakdown, "year", String, words)
     expect(rows.map((r) => [r.label, r.value])).toEqual([

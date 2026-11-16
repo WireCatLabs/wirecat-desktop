@@ -9,6 +9,7 @@ const EN_WHAT: Record<SyncWhat, { one: string; other: string; place: [string, st
   messages: { one: "new message", other: "new messages", place: ["chat", "chats"], noun: "messages" },
   files: { one: "file", other: "files", place: ["folder", "folders"], noun: "files" },
   meetings: { one: "meeting", other: "meetings", place: ["meeting", "meetings"], noun: "meetings" },
+  calls: { one: "call", other: "calls", place: ["call", "calls"], noun: "calls" },
   "notes and mail": {
     one: "new email or note",
     other: "new emails and notes",
@@ -48,6 +49,14 @@ const RU_WHAT: Record<
     from: ["встречи", "встреч"],
     noun: { one: "# встреча", few: "# встречи", many: "# встреч" },
     none: "новых встреч нет",
+    failed: "С предупреждением",
+  },
+  calls: {
+    new: { one: "# звонок", few: "# звонка", many: "# звонков" },
+    place: { one: "# звонок", few: "# звонка", many: "# звонков" },
+    from: ["звонка", "звонков"],
+    noun: { one: "# звонок", few: "# звонка", many: "# звонков" },
+    none: "новых звонков нет",
     failed: "С предупреждением",
   },
   "notes and mail": {
@@ -101,6 +110,13 @@ const ES_WHAT: Record<
     place: ["reunión", "reuniones"],
     noun: ["reunión", "reuniones"],
     none: "no hay reuniones nuevas",
+  },
+  calls: {
+    one: "llamada",
+    other: "llamadas",
+    place: ["llamada", "llamadas"],
+    noun: ["llamada", "llamadas"],
+    none: "no hay llamadas nuevas",
   },
   "notes and mail": {
     one: "correo o nota nuevos",

@@ -48,7 +48,9 @@ const COLLECTED_BY: Record<string, string> = {
   // A notes folder memo reads: an Obsidian vault, or plain Markdown files ("local").
   obsidian: "memo",
   local: "memo",
-  beeline: "beeline",
+  // Desktop runs the program an own tool's manifest names, so a number traces to the command the owner can find.
+  beeline: "wcat-beeline",
+  asterisk: "pbx",
 }
 
 const collectedBy = (p: string): string | null => COLLECTED_BY[p] ?? null

@@ -214,6 +214,8 @@ pub struct Taken {
     packages: HashMap<String, Owner>,
     folders: HashMap<String, Owner>,
     ports: HashMap<String, Owner>,
+    /// A client's call opens in the one tool that names its provider (`calls.rs`), so two tools cannot share one.
+    providers: HashMap<String, Owner>,
 }
 
 impl Taken {
@@ -226,6 +228,7 @@ impl Taken {
             packages: HashMap::new(),
             folders: HashMap::new(),
             ports: HashMap::new(),
+            providers: HashMap::new(),
         };
         for key in [&c.shared_storage.app, &c.shared_storage.env] {
             t.folders.insert(key.to_lowercase(), Owner { name: "the shared WireCat store".into(), listed: false });
@@ -245,6 +248,9 @@ impl Taken {
         self.folders.insert(tool.storage.env.to_lowercase(), owner());
         if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
             self.ports.insert(port.to_string(), owner());
+        }
+        if let Some(m) = &tool.meetings {
+            self.providers.insert(m.provider.clone(), owner());
         }
     }
 
@@ -302,6 +308,10 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
     if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
         Taken::free(&taken.ports, "port", &port.to_string(), &port.to_string())?;
     }
+    if let Some(m) = &tool.meetings {
+        meetings(m)?;
+        Taken::free(&taken.providers, "provider", &m.provider, &m.provider)?;
+    }
     Ok(tool)
 }
 
@@ -322,6 +332,20 @@ fn own_storage(tool: &Tool) -> Result<(), Problem> {
         "storage",
         format!("the data folder {} must be {folder}, or start with {folder}-, after the package.", tool.storage.app),
     ))
+}
+
+/// The provider is cli-core's name on the stored calls (`beeline`); each command opens one call, so it names `{id}`.
+fn meetings(m: &crate::catalog::MeetingsSource) -> Result<(), Problem> {
+    let name = (2..=32).contains(&m.provider.len())
+        && m.provider.starts_with(|c: char| c.is_ascii_lowercase())
+        && m.provider.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+    if !name {
+        return Err(rule("meetings", format!("the provider {:?} is not a plain lower-case name.", m.provider)));
+    }
+    if ![&m.show, &m.transcript].iter().all(|words| words.iter().any(|w| w == "{id}")) {
+        return Err(rule("meetings", "show and transcript must each take the call as {id}.".into()));
+    }
+    Ok(())
 }
 
 /// Every string listed in an array is a command word (or a key or value the tool reads), run without a shell except

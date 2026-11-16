@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import { useRef } from "react"
-import { type CatalogTool, findTool, isCommunity, isOwn, maker, ownerId } from "@/domain/catalog"
+import { type CatalogTool, findTool, isCommunity, isOwn, isWirecatPackage, maker, ownerId } from "@/domain/catalog"
 import { listBlocksInstalls } from "@/domain/community-list"
 import { fitSeverity } from "@/domain/compat"
 import { type ToolStatus, toolStatus } from "@/domain/status"
@@ -165,7 +165,11 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               </p>
             ) : isCommunity(tool) && !installs?.length ? (
               <p className="mt-1 line-clamp-2 text-body text-ink-soft">
-                {isOwn(tool) ? om.trust(maker(tool)) : m.trust(maker(tool))}
+                {isOwn(tool)
+                  ? isWirecatPackage(tool)
+                    ? om.trustWirecat
+                    : om.trust(maker(tool))
+                  : m.trust(maker(tool))}
               </p>
             ) : (
               <p className="mt-1 truncate text-body text-ink-soft max-[999px]:whitespace-normal">
