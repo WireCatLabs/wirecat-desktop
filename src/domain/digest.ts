@@ -1,6 +1,7 @@
 // The digests archive's plain logic: a `wirecat.report/1` document laid out as cli-core's renderer lays it out
 // (`src/background/report/view.ts`): sections in a fixed order, one emoji per item type, dates relative to now.
 
+import { crmToolOf } from "./catalog"
 import { type DeepLinkTarget, formatLink, linkTargetOf, parseLink } from "./links"
 
 export const SECTION_ORDER = ["today", "decisions", "money", "meetings", "projects", "crm", "mail"] as const
@@ -198,6 +199,19 @@ export function taskGroups(
 /** The sync problems worth a line: a named reason, or a day without news. */
 export const staleHealth = <T extends { reason: string | null; stale_hours: number }>(health: readonly T[]) =>
   health.filter((h) => h.reason !== null || h.stale_hours > STALE_HOURS)
+
+/**
+ * A sync line's name and Fix target. A CRM's own digest names its source by provider (`bitrix24`) with no ref, so the
+ * catalog names the tool and Fix opens its sync; any other line keeps its words and its refs.
+ */
+export function healthSource(h: { source: string; refs: readonly string[] }): {
+  name: string
+  target: ReportTarget | null
+} {
+  const target = targetOfRefs(h.refs)
+  const tool = target ? undefined : crmToolOf(h.source)
+  return tool ? { name: tool.name, target: { type: "sync", tool: tool.id } } : { name: h.source, target }
+}
 
 /** Sections in the renderer's order, parts of one kind merged, empty ones left out. */
 export function orderedSections<S extends { kind: SectionKind; items: readonly unknown[]; more: number }>(

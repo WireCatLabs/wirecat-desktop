@@ -31,41 +31,56 @@ const showReport = (section: Record<string, unknown>) => {
 }
 
 describe("a CRM digest", () => {
-  it("shows won, lost, moved, new deals, new owners, new contacts, tasks and what it left out", () => {
+  it("shows won, lost, moved, new deals, new owners, tasks and what it left out", () => {
     const crm = showReport(crmSection(now))
     const text = crm.textContent ?? ""
-    expect(text).toContain("Northstar site")
-    expect(text).toContain("Harbor fit-out: won")
+    expect(text).toContain("Northstar site · won")
     expect(text).toContain("Vector renewal: lost: price")
     expect(text).toContain("Atlas warehouse: New → Quote sent")
     expect(text).toContain("Cable supply: new")
     expect(text).toContain("Office move: new owner")
-    expect(text).toContain("new contacts: 3")
     expect(text).toMatch(/Call about the contract — overdue by 2 hours/)
     expect(text).toMatch(/Send the quote — due today/)
-    expect(text).toContain("Check the signed contract")
-    expect(text).toContain("4 more")
+    expect(text).toContain("5 more")
+    expect(within(crm).getByRole("button", { name: "Open: Northstar site" })).toBeTruthy()
     expect(within(crm).getByRole("button", { name: "Open: Atlas warehouse" })).toBeTruthy()
+  })
+
+  it("shows a won deal without an amount, new contacts as one count and the tasks the stage rules opened", () => {
+    const crm = showReport({
+      kind: "crm",
+      items: [
+        { type: "fact", topic: "Harbor fit-out", detail: "won", channel: "crm", refs: ["deal:13"] },
+        { type: "fact", topic: "new contacts", detail: "3", count: 3, refs: [] },
+        { type: "task", topic: "Check the signed contract", channel: "crm", refs: ["task:CRM-7"] },
+      ],
+    })
+    expect(crm.textContent).toContain("Harbor fit-out: won")
+    expect(crm.textContent).toContain("new contacts: 3")
     expect(within(crm).getByRole("button", { name: "Open: Check the signed contract" })).toBeTruthy()
   })
 
-  it("says the CRM copy is stale and names the CRM among the sources", () => {
+  it("names a stale CRM by its tool, offers Fix, and names the CRM among the sources", () => {
     showReport(crmSection(now))
-    expect(screen.getByRole("region", { name: "Sync" }).textContent).toContain("amo (sales): not updated for 1 day")
+    const sync = screen.getByRole("region", { name: "Sync" })
+    expect(sync.textContent).toContain("Bitrix24 (sales): not updated for 1 day")
+    expect(within(sync).getByRole("button", { name: "Fix: Bitrix24 (sales)" })).toBeTruthy()
     expect(screen.getByText(/^Viewed over .*: CRM · 1 task/)).toBeTruthy()
   })
 
-  it("shows CRM text as text: no markup, and no link from a web address in a title", () => {
+  it("shows CRM text as text: no markup, and only the ref opens anything, never a web address in a title", () => {
     const crm = showReport({
       kind: "crm",
       items: [
         { type: "fact", topic: '<img src=x onerror="alert(1)">', detail: "new", channel: "crm", refs: [] },
-        { type: "fact", topic: "https://evil.example/login", detail: "won", channel: "crm", refs: [] },
+        { type: "fact", topic: "https://evil.example/login", detail: "won", channel: "crm", refs: ["deal:1"] },
       ],
     })
     expect(crm.textContent).toContain('<img src=x onerror="alert(1)">: new')
+    expect(crm.textContent).toContain("https://evil.example/login: won")
     expect(crm.querySelector("img, a")).toBeNull()
-    expect(within(crm).queryByRole("button", { name: /^Open/ })).toBeNull()
+    const opens = within(crm).getAllByRole("button", { name: /^Open/ })
+    expect(opens.map((b) => b.getAttribute("aria-label"))).toEqual(["Open: https://evil.example/login"])
   })
 })
 

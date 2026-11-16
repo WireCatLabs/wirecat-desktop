@@ -5,6 +5,7 @@ import {
   emojiOf,
   entityOf,
   HEALTH_EMOJI,
+  healthSource,
   isOverdue,
   keyOf,
   type Moment,
@@ -243,7 +244,8 @@ function Item({ item, now }: { item: ReportItem; now: number }) {
     item.quote ? `«${item.quote}»` : null,
   ].filter((part): part is string => part !== null)
   const target = targetOfRefs(item.refs)
-  const what = item.topic ?? item.who ?? ""
+  // A money item's topic is what happened to it ("won"); its who names the deal or the payer.
+  const what = (item.type === "money" ? (item.who ?? item.topic) : (item.topic ?? item.who)) ?? ""
   // A click on the item's text opens its details; a click on a link inside it only follows the link.
   const toggleFromText = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, a") || window.getSelection()?.toString()) return
@@ -359,8 +361,8 @@ export function ReportView({ report, now }: { report: Report; now: number }) {
                         ? m.quietSince(since)
                         : m.quietFor(span)
                       : m.stale(span)
-              const target = targetOfRefs(h.refs)
-              const name = h.account ? `${h.source} (${h.account})` : h.source
+              const { name: source, target } = healthSource(h)
+              const name = h.account ? `${source} (${h.account})` : source
               return (
                 // biome-ignore lint/suspicious/noArrayIndexKey: as above, a digest's lines never move
                 <li key={i} className="py-[0.2rem] text-ink-soft">
