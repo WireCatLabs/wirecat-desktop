@@ -1,0 +1,85 @@
+import type { Messages } from "@/i18n"
+
+const en = {
+  loading: (name: string) => `Asking ${name} what it needs…`,
+  continue: "Continue",
+  checking: "Checking…",
+  cancel: "Cancel",
+  done: "Done",
+  close: "Close",
+  /** The tool's own word for an empty required field, "is needed". */
+  needed: "Fill this in.",
+  keepSecret: "Saved already. Leave it empty to keep it, or type a new one.",
+  show: "Show",
+  hide: "Hide",
+  chooseFile: "Choose file…",
+  chooseFolder: "Choose folder…",
+  choose: "Choose…",
+  countries: "Countries",
+  noCountry: "None chosen",
+  pickOne: "Choose one.",
+  copy: "Copy",
+  noImage: "Picture not shown",
+  needLater: "You may also need",
+  stuck: "This setup goes round in circles. Close it and try again, or tell us with Report a problem.",
+  checkFailed: "The tool could not check the answers. Try again; if it fails again, the details say why.",
+  runFailed: "The check failed. Change what it names and continue again.",
+  runEnded: "The check failed.",
+}
+
+export type FlowText = typeof en
+
+const ru: FlowText = {
+  loading: (name) => `Спрашиваю у ${name}, что нужно…`,
+  continue: "Продолжить",
+  checking: "Проверяю…",
+  cancel: "Отмена",
+  done: "Готово",
+  close: "Закрыть",
+  needed: "Заполните это поле.",
+  keepSecret: "Уже сохранён. Оставьте пустым, чтобы не менять, или введите новый.",
+  show: "Показать",
+  hide: "Скрыть",
+  chooseFile: "Выбрать файл…",
+  chooseFolder: "Выбрать папку…",
+  choose: "Выберите…",
+  countries: "Страны",
+  noCountry: "Не выбрано",
+  pickOne: "Выберите один вариант.",
+  copy: "Скопировать",
+  noImage: "Картинка не показана",
+  needLater: "Может понадобиться",
+  stuck: "Настройка ходит по кругу. Закройте её и попробуйте снова или сообщите нам через «Сообщить о проблеме».",
+  checkFailed: "Инструмент не смог проверить ответы. Попробуйте ещё раз; если не выйдет, причина в подробностях.",
+  runFailed: "Проверка не прошла. Исправьте то, что в ней названо, и продолжите снова.",
+  runEnded: "Проверка не прошла.",
+}
+
+const es: FlowText = {
+  loading: (name) => `Preguntando a ${name} qué necesita…`,
+  continue: "Continuar",
+  checking: "Comprobando…",
+  cancel: "Cancelar",
+  done: "Listo",
+  close: "Cerrar",
+  needed: "Rellena este campo.",
+  keepSecret: "Ya está guardada. Déjala vacía para conservarla o escribe una nueva.",
+  show: "Mostrar",
+  hide: "Ocultar",
+  chooseFile: "Elegir archivo…",
+  chooseFolder: "Elegir carpeta…",
+  choose: "Elige…",
+  countries: "Países",
+  noCountry: "Ninguno elegido",
+  pickOne: "Elige una opción.",
+  copy: "Copiar",
+  noImage: "Imagen no mostrada",
+  needLater: "También puedes necesitar",
+  stuck: "Esta configuración da vueltas. Ciérrala y vuelve a intentarlo, o avísanos con Informar de un problema.",
+  checkFailed:
+    "La herramienta no pudo comprobar las respuestas. Vuelve a intentarlo; si falla otra vez, los detalles dicen por qué.",
+  runFailed: "La comprobación falló. Corrige lo que indica y continúa de nuevo.",
+  runEnded: "La comprobación falló.",
+}
+
+export const flowMessages: Messages<FlowText> = { en, ru, es }

@@ -15,6 +15,7 @@
       "!.worktrees",
       "!.claude",
       "!src/platform/bindings.ts",
+      "!src/domain/setup-v1/*.json",
       "!src/assets/logos/*.svg"
     ]
   },

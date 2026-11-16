@@ -92,6 +92,7 @@ mod search;
 mod search_harder;
 mod self_test;
 mod settings;
+mod setup_flow;
 mod signin;
 mod signin_steps;
 mod skills;
@@ -452,6 +453,10 @@ pub fn run() {
             commands::signin::remove_bot,
             commands::signin::sign_in_answer,
             commands::signin::sign_in_on_portal,
+            commands::signin::setup_show,
+            commands::signin::setup_check,
+            commands::signin::setup_apply,
+            commands::signin::setup_pick_path,
             commands::signin::sign_in_stop,
             commands::setup_extras::zoom_app_setup,
             commands::setup_extras::drive_folders_browse,

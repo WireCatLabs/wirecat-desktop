@@ -504,47 +504,83 @@ async function zoomAppSetup(): Promise<ZoomAppAnswer> {
   }
 }
 
+/**
+ * A setup flow's `apply` run (`?setup=pbx`): the tool checks the answers, then saves them. `?setup-fail=auth` refuses
+ * the database password, which leads back to the database step; `?setup-fail=network` cannot reach the server.
+ */
+const setupFails = query.get("setup-fail")
+async function setupScript(s: Script): Promise<SignInEvent> {
+  s.emit({ event: "progress", step: "check", message: `checking ${s.profile}'s settings` })
+  if (await s.wait(1800)) return STOPPED
+  if (setupFails === "auth")
+    return {
+      event: "failed",
+      code: "authentication_error",
+      reason: null,
+      message: "the database refused user asterisk: wrong password",
+    }
+  if (setupFails === "network")
+    return { event: "failed", code: "network_error", reason: null, message: "cannot reach pbx.local:3306" }
+  return signedIn
+}
+
 export function signInMock(): Pick<
   Platform,
-  "signIn" | "signInAnswer" | "signInStop" | "zoomAppSetup" | "signInOnPortal"
+  "signIn" | "signInAnswer" | "signInStop" | "zoomAppSetup" | "signInOnPortal" | "setupApply"
 > {
   let stop: (() => void) | null = null
   let reply: ((value: string) => void) | null = null
 
+  const run = async (
+    id: string,
+    profile: string,
+    onEvent: (e: SignInEvent) => void,
+    script: ((s: Script) => Promise<SignInEvent>) | undefined,
+  ) => {
+    let stopped = false
+    stop = () => {
+      stopped = true
+    }
+    const wait = async (ms: number) => {
+      const until = Date.now() + ms
+      while (!stopped && Date.now() < until) await delay(100)
+      return stopped
+    }
+    const ask: Script["ask"] = async (field, prompt, secret, hint) => {
+      let answer: string | null = null
+      reply = (value) => {
+        answer = value
+      }
+      onEvent({ event: "needs", field, secret, prompt, hint: hint ?? null })
+      while (!stopped && answer === null) await delay(100)
+      reply = null
+      if (stopped) return null
+      onEvent({ event: "progress", step: "check", message: "checking" })
+      await delay(700)
+      return answer
+    }
+    const emit = (e: SignInEvent) =>
+      onEvent(e.event === "qr" ? { ...e, scan: e.scan ? `${SAMPLE}. ${upper(e.scan)}` : `${SAMPLE}.` } : e)
+    await delay(500)
+    const end = script
+      ? await script({ emit, wait, ask, profile, id })
+      : ({ event: "failed", message: "This tool cannot sign in here.", code: null } as SignInEvent)
+    await delay(400)
+    if (end.event === "done" && !linkedProfiles.includes(profile)) linkedProfiles.push(profile)
+    onEvent(end)
+  }
+
   return {
     async signIn(id, method, profile, onEvent, inputs = {}) {
-      let stopped = false
-      stop = () => {
-        stopped = true
-      }
-      const wait = async (ms: number) => {
-        const until = Date.now() + ms
-        while (!stopped && Date.now() < until) await delay(100)
-        return stopped
-      }
-      const ask: Script["ask"] = async (field, prompt, secret, hint) => {
-        let answer: string | null = null
-        reply = (value) => {
-          answer = value
-        }
-        onEvent({ event: "needs", field, secret, prompt, hint: hint ?? null })
-        while (!stopped && answer === null) await delay(100)
-        reply = null
-        if (stopped) return null
-        onEvent({ event: "progress", step: "check", message: "checking" })
-        await delay(700)
-        return answer
-      }
-      const emit = (e: SignInEvent) =>
-        onEvent(e.event === "qr" ? { ...e, scan: e.scan ? `${SAMPLE}. ${upper(e.scan)}` : `${SAMPLE}.` } : e)
-      await delay(500)
-      const script = failTool === id && failReason ? (s: Script) => failing(s, failReason) : scripts[id]
-      const end = script
-        ? await script({ emit, wait, ask, profile, id }, method, inputs)
-        : ({ event: "failed", message: "This tool cannot sign in here.", code: null } as SignInEvent)
-      await delay(400)
-      if (end.event === "done" && !linkedProfiles.includes(profile)) linkedProfiles.push(profile)
-      onEvent(end)
+      const own = scripts[id]
+      const script =
+        failTool === id && failReason
+          ? (s: Script) => failing(s, failReason)
+          : own && ((s: Script) => own(s, method, inputs))
+      await run(id, profile, onEvent, script)
+    },
+    async setupApply(id, profile, _answers, onEvent) {
+      await run(id, profile, onEvent, setupScript)
     },
     async signInAnswer(_id, value) {
       if (!reply) throw new Error("The sign-in has already ended.")

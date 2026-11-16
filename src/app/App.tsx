@@ -156,7 +156,9 @@ function Shell() {
         <ClearDataOffer />
         <AboutDialog open={about} onClose={() => setAbout(false)} />
         <PrivacyDialog open={privacy} onClose={() => setPrivacy(false)} />
-        <SignInDialog />
+        <ErrorBoundary scope="page">
+          <SignInDialog />
+        </ErrorBoundary>
         <BotSignInDialog />
         <SandboxConfirm />
         <ReportDialog />

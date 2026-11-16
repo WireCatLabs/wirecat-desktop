@@ -7,6 +7,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import { useSandbox } from "@/shared/sandbox-store"
 import { useSignIn } from "@/shared/signin-store"
 import { act, render, screen, within } from "@/testing/render"
+import { openSignIn } from "@/testing/signin"
 import { SandboxBanner, SandboxConfirm } from "./Sandbox"
 
 const WARNING = "This signs your real account into a test copy. Its messages will be downloaded into the copy."
@@ -46,7 +47,7 @@ describe("a test copy started by bin/sandbox", () => {
         <SandboxConfirm />
       </>,
     )
-    act(() => useSignIn.getState().start("max", "personal"))
+    await openSignIn("max", "personal")
     const signin = screen.getByRole("dialog", { name: /Sign in to MAX/ })
 
     await userEvent.click(within(signin).getByRole("button", { name: "Start sign-in" }))
