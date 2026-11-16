@@ -2429,7 +2429,7 @@
         "show": ["skill", "show", "--no-record", "--json"]
       },
       "mcpServer": {
-        "port": 8770,
+        "port": 8762,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
         "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
         "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
