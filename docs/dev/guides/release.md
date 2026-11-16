@@ -63,8 +63,10 @@ draft and the tag (`git push origin :refs/tags/v<version>`) and run `bin/tag-rel
   that finish together can overwrite each other. `publish` catches it; re-run the build whose platform is missing.
 - **File names that differ only in case** break the Windows and macOS builds (their file systems ignore case), while
   Linux and the `web` job pass. Pull requests run on Linux only, so this shows at the release's `build`.
-- **The macOS `.dmg` asks to accept the license** since 0.6.6 (`bundle.licenseFile`), so the install check answers
-  `hdiutil attach` with `yes`.
+- **No license prompt in any installer** (owner's ruling, 2026-11-16). `bundle.licenseFile` makes Tauri put the
+  license in the macOS `.dmg` as an agreement, and in the Windows installer as a page to accept, so it stays unset.
+  `LICENSE` ships as a resource next to the app instead. 0.6.6 to 0.6.8 had the prompt, and an unanswered one made
+  `hdiutil attach` mount nothing.
 - **Download links in `latest.json` are GitHub API asset URLs** (tauri-action 1.0.0, #1315), rate-limited without a
   login (60 an hour per address). Updates are rare, so this should not matter.
 - **Dependabot #6** (glib 0.18, GHSA-wrw7-89jp-8q8g) cannot be fixed by a bump: Tauri 2.12 needs gtk 0.18, which pins

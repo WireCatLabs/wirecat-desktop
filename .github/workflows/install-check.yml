@@ -115,9 +115,7 @@ jobs:
         run: |
           set -o pipefail
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.dmg" --dir dl
-          # Since 0.6.6 the .dmg carries the license as an agreement (bundle.licenseFile), and hdiutil cancels the
-          # attach unless someone answers it: `yes` agrees, as a user clicking Agree does.
-          mount="$( (yes || true) | hdiutil attach -nobrowse -noverify -noautoopen dl/*.dmg |
+          mount="$(hdiutil attach -nobrowse -noverify -noautoopen dl/*.dmg |
             awk -F'\t' '/\/Volumes\// {print $NF}')"
           [ -d "$mount" ] || { echo "::error::hdiutil mounted no volume from the .dmg."; exit 1; }
           mkdir -p ~/Applications
