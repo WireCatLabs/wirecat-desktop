@@ -14,6 +14,16 @@ const StrengthSchema = v.object({
   ),
 })
 
+/** A person of a match as memo gives it for the owner to compare: last messages or calls, companies and deals. */
+const MatchSideSchema = v.object({
+  person: v.string(),
+  last: v.array(
+    v.object({ at: v.string(), kind: v.string(), source: v.string(), from_me: v.nullable(v.boolean()), text }),
+  ),
+  organizations: v.array(v.string()),
+  deals: v.array(v.string()),
+})
+
 /** Two people an agent joined on strong evidence, still one; Undo takes `id`. */
 const AgentMergeSchema = v.object({
   id: v.string(),
@@ -46,6 +56,7 @@ export const MatchSchema = v.object({
   mailbox: text,
   /** Absent from a memo before agents merged, and from the page's own older answers. */
   strength: v.optional(v.nullable(StrengthSchema)),
+  sides: v.optional(v.array(MatchSideSchema)),
 })
 
 /** Accounts an agent says are not this person: `unlink` moves them to one new person, `unmerge` undoes `merge`. */
@@ -208,6 +219,7 @@ export const ResolvedSchema = v.variant("kind", [
 export type Match = v.InferOutput<typeof MatchSchema>
 export type Strength = v.InferOutput<typeof StrengthSchema>
 export type AgentMerge = v.InferOutput<typeof AgentMergeSchema>
+export type MatchSide = v.InferOutput<typeof MatchSideSchema>
 export type Resolved = v.InferOutput<typeof ResolvedSchema>
 export type Split = v.InferOutput<typeof SplitSchema>
 export type Doubts = v.InferOutput<typeof DoubtsSchema>

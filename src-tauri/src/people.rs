@@ -199,6 +199,43 @@ pub struct Match {
     pub mailbox: Option<String>,
     /// What the two share and why an agent could not merge them on it; absent before memo carries it.
     pub strength: Option<Strength>,
+    /// Each person's last messages or calls, companies and deals, as memo gives them; empty from an older memo.
+    pub sides: Vec<Side>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Touch {
+    pub at: String,
+    /// `message`, `call` or `meeting`.
+    pub kind: String,
+    pub source: String,
+    pub from_me: Option<bool>,
+    pub text: Option<String>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Side {
+    pub person: String,
+    pub last: Vec<Touch>,
+    pub organizations: Vec<String>,
+    pub deals: Vec<String>,
+}
+
+fn side(v: &Value) -> Option<Side> {
+    Some(Side {
+        person: person_of(&v["person"])?,
+        last: list(v, "last", |t| {
+            Some(Touch {
+                at: text(t, "at")?,
+                kind: text(t, "kind")?,
+                source: text(t, "source")?,
+                from_me: t["from_me"].as_bool(),
+                text: text(t, "text"),
+            })
+        }),
+        organizations: list(v, "organizations", |o| o.as_str().map(str::to_string)),
+        deals: list(v, "deals", |d| d.as_str().map(str::to_string)),
+    })
 }
 
 /// A phone or address both people hold, and whether it is strong enough for an agent to merge them.
@@ -279,6 +316,7 @@ fn matched(v: &Value) -> Option<Match> {
         shared: text(v, "shared"),
         mailbox: text(v, "mailbox"),
         strength: strength(&v["strength"]),
+        sides: list(v, "sides", side),
         persons: (persons.len() == 2).then_some(persons)?,
     })
 }
@@ -386,17 +424,11 @@ fn counts_with(call: &Call) -> BTreeMap<String, KindCount> {
 /// The agents' merges the page lists; more are named, not shown.
 const AGENT_MERGE_LIMIT: &str = "100";
 
-/// `agent`: this memo merges for agents, so its review takes `--brief` (each side the page reads itself) and lists them.
+/// `agent`: this memo merges for agents, so it lists their merges, and its review gives each side's context.
 fn read_with(call: &Call, kind: &str, agent: bool) -> Result<Read, String> {
     let kind = KINDS.iter().find(|k| **k == kind).copied().unwrap_or("person");
     let (people, matches, merged) = std::thread::scope(|s| {
-        let m = s.spawn(|| {
-            let mut review = vec!["people", "review", "--limit", MATCH_LIMIT];
-            if agent {
-                review.push("--brief");
-            }
-            call(&words(&review))
-        });
+        let m = s.spawn(|| call(&words(&["people", "review", "--limit", MATCH_LIMIT])));
         let a = agent
             .then(|| s.spawn(|| call(&words(&["people", "review", "--kind", "merged", "--limit", AGENT_MERGE_LIMIT]))));
         let asked = format!("kind:{kind}");
@@ -1327,6 +1359,7 @@ mod tests {
             "split-confirm" => include_str!("../tests/fixtures/people/split-confirm.json"),
             "review-brief" => include_str!("../tests/fixtures/people/review-brief.json"),
             "review-merged" => include_str!("../tests/fixtures/people/review-merged.json"),
+            "review-sides" => include_str!("../tests/fixtures/people/review-sides.json"),
             "show-agent-merge" => include_str!("../tests/fixtures/people/show-agent-merge.json"),
             _ => panic!("no fixture {name}"),
         };
@@ -1587,11 +1620,28 @@ mod tests {
         assert_eq!(agent_merges[0].identities, ["telegram:11"]);
         assert!(agent_merges[0].evidence.as_ref().unwrap().strong);
         let asked = asked.lock().unwrap();
-        assert!(asked.iter().any(|a| a[1] == "review" && a.contains(&"--brief".to_string())));
+        assert!(asked.iter().all(|a| !a.contains(&"--brief".to_string())), "the review gives each side's context");
 
         let merge = &person(&fixture("show-agent-merge")).unwrap().merges[0];
         assert_eq!(merge.method.as_deref(), Some("agent"));
         assert_eq!(merge.agent.as_ref().map(|a| a.name.as_str()), Some("claude-code"));
+    }
+
+    #[test]
+    fn a_match_carries_each_sides_last_messages_companies_and_deals() {
+        let call = |a: &[String]| -> Result<Value, String> {
+            Ok(if a[1] == "review" { fixture("review-sides") } else { fixture("list") })
+        };
+        let Read::Ready { matches, .. } = read_with(&call, "person", true).unwrap() else { panic!() };
+        let sides = &matches[0].sides;
+        assert_eq!(sides.len(), 2);
+        let alice = sides.iter().find(|s| s.person == "person:4").unwrap();
+        assert_eq!(alice.organizations, ["Acme Ltd"]);
+        assert_eq!(alice.deals, ["Acme renewal · New"]);
+        assert_eq!(alice.last[0].kind, "message");
+        assert_eq!(alice.last[0].source, "telegram");
+        assert_eq!(alice.last[0].from_me, Some(false));
+        assert_eq!(alice.last[0].text.as_deref(), Some("Can we renew Atlas before December?"));
     }
 
     #[test]

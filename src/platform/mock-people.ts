@@ -1,9 +1,9 @@
 import { WHATSAPP_PHONE } from "@/domain/people"
 import { CommandError, TOO_OLD } from "./command-error"
-import { agentMergesOf, NORA_MERGE, WEAK } from "./mock-agent-merges"
 import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
+import { agentMergesOf, NORA_MERGE, WEAK, withSides } from "./mock-review"
 import {
   type Doubt,
   type Identity,
@@ -589,7 +589,7 @@ export function peopleMock(): Pick<
         kind: "ready",
         people: listing,
         peopleMore: more,
-        matches,
+        matches: matches.map(withSides),
         matchesMore: more,
         splits,
         kinded,

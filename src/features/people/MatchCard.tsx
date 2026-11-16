@@ -2,7 +2,7 @@ import { Mail, PanelRightOpen, Phone } from "lucide-react"
 import { useEffect, useId, useRef } from "react"
 import { seenAtWork } from "@/domain/people"
 import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
-import type { Identity, Match } from "@/platform/people-schemas"
+import type { Identity, Match, MatchSide } from "@/platform/people-schemas"
 import { SourceIcon, sourceOf } from "@/shared/SourceIcon"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -27,6 +27,7 @@ import { useComparableName, usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { peopleMessages } from "./messages"
 import { usePicks, useUnticked } from "./picks"
+import { SideContext } from "./SideContext"
 import { accountName } from "./sources"
 import { usePeople } from "./store"
 
@@ -125,6 +126,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
           <Side
             key={ref}
             reference={ref}
+            context={first.sides?.find((side) => side.person === ref)}
             contacts={contacts[people.indexOf(ref)] ?? { phones: [], emails: [] }}
             same={(v) => shared !== null && keyOf(first.signal)(v) === keyOf(first.signal)(shared)}
             tie={tieOf(open.length ? open : group.matches, ref)}
@@ -296,6 +298,7 @@ function Signal({
  */
 function Side({
   reference,
+  context,
   contacts,
   same,
   tie,
@@ -303,6 +306,7 @@ function Side({
   pick,
 }: {
   reference: string
+  context: MatchSide | undefined
   contacts: Contacts
   same: (value: string) => boolean
   /** The account the match names; marked when this side shows no shared phone or address to point at. */
@@ -379,6 +383,7 @@ function Side({
           {rest > 0 && <li className="text-[0.85rem] text-ink-dim">{m.moreAccounts(rest)}</li>}
         </ul>
       )}
+      <SideContext side={context} />
     </section>
   )
 }

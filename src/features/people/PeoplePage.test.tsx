@@ -505,6 +505,18 @@ describe("People", () => {
     expect(unmerge).toHaveBeenCalledWith("person:60", "merge:60-61")
   })
 
+  it("shows each side's company, deal and last messages, so the owner tells them apart", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const lena = await openMatch(user, "Lena Ortiz · 2 people")
+    const [max, telegram] = within(lena).getAllByRole("region", { name: "Lena Ortiz" })
+    expect(max).toHaveTextContent("Лена, это мой новый номер в MAX.")
+    expect(telegram).toHaveTextContent("Company: Acme Ltd · Deal: Harbour fit-out · Contract")
+    expect(within(telegram as HTMLElement).getByRole("list", { name: "Last messages and calls" })).toHaveTextContent(
+      /Sending the signed contract tonight.*Call.*You: Call with Lena/,
+    )
+  })
+
   it("says why memo did not join a match on its own", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
