@@ -5,15 +5,11 @@ group links the plan it came from, as it stood before the plan was deleted.
 
 ## Updates and releases
 
-- **Desktop.** `scripts/latest-json.sh` writes `"notes": ""`, so the update dialog likely shows no release notes.
-  Check it on the next release.
+- **Desktop.** `scripts/latest-json.sh` writes `"notes": ""` (0.6.8's `latest.json`, checked 2026-11-16), so the
+  update dialog shows no notes box, only the link to the release. Filling it needs a choice first: the notes are one
+  English Markdown file, and the dialog shows plain text in the app's language.
 - **Desktop.** An owner's approval before each release is published
   ([signing flow, D2][2026-11-06-windows-signing-flow]).
-
-## Search
-
-- **Desktop.** `QueryWriterSchema` (`src/platform/search-schemas.ts`) allows the writers `chatgpt` and `key`, which
-  Rust never sends.
 
 ## Memory
 
@@ -84,7 +80,6 @@ Plans: [OpenClaw and Hermes][2026-10-25-agents-openclaw-hermes], [round 2][2026-
 
 ## Contacts, Clients and Digests ([people, clients and digests][2026-11-09-people-clients-digests])
 
-- **Desktop.** Move `ViewSwitch` into `src/ui`.
 - **Needs memo first.** Decide what counts as mail exchange with a real person (NEED-2342).
 - **Needs cli-core first.** One free-mail list instead of two (`FREE_MAIL` and `FREE`, DEBT-63).
 
