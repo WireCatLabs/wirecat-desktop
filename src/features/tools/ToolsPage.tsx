@@ -13,6 +13,7 @@ import { keepBelow } from "@/ui/motion"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { AddOwnTool } from "./AddOwnTool"
+import { InstallAll } from "./InstallAll"
 import { toolsMessages } from "./messages"
 import { OwnRemoved } from "./OwnRemoved"
 import { OwnToolDialog } from "./OwnToolDialog"
@@ -75,17 +76,22 @@ export function ToolsPage() {
         </ErrorNotice>
       )}
 
-      {storageSlot ? (
-        <div ref={keepBelow} className="flex min-h-[3.4rem] flex-col justify-center">
-          {compat === undefined ? (
-            <Skeleton className="h-[3.4rem] w-full rounded-rack" label={m.checkingStorage} />
-          ) : (
+      <div ref={storageSlot ? keepBelow : undefined} className="flex items-center gap-4">
+        {storageSlot ? (
+          <div className="flex min-h-[3.4rem] min-w-0 flex-1 flex-col justify-center">
+            {compat === undefined ? (
+              <Skeleton className="h-[3.4rem] w-full rounded-rack" label={m.checkingStorage} />
+            ) : (
+              <StorageSummary />
+            )}
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1">
             <StorageSummary />
-          )}
-        </div>
-      ) : (
-        <StorageSummary />
-      )}
+          </div>
+        )}
+        <InstallAll />
+      </div>
 
       <OwnRemoved />
       <ul aria-label={m.list} className="overflow-hidden rounded-rack border border-line-strong bg-app">
