@@ -1,0 +1,24 @@
+{
+  "repository": "WireCatLabs/cli-core",
+  "path": "test/fixtures/setup-v1/",
+  "commit": "82c19ddcb72c0e1778e1f59192619f6474b64f68",
+  "tree": "44c9a45d7c3e389f9e178a5602f1865015933998",
+  "files": [
+    {
+      "file": "schema.json",
+      "sha256": "e5bdb8d1e238250360835ed78df44b81130965cae3f53c9dde5b1bf1bbfb46be"
+    },
+    {
+      "file": "pbx.json",
+      "sha256": "bf1f3f4407deb4303839c7b809b0352fc805a1b64ec1b8260540dccf798b5558"
+    },
+    {
+      "file": "oauth-or-token.json",
+      "sha256": "a7ad29714b8521326ad417098d1b758367b72472025c4f803eb39d287fd253d5"
+    },
+    {
+      "file": "tg.json",
+      "sha256": "3ec0afa68f6dd21c7942e0f01d322e8df55c00df14d40ed49e47645f36370315"
+    }
+  ]
+}

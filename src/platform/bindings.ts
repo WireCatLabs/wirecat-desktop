@@ -1586,6 +1586,12 @@ export type ShellReach = {
 	primary: boolean,
 };
 
+/**  The document as the tool printed it, and each image it names that passed the checks, as a `data:` URL. */
+export type Shown = {
+	document: unknown,
+	images: { [key in string]: string },
+};
+
 /**  A profile already signed in to the portal the owner is about to sign in to, and whose webhook it holds. */
 export type Signed = {
 	profile: string,

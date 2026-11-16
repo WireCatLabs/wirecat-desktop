@@ -1,0 +1,68 @@
+{
+  "format": "wirecat.setup",
+  "version": 1,
+  "tool": "tg",
+  "requires": ["run"],
+  "start": "method",
+  "steps": {
+    "method": {
+      "title": "tg.method.title",
+      "blocks": [
+        {
+          "type": "choice",
+          "id": "method",
+          "options": [
+            { "value": "qr", "label": "tg.qr", "hint": "tg.qr.hint", "icon": "qr" },
+            { "value": "phone", "label": "tg.phone", "icon": "phone" }
+          ]
+        }
+      ],
+      "next": [{ "when": { "field": "method", "is": "qr" }, "to": "qr" }, { "to": "phone" }]
+    },
+    "qr": {
+      "kind": "run",
+      "title": "tg.qr.title",
+      "action": "qr",
+      "blocks": [{ "type": "text", "text": "tg.qr.body" }],
+      "asks": {
+        "password": { "type": "input", "id": "tg-2fa", "secret": "2fa", "input": "password", "label": "tg.2fa.label" }
+      },
+      "next": [{ "when": { "result": "qr", "is": "ok" }, "to": "done" }, { "to": "method" }],
+      "back": false
+    },
+    "phone": {
+      "title": "tg.phone.title",
+      "blocks": [{ "type": "input", "id": "phone", "setting": "phone", "input": "text", "label": "tg.phone.label" }],
+      "next": "code"
+    },
+    "code": {
+      "kind": "run",
+      "title": "tg.code.title",
+      "action": "phone-code",
+      "asks": {
+        "code": { "type": "input", "id": "tg-code", "secret": "login-code", "input": "text", "label": "tg.code.label" },
+        "password": { "type": "input", "id": "tg-2fa", "secret": "2fa", "input": "password", "label": "tg.2fa.label" }
+      },
+      "next": [{ "when": { "result": "code", "is": "ok" }, "to": "done" }, { "to": "phone" }],
+      "back": false
+    },
+    "done": { "kind": "done", "title": "tg.done.title", "blocks": [{ "type": "text", "text": "tg.done.body" }] }
+  },
+  "texts": {
+    "en": {
+      "tg.method.title": "How do you want to sign in to Telegram?",
+      "tg.qr": "Scan a QR code",
+      "tg.qr.hint": "With Telegram on your phone: Settings, Devices, Link Desktop Device.",
+      "tg.phone": "With the phone number",
+      "tg.qr.title": "Scan the code",
+      "tg.qr.body": "The code renews itself until you scan it.",
+      "tg.2fa.label": "Your two-step verification password",
+      "tg.phone.title": "Your phone number",
+      "tg.phone.label": "Phone number, with the country code",
+      "tg.code.title": "The code from Telegram",
+      "tg.code.label": "Code",
+      "tg.done.title": "Signed in",
+      "tg.done.body": "tg reads your chats now."
+    }
+  }
+}

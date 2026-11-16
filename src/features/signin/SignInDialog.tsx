@@ -27,6 +27,7 @@ import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { MOTION } from "@/ui/motion"
 import { noticeBox } from "@/ui/notice"
+import { useSetupDocument } from "./api"
 import { explainView } from "./Failure"
 import { type SigninMessages, signinMessages } from "./messages"
 import { bitrixMessages } from "./messages-bitrix"
@@ -35,15 +36,31 @@ import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
 import { Plan } from "./Plan"
+import { SetupFlowDialog, SetupLoading } from "./SetupFlow"
 import { SignInPath } from "./SignInPath"
 import { checksInPlan, type SignInView, Stage, stageKey } from "./Stages"
 import { KeyringNotice } from "./TelegramGuide"
 
 /**
- * Signs a profile in with the tool's own sign-in, drawn in the window: a QR code, a code for the phone, a page to
- * open, the questions the tool asks, then its progress.
+ * Signs a profile in with the tool's own sign-in, drawn in the window. A tool that describes its own flow
+ * (`setup show`) gets that flow; any other keeps its hand-made form.
  */
 export function SignInDialog() {
+  const { tool, profile, phase, setup } = useSignIn(
+    useShallow((s) => ({ tool: s.tool, profile: s.profile, phase: s.phase, setup: s.setup })),
+  )
+  // Asked only when the dialog opens on its plan: a retry or a switch of method is the hand-made form's own.
+  const flow = useSetupDocument(tool, profile, phase === "plan" || setup)
+  if (flow.kind === "flow") return <SetupFlowDialog doc={flow.document} images={flow.images} />
+  if (flow.kind === "loading") return <SetupLoading />
+  return <HandMadeSignIn />
+}
+
+/**
+ * The hand-made sign-in: a QR code, a code for the phone, a page to open, the questions the tool asks, then its
+ * progress.
+ */
+function HandMadeSignIn() {
   const live = useSignIn()
   const s = useHeldSwitch(live)
   const m = useMessages(signinMessages)

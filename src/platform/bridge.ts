@@ -86,7 +86,7 @@ import {
   ValueItemSchema,
 } from "./search-schemas"
 import { SettingsSchema } from "./settings-schemas"
-import { SignInEventSchema } from "./signin-schemas"
+import { type SignInEvent, SignInEventSchema } from "./signin-schemas"
 import type { SyncEvent } from "./sync-schemas"
 import {
   FunnelHelperStatusSchema,
@@ -116,6 +116,20 @@ function pages(onPage: (url: string) => void) {
   channel.onmessage = (raw) => {
     const parsed = v.safeParse(PageEventSchema, raw)
     if (parsed.success) onPage(parsed.output.url)
+  }
+  return channel
+}
+
+/** An event that does not parse is never thrown: the error would carry the code into the window's error list. */
+function signInChannel(onEvent: (e: SignInEvent) => void) {
+  const channel = new Channel<unknown>()
+  channel.onmessage = (raw) => {
+    const parsed = v.safeParse(SignInEventSchema, raw)
+    onEvent(
+      parsed.success
+        ? parsed.output
+        : { event: "failed", message: "The app could not read the sign-in's last step.", code: null },
+    )
   }
   return channel
 }
@@ -383,22 +397,16 @@ function createTauri(): Platform {
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),
     openSetup: (id, profile) => call(TerminalRunSchema, "open_setup", { id, profile }),
-    signIn: (id, method, profile, onEvent, inputs) => {
-      const channel = new Channel<unknown>()
-      // An event that does not parse is never thrown: the error would carry the code into the window's error list.
-      channel.onmessage = (raw) => {
-        const parsed = v.safeParse(SignInEventSchema, raw)
-        onEvent(
-          parsed.success
-            ? parsed.output
-            : { event: "failed", message: "The app could not read the sign-in's last step.", code: null },
-        )
-      }
-      return invoke("sign_in", { id, method, profile, inputs: inputs ?? null, onEvent: channel })
-    },
+    signIn: (id, method, profile, onEvent, inputs) =>
+      invoke("sign_in", { id, method, profile, inputs: inputs ?? null, onEvent: signInChannel(onEvent) }),
     signInAnswer: (id, value) => invoke("sign_in_answer", { id, value }),
     signInOnPortal: (id, host) => invoke("sign_in_on_portal", { id, host }),
     signInStop: (id) => invoke("sign_in_stop", { id }),
+    setupShow: (id, profile) => invoke("setup_show", { id, profile }),
+    setupCheck: (id, profile, answers) => invoke("setup_check", { id, profile, answers }),
+    setupApply: (id, profile, answers, onEvent) =>
+      invoke("setup_apply", { id, profile, answers, onEvent: signInChannel(onEvent) }),
+    setupPickPath: (folder, accept) => invoke("setup_pick_path", { folder, accept }),
     zoomAppSetup: (id) => invoke("zoom_app_setup", { id }),
     driveFoldersBrowse: (id, profile, parent) => invoke("drive_folders_browse", { id, profile, parent }),
     driveFolderAdd: (id, profile, folder) => invoke("drive_folder_add", { id, profile, folder }),

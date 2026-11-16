@@ -6,6 +6,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import { useSignIn } from "@/shared/signin-store"
 import { reduceMotion } from "@/testing/motion"
 import { act, render, screen, within } from "@/testing/render"
+import { openSignIn } from "@/testing/signin"
 import { SignInDialog } from "./SignInDialog"
 
 describe("asterisk's source settings", () => {
@@ -52,7 +53,7 @@ describe("asterisk's source settings", () => {
     expect(localCountry(["not a tag"])).toBeNull()
   })
 
-  it("lists the countries of PHONE_COUNTRIES in @wirecat/cli-core 0.656.0 (dist/domain/phone-plans.generated.js)", () => {
+  it("lists the countries of PHONE_COUNTRIES in @wirecat/cli-core 0.656.0 (dist/domain/phone-plans.generated.js)", async () => {
     expect(PHONE_COUNTRIES).toHaveLength(47)
     expect(PHONE_COUNTRIES.slice(0, 5)).toEqual(["us", "ca", "gb", "ie", "es"])
     expect(PHONE_COUNTRIES.at(-1)).toBe("tr")
@@ -74,14 +75,14 @@ describe("asterisk's sign-in plan", () => {
     vi.restoreAllMocks()
   })
 
-  const open = () => {
+  const open = async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("pbx", "office"))
+    await openSignIn("pbx", "office")
     return screen.getByRole("dialog", { name: "Sign in to Asterisk" })
   }
 
   it("checks Master.csv with no password, after saving where it is", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     const path = within(dialog).getByLabelText("Path of Master.csv")
     expect(path).toHaveAttribute("aria-invalid", "true")
@@ -101,7 +102,7 @@ describe("asterisk's sign-in plan", () => {
   })
 
   it("asks a database's password and sends it only as the run's input, never as a setting", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.click(within(dialog).getByRole("radio", { name: /MySQL or MariaDB/ }))
     await userEvent.type(within(dialog).getByLabelText("Database server"), "pbx.office.lan")
     await userEvent.type(within(dialog).getByLabelText("Database name"), "asteriskcdrdb")
@@ -164,7 +165,7 @@ describe("asterisk's sign-in plan", () => {
 
   it("starts from the system's country and saves the countries in the order they were picked", async () => {
     vi.spyOn(navigator, "languages", "get").mockReturnValue(["ru-RU"])
-    const dialog = open()
+    const dialog = await open()
     await userEvent.type(within(dialog).getByLabelText("Path of Master.csv"), "/srv/pbx/Master.csv")
     const countries = within(dialog).getByRole("button", { name: "Countries: Russia" })
     await userEvent.click(countries)
@@ -177,7 +178,7 @@ describe("asterisk's sign-in plan", () => {
   })
 
   it("saves no countries once the owner takes them all off", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.type(within(dialog).getByLabelText("Path of Master.csv"), "/srv/pbx/Master.csv")
     await userEvent.click(within(dialog).getByRole("button", { name: "Clear countries" }))
     expect(within(dialog).getByRole("button", { name: "Countries: None chosen" })).toBeInTheDocument()

@@ -6,6 +6,7 @@ import { useBotSignIn } from "@/shared/bot-signin-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { act, render, screen, waitFor, within } from "@/testing/render"
+import { openSignIn } from "@/testing/signin"
 import { BotList } from "../tools/BotList"
 import { ToolRow } from "../tools/ToolRow"
 import { BotSignInDialog } from "./BotSignInDialog"
@@ -199,7 +200,7 @@ describe("finding the bot sign-in from elsewhere", () => {
       </>,
     )
     const user = userEvent.setup()
-    act(() => useSignIn.getState().start("tg", "personal"))
+    await openSignIn("tg", "personal")
     const plan = await screen.findByRole("dialog")
     await user.click(within(plan).getByRole("button", { name: "Add a bot instead" }))
     expect(await screen.findByRole("textbox", { name: "Bot name on this computer" })).toBeInTheDocument()

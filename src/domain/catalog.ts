@@ -72,6 +72,8 @@ const ToolSchema = v.object({
       pick: v.optional(v.boolean()),
       /** zm's `app --json`: what to enter when making the Zoom app, read by `zoom_app_setup` (zoom-cli PR #337). */
       appSetup: v.optional(v.array(v.string())),
+      /** Domains a tool's own setup flow may link to, besides WireCat's; any other link in it is shown as text. */
+      links: v.optional(v.array(v.pipe(v.string(), v.regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/)))),
       /** b24's `session status`: the portal each profile is on, read by `signInOnPortal`. */
       identity: v.optional(v.array(v.string())),
       identityCheck: v.optional(v.string()),

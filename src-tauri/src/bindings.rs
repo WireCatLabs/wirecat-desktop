@@ -17,6 +17,7 @@ fn types() -> Types {
         .register::<crate::calls::CallOpened>()
         .register::<crate::tool_network::ToolNetwork>()
         .register::<crate::signin::Signed>()
+        .register::<crate::setup_flow::Shown>()
         .register::<crate::tools::Diagnosis>()
         .register::<crate::install::InstallEvent>()
         .register::<crate::install::CopyRemoval>()

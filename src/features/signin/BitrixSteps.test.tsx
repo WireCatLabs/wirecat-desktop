@@ -15,6 +15,7 @@ import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { reduceMotion } from "@/testing/motion"
 import { act, render, screen, within } from "@/testing/render"
+import { openSignIn } from "@/testing/signin"
 import { SignInDialog } from "./SignInDialog"
 
 const HOOK = "https://acme.bitrix24.ru/rest/12/s3cr3tk3y/"
@@ -72,7 +73,7 @@ describe("the portal and the webhook, read in the window", () => {
     ).toMatchObject({ kind: "duplicate", profile: "work" })
   })
 
-  it("names the local application's refusals, and leaves a browser that never came back to the failure screen", () => {
+  it("names the local application's refusals, and leaves a browser that never came back to the failure screen", async () => {
     const of = (reason: string | null, message = "x", code: string | null = null) =>
       appProblem({ message, code, reason })?.kind ?? null
     expect(of("oauth.expired", "Bitrix24 refused the application's code or key (INVALID_CLIENT)")).toBe("refused")
@@ -114,9 +115,9 @@ describe("Bitrix24's sign-in wizard", () => {
     vi.restoreAllMocks()
   })
 
-  const open = () => {
+  const open = async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("bitrix", "work"))
+    await openSignIn("bitrix", "work")
     return screen.getByRole("dialog", { name: "Sign in to Bitrix24" })
   }
 
@@ -129,7 +130,7 @@ describe("Bitrix24's sign-in wizard", () => {
   }
 
   it("asks the portal first and says what is missing at the field", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     const field = within(dialog).getByLabelText("Portal address")
     expect(field).toHaveAttribute("aria-invalid", "true")
@@ -138,7 +139,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("refuses a portal address with a path at the field and says what to remove", async () => {
-    const dialog = open()
+    const dialog = await open()
     expect(within(dialog).getByText(/Only the domain, such as mycompany\.bitrix24\.ru/)).toBeInTheDocument()
     await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/crm/deal/")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
@@ -150,7 +151,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("keeps Back beside Cancel and Continue in the footer", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.type(within(dialog).getByLabelText("Portal address"), "acme.bitrix24.ru")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()
@@ -162,7 +163,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("names the rights section as Bitrix24 does and shows it in a picture that opens large", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.type(within(dialog).getByLabelText("Portal address"), "acme.bitrix24.ru")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()
@@ -172,7 +173,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("leads to the portal's own webhook page with the rights to tick, then signs in with the webhook on stdin", async () => {
-    const dialog = open()
+    const dialog = await open()
     await userEvent.type(within(dialog).getByLabelText("Portal address"), "https://acme.bitrix24.ru/")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()
@@ -203,7 +204,7 @@ describe("Bitrix24's sign-in wizard", () => {
       { profile: "work", user: "99" },
       { profile: "sales", user: "12" },
     ])
-    const dialog = open()
+    const dialog = await open()
     await toPaste(dialog)
     await userEvent.type(within(dialog).getByLabelText("Webhook address"), HOOK)
     await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
@@ -213,7 +214,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("refuses a webhook of another portal and offers to use that portal", async () => {
-    const dialog = open()
+    const dialog = await open()
     await toPaste(dialog)
     await userEvent.type(within(dialog).getByLabelText("Webhook address"), "https://other.bitrix24.ru/rest/1/k/")
     await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
@@ -224,7 +225,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("brings a missing right back to the paste step, with the address kept and the box to tick named", async () => {
-    const dialog = open()
+    const dialog = await open()
     await toPaste(dialog)
     await userEvent.type(within(dialog).getByLabelText("Webhook address"), HOOK)
     await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
@@ -247,7 +248,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("brings a webhook that failed for another reason back to its paste step, address kept, and checks it again", async () => {
-    const dialog = open()
+    const dialog = await open()
     await toPaste(dialog)
     await userEvent.type(within(dialog).getByLabelText("Webhook address"), HOOK)
     await userEvent.click(within(dialog).getByRole("button", { name: "Check and sign in" }))
@@ -271,14 +272,14 @@ describe("Bitrix24's sign-in wizard", () => {
   }
 
   it("offers the webhook first and the local application beside it", async () => {
-    const dialog = open()
+    const dialog = await open()
     expect(within(dialog).getByRole("radio", { name: /Incoming webhook/ })).toBeChecked()
     expect(within(dialog).getByRole("radio", { name: /Local application/ })).not.toBeChecked()
   })
 
   it("leads through the local application's setup, then signs in in the browser with the key only in the inputs", async () => {
     vi.spyOn(platform, "openUrl").mockResolvedValue()
-    const dialog = open()
+    const dialog = await open()
     await toApp(dialog)
     expect(within(dialog).getByText("Make a local application")).toBeInTheDocument()
     expect(within(dialog).getByText("https://wirecat.dev/webhooks/apps/b24-callback")).toBeInTheDocument()
@@ -312,7 +313,7 @@ describe("Bitrix24's sign-in wizard", () => {
   })
 
   it("brings a refused id or key back to the application's form, with the id kept", async () => {
-    const dialog = open()
+    const dialog = await open()
     await toApp(dialog)
     await userEvent.type(within(dialog).getByLabelText("Application ID (client_id)"), APP_ID)
     await userEvent.type(within(dialog).getByLabelText("Application key (client_secret)"), APP_KEY)
@@ -335,7 +336,7 @@ describe("Bitrix24's sign-in wizard", () => {
     useTools.setState({
       installs: { bitrix: [{ path: "~/bin/b24", version: "0.13.0", manager: "npm", problem: null }] },
     })
-    const dialog = open()
+    const dialog = await open()
     await toApp(dialog)
     expect(
       within(dialog).getByText(/This needs Bitrix24 0\.14\.0 or newer; this computer has 0\.13\.0/),

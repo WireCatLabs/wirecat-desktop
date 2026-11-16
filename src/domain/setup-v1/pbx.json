@@ -1,0 +1,304 @@
+{
+  "format": "wirecat.setup",
+  "version": 1,
+  "tool": "pbx",
+  "toolVersion": "0.7.0",
+  "requires": ["input.countries", "run"],
+  "start": "source",
+  "steps": {
+    "source": {
+      "title": "source.title",
+      "blocks": [
+        { "type": "text", "text": "source.intro" },
+        {
+          "type": "choice",
+          "id": "cdr_source",
+          "setting": "cdr_source",
+          "options": [
+            { "value": "csv", "label": "source.csv", "hint": "source.csv.hint", "icon": "file" },
+            { "value": "mysql", "label": "source.mysql", "hint": "source.mysql.hint", "icon": "database" },
+            { "value": "postgres", "label": "source.postgres", "icon": "database" }
+          ]
+        },
+        {
+          "type": "choice",
+          "id": "files_from",
+          "setting": "files_from",
+          "options": [
+            { "value": "local", "label": "files.local" },
+            { "value": "sftp", "label": "files.sftp", "hint": "files.sftp.hint" }
+          ]
+        }
+      ],
+      "next": [
+        { "when": { "field": "files_from", "is": "sftp" }, "to": "sftp" },
+        { "when": { "field": "cdr_source", "is": "csv" }, "to": "csv" },
+        { "to": "database" }
+      ]
+    },
+    "sftp": {
+      "title": "sftp.title",
+      "blocks": [
+        { "type": "text", "text": "sftp.intro" },
+        {
+          "type": "group",
+          "role": "row",
+          "class": ["gap-sm"],
+          "blocks": [
+            {
+              "type": "input",
+              "id": "sftp_host",
+              "setting": "sftp_host",
+              "input": "text",
+              "label": "sftp.host",
+              "class": ["grow-3"]
+            },
+            {
+              "type": "input",
+              "id": "sftp_port",
+              "setting": "sftp_port",
+              "input": "port",
+              "label": "sftp.port",
+              "optional": true,
+              "class": ["grow-1"]
+            }
+          ]
+        },
+        { "type": "input", "id": "sftp_user", "setting": "sftp_user", "input": "text", "label": "sftp.user" },
+        {
+          "type": "input",
+          "id": "ssh",
+          "secret": "ssh",
+          "input": "password",
+          "label": "sftp.password",
+          "hint": "sftp.password.hint"
+        },
+        { "type": "note", "role": "info", "text": "sftp.host-key" }
+      ],
+      "next": [{ "when": { "field": "cdr_source", "is": "csv" }, "to": "csv" }, { "to": "database" }]
+    },
+    "csv": {
+      "title": "csv.title",
+      "blocks": [
+        {
+          "type": "input",
+          "id": "cdr_csv_path",
+          "setting": "cdr_csv_path",
+          "label": "csv.path",
+          "hint": "csv.path.hint",
+          "input": "file",
+          "accept": [".csv"],
+          "when": { "field": "files_from", "is": "local" }
+        },
+        {
+          "type": "input",
+          "id": "cdr_csv_path_remote",
+          "setting": "cdr_csv_path",
+          "label": "csv.path",
+          "input": "text",
+          "default": "/var/log/asterisk/cdr-csv/Master.csv",
+          "when": { "field": "files_from", "is": "sftp" }
+        }
+      ],
+      "next": "recordings"
+    },
+    "database": {
+      "title": "db.title",
+      "blocks": [
+        { "type": "text", "text": "db.intro" },
+        {
+          "type": "image",
+          "asset": "freepbx-cdr",
+          "alt": "db.image.alt",
+          "caption": "db.image.caption",
+          "when": { "field": "cdr_source", "is": "mysql" },
+          "fallback": "db.image.caption",
+          "class": ["w-full", "h-lg", "mt-lg", "center"]
+        },
+        {
+          "type": "group",
+          "role": "row",
+          "blocks": [
+            { "type": "input", "id": "db_host", "setting": "db_host", "input": "text", "label": "db.host" },
+            {
+              "type": "input",
+              "id": "db_port",
+              "setting": "db_port",
+              "input": "port",
+              "label": "db.port",
+              "optional": true
+            }
+          ]
+        },
+        {
+          "type": "input",
+          "id": "db_name",
+          "setting": "db_name",
+          "input": "text",
+          "label": "db.name",
+          "default": "asteriskcdrdb"
+        },
+        {
+          "type": "input",
+          "id": "db_user",
+          "setting": "db_user",
+          "input": "text",
+          "label": "db.user",
+          "hint": "db.user.hint"
+        },
+        { "type": "input", "id": "db", "secret": "db", "input": "password", "label": "db.password" },
+        {
+          "type": "input",
+          "id": "db_tls",
+          "setting": "db_tls",
+          "input": "toggle",
+          "label": "db.tls"
+        },
+        {
+          "type": "group",
+          "role": "details",
+          "title": "db.ssh.title",
+          "blocks": [
+            { "type": "text", "text": "db.ssh.intro" },
+            {
+              "type": "input",
+              "id": "db_ssh_host",
+              "setting": "db_ssh_host",
+              "input": "text",
+              "label": "db.ssh.host",
+              "optional": true
+            }
+          ]
+        }
+      ],
+      "next": "recordings"
+    },
+    "recordings": {
+      "title": "rec.title",
+      "blocks": [
+        {
+          "type": "input",
+          "id": "recordings_path",
+          "setting": "recordings_path",
+          "input": "folder",
+          "label": "rec.path",
+          "hint": "rec.path.hint",
+          "optional": true,
+          "when": { "field": "files_from", "is": "local" }
+        },
+        {
+          "type": "input",
+          "id": "phone_region",
+          "setting": "phone_region",
+          "input": "countries",
+          "label": "region.label",
+          "hint": "region.hint",
+          "min": 1
+        }
+      ],
+      "next": "check"
+    },
+    "check": {
+      "kind": "run",
+      "title": "check.title",
+      "action": "apply",
+      "blocks": [{ "type": "text", "text": "check.body" }],
+      "next": [
+        { "when": { "result": "check", "is": "ok" }, "to": "done" },
+        { "when": { "result": "check", "error": "authentication_error" }, "to": "database" },
+        { "to": "check-failed" }
+      ]
+    },
+    "check-failed": {
+      "kind": "done",
+      "title": "failed.title",
+      "blocks": [
+        { "type": "note", "role": "danger", "text": "failed.body" },
+        {
+          "type": "link",
+          "role": "button",
+          "href": "https://wirecat.dev/ru/docs/pbx/troubleshooting",
+          "text": "failed.help"
+        }
+      ],
+      "back": true
+    },
+    "done": {
+      "kind": "done",
+      "title": "done.title",
+      "blocks": [
+        { "type": "text", "text": "done.body" },
+        { "type": "requirement", "check": "ffmpeg", "text": "req.ffmpeg", "fix": "req.ffmpeg.fix" },
+        { "type": "requirement", "check": "speech-model", "text": "req.model", "fix": "req.model.fix" }
+      ]
+    }
+  },
+  "assets": { "freepbx-cdr": { "file": "setup/freepbx-cdr.png", "width": 960, "height": 540 } },
+  "texts": {
+    "en": {
+      "source.title": "Where are the call records?",
+      "source.intro": "pbx reads the call records (CDR) of your Asterisk and changes nothing on it.",
+      "source.csv": "The Master.csv file",
+      "source.csv.hint": "Asterisk writes it to /var/log/asterisk/cdr-csv/",
+      "source.mysql": "MySQL or MariaDB",
+      "source.mysql.hint": "A CDR database, such as asteriskcdrdb in FreePBX",
+      "source.postgres": "PostgreSQL",
+      "files.local": "On this computer",
+      "files.sftp": "On the PBX, over SFTP",
+      "files.sftp.hint": "pbx reads the files over SSH and copies nothing else",
+      "sftp.title": "Connect to the PBX over SFTP",
+      "sftp.intro": "The user needs to read the call records and the recordings, nothing more.",
+      "sftp.host": "Server",
+      "sftp.port": "Port (optional)",
+      "sftp.user": "User",
+      "sftp.password": "Password",
+      "sftp.password.hint": "Kept in the system keyring after the check succeeds.",
+      "sftp.host-key": "On the first connection pbx shows the server's key so you can compare it.",
+      "csv.title": "Where is Master.csv?",
+      "csv.path": "Path of Master.csv",
+      "csv.path.hint": "Usually /var/log/asterisk/cdr-csv/Master.csv",
+      "db.title": "Connect to the CDR database",
+      "db.intro": "pbx only reads the CDR table.",
+      "db.image.alt": "The FreePBX screen with the CDR database settings",
+      "db.image.caption": "In FreePBX the CDR database is asteriskcdrdb.",
+      "db.host": "Database server",
+      "db.port": "Port (optional)",
+      "db.name": "Database",
+      "db.user": "User",
+      "db.user.hint": "A user that may only read the CDR table is enough.",
+      "db.password": "Password",
+      "db.tls": "Use TLS",
+      "db.ssh.title": "Through an SSH tunnel",
+      "db.ssh.intro": "When the database listens only on the PBX itself.",
+      "db.ssh.host": "SSH server",
+      "rec.title": "Recordings and numbers",
+      "rec.path": "Folder of the call recordings",
+      "rec.path.hint": "Usually /var/spool/asterisk/monitor",
+      "region.label": "Country of the phone numbers",
+      "region.hint": "Numbers without a country code are read as this country's.",
+      "check.title": "Checking the connection",
+      "check.body": "pbx reads the calls of the last hour and changes nothing. The password is kept only after the check succeeds.",
+      "failed.title": "The check failed",
+      "failed.body": "pbx could not read the call records with these settings.",
+      "failed.help": "What to check",
+      "done.title": "Connected",
+      "done.body": "pbx reads the calls of this PBX.",
+      "req.ffmpeg": "ffmpeg, to read the recordings",
+      "req.ffmpeg.fix": "Install ffmpeg with your system's package manager.",
+      "req.model": "A speech model, to transcribe the calls",
+      "req.model.fix": "Run once in a terminal: `pbx models download gigaam-v3`"
+    },
+    "ru": {
+      "source.title": "Где записи о звонках?",
+      "source.csv": "Файл Master.csv",
+      "source.mysql": "MySQL или MariaDB",
+      "source.mysql.hint": "База CDR, например asteriskcdrdb во FreePBX",
+      "files.sftp": "На АТС, по SFTP",
+      "db.host": "Сервер базы данных",
+      "db.port": "Порт (необязательно)",
+      "db.user.hint": "Хватит пользователя, которому можно только читать таблицу CDR.",
+      "check.body": "pbx прочитает звонки за последний час и ничего не изменит. Пароль сохранится только после успешной проверки.",
+      "req.model.fix": "Один раз выполните в терминале: `pbx models download gigaam-v3`"
+    }
+  }
+}

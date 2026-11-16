@@ -40,6 +40,7 @@ import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { searchHarderMock } from "./mock-search-harder"
 import { settingsMock } from "./mock-settings"
+import { setupMock } from "./mock-setup"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { isMockLogin, linkedProfiles, signInMock } from "./mock-signin"
 import { storeDamageMock, withDoctorDamage } from "./mock-store-damage"
@@ -744,6 +745,7 @@ export function createMock(os: Platform["os"]): Platform {
       return { started: true, reason: null, message: null }
     },
     ...signInMock(),
+    ...setupMock(),
     ...driveFoldersMock(),
     ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
     ...botMock(),
