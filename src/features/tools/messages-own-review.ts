@@ -202,7 +202,7 @@ Report a one-line verdict first (looks fine, has concerns, or do not install), t
   refusalTitle: {
     not_found: "Tool not found",
     not_scoped: "This name does not work here",
-    wirecat_scope: "This is one of WireCat's own tools",
+    wirecat_scope: "This is a built-in WireCat tool",
     no_manifest: "This tool does not describe itself",
     bad_manifest: "The tool describes itself wrongly",
     collision: "Another tool already uses this name",
@@ -398,7 +398,7 @@ sha512 (dist.integrity в npm): ${f.integrity}
   refusalTitle: {
     not_found: "Инструмент не найден",
     not_scoped: "Такое имя здесь не работает",
-    wirecat_scope: "Это собственный инструмент WireCat",
+    wirecat_scope: "Это встроенный инструмент WireCat",
     no_manifest: "Инструмент не описывает себя",
     bad_manifest: "Инструмент описывает себя с ошибкой",
     collision: "Это имя уже занято другим инструментом",
@@ -601,7 +601,7 @@ Da primero un veredicto de una línea (parece bien, tiene dudas o no instalar) y
   refusalTitle: {
     not_found: "Herramienta no encontrada",
     not_scoped: "Este nombre no vale aquí",
-    wirecat_scope: "Es una herramienta propia de WireCat",
+    wirecat_scope: "Es una herramienta integrada de WireCat",
     no_manifest: "La herramienta no se describe",
     bad_manifest: "La herramienta se describe mal",
     collision: "Otra herramienta ya usa este nombre",

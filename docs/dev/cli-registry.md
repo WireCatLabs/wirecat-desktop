@@ -82,7 +82,8 @@ Rust accepts an entry only when:
    not used by a built-in tool, the shared store (`WireCat`, `WIRECAT`) or an earlier entry. `storage.rs` deletes a
    tool's folders by those names, so a community tool can never point it at ours.
 3. The package is `@scope/name` outside `@wirecat`; the repository is `https://github.com/<owner>/<name>` outside
-   WireCatLabs; every link is `https`.
+   WireCatLabs; every link is `https`. An own tool may be a `@wirecat` package that no built-in tool installs, and
+   only such a package may name a WireCatLabs repository ([below](#your-own-tools-not-checked)).
 4. It sets none of `partOf`, `commandPrefix`, `memory`, `taskBoard`, `crmBoard`, `crm`, `bot`, `storeReset`,
    `storeResetPreview`, `configRepair`, `storeRecover` or `signIn.command` (a command line shown for the owner to copy).
 5. The file is at most 512 KB and the first 32 entries are read.
@@ -157,14 +158,19 @@ Status: **built** (2026-11-07): `src-tauri/src/own_tools.rs` and `src/features/t
 and the refusal kinds are [below](#the-manifest-format-2). Owner's ruling 2026-11-06: anyone may
 add any tool on their own computer, behind a clear warning that WireCat has not checked it. A private repository's
 tool, which can never be listed, can only be added this way. The button is on the Tools page (NEED-2281 A); only scoped
-npm packages (NEED-2280).
+npm packages (NEED-2280). A `@wirecat` package that is not in `catalog/tools.json` is added this way too (owner's
+ruling 2026-11-16, first `@wirecat/beeline-cli`); one a built-in tool installs is refused as `wirecat_scope` before npm
+is asked.
 
 **Data folder of an own tool.** Deleting a tool's data removes only folders whose last part is its `storage.app`
 (`storage.rs`, `ensure_ours`); `storage.env` only names variables that can move those folders, and a moved folder
 must still end in `storage.app`. So the folder name is what must belong to the tool. For an own tool from
 `@<scope>/<name>`, `storage.app` lower-cased must be `<scope>-<name>` or start with `<scope>-<name>-`, with every
 `.` and `_` of the package name turned into `-` (`@leemour/acme-crm-cli` → `leemour-acme-crm-cli`, `@x/a_b` →
-`x-a-b`), at most 64 characters. An own tool's folders are always its default locations: a `<PREFIX>_CONFIG_DIR`
+`x-a-b`), at most 64 characters. A `@wirecat/<name>` package is ours, so its folder is the one our CLIs use:
+`storage.app` must be `<name>` or start with `<name>-` (`@wirecat/beeline-cli` → `beeline-cli`). Rule 2 still refuses
+the id, program, package and folders of every built-in tool and of the shared store, so such a tool never takes over
+their names or data. An own tool's folders are always its default locations: a `<PREFIX>_CONFIG_DIR`
 override does not move what Delete data removes. A folder that already existed when the owner added the tool is
 recorded in its entry (`own.preexisting`, kept by updates); Delete data lists it with why it stays and never removes
 it, because a free scope can still match another program's folder (`@google/chrome` → `google-chrome`). Only the scope's owner can publish under
@@ -288,8 +294,9 @@ case) to the SHA-256 of the manifest the owner reviewed. Otherwise the tool is n
 
 ### Refusals
 
-Each is `{ "kind": … }` in snake_case, with its fields in camelCase: `not_found`, `not_scoped`, `wirecat_scope`,
-`no_manifest` (offers pasting the `desktop` object), `bad_manifest { key, rule }`, `collision { with, listed }`,
+Each is `{ "kind": … }` in snake_case, with its fields in camelCase: `not_found`, `not_scoped`, `wirecat_scope` (a
+built-in tool's package), `no_manifest` (offers pasting the `desktop` object), `bad_manifest { key, rule }` (also a
+WireCatLabs repository on a package outside `@wirecat`), `collision { with, listed }`,
 `provenance_mismatch { claimed, built }`, `offline { detail }`, `too_large { what }`. Any other error reads
 "Something went wrong reading npm: <message>".
 

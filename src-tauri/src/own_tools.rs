@@ -138,6 +138,7 @@ pub enum Level {
 pub enum Refusal {
     NotFound,
     NotScoped,
+    /// A `@wirecat` package a built-in tool already installs.
     WirecatScope,
     NoManifest,
     BadManifest {
@@ -169,7 +170,7 @@ impl From<Problem> for Refusal {
     fn from(p: Problem) -> Self {
         match p {
             Problem::Rule { key, rule } => Refusal::BadManifest { key, rule },
-            Problem::Ours { .. } => Refusal::WirecatScope,
+            Problem::Ours { .. } => bad("repository", p.to_string()),
             Problem::Taken { with, listed, .. } => Refusal::Collision { with, listed },
         }
     }
@@ -455,12 +456,13 @@ pub fn take_added(token: &str) -> Result<Arc<Reviewed>, String> {
     ADDED.lock().unwrap().remove(token).ok_or_else(|| GONE.into())
 }
 
-/// The name rules come before any network call, so a bad name never reaches npm.
-fn name_check(package: &str) -> Result<(), Refusal> {
-    community::package(package).map_err(|p| match p {
-        Problem::Ours { .. } => Refusal::WirecatScope,
-        _ => Refusal::NotScoped,
-    })
+/// The name rules come before any network call, so a bad name never reaches npm. A `@wirecat` package is refused only
+/// when a built-in tool installs it; any other one is ours too, so the owner may add it.
+fn name_check(package: &str, catalog: &Catalog) -> Result<(), Refusal> {
+    if catalog.tools.iter().any(|t| t.source == Source::Official && t.package == package) {
+        return Err(Refusal::WirecatScope);
+    }
+    community::scoped(package).map_err(|_| Refusal::NotScoped)
 }
 
 pub fn review(
@@ -470,7 +472,7 @@ pub fn review(
     catalog: &Catalog,
     saved: &str,
 ) -> Result<Reviewed, Refusal> {
-    name_check(package)?;
+    name_check(package, catalog)?;
     let view = registry.view(package)?;
     let version = view["version"].as_str().unwrap_or_default().to_string();
     semver::Version::parse(&version).map_err(|_| bad("version", "npm gives no valid version for the package."))?;
@@ -598,7 +600,7 @@ fn provenance_of(
         .as_ref()
         .and_then(|_| provenance::release(&attestations, package, version, integrity))
         .unwrap_or_default();
-    let claimed = github_repo(&view["repository"])?;
+    let claimed = github_repo(&view["repository"], package)?;
     if let (Some(claimed), Some(built)) = (&claimed, &built)
         && !claimed.eq_ignore_ascii_case(&built.repo)
     {
@@ -652,8 +654,8 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 /// `https://github.com/<owner>/<name>` from npm's `repository` (a string or `{url}`, often `git+…` and `.git`);
-/// `None` for a repository outside GitHub, which an own tool may have.
-fn github_repo(repository: &Value) -> Result<Option<String>, Refusal> {
+/// `None` for a repository outside GitHub, which an own tool may have. A `WireCatLabs` one only for a `@wirecat` package.
+fn github_repo(repository: &Value, package: &str) -> Result<Option<String>, Refusal> {
     let raw = repository.as_str().or_else(|| repository["url"].as_str()).unwrap_or_default().trim();
     let path = raw
         .trim_start_matches("git+")
@@ -667,7 +669,8 @@ fn github_repo(repository: &Value) -> Result<Option<String>, Refusal> {
     let url = format!("https://github.com/{}", path.trim_end_matches('/').trim_end_matches(".git"));
     match community::repo(&url) {
         Ok(()) => Ok(Some(url)),
-        Err(Problem::Ours { .. }) => Err(Refusal::WirecatScope),
+        Err(Problem::Ours { .. }) if package.starts_with("@wirecat/") => Ok(Some(url)),
+        Err(p @ Problem::Ours { .. }) => Err(p.into()),
         Err(_) => Ok(None),
     }
 }
@@ -1637,7 +1640,7 @@ mod tests {
     #[test]
     fn a_bad_name_is_refused_before_npm_is_asked() {
         let fake = Fake::with(&manifest());
-        for (name, kind) in [("acme-crm", Refusal::NotScoped), ("@wirecat/acme", Refusal::WirecatScope)] {
+        for (name, kind) in [("acme-crm", Refusal::NotScoped), ("@wirecat/tg-cli", Refusal::WirecatScope)] {
             assert_eq!(review(name, None, &fake, catalog(), "").err(), Some(kind));
         }
         assert_eq!(*fake.asked.borrow(), Vec::<String>::new());
@@ -1741,12 +1744,41 @@ mod tests {
         let mut view = fake.view.clone().unwrap();
         view["repository"] = json!("https://github.com/WireCatLabs/acme");
         fake.view = Ok(view);
-        assert_eq!(refused(&fake), Refusal::WirecatScope);
+        assert_eq!(refused(&fake), bad("repository", "a WireCatLabs repository is one of WireCat's own tools."));
         assert_eq!(
-            github_repo(&json!("git@github.com:example/acme.git")).unwrap().as_deref(),
+            github_repo(&json!("git@github.com:example/acme.git"), "@example/acme").unwrap().as_deref(),
             Some("https://github.com/example/acme")
         );
-        assert_eq!(github_repo(&json!({ "url": "https://gitlab.com/example/acme" })).unwrap(), None);
+        assert_eq!(github_repo(&json!({ "url": "https://gitlab.com/example/acme" }), "@example/acme").unwrap(), None);
+    }
+
+    #[test]
+    fn beeline_cli_0_1_0_is_added_as_an_own_tool_from_its_published_manifest() {
+        const MANIFEST: &str = include_str!("../tests/fixtures/own-tools/beeline-cli-0.1.0-wirecat.json");
+        let tarball = tgz(&[("package/package.json", b"{}"), ("package/contracts/wirecat.json", MANIFEST.as_bytes())]);
+        let view = json!({
+            "name": "@wirecat/beeline-cli",
+            "version": "0.1.0",
+            "repository": { "type": "git", "url": "git+https://github.com/WireCatLabs/beeline-cli.git" },
+            "maintainers": ["wirecat <npm@example.com>"],
+            "bin": { "beeline": "dist/bin/beeline.js", "wcat-beeline": "dist/bin/beeline.js" },
+            "dist": { "integrity": integrity(&tarball), "tarball": "https://registry.npmjs.org/x.tgz" }
+        });
+        let fake = Fake { view: Ok(view), tarball, asked: RefCell::new(Vec::new()) };
+        let r = review("@wirecat/beeline-cli", None, &fake, catalog(), "").unwrap();
+        let t = &r.tool;
+        assert_eq!((t.id.as_str(), t.bin.as_str(), t.source), ("beeline", "wcat-beeline", Source::Own));
+        assert_eq!((t.storage.app.as_str(), t.storage.env.as_str()), ("beeline-cli", "BEELINE"));
+        assert_eq!(r.review.repo.as_deref(), Some("https://github.com/WireCatLabs/beeline-cli"));
+        assert_eq!(t.setup.as_deref(), Some(&["{profile}", "session", "start"].map(String::from)[..]));
+        assert!(r.review.sign_in.is_some_and(|s| s.asks.contains("API token")));
+        assert!(r.review.syncs && r.review.skill && r.review.mcp && r.review.described);
+        assert_eq!(r.entry["sync"]["what"], "records", "\"recorded calls\" is not a noun the app counts");
+        assert!(t.meetings.is_none(), "a manifest cannot name the meetings commands a client's calls open with");
+
+        let saved = json!({ "version": 1, "tools": [r.entry] }).to_string();
+        let (tools, extra) = community::parse(&saved, catalog());
+        assert!(extra.rejected.is_empty() && tools[0].id == "beeline", "read again at the next start");
     }
 
     #[test]

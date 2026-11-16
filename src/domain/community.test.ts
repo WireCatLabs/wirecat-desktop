@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest"
 import { ACME, OWN } from "@/platform/mock-community"
-import { addCommunityTools, findTool, isCommunity, isOwn, maker, replaceAddedTools, tools } from "./catalog"
+import {
+  addCommunityTools,
+  entryProblem,
+  findTool,
+  isCommunity,
+  isOwn,
+  maker,
+  replaceAddedTools,
+  tools,
+} from "./catalog"
 
 describe("community tools", () => {
   it("joins the catalog after the built-in tools, marked as community", () => {
@@ -28,6 +37,15 @@ describe("community tools", () => {
     expect(rejected[1]).toMatch(/^evil: .*own npm scope/)
     expect(findTool("evil")).toBeUndefined()
     expect(findTool("tg")?.package).toBe("@wirecat/tg-cli")
+  })
+
+  it("takes an own tool from the @wirecat scope that is not built in, never a listed one", () => {
+    const beeline = { ...OWN, id: "beeline", package: "@wirecat/beeline-cli" }
+    expect(entryProblem(beeline)).toBeNull()
+    expect(addCommunityTools([{ source: "community", entry: beeline }])[0]?.text).toMatch(/own npm scope/)
+    expect(addCommunityTools([{ source: "own", entry: beeline }])).toEqual([])
+    expect(findTool("beeline")?.source).toBe("own")
+    replaceAddedTools([])
   })
 
   it("keeps the source Rust gave, whatever the entry says", () => {

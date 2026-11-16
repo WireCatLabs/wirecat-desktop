@@ -167,7 +167,7 @@ describe("Add your own tool", () => {
   it.each<[OwnRefusal, RegExp]>([
     [{ kind: "not_found" }, /Tool not foundnpm has no package named @example\/acme-crm-cli\./],
     [{ kind: "not_scoped" }, /Only scoped package names work here/],
-    [{ kind: "wirecat_scope" }, /belongs to WireCat's own tools/],
+    [{ kind: "wirecat_scope" }, /already built into WireCat/],
     [{ kind: "bad_manifest", key: "setup", rule: "the command word is not allowed." }, /problem in "setup"/],
     [{ kind: "collision", with: "Telegram", listed: false }, /Telegram already uses/],
     [{ kind: "collision", with: "Acme Listed", listed: true }, /Remove your own entry to use the listed one/],
