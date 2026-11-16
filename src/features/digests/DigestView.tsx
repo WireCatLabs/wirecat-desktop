@@ -1,36 +1,28 @@
-import { ArrowLeft, CalendarCheck, CalendarX, LoaderCircle, Play, Trash2, TriangleAlert } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { ArrowLeft, CalendarCheck, CalendarX, LoaderCircle, Newspaper, Play, Trash2, TriangleAlert } from "lucide-react"
+import { useState } from "react"
 import { useShallow } from "zustand/react/shallow"
-import { dayTitle } from "@/domain/digest"
 import { formatUsd } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestItem, SendTo } from "@/platform/bindings"
 import { useAgentsLoaded } from "@/shared/BackgroundAgentChoice"
-import { useDigestDay } from "@/shared/digest-day"
-import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
-import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { noticeBox } from "@/ui/notice"
-import { Skeleton } from "@/ui/Skeleton"
 import { SplitButton } from "@/ui/SplitButton"
 import { BriefCard } from "./BriefCard"
 import { DigestAgent } from "./DigestAgent"
 import { nextOf, titleOf } from "./DigestTable"
 import { FillHistory } from "./FillHistory"
-import { digestMessages } from "./messages"
 import { bookMessages } from "./messages-book"
 import { scheduleMessages } from "./messages-schedule"
-import { ReportView } from "./ReportView"
 import { type Can, NoHarness, parsedRoute, routeLabel, ScheduleCard } from "./ScheduleCard"
-import { MORNING, useDigestBook } from "./schedule-store"
-import { useDigests } from "./store"
+import { MORNING, readDigest, useDigestBook } from "./schedule-store"
 import { TemplatesCard } from "./TemplatesCard"
 
-/** One digest: what it is and its two actions on top, its settings on the left, what it wrote on the right. */
+/** One digest's settings: what it is and its actions on top, its schedule, brief and templates below. */
 export function DigestView({ item, can, harness }: { item: DigestItem; can: Can; harness: boolean }) {
   const m = useMessages(bookMessages)
   const lang = useLang()
@@ -66,6 +58,13 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => readDigest(item.name)}
+              icon={<Newspaper className="size-4" aria-hidden />}
+            >
+              {m.one.read}
+            </Button>
             <GetNow item={item} can={can} harness={harness} />
             <ScheduleButton item={item} harness={harness} />
             <FillHistory name={item.name} />
@@ -92,13 +91,12 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
         )}
       </div>
 
-      <div className="grid items-start gap-[1.5rem] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+      <div className="grid items-start gap-[1.5rem] xl:grid-cols-2">
+        <ScheduleCard item={item} title={title} can={can} harness={harness} />
         <div className="flex min-w-0 flex-col gap-[1.2rem]">
-          <ScheduleCard item={item} title={title} can={can} harness={harness} />
           <BriefCard name={name} />
           <TemplatesCard name={name} />
         </div>
-        <Days name={item.name} lastFailed={item.last !== null && !item.last.ok} />
       </div>
     </div>
   )
@@ -243,119 +241,6 @@ function RemoveButton({ item, title }: { item: DigestItem; title: string }) {
         <p className="text-ink-soft">{m.removeBody}</p>
       </Dialog>
     </>
-  )
-}
-
-/** The latest report beside the list of past days; a link to a day opens it here. */
-function Days({ name, lastFailed }: { name: string; lastFailed: boolean }) {
-  const m = useMessages(digestMessages)
-  const one = useMessages(bookMessages).one
-  const later = useMessages(scheduleMessages).history.builtLater
-  const lang = useLang()
-  const { days, error, load } = useDigests(useShallow((s) => ({ days: s.days, error: s.error, load: s.load })))
-  const shownName = useDigests((s) => s.name ?? MORNING)
-  const chosen = useDigestDay((s) => s.date)
-
-  useEffect(() => {
-    void load(name)
-  }, [load, name])
-  // A link or a notification can name a day newer than the list read before it.
-  useEffect(() => {
-    const known = useDigests.getState().days
-    if (chosen && known && !known.some((d) => d.date === chosen)) void useDigests.getState().load()
-  }, [chosen])
-
-  const mine = shownName === name ? days : null
-  const date = mine?.some((d) => d.date === chosen) ? chosen : (mine?.[0]?.date ?? null)
-  const list = useRef<HTMLElement>(null)
-  // A day a link opened may sit far down the list: its own scroll brings it into view, the page stays put.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the day shown or the list changes
-  useEffect(() => {
-    const nav = list.current
-    const day = nav?.querySelector<HTMLElement>('[aria-current="page"]')
-    if (!nav || !day) return
-    const box = nav.getBoundingClientRect()
-    const at = day.getBoundingClientRect()
-    if (at.top < box.top || at.bottom > box.bottom) nav.scrollTop += at.top - box.top - (box.height - at.height) / 2
-  }, [date, mine])
-
-  if (error)
-    return (
-      <ErrorNotice raw={error} action={<ReportThis what="Reading digests" error={error} />}>
-        {m.readFailed}
-      </ErrorNotice>
-    )
-  if (mine === null) return <Skeleton className="h-[24rem] w-full" label={m.reading} />
-  if (mine.length === 0) return <EmptyState title={m.emptyTitle}>{m.emptyBody}</EmptyState>
-  return (
-    <div className="@container min-w-0">
-      <section
-        aria-label={one.latest}
-        className="grid min-w-0 items-start gap-[1rem] @2xl:grid-cols-[minmax(0,1fr)_13rem]"
-      >
-        <div className="min-w-0">{date && <Day date={date} failed={lastFailed && date === mine[0]?.date} />}</div>
-        {/* Its own scroll: picking an old day moves neither the page nor the list (rule 9). */}
-        <nav
-          ref={list}
-          aria-label={m.days}
-          className="flex max-h-[32rem] flex-col gap-[0.2rem] overflow-y-auto overscroll-contain border-line border-t pt-3 @2xl:sticky @2xl:top-4 @2xl:max-h-[calc(100vh-8rem)] @2xl:border-t-0 @2xl:border-l @2xl:pt-0 @2xl:pl-3"
-        >
-          {mine.map((d) => (
-            <button
-              key={d.date}
-              type="button"
-              aria-current={d.date === date ? "page" : undefined}
-              onClick={() => useDigestDay.setState({ date: d.date })}
-              className={cx(
-                "flex shrink-0 cursor-pointer flex-wrap items-baseline gap-x-3 rounded-pill px-[0.7rem] py-[0.45rem] text-left transition-colors hover:bg-app-3 @2xl:flex-col",
-                d.date === date && "bg-app-3",
-              )}
-            >
-              <span className="w-[9rem] shrink-0 font-medium text-ink first-letter:uppercase @2xl:w-auto">
-                {dayTitle(d.date, lang)}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[0.88rem] text-ink-dim @2xl:w-full @2xl:flex-none">
-                {d.backfill && <span className="italic">{later} · </span>}
-                {d.summary}
-              </span>
-            </button>
-          ))}
-        </nav>
-      </section>
-    </div>
-  )
-}
-
-/** `failed`: the newest day of a digest whose last run failed; its text is the agent's account of why, not a digest. */
-function Day({ date, failed }: { date: string; failed: boolean }) {
-  const m = useMessages(digestMessages)
-  const shown = useDigests((s) => s.shown[date])
-  const [now] = useState(() => Date.now())
-  useEffect(() => {
-    void useDigests.getState().show(date)
-  }, [date])
-
-  const box = "min-w-0 rounded-rack border border-line-strong bg-app px-[1.4rem] py-[1.3rem]"
-  if (!shown || shown.state === "loading") return <Skeleton className={cx(box, "h-[24rem]")} label={m.reading} />
-  if (shown.state === "failed")
-    return (
-      <ErrorNotice raw={shown.error} action={<ReportThis what="Reading a digest" error={shown.error} />}>
-        {m.dayFailed}
-      </ErrorNotice>
-    )
-  return (
-    <div className={box}>
-      {shown.state === "report" ? (
-        <ReportView report={shown.report} now={now} />
-      ) : (
-        <>
-          <p className={cx("text-[0.88rem]", failed ? "font-medium text-bad" : "text-ink-dim")}>
-            {failed ? m.failedRun : m.textRun}
-          </p>
-          <pre className="mt-3 font-sans text-[0.95rem] whitespace-pre-wrap text-ink-soft">{shown.text}</pre>
-        </>
-      )}
-    </div>
   )
 }
 

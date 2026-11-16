@@ -6,9 +6,11 @@ import {
   entityOf,
   HEALTH_EMOJI,
   isOverdue,
+  keyOf,
   type Moment,
   momentOf,
   orderedSections,
+  type ReportTarget,
   SECTION_EMOJI,
   staleHealth,
   TITLE_EMOJI,
@@ -17,8 +19,6 @@ import {
   taskGroups,
   windowOf,
 } from "@/domain/digest"
-import { type DeepLinkTarget, formatLink } from "@/domain/links"
-import { openTarget } from "@/features/links"
 import { useLang, useMessages } from "@/i18n"
 import type { Report, ReportItem } from "@/platform/digest-schemas"
 import { Collapse } from "@/ui/Collapse"
@@ -26,6 +26,7 @@ import { cx } from "@/ui/cx"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { SectionTitle } from "@/ui/SectionTitle"
 import { digestMessages } from "./messages"
+import { openReportTarget } from "./open-target"
 
 type M = (typeof digestMessages)["en"]
 
@@ -35,7 +36,7 @@ function OpenLink({
   children,
   className,
 }: {
-  target: DeepLinkTarget
+  target: ReportTarget
   label: string
   children: ReactNode
   className?: string
@@ -44,7 +45,7 @@ function OpenLink({
     <button
       type="button"
       aria-label={label}
-      onClick={() => void openTarget(target)}
+      onClick={() => openReportTarget(target)}
       className={cx("cursor-pointer font-medium text-brand hover:text-brand-hover", className)}
     >
       {children}
@@ -67,7 +68,7 @@ function meetingTime(time: Moment, m: M): string {
   return time.time ? `${time.date}, ${time.time}` : time.date
 }
 
-function Entity({ target, label, children }: { target: DeepLinkTarget | null; label: string; children: ReactNode }) {
+function Entity({ target, label, children }: { target: ReportTarget | null; label: string; children: ReactNode }) {
   if (!target) return <>{children}</>
   return (
     <OpenLink target={target} label={label} className="underline decoration-brand/40 underline-offset-2">
@@ -76,7 +77,8 @@ function Entity({ target, label, children }: { target: DeepLinkTarget | null; la
   )
 }
 
-function refLabel(target: DeepLinkTarget, item: ReportItem, m: M): string {
+function refLabel(target: ReportTarget, item: ReportItem, m: M): string {
+  if (target.type === "record") return m.refs[target.kind]
   switch (target.type) {
     case "message":
       return m.refs.message
@@ -127,7 +129,7 @@ function Details({ item, now, m }: { item: ReportItem; now: number; m: M }) {
             {targets.map((t) => {
               const label = refLabel(t, item, m)
               return (
-                <OpenLink key={formatLink(t)} target={t} label={`${m.open}: ${label}`}>
+                <OpenLink key={keyOf(t)} target={t} label={`${m.open}: ${label}`}>
                   {label}
                 </OpenLink>
               )

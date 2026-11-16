@@ -206,13 +206,15 @@ function useStagePrompt(read: Based, kind: Kind, settled: boolean) {
   const crms = crmsOf(settled ? read.pipelines : [], read.mapping)
   const prompted = useClients((st) => st.prompted)
   const mapOn = useClients((st) => st.mapOn)
+  // A card a link opened stays in front; the dialog waits for a visit with no card open.
+  const card = useClients((st) => st.open)
   const fresh = [...crms]
     .filter(([key, c]) => c.waiting > 0 && !prompted.includes(`${kind}:${key}`))
     .map(([key]) => `${kind}:${key}`)
     .join("\n")
   useEffect(() => {
-    if (fresh && mapOn === null) useClients.getState().prompt(fresh.split("\n"))
-  }, [fresh, mapOn])
+    if (fresh && mapOn === null && card === null) useClients.getState().prompt(fresh.split("\n"))
+  }, [fresh, mapOn, card])
   return [...crms.values()].reduce((n, c) => n + c.waiting, 0)
 }
 

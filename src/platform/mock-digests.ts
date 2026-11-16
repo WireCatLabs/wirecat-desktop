@@ -62,12 +62,12 @@ const full = (date: string, summary: string) => ({
         },
         {
           type: "question",
-          who: "Igor Lapin",
+          who: "Kai Moreno",
           topic: "tile delivery",
           action: "can the tile delivery move to the 20th?",
           since: at(-1, 18),
           channel: "telegram",
-          refs: ["chat:telegram/1001/4004", "person:78"],
+          refs: ["chat:telegram/1001/4004", "person:4"],
         },
         {
           type: "task",
@@ -104,9 +104,11 @@ const full = (date: string, summary: string) => ({
         },
         {
           type: "money",
-          who: "Smirnova",
-          topic: "prepayment, contract 14",
-          amount: { value: 120000, currency: "RUB", direction: "in" },
+          who: "Northstar Labs",
+          topic: "Site for Northstar",
+          action: "send the quote",
+          amount: { value: 500000, currency: "RUB", direction: "in" },
+          refs: ["deal:1"],
         },
       ],
     },
@@ -115,10 +117,11 @@ const full = (date: string, summary: string) => ({
       items: [
         {
           type: "meeting",
-          topic: "Warehouse stand-up",
-          time: at(0, 11),
-          who: "Anna Kotova, Petr Belov",
+          topic: "Board review",
+          time: at(0, 12),
+          who: "Lena Ortiz, Kai Moreno",
           action: "bring the rent figures",
+          refs: ["event:665"],
         },
       ],
     },
@@ -131,6 +134,12 @@ const full = (date: string, summary: string) => ({
           topic: "Khimki warehouse",
           detail: "the landlord agreed a 5% discount from January",
           who: "Anna Kotova",
+        },
+        {
+          type: "fact",
+          topic: "Q4 plan",
+          detail: "Kai Moreno rewrote the budget section",
+          refs: ["document:40", "invoice:12"],
         },
         {
           type: "risk",

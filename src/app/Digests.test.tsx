@@ -30,14 +30,13 @@ describe("Digests", () => {
   it("lists one day per digest, newest first, and lays the newest out with its sections", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Digests/ }))
-    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    await user.click(screen.getByRole("button", { name: /^Digests/ }))
     const days = await screen.findByRole("navigation", { name: "Days" })
     expect(within(days).getAllByRole("button")).toHaveLength(4)
     expect(within(days).getAllByRole("button")[0]).toHaveAttribute("aria-current", "page")
     const today = await screen.findByRole("region", { name: "Today" })
     expect(today).toHaveTextContent("Anna Kotova · warehouse lease — Answer whether signing on Friday works")
-    expect(today).toHaveTextContent("Igor Lapin asks: can the tile delivery move to the 20th?")
+    expect(today).toHaveTextContent("Kai Moreno asks: can the tile delivery move to the 20th?")
     expect(
       screen.getByText(/Viewed over 24 hr: Telegram, MAX, mail \(4 inboxes\) · 31 chats, 12 emails, 17 tasks/),
     ).toBeInTheDocument()
@@ -47,8 +46,7 @@ describe("Digests", () => {
   it("opens an item's task, and a task group's list, inside the app", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Digests/ }))
-    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    await user.click(screen.getByRole("button", { name: /^Digests/ }))
     await user.click(await screen.findByRole("button", { name: "Open: Reconciliation for North Wind" }))
     expect(await screen.findByRole("dialog")).toHaveTextContent("Task HRB-14")
     expect(useNav.getState().active).toBe("tasks")
@@ -62,8 +60,7 @@ describe("Digests", () => {
   it("shows an older run's text as it was", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole("tab", { name: /^Digests/ }))
-    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
+    await user.click(screen.getByRole("button", { name: /^Digests/ }))
     const days = await screen.findByRole("navigation", { name: "Days" })
     await user.click(within(days).getAllByRole("button")[3] as HTMLElement)
     expect(await screen.findByText(/Pay November rent to Vector LLC/)).toBeInTheDocument()
@@ -74,7 +71,13 @@ describe("Digests", () => {
     render(<App />)
     act(() => deliver({ type: "digest", date: today() }))
     await waitFor(() => expect(useNav.getState().active).toBe("digests"))
-    expect(await screen.findByRole("region", { name: "Settings" })).toBeInTheDocument()
+    const report = await waitFor(() => {
+      const found = document.querySelector(`[data-digest-report="${today()}"]`)
+      expect(found).toHaveAttribute("data-target-flash")
+      return found
+    })
+    expect(report).toHaveFocus()
+    expect(screen.queryByRole("region", { name: "Settings" })).not.toBeInTheDocument()
     act(() => deliver({ type: "digest", date: "2001-01-01" }))
     expect(await screen.findByRole("heading", { name: "This item is not on this computer" })).toBeInTheDocument()
   })

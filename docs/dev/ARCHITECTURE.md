@@ -281,7 +281,10 @@ src-tauri/src/
                 started the app first. A link only opens a page (`src/features/links/open.ts`): a task, the task list on a filter, a proposal's row
                 on Memory, a tool's sync, a day on Digests, a chat or message on Conversation, a project (`project/<id>`, by key
                 or `project:<n>` reference) on Tasks searched by it; a person (`person/<id>`) and an unknown project
-                have no page yet and say so, with the reference to copy.
+                have no page yet and say so, with the reference to copy. A link inside a digest goes through
+                `src/features/digests/open-target.ts` first: a person opens on Contacts, and the store rows no v1 link
+                names open in their own card: `event:` and `meeting:` on Meetings, `document:` on Documents, `deal:`
+                and `lead:` on Clients. Any other kind is plain text.
   digests.rs    the digests archive's past days: a digest's runs, read from the files its schedule keeps
                 (`<memo state>/schedules/<name>/runs/`; memo has no command that lists a schedule's runs), one
                 day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
@@ -290,7 +293,7 @@ src-tauri/src/
                 (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls the
                 morning digest's `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and
                 announces a run newer than the last one it announced.
-  digest_book.rs the digests' table (the Digests tab of Tools): `memo digest list|add|edit|run|pause|resume|remove` (the contract in
+  digest_book.rs the digests' table (the Settings tab of Digests): `memo digest list|add|edit|run|pause|resume|remove` (the contract in
                 [digests-api.md](digests-api.md)), every write with `--from-app`.
                 A memo without `digest list` has only `morning-digest`, kept as a schedule: the page reads it through
                 digest_schedule.rs and refuses what that memo cannot do (a second digest, several times, weekdays,
@@ -302,7 +305,7 @@ src-tauri/src/
                 unknown), first without `--yes` for the price, then with it. Routes are checked to the two shapes
                 `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and the page says
                 it needs an update.
-  digest_editors.rs the Digests tab's two editors for one digest, both owner-only writes memo itself guards: What to
+  digest_editors.rs the Settings tab's two editors for one digest, both owner-only writes memo itself guards: What to
                 collect is `digest brief show|edit --file -|edit --undo|reset [name]`, How it looks is
                 `templates show|edit|preview|reset report/<name> --channel --locale`. Text goes on stdin; `templates`
                 has no `--file -` yet, so it gets `/dev/stdin` (none on Windows: there a save says to use the
@@ -1099,7 +1102,8 @@ A new area (accounts, memory, people…) is one entry in `src/app/sections.tsx` 
 Guides, Analytics, Search, then Logs and Settings at the bottom. Meetings and Documents go between Contacts and Memory,
 one line each, once their pages exist; an entry without a page would show a disabled «Soon» item.
 
-- **A tab** is an entry with `tabOf`: `agents` is a tab of `tools`, `storage` a tab of `analytics` (owner, NEED-31).
+- **A tab** is an entry with `tabOf`: `agents` is a tab of `tools`, `storage` a tab of `analytics` (owner, NEED-31),
+  `digest-settings` a tab of `digests` (owner, 2026-11-16).
   Its id stays the section id, so `go("agents")`, a saved page, `?section=storage`, the tour and every old link land
   on the tab. `app/TabbedPage.tsx` draws the page: one title, the tabs (`LineTab size="lg"`, React Aria's tabs
   pattern), and the tab's own page in the panel. The tab's page keeps its `Page` and `PageHeader`; inside
@@ -1108,9 +1112,11 @@ one line each, once their pages exist; an entry without a page would show a disa
 - **The address** is the section id in `useNav` (`shared/nav.ts`): a tab click is `go(tab)`, so back and forward and
   the page saved for the next start keep the tab. `App` keys the page and its switch by `pageOf(active)`, so a tab
   switch keeps the frame, the scroll and the focus on the tab, and the new tab's panel fades in (`.reveal`).
-- **A sub-page** is an entry with `hidden`: the digests archive (`digests`) is reached from «All digests» in the
-  Agents tab's «Schedules and digests», from a digest's notice in the bell, from a digest link and from a digest's row,
-  never from the sidebar (owner, NEED-32 A). Its Back goes to the Agents tab.
+- **Digests** is a sidebar page again (owner, 2026-11-16): its first tab, `digests`, shows what each digest wrote; its
+  Settings tab, `digest-settings`, holds the presets, the table and one digest's settings. The old id `digests`
+  (`?section=`, a saved page, the bell, a digest link) opens the first tab. A digest's notice, a digest link and a
+  digest's «Read what it wrote» set `useDigestDay` (`shared/digest-day.ts`); only the first tab takes it, opens that
+  digest and day, and marks the report with `revealTarget`.
 The app's own Node.js (`node.rs`) is the nodejs.org LTS build, checked against `SHASUMS256.txt` and unpacked into
 `<app local data>/dev.wirecat.desktop/node/v<version>`, outside the shared archive that Storage may delete.
 `paths.rs` puts its `bin` first only when the user's own Node or npm cannot install tools, so `system.rs` and

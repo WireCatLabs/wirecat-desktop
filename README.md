@@ -63,8 +63,9 @@ The sidebar has these pages, top to bottom:
 
 | Page | What it does |
 | --- | --- |
-| Tools | Two tabs. **Tools** shows every WireCat CLI tool, which are installed and in which version, and installs, updates and uninstalls them, runs a tool's own health check and signs in to an account. **Agents** finds the AI agents on this computer and gives them each tool's skill and MCP server, connects ChatGPT and Claude in the browser through a tool's MCP server, and holds **Schedules and digests**: the digests an agent writes on a schedule, with the presets to make one. **All digests** there opens the archive of every digest. |
+| Tools | Two tabs. **Tools** shows every WireCat CLI tool, which are installed and in which version, and installs, updates and uninstalls them, runs a tool's own health check and signs in to an account. **Agents** finds the AI agents on this computer and gives them each tool's skill and MCP server, and connects ChatGPT and Claude in the browser through a tool's MCP server. |
 | Tasks | One task list for you and your agents, as a table or a board. Memo keeps it, and agents read and change the same list. |
+| Digests | Two tabs. **Digests** shows what each digest wrote, newest day first; every person, chat, task, meeting, document and deal in it opens here. **Settings** holds the presets to make a digest, every digest's schedule, sources, brief and look. |
 | Clients | Deals and leads from your CRM and messages, as a table or a board by stage. |
 | Contacts | Who is who across your sources, and the matches to confirm. |
 | Memory | What your agents concluded about you and the people you talk to, and what they propose to do. Nothing counts until you approve it. Memo keeps it. |
@@ -74,7 +75,7 @@ The sidebar has these pages, top to bottom:
 | Logs | Shows every run of every tool, read from the tool's own run log. |
 | Settings | Shows and changes each tool's settings, and the app's own language and interface size. The app has a light and a dark theme. |
 
-A digest that arrives shows in the bell at the top; its **Open the digest** reads it.
+A digest that arrives shows in the bell at the top; its **Open the digest** opens that day on the Digests tab.
 
 The app has three languages: English, Russian and Spanish. It follows your system language.
 

@@ -55,6 +55,21 @@ describe("a digest laid out as cli-core's renderer lays it out", () => {
     expect(targetOfRefs(["project:north-wind"])).toBeNull()
   })
 
+  it("opens the store rows with a card of their own, and nothing for a kind no screen shows", () => {
+    expect(targetOfRefs(["event:665"])).toEqual({ type: "record", kind: "meeting", ref: "event:665" })
+    expect(targetOfRefs(["meeting:4/9"])).toEqual({ type: "record", kind: "meeting", ref: "meeting:4/9" })
+    expect(targetOfRefs(["invoice:12", "document:40"])).toEqual({
+      type: "record",
+      kind: "document",
+      ref: "document:40",
+    })
+    expect(targetsOfRefs(["deal:1", "lead:2", "deal:1"])).toEqual([
+      { type: "record", kind: "deal", ref: "deal:1" },
+      { type: "record", kind: "lead", ref: "lead:2" },
+    ])
+    expect(targetOfRefs(["invoice:12", "organization:3", "note:4", "deal:"])).toBeNull()
+  })
+
   it("links an item's person and project only when its refs name exactly one", () => {
     expect(entityOf(["msg:max/1/2/3", "person:77"], "person")).toEqual({ type: "person", id: "77" })
     expect(entityOf(["person:77", "person:78"], "person")).toBeNull()

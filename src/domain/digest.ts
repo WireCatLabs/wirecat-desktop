@@ -114,13 +114,43 @@ export function amountText(amount: { value: number; currency: string; direction:
   return `${amount.direction === "in" ? "+" : "−"}${money}`
 }
 
-/** Every target an item's refs name, in their order, each once; refs no link can name are left out. */
-export function targetsOfRefs(refs: readonly string[]): DeepLinkTarget[] {
+/**
+ * A store row a digest names that WireCat opens in its own card: a meeting or calendar event, a document, a CRM deal or
+ * lead. cli-core's v1 links name none of these, so they open only from inside the app.
+ */
+export type RecordTarget = { type: "record"; kind: "meeting" | "document" | "deal" | "lead"; ref: string }
+
+/** What a ref in a digest opens: a link's target, or a row with a card of its own. */
+export type ReportTarget = DeepLinkTarget | RecordTarget
+
+const RECORD_KINDS: Record<string, RecordTarget["kind"]> = {
+  meeting: "meeting",
+  event: "meeting",
+  document: "document",
+  deal: "deal",
+  lead: "lead",
+}
+
+/** The target of one ref, or null for a kind nothing here opens (an invoice, a note, an organization…). */
+function reportTargetOf(ref: string): ReportTarget | null {
+  const linked = linkTargetOf(ref)
+  if (linked) return linked
+  const text = ref.trim()
+  const colon = text.indexOf(":")
+  const kind = colon > 0 ? RECORD_KINDS[text.slice(0, colon)] : undefined
+  return kind && text.slice(colon + 1).trim() !== "" ? { type: "record", kind, ref: text } : null
+}
+
+/** One key per target, for lists and for leaving out a second ref to the same thing. */
+export const keyOf = (target: ReportTarget) => (target.type === "record" ? target.ref : formatLink(target))
+
+/** Every target an item's refs name, in their order, each once; refs nothing here opens are left out. */
+export function targetsOfRefs(refs: readonly string[]): ReportTarget[] {
   const seen = new Set<string>()
   return refs.flatMap((ref) => {
-    const target = linkTargetOf(ref)
+    const target = reportTargetOf(ref)
     if (!target) return []
-    const key = formatLink(target)
+    const key = keyOf(target)
     if (seen.has(key)) return []
     seen.add(key)
     return [target]
@@ -128,17 +158,17 @@ export function targetsOfRefs(refs: readonly string[]): DeepLinkTarget[] {
 }
 
 /** The person or project an item names, when its refs name exactly one: its `who` or `topic` then links there. */
-export function entityOf(refs: readonly string[], type: "person" | "project"): DeepLinkTarget | null {
+export function entityOf(refs: readonly string[], type: "person" | "project"): ReportTarget | null {
   const found = targetsOfRefs(refs).filter((t) => t.type === type)
   return found.length === 1 ? (found[0] ?? null) : null
 }
 
 /**
- * What an item's Open opens: the first ref a link can name, people and projects aside, since its who and topic link
+ * What an item's Open opens: the first ref that opens anything, people and projects aside, since its who and topic link
  * to those.
  */
-export const targetOfRefs = (refs: readonly string[]): DeepLinkTarget | null =>
-  refs.map(linkTargetOf).find((t) => t !== null && t.type !== "person" && t.type !== "project") ?? null
+export const targetOfRefs = (refs: readonly string[]): ReportTarget | null =>
+  refs.map(reportTargetOf).find((t) => t !== null && t.type !== "person" && t.type !== "project") ?? null
 
 export type TaskGroup = {
   filter: "overdue" | "today" | "tomorrow" | "new"
