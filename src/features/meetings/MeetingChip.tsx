@@ -94,12 +94,16 @@ export function MeetingBlock({
         {!two && <Badges meeting={meeting} count={false} />}
       </span>
       {two && (
-        <span className="flex min-w-0 items-center gap-[0.3rem] text-ink-soft">
-          <span className="truncate whitespace-nowrap font-mono text-[0.85rem]">
-            {start}
-            {goesOn ? " →" : `–${timeText(meeting.endedAt, lang)}`}
+        // One row: the end and the badges wrap whole onto a hidden second row rather than cut the start to "1…", and
+        // below 4.25rem, where not even "12:00 PM" fits, the row goes; the tip and the label keep the time.
+        <span className="hidden h-[1.25rem] min-w-0 flex-wrap items-center overflow-hidden text-ink-soft @min-[4.25rem]:flex">
+          <span className="truncate font-mono text-[0.85rem]">{start}</span>
+          <span className="whitespace-nowrap font-mono text-[0.85rem]">
+            {goesOn ? "\u00a0→" : `–${timeText(meeting.endedAt, lang)}`}
           </span>
-          <Badges meeting={meeting} count />
+          <span className="ml-auto flex pl-[0.3rem]">
+            <Badges meeting={meeting} count />
+          </span>
         </span>
       )}
     </span>
