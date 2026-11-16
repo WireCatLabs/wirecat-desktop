@@ -250,7 +250,7 @@ const ToolSchema = v.object({
       run: v.nullable(v.array(v.string())),
       last: v.nullable(v.array(v.string())),
       lastShape: v.picklist(["runs", "driveStatus"]),
-      what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail", "records"]),
+      what: v.picklist(["messages", "files", "meetings", "calls", "notes and mail", "mail", "records"]),
       note: v.nullable(v.string()),
       /** The sync on a timer per account, through the tool's own `schedule command`; Rust holds the words. */
       schedule: v.optional(v.nullable(v.object({ every: v.string(), choices: v.array(v.string()) })), null),
@@ -372,6 +372,9 @@ export const maker = (t: CatalogTool) =>
   t.repo
     ? (t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo)
     : (t.package.split("/")[0] ?? t.package)
+
+/** Only WireCat publishes under `@wirecat`, so an own tool from that scope is ours, just not built into this release. */
+export const isWirecatPackage = (t: CatalogTool) => t.package.startsWith("@wirecat/")
 
 /** The catalog tool that writes a CRM's accounts, by memo's `provider`; none for a CRM WireCat has no CLI for. */
 export const crmToolOf = (provider: string): CatalogTool | undefined => tools.find((t) => t.crm?.provider === provider)

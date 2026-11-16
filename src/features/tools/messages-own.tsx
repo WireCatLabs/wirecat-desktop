@@ -6,6 +6,7 @@ const en = {
   open: "Add your own tool",
   notChecked: "Not verified",
   trust: (maker: string) => `Added by you, made by ${maker}. WireCat has not checked it.`,
+  trustWirecat: "Added by you. A WireCat tool that this version of the app does not include yet.",
   title: "Add your own tool",
   updateTitle: (name: string) => `Update ${name}`,
   warn: [
@@ -140,6 +141,7 @@ const ru: typeof en = {
   open: "Добавить свой инструмент",
   notChecked: "Не проверен",
   trust: (maker) => `Добавлен вами, автор ${maker}. WireCat его не проверял.`,
+  trustWirecat: "Добавлен вами. Инструмент WireCat, которого ещё нет в этой версии приложения.",
   title: "Добавить свой инструмент",
   updateTitle: (name) => `Обновить ${name}`,
   warn: [
@@ -270,6 +272,7 @@ const es: typeof en = {
   open: "Añadir tu propia herramienta",
   notChecked: "Sin verificar",
   trust: (maker) => `Añadida por ti, hecha por ${maker}. WireCat no la ha revisado.`,
+  trustWirecat: "Añadida por ti. Una herramienta de WireCat que esta versión de la app aún no incluye.",
   title: "Añadir tu propia herramienta",
   updateTitle: (name) => `Actualizar ${name}`,
   warn: [

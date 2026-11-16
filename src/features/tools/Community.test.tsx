@@ -2,7 +2,7 @@ import type { FC } from "react"
 import { beforeAll, expect, it, vi } from "vitest"
 import { addCommunityTools } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
-import { ACME, OWN } from "@/platform/mock-community"
+import { ACME, OWN, OWN_WIRECAT } from "@/platform/mock-community"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useOwnDialog } from "@/shared/own-dialog-store"
@@ -15,6 +15,7 @@ beforeAll(async () => {
   addCommunityTools([
     { source: "community", entry: ACME },
     { source: "own", entry: OWN },
+    { source: "own", entry: OWN_WIRECAT },
   ])
   ;({ App } = await import("@/app/App"))
 })
@@ -39,6 +40,19 @@ it("marks an own tool Not verified, never Community", async () => {
     .closest("li") as HTMLElement
   expect(within(row).getByText("Not verified")).toBeInTheDocument()
   expect(within(row).queryByText("Community")).not.toBeInTheDocument()
+})
+
+it("says an own @wirecat tool is WireCat's, only not in this version of the app", async () => {
+  useOnboarding.setState({ status: "done", open: false })
+  render(<App />)
+  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const row = within(list)
+    .getByRole("button", { name: /^Beeline/ })
+    .closest("li") as HTMLElement
+  expect(
+    await within(row).findByText(/A WireCat tool that this version of the app does not include yet/),
+  ).toBeInTheDocument()
+  expect(within(row).queryByText(/made by WireCatLabs/)).not.toBeInTheDocument()
 })
 
 it("offers a registered tool on Choose tools with its badge", async () => {

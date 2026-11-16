@@ -1,6 +1,6 @@
 /** What a sync brings in and where, in the words the result uses. */
 /** `records` is any own tool's data: its manifest names it in free text, which has no plural forms to count with. */
-export type SyncWhat = "messages" | "files" | "meetings" | "notes and mail" | "mail" | "records"
+export type SyncWhat = "messages" | "files" | "meetings" | "calls" | "notes and mail" | "mail" | "records"
 
 /** What a memo sync sent to the hosted model while search rewriting is on; `reason` is memo's English, masked. */
 export type SyncEnrichment = {
