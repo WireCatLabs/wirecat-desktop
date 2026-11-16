@@ -27,7 +27,12 @@ const en = {
     installingAll: "Installing…",
     updateAll: (n: number) => `Update all (${formatNumber(n, "en")})`,
     updatingAll: "Updating…",
-    groups: { official: "Built-in tools", community: "Community tools", own: "Tools WireCat has not checked" },
+    groups: {
+      official: "Built-in tools",
+      wirecat: "Additional WireCat tools",
+      community: "Community tools",
+      own: "Tools WireCat has not checked",
+    },
   },
   intro: {
     label: "About WireCat",
@@ -369,6 +374,7 @@ const ru: typeof en = {
     updatingAll: "Обновляем…",
     groups: {
       official: "Встроенные инструменты",
+      wirecat: "Дополнительные инструменты WireCat",
       community: "Инструменты сообщества",
       own: "Инструменты, которые WireCat не проверял",
     },
@@ -723,6 +729,7 @@ const es: typeof en = {
     updatingAll: "Actualizando…",
     groups: {
       official: "Herramientas incluidas",
+      wirecat: "Herramientas adicionales de WireCat",
       community: "Herramientas de la comunidad",
       own: "Herramientas que WireCat no ha revisado",
     },

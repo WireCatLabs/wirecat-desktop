@@ -130,7 +130,11 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             {tool.name}
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
-            {isCommunity(tool) && <Pill>{isOwn(tool) ? om.notChecked : m.community}</Pill>}
+            {isCommunity(tool) && (
+              <Pill tone={isOwn(tool) && isWirecatPackage(tool) ? "brand" : "neutral"}>
+                {isOwn(tool) ? (isWirecatPackage(tool) ? om.wirecatChecked : om.notChecked) : m.community}
+              </Pill>
+            )}
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
             <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>

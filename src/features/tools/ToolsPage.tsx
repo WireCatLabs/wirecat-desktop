@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useId } from "react"
-import { type CatalogTool, isCommunity, isOwn, tools } from "@/domain/catalog"
+import { type CatalogTool, isCommunity, isOwn, isWirecatPackage, tools } from "@/domain/catalog"
 import { NodeNotice } from "@/features/system"
 import { useMessages } from "@/i18n"
 import { useCatalog } from "@/shared/catalog-store"
@@ -23,9 +23,10 @@ import { ToolRow } from "./ToolRow"
 import { ToolsIntro } from "./ToolsIntro"
 import { UpgradeWarning } from "./UpgradeWarning"
 
-type Group = "official" | "community" | "own"
+const GROUPS = ["official", "wirecat", "community", "own"] as const
 
-const groupOf = (t: CatalogTool): Group => (isOwn(t) ? "own" : isCommunity(t) ? "community" : "official")
+const groupOf = (t: CatalogTool): (typeof GROUPS)[number] =>
+  isOwn(t) ? (isWirecatPackage(t) ? "wirecat" : "own") : isCommunity(t) ? "community" : "official"
 
 function ToolGroup({ title, children }: { title: string; children: ReactNode }) {
   const id = useId()
@@ -56,9 +57,7 @@ export function ToolsPage() {
   const mayHaveTools = useTools((s) => !s.checked || Object.values(s.installs).some((copies) => copies.length > 0))
   const storageSlot = mayHaveTools && !error && compat !== null
   const progress = refreshing ? m.looking : askingNpm ? m.askingNpm : null
-  const groups = (["official", "community", "own"] as const).map(
-    (g) => [g, tools.filter((t) => groupOf(t) === g)] as const,
-  )
+  const groups = GROUPS.map((g) => [g, tools.filter((t) => groupOf(t) === g)] as const)
 
   useEffect(() => {
     useTools.getState().refreshIfStale()

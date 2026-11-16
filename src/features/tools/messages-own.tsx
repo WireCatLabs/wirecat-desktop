@@ -5,6 +5,7 @@ type Words = [what: string, todo: string]
 const en = {
   open: "Add your own tool",
   notChecked: "Not verified",
+  wirecatChecked: "Verified by WireCat",
   trust: (maker: string) => `Added by you, made by ${maker}. WireCat has not checked it.`,
   trustWirecat: "Added by you. A WireCat tool that this version of the app does not include yet.",
   title: "Add your own tool",
@@ -145,6 +146,7 @@ const en = {
 const ru: typeof en = {
   open: "Добавить свой инструмент",
   notChecked: "Не проверен",
+  wirecatChecked: "Проверен WireCat",
   trust: (maker) => `Добавлен вами, автор ${maker}. WireCat его не проверял.`,
   trustWirecat: "Добавлен вами. Инструмент WireCat, которого ещё нет в этой версии приложения.",
   title: "Добавить свой инструмент",
@@ -281,6 +283,7 @@ const ru: typeof en = {
 const es: typeof en = {
   open: "Añadir tu propia herramienta",
   notChecked: "Sin verificar",
+  wirecatChecked: "Verificada por WireCat",
   trust: (maker) => `Añadida por ti, hecha por ${maker}. WireCat no la ha revisado.`,
   trustWirecat: "Añadida por ti. Una herramienta de WireCat que esta versión de la app aún no incluye.",
   title: "Añadir tu propia herramienta",

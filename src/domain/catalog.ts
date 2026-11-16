@@ -384,7 +384,7 @@ export const maker = (t: CatalogTool) =>
     : (t.package.split("/")[0] ?? t.package)
 
 /** Only WireCat publishes under `@wirecat`, so an own tool from that scope is ours, just not built into this release. */
-export const isWirecatPackage = (t: CatalogTool) => t.package.startsWith("@wirecat/")
+export const isWirecatPackage = (t: { package: string }) => t.package.startsWith("@wirecat/")
 
 /** The catalog tool that writes a CRM's accounts, by memo's `provider`; none for a CRM WireCat has no CLI for. */
 export const crmToolOf = (provider: string): CatalogTool | undefined => tools.find((t) => t.crm?.provider === provider)

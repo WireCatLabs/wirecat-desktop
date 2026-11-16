@@ -21,6 +21,7 @@ const en = {
     core: "It is built on cli-core, WireCat's own library, so it opens that data directly.",
     trust: "Add it only if you trust its authors completely.",
     noResponsibility: "WireCat has not checked this tool and takes no responsibility for what it does.",
+    wirecat: "WireCat makes this tool and publishes it under @wirecat, like the built-in ones.",
   },
   links: {
     npm: "On npm",
@@ -223,6 +224,7 @@ const ru: typeof en = {
     core: "Он построен на cli-core, собственной библиотеке WireCat, поэтому открывает эти данные напрямую.",
     trust: "Добавляйте его, только если полностью доверяете его авторам.",
     noResponsibility: "WireCat не проверял этот инструмент и не отвечает за то, что он делает.",
+    wirecat: "Этот инструмент делает WireCat и публикует его под @wirecat, как и встроенные.",
   },
   links: {
     npm: "В npm",
@@ -419,6 +421,7 @@ const es: typeof en = {
     core: "Está hecha con cli-core, la biblioteca propia de WireCat, así que abre esos datos directamente.",
     trust: "Añádela solo si confías por completo en sus autores.",
     noResponsibility: "WireCat no ha revisado esta herramienta y no se hace responsable de lo que haga.",
+    wirecat: "WireCat hace esta herramienta y la publica bajo @wirecat, como las incluidas.",
   },
   links: {
     npm: "En npm",

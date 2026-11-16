@@ -42,6 +42,16 @@ async function addAndSkip() {
 }
 
 describe("Add your own tool", () => {
+  it("reviews a @wirecat package as WireCat's own: verified, without the warning about strangers", async () => {
+    const pkg = "@wirecat/beeline-cli"
+    vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview({ package: pkg }) })
+    await check(pkg)
+    expect(await screen.findByText("Verified by WireCat")).toBeVisible()
+    expect(screen.getByText(/publishes it under @wirecat/)).toBeVisible()
+    expect(screen.queryByText("Not verified")).not.toBeInTheDocument()
+    expect(screen.queryByText(/WireCat has not checked this tool/)).not.toBeInTheDocument()
+  })
+
   it("installs only after the review's Add and the second confirmation", async () => {
     const discover = vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview() })
     const add = vi.spyOn(platform, "ownToolAdd").mockImplementation(async (_token, onEvent) => onEvent(done))

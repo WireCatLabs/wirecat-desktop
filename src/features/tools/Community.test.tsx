@@ -42,16 +42,18 @@ it("marks an own tool Not verified, never Community", async () => {
   expect(within(row).queryByText("Community")).not.toBeInTheDocument()
 })
 
-it("says an own @wirecat tool is WireCat's, only not in this version of the app", async () => {
+it("lists an own @wirecat tool among the additional WireCat tools, verified by WireCat", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
-  const list = await screen.findByRole("list", { name: "Tools WireCat has not checked" })
+  const list = await screen.findByRole("list", { name: "Additional WireCat tools" })
   const row = within(list)
     .getByRole("button", { name: /^Beeline/ })
     .closest("li") as HTMLElement
   expect(
     await within(row).findByText(/A WireCat tool that this version of the app does not include yet/),
   ).toBeInTheDocument()
+  expect(within(row).getByText("Verified by WireCat")).toBeInTheDocument()
+  expect(within(row).queryByText("Not verified")).not.toBeInTheDocument()
   expect(within(row).queryByText(/made by WireCatLabs/)).not.toBeInTheDocument()
 })
 
