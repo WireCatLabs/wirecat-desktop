@@ -24,6 +24,8 @@ const en = {
     checkingStorage: "Checking storage",
     list: "WireCat tools",
     latestUnknown: "Could not ask npm for the latest versions, so updates are not shown.",
+    installAll: (n: number) => `Install all (${formatNumber(n, "en")})`,
+    installingAll: "Installing…",
   },
   intro: {
     label: "About WireCat",
@@ -360,6 +362,8 @@ const ru: typeof en = {
     checkingStorage: "Проверяем хранилище",
     list: "Инструменты WireCat",
     latestUnknown: "Не удалось узнать в npm последние версии, поэтому обновления не показаны.",
+    installAll: (n) => `Установить все (${formatNumber(n, "ru")})`,
+    installingAll: "Устанавливаем…",
   },
   intro: {
     label: "О WireCat",
@@ -706,6 +710,8 @@ const es: typeof en = {
     checkingStorage: "Comprobando el almacenamiento",
     list: "Herramientas de WireCat",
     latestUnknown: "No se pudo consultar en npm las últimas versiones, así que no se muestran actualizaciones.",
+    installAll: (n) => `Instalar todo (${formatNumber(n, "es")})`,
+    installingAll: "Instalando…",
   },
   intro: {
     label: "Acerca de WireCat",

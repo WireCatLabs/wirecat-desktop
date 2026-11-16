@@ -38,7 +38,8 @@ type ToolsState = {
   /** Set when the last installed tool was just removed, so the app can offer to delete the data left behind. */
   offerClear: boolean
   /** `check` asks first whether the newest version keeps the shared store usable for the other installed tools. */
-  install(id: string, options?: { check?: boolean }): Promise<void>
+  /** `shut` starts it with its panel closed, for a batch: open panels would push the other rows down the page. */
+  install(id: string, options?: { check?: boolean; shut?: boolean }): Promise<void>
   /** After the store warning: go ahead, with the tools the check updates alongside. */
   proceed(id: string): Promise<void>
   /** `deleteBytes` asks to delete the package's own folders too, and only once the uninstall succeeded. */
@@ -88,7 +89,7 @@ export const useTools = create<ToolsState>((set, get) => {
         ended: Date.now(),
       }))
     }
-    patchSession(id, (s) => (s.alongside && s.outcome?.event === "failed" ? { ...s, closed: [] } : s))
+    patchSession(id, (s) => ((s.alongside || s.shut) && s.outcome?.event === "failed" ? { ...s, closed: [] } : s))
     await redetect(true).catch(() => undefined)
     if (operation === "uninstall") await deleteData(id)
     if (operation === "install" && get().sessions[id]?.outcome?.event === "done") {
@@ -138,8 +139,9 @@ export const useTools = create<ToolsState>((set, get) => {
     patchSession(id, (s) => ({ ...s, step: "preflight", check: false }))
     const preflight = await platform.storePreflight(id).catch(() => undefined)
     if (get().sessions[id]?.step !== "preflight") return false
-    if (preflight) patchSession(id, (s) => ({ ...s, preflight }))
-    return !preflightWarns(preflight)
+    const warns = preflightWarns(preflight)
+    if (preflight) patchSession(id, (s) => ({ ...s, preflight, ...(warns && s.shut ? { closed: [] } : {}) }))
+    return !warns
   }
 
   // The check already covered these, so the check after each install would only repeat it. Their panels start shut:
@@ -222,7 +224,11 @@ export const useTools = create<ToolsState>((set, get) => {
         useOwnDialog.getState().show({ pkg: tool.package, name: tool.name })
         return Promise.resolve()
       }
-      return enqueue(ownerId(id), "install", options?.check ? { check: true } : {})
+      const owner = ownerId(id)
+      return enqueue(owner, "install", {
+        ...(options?.check ? { check: true } : {}),
+        ...(options?.shut ? { shut: true, closed: samePackage(owner).map((t) => t.id) } : {}),
+      })
     },
     async proceed(given) {
       const id = ownerId(given)
