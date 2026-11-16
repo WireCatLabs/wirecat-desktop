@@ -40,7 +40,7 @@ export function InstallAll() {
           onClick={() => {
             if (!nodeReady) return focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
             setStarted(missing)
-            for (const id of missing) useTools.getState().install(id, { check: true })
+            for (const id of missing) useTools.getState().install(id, { check: true, shut: true })
           }}
         >
           {busy ? m.installingAll : m.installAll(missing.length)}

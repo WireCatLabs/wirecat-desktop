@@ -64,6 +64,8 @@ export type InstallSession = {
   data?: DataDeletion
   /** Rows of the package whose panel the owner already closed; the package's other rows keep theirs. */
   closed?: string[]
+  /** Started by Install all with its panel shut; a store warning or a failure opens it. */
+  shut?: boolean
   /** npm's own progress, read from the lines kept out of `log`. */
   progress?: NpmProgress
   /** When each step began, in ms since the epoch. */

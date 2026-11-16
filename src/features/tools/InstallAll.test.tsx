@@ -59,4 +59,19 @@ describe("Install all on the Tools page", () => {
     expect(npm.started).toEqual([first, second])
     await waitFor(() => expect(screen.queryByRole("button")).not.toBeInTheDocument())
   })
+
+  it("keeps each row's panel shut, and opens the one that fails", async () => {
+    const user = userEvent.setup()
+    const npm = fakeInstaller()
+    const [first = "", second = ""] = official
+    machine(official.slice(2))
+    render(<InstallAll />)
+
+    await user.click(screen.getByRole("button", { name: "Install all (2)" }))
+    await npm.whenStarted(first)
+    expect(useTools.getState().sessions[second]?.closed).toEqual([second])
+
+    await npm.fail(first, "failed")
+    expect(useTools.getState().sessions[first]?.closed).toEqual([])
+  })
 })
