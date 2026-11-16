@@ -17,7 +17,7 @@ describe("WireCat Desktop", () => {
     const user = userEvent.setup()
     render(<App />)
 
-    const list = await screen.findByRole("list", { name: "WireCat tools" })
+    const list = await screen.findByRole("list", { name: "Built-in tools" })
     const drive = within(list)
       .getByRole("heading", { name: /Google Drive/ })
       .closest("li")
@@ -32,7 +32,7 @@ describe("WireCat Desktop", () => {
     const user = userEvent.setup()
     render(<App />)
 
-    const list = await screen.findByRole("list", { name: "WireCat tools" })
+    const list = await screen.findByRole("list", { name: "Built-in tools" })
     const zoom = within(list).getByRole("heading", { name: /Zoom/ }).closest("li")
     if (!zoom) throw new Error("no Zoom row")
     await user.click(await within(zoom).findByRole("button", { name: /Manage/ }))
@@ -102,7 +102,7 @@ describe("WireCat Desktop", () => {
     const user = userEvent.setup()
     render(<App />)
 
-    const list = await screen.findByRole("list", { name: "WireCat tools" })
+    const list = await screen.findByRole("list", { name: "Built-in tools" })
     const tg = within(list)
       .getByRole("heading", { name: /Telegram/ })
       .closest("li")

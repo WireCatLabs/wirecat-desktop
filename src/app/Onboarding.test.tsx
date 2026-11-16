@@ -145,7 +145,7 @@ describe("Help", () => {
   it("walks through the window and closes with Escape", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await screen.findByRole("list", { name: "WireCat tools" })
+    await screen.findByRole("list", { name: "Built-in tools" })
 
     const help = screen.getByRole("button", { name: "Help" })
     await user.click(help)

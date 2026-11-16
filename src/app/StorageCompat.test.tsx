@@ -8,7 +8,7 @@ import { App } from "./App"
 // The mock's store is at schema 33 and needs 32: WhatsApp 0.6 reads up to 29, Memo 0.93 is recorded at 31, Zoom
 // predates `store info`. WhatsApp 0.7 moves the store to 34, which Telegram and MAX 0.74 do not read.
 const row = async (name: RegExp) => {
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Built-in tools" })
   const li = within(list).getByRole("heading", { name }).closest("li")
   if (!li) throw new Error(`no row for ${name}`)
   return li
