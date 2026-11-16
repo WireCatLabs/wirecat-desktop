@@ -93,6 +93,7 @@ const LATEST: Record<string, string> = {
   gcal: "0.19.0",
   funnel: "0.1.1",
   pbx: "0.3.0",
+  notion: "0.2.0",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
 const storeCheck = params.get("store-check")

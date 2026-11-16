@@ -36,6 +36,7 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   email: "0.24.0",
   bitrix: "0.13.0",
   pbx: "0.3.0",
+  notion: "0.2.0",
 }
 
 const MIN = 60_000
