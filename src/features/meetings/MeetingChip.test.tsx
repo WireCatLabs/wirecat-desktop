@@ -43,6 +43,13 @@ describe("MeetingBlock", () => {
     expect(text.indexOf("Standup")).toBe(0)
     expect(text.indexOf(time(START))).toBeGreaterThan(0)
   })
+
+  it("keeps a taller block's start whole on its own, so a narrow block drops the end rather than cutting the start", () => {
+    const end = time(new Date(START.getTime() + 60 * 60_000))
+    render(<MeetingBlock meeting={meeting(60)} minutes={60} fromBefore={false} goesOn={false} />)
+    expect(screen.getByText(time(START))).toBeInTheDocument()
+    expect(screen.getByText(`–${end}`)).toBeInTheDocument()
+  })
 })
 
 describe("MeetingLine", () => {
