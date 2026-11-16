@@ -209,6 +209,11 @@ export type ClientCall = {
 	startedAt: string | null,
 	durationMs: number | null,
 	hasTranscript: boolean,
+	/**  A phone call's `in` or `out` (cli-core 0.674.0); `None` for a meeting, an older CLI or any other word. */
+	direction: string | null,
+	/**  Who took or made the call on the owner's side, by name. */
+	manager: string | null,
+	clientPhone: string | null,
 };
 
 export type CloudflareStatus = {

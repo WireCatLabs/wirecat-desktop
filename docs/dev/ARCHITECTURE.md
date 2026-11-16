@@ -170,6 +170,9 @@ src-tauri/src/
   person_profile.rs what a match's details and a person's card show about one person: memo's `context <ref> --limit
                 10 --trimmed` and the person's row from `people check -- <name words>`, slimmed to contacts, companies,
                 counts, the latest messages and their calls (see "The Contacts page").
+  organization_card.rs a company's card, opened from a deal's or lead's company: memo's `organizations context
+                <ref> --limit 20`, slimmed to its people, open deals and leads, and its people's call count. memo lists
+                no calls of a company, so each person's calls are read only when the owner opens that person.
   calls.rs      a client's calls: cli-core's `meetings` on a CRM's `deals show`/`leads show` and on memo's person
                 context (0.650.0 and later; an older CLI names none and the card shows nothing). A call opens in the
                 tool whose catalog `meetings.provider` recorded it, as the profile the owner picks: `meetings show` and

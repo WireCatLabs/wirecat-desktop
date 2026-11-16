@@ -1,4 +1,5 @@
 import { WHATSAPP_PHONE } from "@/domain/people"
+import { CommandError, TOO_OLD } from "./command-error"
 import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
@@ -11,7 +12,7 @@ import {
   type PersonDetail,
   type Split,
 } from "./people-schemas"
-import type { PersonProfile } from "./person-profile-schemas"
+import type { OrganizationCard, PersonProfile } from "./person-profile-schemas"
 import type { Platform } from "./types"
 
 // The People page's stand-in for memo, with made-up people only, shaped like cli-memo #748's real answers
@@ -927,13 +928,58 @@ const PROFILES: Record<string, Partial<PersonProfile>> = {
   },
 }
 
-/** `memo context` and the person's row for the match dialog; `?people-fail=profile` fails every read. */
-export function peopleProfileMock(): Pick<Platform, "peopleProfile"> {
+/** Northstar Labs and Acme Corp of the Clients page; Lena (person:7) has calls, so opening her lists them. */
+const ORGANIZATIONS: Record<string, OrganizationCard> = {
+  "organization:1": {
+    reference: "organization:1",
+    name: "Northstar Labs",
+    people: [
+      { reference: "person:7", name: "Lena Ortiz", role: "Head of purchasing" },
+      { reference: "person:4", name: "Kai Moreno", role: null },
+    ],
+    peopleTotal: 2,
+    deals: [
+      {
+        reference: "deal:1",
+        kind: "deal",
+        title: "Website redesign",
+        stage: "Proposal",
+        amount: "4800.00",
+        currency: "EUR",
+      },
+      { reference: "lead:3", kind: "lead", title: "Second office", stage: "New", amount: null, currency: null },
+    ],
+    dealsTotal: 2,
+    meetings: 4,
+  },
+}
+
+/**
+ * `memo context` and the person's row for the match dialog, and a company's card; `?people-fail=profile` fails every
+ * read, `?organization=old` is a memo without `organizations context`.
+ */
+export function peopleProfileMock(): Pick<Platform, "peopleProfile" | "organizationCard"> {
   return {
     async peopleProfile(ref) {
       await delay(450)
       if (fail === "profile") throw new Error(BUSY)
       return { ...EMPTY_PROFILE, ...PROFILES[ref] }
+    },
+    async organizationCard(ref) {
+      await delay(400)
+      if (params.get("organization") === "old") throw new CommandError(TOO_OLD, "unknown command 'context'")
+      if (fail === "profile") throw new Error(BUSY)
+      return (
+        ORGANIZATIONS[ref] ?? {
+          reference: ref,
+          name: "Acme Corp",
+          people: [],
+          peopleTotal: 0,
+          deals: [],
+          dealsTotal: 0,
+          meetings: 0,
+        }
+      )
     },
   }
 }

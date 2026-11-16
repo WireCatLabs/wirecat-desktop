@@ -6,6 +6,7 @@ import { platform } from "@/platform/bridge"
 import { CommandError, TOO_OLD } from "@/platform/command-error"
 import { callsMock } from "@/platform/mock-calls"
 import { type CrmWriter, clientsMock, NORTHSTAR, SAMPLE_PROMPTED } from "@/platform/mock-clients"
+import { peopleProfileMock } from "@/platform/mock-people"
 import { useTools } from "@/shared/tools-store"
 import { answerAtOnce } from "@/testing/mock-speed"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
@@ -865,6 +866,12 @@ describe("Calls on a card", () => {
     const row = within(calls).getByRole("button", { name: /\+34 600 555 014 → 201 Ana Ruiz/ })
     expect(row).toHaveTextContent("Transcript")
     expect(row).toHaveTextContent("3:04")
+    expect(row).toHaveTextContent("Incoming")
+    expect(row).toHaveTextContent("Manager: Ana Ruiz")
+    expect(row).toHaveTextContent("+34600555014")
+    expect(within(calls).getByRole("button", { name: /Delivery plan review/ })).not.toHaveTextContent(
+      /Incoming|Outgoing/,
+    )
     await user.click(row)
     expect(open).not.toHaveBeenCalled()
     await user.click(await within(calls).findByRole("button", { name: "office" }))
@@ -900,5 +907,44 @@ describe("Calls on a card", () => {
     await user.click(await card("Site for Northstar"))
     await screen.findByRole("dialog", { name: "Site for Northstar" })
     expect(platform.clientsCalls).not.toHaveBeenCalled()
+  })
+})
+
+describe("A deal's company", () => {
+  beforeEach(() => {
+    freshMemo()
+    vi.spyOn(platform, "clientsCalls").mockResolvedValue(null)
+    const people = peopleProfileMock()
+    vi.spyOn(platform, "organizationCard").mockImplementation(people.organizationCard)
+    vi.spyOn(platform, "peopleProfile").mockImplementation(people.peopleProfile)
+  })
+
+  it("reads the company only when opened, lists its people and open deals, and a person's calls on a click", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    expect(platform.organizationCard).not.toHaveBeenCalled()
+    await user.click(within(dialog).getByRole("button", { name: "Show Northstar Labs's card" }))
+    const people = await within(dialog).findByRole("region", { name: "People" })
+    expect(platform.organizationCard).toHaveBeenCalledWith("organization:1")
+    expect(people).toHaveTextContent("4 calls and meetings with its people")
+    expect(within(dialog).getByRole("region", { name: "Open deals and leads" })).toHaveTextContent(
+      /Second office.*Lead/,
+    )
+    expect(platform.peopleProfile).not.toHaveBeenCalled()
+    await user.click(within(people).getByRole("button", { name: /Lena Ortiz/ }))
+    expect(await within(people).findByRole("region", { name: "Calls" })).toBeInTheDocument()
+    expect(platform.peopleProfile).toHaveBeenCalledWith("person:7")
+  })
+
+  it("asks to update Memo when it has no company card", async () => {
+    vi.spyOn(platform, "organizationCard").mockRejectedValue(new CommandError(TOO_OLD, "unknown command 'context'"))
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await card("Northstar: 40 office chairs"))
+    const dialog = await screen.findByRole("dialog", { name: "Northstar: 40 office chairs" })
+    await user.click(within(dialog).getByRole("button", { name: "Show Northstar Labs's card" }))
+    expect(await within(dialog).findByText(/cannot show a company's card yet/)).toBeInTheDocument()
   })
 })

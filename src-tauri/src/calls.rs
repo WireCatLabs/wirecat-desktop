@@ -1,7 +1,7 @@
 //! A client's calls and recorded meetings, as cli-core 0.650.0 and later reads them: `meetings` on a CRM's
-//! `deals show` and `leads show`, and on memo's person context. A CLI from before leaves the field out, and the card
-//! shows nothing. A call opens in the tool that recorded it (catalog `meetings`, found by cli-core's provider name)
-//! with the profile the owner chose. Titles, names and transcripts are other people's words on the owner's own page:
+//! `deals show` and `leads show`, and on memo's person context; a phone call's `call` fields since 0.674.0. A CLI
+//! from before leaves the field out, and the card shows nothing. A call opens in the tool that recorded it (catalog
+//! `meetings`, found by cli-core's provider name) with the profile the owner chose. Titles, names and transcripts are other people's words on the owner's own page:
 //! shown as plain text, never logged.
 
 use crate::catalog::{self, MeetingsSource, Tool};
@@ -31,6 +31,11 @@ pub struct ClientCall {
     pub started_at: Option<String>,
     pub duration_ms: Option<u64>,
     pub has_transcript: bool,
+    /// A phone call's `in` or `out` (cli-core 0.674.0); `None` for a meeting, an older CLI or any other word.
+    pub direction: Option<String>,
+    /// Who took or made the call on the owner's side, by name.
+    pub manager: Option<String>,
+    pub client_phone: Option<String>,
 }
 
 fn text(v: &Value, key: &str) -> Option<String> {
@@ -54,6 +59,9 @@ fn call(v: &Value) -> Option<ClientCall> {
         started_at: text(v, "started_at"),
         duration_ms: v["duration_ms"].as_u64(),
         has_transcript: v["has_transcript"].as_bool().unwrap_or(false),
+        direction: text(&v["call"], "direction").filter(|d| d == "in" || d == "out"),
+        manager: text(&v["call"]["manager"], "name"),
+        client_phone: text(&v["call"], "client_phone"),
     })
 }
 
@@ -120,13 +128,16 @@ mod tests {
             "meetings": [
                 { "ref": "meeting:4/77", "meeting_id": 77, "account": { "provider": "asterisk", "account": "office" },
                   "title": "+34 600 111 222 → 201", "started_at": "2026-11-12T09:30:00.000Z", "duration_ms": 184_000,
-                  "has_transcript": true, "event": null, "people": ["person:7"] },
+                  "has_transcript": true, "event": null, "people": ["person:7"],
+                  "call": { "direction": "in", "manager": { "name": "Ana", "person": "person:2" },
+                            "client_phone": "+34600111222" } },
                 { "ref": "meeting:2/5", "meeting_id": 5, "account": { "provider": "zoom", "account": "ana@example.org" },
                   "title": null, "started_at": null, "duration_ms": null, "has_transcript": false, "event": "event:3",
                   "people": ["person:7"] },
                 { "ref": "meeting:9/1", "meeting_id": 1, "account": { "provider": "beeline", "account": "line" },
                   "title": "Входящий звонок · Ана ↔ +79001112233", "started_at": "2026-11-11T08:00:00.000Z",
-                  "duration_ms": 60_000, "has_transcript": false, "event": null, "people": ["person:7"] },
+                  "duration_ms": 60_000, "has_transcript": false, "event": null, "people": ["person:7"],
+                  "call": { "direction": "missed", "manager": null, "client_phone": null } },
                 { "ref": "deal:1", "meeting_id": 1, "account": { "provider": "zoom", "account": "x" } }
             ]
         })
@@ -143,6 +154,16 @@ mod tests {
         assert_eq!(calls[1].tool.as_deref(), Some("zm"));
         assert_eq!(calls[1].title, None);
         assert_eq!(calls[2].tool, None, "beeline is not a WireCat tool yet");
+    }
+
+    #[test]
+    fn a_phone_call_keeps_its_direction_manager_and_client_number_and_a_meeting_has_none() {
+        let calls = calls_of(&shown()).unwrap();
+        assert_eq!(calls[0].direction.as_deref(), Some("in"));
+        assert_eq!(calls[0].manager.as_deref(), Some("Ana"));
+        assert_eq!(calls[0].client_phone.as_deref(), Some("+34600111222"));
+        assert_eq!((calls[1].direction.clone(), calls[1].manager.clone()), (None, None));
+        assert_eq!(calls[2].direction, None, "only in and out are shown; other vocabularies are dropped");
     }
 
     #[test]

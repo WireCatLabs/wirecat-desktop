@@ -61,6 +61,7 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+mod organization_card;
 mod own_risks;
 mod own_scan;
 #[cfg(test)]
@@ -404,6 +405,7 @@ pub fn run() {
             commands::people::people_check,
             commands::people::people_add,
             commands::people::people_find,
+            commands::organization_card::organization_card,
             commands::person_profile::people_profile,
             commands::memory::memory_review_show,
             commands::memory::memory_review_decide,

@@ -15,6 +15,7 @@ import { useBaseMove } from "./base-move"
 import { CardFacts, OutcomeLamp, StageText } from "./Card"
 import { CardTasks } from "./CardTasks"
 import { clientMessages } from "./messages"
+import { CompanySection } from "./OrganizationCard"
 import { useClients } from "./store"
 
 /** A card's details, from the row the board already read, and its people's calls from the CRM's own CLI. */
@@ -45,6 +46,9 @@ export function CardDialog() {
             pipeline={data?.kind === "base" ? data.pipelines.find((p) => p.ref === card.pipeline)?.name : undefined}
             stage={data?.kind === "base" ? <StageField read={data} kind={kind} card={card} /> : undefined}
           />
+          {card.organization && card.organizationRef && (
+            <CompanySection name={card.organization} reference={card.organizationRef} />
+          )}
           <CardTasks card={card} related={data?.kind === "base" && data.relatedTasks} />
           {data?.kind === "base" && <CardCalls kind={kind} card={card} pipelines={data.pipelines} />}
         </div>

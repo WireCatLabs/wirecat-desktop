@@ -22,6 +22,9 @@ export const MOCK_CALLS: ClientCall[] = [
     startedAt: at(26),
     durationMs: 184_000,
     hasTranscript: true,
+    direction: "in",
+    manager: "Ana Ruiz",
+    clientPhone: "+34600555014",
   },
   {
     ref: "meeting:4/71",
@@ -33,6 +36,9 @@ export const MOCK_CALLS: ClientCall[] = [
     startedAt: at(75),
     durationMs: 42_000,
     hasTranscript: false,
+    direction: "out",
+    manager: "Ana Ruiz",
+    clientPhone: "+34600555014",
   },
   {
     ref: "meeting:2/5",
@@ -44,6 +50,9 @@ export const MOCK_CALLS: ClientCall[] = [
     startedAt: at(140),
     durationMs: 1_920_000,
     hasTranscript: true,
+    direction: null,
+    manager: null,
+    clientPhone: null,
   },
   {
     ref: "meeting:9/3",
@@ -55,6 +64,9 @@ export const MOCK_CALLS: ClientCall[] = [
     startedAt: at(300),
     durationMs: 61_000,
     hasTranscript: false,
+    direction: null,
+    manager: null,
+    clientPhone: null,
   },
 ]
 

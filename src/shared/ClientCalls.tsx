@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { ChevronRight, FileText } from "lucide-react"
+import { ChevronRight, FileText, PhoneIncoming, PhoneOutgoing } from "lucide-react"
 import { useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { contextLines } from "@/domain/search-context"
@@ -18,9 +18,9 @@ import { profilesQuery } from "./query"
 import { offsetText, TranscriptLines } from "./TranscriptLines"
 
 /**
- * A client's calls and recorded meetings, as cli-core lists them, newest first. The title is the source's own line:
- * a phone line writes the direction, the manager and the client's number there. A row folds open in place and reads
- * the call in the tool that recorded it, as the profile the owner picks.
+ * A client's calls and recorded meetings, as cli-core lists them, newest first. The title is the source's own line;
+ * since cli-core 0.674.0 a phone call also names its direction, the manager and the client's number as fields. A row
+ * folds open in place and reads the call in the tool that recorded it, as the profile the owner picks.
  */
 export function ClientCalls({ calls, help }: { calls: readonly ClientCall[]; help: string }) {
   const m = useMessages(callMessages)
@@ -67,9 +67,12 @@ function CallRow({ call }: { call: ClientCall }) {
         <span className="flex min-w-0 flex-1 flex-col gap-[0.15rem]">
           <span className="selectable line-clamp-2 break-words">{call.title ?? m.untitled}</span>
           <span className="flex flex-wrap items-center gap-x-[0.6rem] gap-y-[0.2rem] text-[0.85rem] text-ink-soft">
+            {call.direction && <Direction direction={call.direction} />}
             <span className="font-mono tabular-nums">
               {[when, offsetText(call.durationMs)].filter(Boolean).join(" · ")}
             </span>
+            {call.manager && <span className="selectable">{m.managerIs(call.manager)}</span>}
+            {call.clientPhone && <span className="selectable font-mono tabular-nums">{call.clientPhone}</span>}
             {call.hasTranscript && (
               <Pill size="sm" tone="brand">
                 <FileText className="mr-1 inline size-3" aria-hidden />
@@ -85,6 +88,17 @@ function CallRow({ call }: { call: ClientCall }) {
         </div>
       </Collapse>
     </li>
+  )
+}
+
+function Direction({ direction }: { direction: string }) {
+  const m = useMessages(callMessages)
+  const Icon = direction === "in" ? PhoneIncoming : PhoneOutgoing
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Icon className="size-3.5" aria-hidden />
+      {direction === "in" ? m.incoming : m.outgoing}
+    </span>
   )
 }
 

@@ -130,7 +130,7 @@ import type {
   Unlinked,
 } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
-import type { PersonProfile } from "./person-profile-schemas"
+import type { OrganizationCard, PersonProfile } from "./person-profile-schemas"
 import type { ImportOutcome, RecordType } from "./records-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
@@ -519,6 +519,8 @@ export type Platform = {
   peopleUnmerge(ref: string, merge: string): Promise<PersonDetail>
   /** What the match dialog compares about one person: contacts, companies, activity and the latest messages. */
   peopleProfile(ref: string): Promise<PersonProfile>
+  /** A company's card: its people, open deals and leads, and its people's call count. */
+  organizationCard(ref: string): Promise<OrganizationCard>
   /** One memory or fact as memo now has it. */
   memoryShow(ref: string): Promise<MemoryEntry>
   /** The open source review of a memory or a fact: each source as the record cited it and as it is now. */
