@@ -76,7 +76,8 @@ src-tauri/src/
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable; the sandbox name (`WIRECAT_SANDBOX`).
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
-                real install and uninstall against a test package; CI runs it on all three systems.
+                real install and uninstall against a test package; CI runs it on Linux, and the install check after a
+                release installs a tool with the same code on all three systems.
   tools.rs      finding executables, versions, profiles, doctor runs.
   install.rs    install, update and uninstall with progress events, verification, failure reasons. The verify step
                 says what it does (`check` events: `path`, `start`, `skills`), so the row names it instead of one long
