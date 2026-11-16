@@ -29,7 +29,7 @@ const pbxTool = findTool("pbx")
 const pbxSignIn = pbxTool?.signIn
 
 beforeEach(() => {
-  // pbx declares no setup flow in the catalog yet; these tests stand for the release that does.
+  // "0.0.0" so any installed pbx counts as new enough for the flow.
   if (pbxTool && pbxSignIn) pbxTool.signIn = { ...pbxSignIn, setupFrom: "0.0.0" }
   reduceMotion()
   useOnboarding.setState({ open: false })
@@ -79,7 +79,7 @@ describe("a tool older than the setup format", () => {
   })
 
   it("asks no tool whose catalog entry declares no setup flow, so no process runs", async () => {
-    if (pbxTool && pbxSignIn) pbxTool.signIn = pbxSignIn
+    if (pbxTool && pbxSignIn) pbxTool.signIn = { ...pbxSignIn, setupFrom: undefined }
     const show = describes(pbx)
     const dialog = await open()
     expect(show).not.toHaveBeenCalled()

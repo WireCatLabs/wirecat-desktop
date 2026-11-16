@@ -2379,6 +2379,7 @@
       "signIn": {
         "gives": "Lets your agent find your company's phone calls and read what was said in them.",
         "asks": "The path of Master.csv, or the CDR database's address and a read-only user's password.",
+        "setupFrom": "0.7.0",
         "pick": true,
         "methods": [
           { "id": "csv", "label": "Master.csv file", "words": ["{profile}", "session", "start", "--json"] },
