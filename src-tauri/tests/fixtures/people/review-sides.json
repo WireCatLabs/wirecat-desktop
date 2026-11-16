@@ -1,0 +1,102 @@
+{
+  "items": [
+    {
+      "id": "1",
+      "kind": "identity_link",
+      "persons": ["person:11", "person:4"],
+      "joins": "person",
+      "identity": "whatsapp:34600111333",
+      "with": "telegram:201",
+      "signal": "agent",
+      "score": null,
+      "shared": null,
+      "mailbox": null,
+      "candidates": [],
+      "reason": "Alice writes from a new WhatsApp number about the same Acme renewal",
+      "evidence": [],
+      "proposed_by": {
+        "type": "bot",
+        "id": "4",
+        "name": "claude-code",
+        "kind": "agent"
+      },
+      "created_at": "2026-11-16T17:08:14.717Z",
+      "strength": {
+        "persons": ["person:11", "person:4"],
+        "strong": false,
+        "facts": [],
+        "weak": "nothing-shared"
+      },
+      "sides": [
+        {
+          "person": "person:11",
+          "name": "Alice A.",
+          "display_name": "Alice A.",
+          "identities": [
+            {
+              "identity": "whatsapp:34600111333",
+              "source": "whatsapp",
+              "name": "Alice A."
+            }
+          ],
+          "last": [
+            {
+              "at": "2026-11-12T09:30:00.000Z",
+              "kind": "message",
+              "source": "whatsapp",
+              "chat": "Alice A.",
+              "from_me": false,
+              "text": "Hi, this is Alice from Acme, my new number. Can we talk about the renewal on Friday?",
+              "ref": "msg:whatsapp/34600000001/34600111333/w1"
+            }
+          ],
+          "organizations": [],
+          "deals": []
+        },
+        {
+          "person": "person:4",
+          "name": "Alice",
+          "display_name": "Alice",
+          "identities": [
+            {
+              "identity": "email:alice@acme.example",
+              "source": "email",
+              "name": null
+            },
+            {
+              "identity": "example-crm:northstar.example/contact/7",
+              "source": "example-crm",
+              "name": "Alice"
+            },
+            {
+              "identity": "telegram:201",
+              "source": "telegram",
+              "name": "Alice"
+            }
+          ],
+          "last": [
+            {
+              "at": "2026-10-04T00:00:00.000Z",
+              "kind": "message",
+              "source": "telegram",
+              "chat": "Alice",
+              "from_me": false,
+              "text": "Can we renew Atlas before December?",
+              "ref": "msg:telegram/100/201/1"
+            }
+          ],
+          "organizations": ["Acme Ltd"],
+          "deals": ["Acme renewal · New"]
+        }
+      ]
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 50,
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}

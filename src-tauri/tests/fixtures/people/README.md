@@ -15,3 +15,8 @@ match from `review.json`; `people links check --json`; `people confirm 1 --from-
 accounts with one mobile number (merged at once) and of a messenger account and a CRM contact with one office landline
 (waits as a match); then `people review --brief`, `people review --kind merged` and `people show` of the merged
 person. `run_id` and `duration_ms` were removed.
+
+`review-sides.json` is memo 0.141.0's `people review --json` (the default detail, with `sides`) on a throwaway store
+seeded by cli-core's `acmeScenario` (made-up Alice and Bob at Acme Ltd, a deal, a Telegram message), plus a made-up
+WhatsApp "Alice A." with one message and an agent's proposal to join her with Alice. `run_id` and `duration_ms` were
+removed.
