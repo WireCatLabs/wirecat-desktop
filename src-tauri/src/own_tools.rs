@@ -397,13 +397,23 @@ fn view_answer(code: Option<i32>, stdout: &str) -> Result<Value, Refusal> {
     Ok(v)
 }
 
-/// The owner's own tools are read only while this is on; off by default.
+/// Only we publish under `@wirecat`, so such a tool needs no switch. `@wirecat-evil/x` is not ours.
+pub fn trusted(package: &str) -> bool {
+    package.starts_with("@wirecat/")
+}
+
+/// Whether `package` may be read from npm and added, `allowed` being the switch or `WIRECAT_EXTRA_TOOLS=1`.
+pub fn may_add(package: &str, allowed: bool) -> bool {
+    allowed || trusted(package)
+}
+
+/// Own tools outside `@wirecat` are read only while this is on; off by default.
 pub fn allowed() -> bool {
     setting_file().is_some_and(|f| crate::registry::read_shown(&f))
 }
 
-/// Applies at once: the catalog is read again with the switch as it now is, so turning it off hides the own tools and
-/// a later reload (an add or a remove) never brings back a state the switch no longer has.
+/// Applies at once: the catalog is read again with the switch as it now is, so turning it off hides the own tools
+/// outside `@wirecat` and a later reload (an add or a remove) never brings back a state the switch no longer has.
 pub fn set_allowed(allow: bool) -> Result<(), String> {
     crate::registry::write_shown(&setting_file().ok_or("The app's data folder is unknown.")?, allow)?;
     crate::catalog::reload();
@@ -1636,6 +1646,16 @@ mod tests {
         crate::catalog::reload();
         assert_eq!(tg.id, "tg", "a tool handed out before the reload is still readable");
         assert!(crate::catalog::tool("tg").is_ok());
+    }
+
+    #[test]
+    fn only_a_wirecat_package_is_added_with_the_switch_off() {
+        assert!(may_add("@wirecat/x", false));
+        for refused in ["@wirecatx/y", "@wirecat-evil/x", "@acme/crm-cli", "wirecat/x", "@wirecat"] {
+            assert!(!may_add(refused, false), "{refused}");
+        }
+        assert!(may_add("@acme/crm-cli", true));
+        assert!(may_add("@wirecat/x", true));
     }
 
     #[test]

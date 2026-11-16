@@ -11,7 +11,7 @@ const en = {
   title: "Add your own tool",
   addHint: "A tool WireCat does not list, such as one you or a colleague made, is added by its npm name.",
   allowIntro: (setting: string) =>
-    `Adding your own tool needs the setting “${setting}”, which is off. Allow turns it on here, as in Settings:`,
+    `A tool outside @wirecat needs the setting “${setting}”, which is off. Allow turns it on here, as in Settings:`,
   allowAndContinue: "Allow and continue",
   allowFailed: "Could not turn the setting on.",
   updateTitle: (name: string) => `Update ${name}`,
@@ -152,7 +152,7 @@ const ru: typeof en = {
   title: "Добавить свой инструмент",
   addHint: "Инструмент, которого нет в списке WireCat, например ваш или коллеги, добавляется по имени в npm.",
   allowIntro: (setting) =>
-    `Чтобы добавить свой инструмент, нужна настройка «${setting}», а она выключена. «Разрешить» включит её здесь, как в настройках:`,
+    `Для инструмента не из @wirecat нужна настройка «${setting}», а она выключена. «Разрешить» включит её здесь, как в настройках:`,
   allowAndContinue: "Разрешить и продолжить",
   allowFailed: "Не удалось включить настройку.",
   updateTitle: (name) => `Обновить ${name}`,
@@ -289,7 +289,7 @@ const es: typeof en = {
   title: "Añadir tu propia herramienta",
   addHint: "Una herramienta que WireCat no lista, como una tuya o de un colega, se añade por su nombre en npm.",
   allowIntro: (setting) =>
-    `Para añadir tu propia herramienta hace falta el ajuste «${setting}», que está desactivado. Permitir lo activa aquí, como en Ajustes:`,
+    `Una herramienta fuera de @wirecat necesita el ajuste «${setting}», que está desactivado. Permitir lo activa aquí, como en Ajustes:`,
   allowAndContinue: "Permitir y continuar",
   allowFailed: "No se pudo activar el ajuste.",
   updateTitle: (name) => `Actualizar ${name}`,

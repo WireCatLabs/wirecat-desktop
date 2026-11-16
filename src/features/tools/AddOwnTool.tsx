@@ -7,7 +7,7 @@ import { ownMessages } from "./messages-own"
 
 /**
  * Always under the tool list, so an owner looking for how to add a tool finds it. While "Allow tools WireCat has not
- * checked" is off, the dialog opens on that setting's warning and turns it on there.
+ * checked" is off, a @wirecat package is read at once; any other name gets that setting's warning, which turns it on.
  */
 export function AddOwnTool() {
   const m = useMessages(ownMessages)

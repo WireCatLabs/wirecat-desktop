@@ -342,8 +342,7 @@ describe("Add your own tool while the setting is off", () => {
     vi.spyOn(platform, "extraTools").mockResolvedValue({ tools: [], rejected: [] })
   })
 
-  it("is offered anyway, and opens on the setting's warning, which turns it on and goes on to the name", async () => {
-    const allow = vi.spyOn(platform, "setOwnToolsAllowed").mockResolvedValue()
+  const openAndCheck = async (pkg: string) => {
     render(
       <>
         <AddOwnTool />
@@ -351,23 +350,43 @@ describe("Add your own tool while the setting is off", () => {
       </>,
     )
     await userEvent.click(screen.getByRole("button", { name: "Add your own tool" }))
-    const dialog = await screen.findByRole("dialog", { name: "Allow tools WireCat has not checked?" })
-    expect(within(dialog).getByText(/gets access to all your personal data/)).toBeInTheDocument()
+    await userEvent.type(await screen.findByRole("textbox", { name: "npm package name" }), pkg)
+    await userEvent.click(screen.getByRole("button", { name: "Check package" }))
+  }
+
+  it("reads a @wirecat package at once, without the setting's warning", async () => {
+    const pkg = "@wirecat/beeline-cli"
+    const allow = vi.spyOn(platform, "setOwnToolsAllowed").mockResolvedValue()
+    const discover = vi
+      .spyOn(platform, "ownToolDiscover")
+      .mockResolvedValue({ outcome: "review", review: ownReview({ package: pkg }) })
+    await openAndCheck(pkg)
+    expect(await screen.findByText("Verified by WireCat")).toBeVisible()
+    expect(discover).toHaveBeenCalledWith(pkg, null)
     expect(allow).not.toHaveBeenCalled()
-    await userEvent.click(within(dialog).getByRole("button", { name: "Allow and continue" }))
-    expect(allow).toHaveBeenCalledWith(true)
-    expect(await screen.findByRole("textbox", { name: "npm package name" })).toBeInTheDocument()
+    expect(screen.queryByText(/gets access to all your personal data/)).not.toBeInTheDocument()
   })
+
+  it.each([PKG, "@wirecatx/y", "@wirecat-evil/x"])(
+    "shows the setting's warning for %s, which turns it on and goes on to read it",
+    async (pkg) => {
+      const allow = vi.spyOn(platform, "setOwnToolsAllowed").mockResolvedValue()
+      const discover = vi
+        .spyOn(platform, "ownToolDiscover")
+        .mockResolvedValue({ outcome: "review", review: ownReview({ package: pkg }) })
+      await openAndCheck(pkg)
+      const dialog = await screen.findByRole("dialog", { name: "Allow tools WireCat has not checked?" })
+      expect(within(dialog).getByText(/gets access to all your personal data/)).toBeInTheDocument()
+      expect(discover).not.toHaveBeenCalled()
+      await userEvent.click(within(dialog).getByRole("button", { name: "Allow and continue" }))
+      expect(allow).toHaveBeenCalledWith(true)
+      await waitFor(() => expect(discover).toHaveBeenCalledWith(pkg, null))
+    },
+  )
 
   it("stays on the warning with the reason when the setting cannot be saved", async () => {
     vi.spyOn(platform, "setOwnToolsAllowed").mockRejectedValue(new Error("the settings file is read only"))
-    render(
-      <>
-        <AddOwnTool />
-        <OwnToolDialog />
-      </>,
-    )
-    await userEvent.click(screen.getByRole("button", { name: "Add your own tool" }))
+    await openAndCheck(PKG)
     await userEvent.click(await screen.findByRole("button", { name: "Allow and continue" }))
     expect(await screen.findByText("Could not turn the setting on.")).toBeInTheDocument()
     expect(screen.queryByRole("textbox", { name: "npm package name" })).not.toBeInTheDocument()

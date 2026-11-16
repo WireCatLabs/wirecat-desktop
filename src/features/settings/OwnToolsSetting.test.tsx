@@ -42,6 +42,6 @@ it("applies at once: turning it off reads the tool list again and needs no resta
   await vi.waitFor(() => expect(box).toBeEnabled())
   await userEvent.click(box)
   await vi.waitFor(() => expect(extra).toHaveBeenCalled())
-  expect(await screen.findByText(/Your own tools are hidden now/)).toBeInTheDocument()
+  expect(await screen.findByText(/WireCat has not checked are hidden now/)).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Restart now" })).not.toBeInTheDocument()
 })

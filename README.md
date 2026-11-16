@@ -112,17 +112,18 @@ The app installs the same npm packages as a command-line user.
 
 ## Tools from outside WireCat
 
-The Tools page can list three kinds of tool:
+The Tools page can list four kinds of tool:
 
 | Kind | Where it comes from | Badge |
 | --- | --- | --- |
 | WireCat's own | Built into the app | none |
+| Additional WireCat tools | A `@wirecat/` package added by you, by its npm name | **Verified by WireCat** |
 | Community | A list that WireCat reviews and signs | **Community** |
 | Not verified | Added by you, by its npm name | **Not verified** |
 
-The second and third kinds are off by default. Settings has one switch for each. **Enable community tools** takes
-effect at the next start, and the page offers **Restart now**. **Allow tools WireCat has not checked** takes effect at
-once.
+Community and not verified tools are off by default. Settings has one switch for each. **Enable community tools**
+takes effect at the next start, and the page offers **Restart now**. **Allow tools WireCat has not checked** takes
+effect at once. An additional WireCat tool needs no switch.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/own-settings-dark.webp">
@@ -144,11 +145,11 @@ arrives; installed ones keep working. Your own tools do not use the list.
 
 For a tool that is not on the list: your own, a colleague's, or one from a private repository.
 
-1. On the Tools page, click **Add your own tool**, under the list of tools. While **Allow tools WireCat has not
-   checked** is off (it is off at first), a warning opens. Confirm it with **Allow and continue**; this turns the
-   setting on, as the switch in Settings does.
+1. On the Tools page, click **Add your own tool**, under the list of tools.
 2. Type the npm name, such as `@scope/name`, and click **Check package**. WireCat only reads npm. Nothing is
-   installed, and no code of the package runs.
+   installed, and no code of the package runs. A WireCat package (`@wirecat/name`) is read at once. For any other
+   package, while **Allow tools WireCat has not checked** is off (it is off at first), a warning opens first. Confirm
+   it with **Allow and continue**; this turns the setting on, as the switch in Settings does.
 3. Read the review screen (below), then click **Add**.
 4. WireCat offers **Check it with your AI agent** first. Your agent (Claude Code, Codex or Gemini, when one is
    installed) opens in a terminal with a prepared request: download exactly the reviewed package file, check its
@@ -158,10 +159,12 @@ For a tool that is not on the list: your own, a colleague's, or one from a priva
 5. A second question asks: "Install and run `@scope/name`? Its install scripts and first run use your permissions."
    Only **Install and run** installs the package.
 6. After the install, WireCat checks that the program describes itself as the review showed. The tool is on the Tools
-   page at once, with the **Not verified** badge. No restart is needed.
+   page at once, with the **Not verified** badge, or **Verified by WireCat** for a `@wirecat/` package. No restart
+   is needed.
 
-Only some packages work. The package must have a scope (`@scope/name`, not `@wirecat/`), be written in TypeScript on
-[cli-base](https://github.com/WireCatLabs/cli-base) (for example made with cli-template), and ship its manifest
+Only some packages work. The package must have a scope (`@scope/name`; a `@wirecat/` one only when this version
+does not build it in), be written in TypeScript on [cli-base](https://github.com/WireCatLabs/cli-base) (for example
+made with cli-template), and ship its manifest
 `contracts/wirecat.json`. A program on your PATH or a package without a scope cannot be added.
 
 | | |

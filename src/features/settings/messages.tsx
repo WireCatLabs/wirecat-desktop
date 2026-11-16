@@ -33,8 +33,8 @@ const en = {
   own: "Allow tools WireCat has not checked",
   ownInfo: "About tools WireCat has not checked",
   ownHelp:
-    "Shows Add your own tool on the Tools page. With it you add a tool built for WireCat by its npm name. WireCat " +
-    "has not checked these tools.",
+    "Lets Add your own tool on the Tools page add any tool built for WireCat by its npm name. WireCat has not " +
+    "checked these tools. A WireCat tool (@wirecat) needs no switch.",
   ownWarnTitle: "Allow tools WireCat has not checked?",
   ownWarn: [
     "A tool you add this way gets access to all your personal data that WireCat holds: your messages, mail, notes and files.",
@@ -44,7 +44,8 @@ const en = {
   ownAllow: "Allow",
   cancel: "Cancel",
   ownOnNow: "Add your own tool is now on the Tools page, with the tools you added.",
-  ownOffNow: "Your own tools are hidden now. Installed ones stay installed.",
+  ownOffNow:
+    "Tools you added that WireCat has not checked are hidden now. Installed ones stay installed. WireCat tools stay.",
   ownFlag: "WIRECAT_EXTRA_TOOLS=1 is set, so your own tools are read whatever this switch says.",
   ownDocs: "How it works",
   leftOut: "Left out when WireCat started:",
@@ -82,8 +83,8 @@ const ru: typeof en = {
   own: "Разрешить инструменты, которые WireCat не проверял",
   ownInfo: "Об инструментах, которые WireCat не проверял",
   ownHelp:
-    "Показывает кнопку «Добавить свой инструмент» на странице «Инструменты». Через неё можно добавить инструмент " +
-    "для WireCat по его имени в npm. WireCat такие инструменты не проверял.",
+    "Позволяет кнопке «Добавить свой инструмент» на странице «Инструменты» добавить любой инструмент для WireCat " +
+    "по его имени в npm. WireCat такие инструменты не проверял. Инструменту WireCat (@wirecat) эта настройка не нужна.",
   ownWarnTitle: "Разрешить инструменты, которые WireCat не проверял?",
   ownWarn: [
     "Инструмент, добавленный так, получает доступ ко всем вашим личным данным в WireCat: сообщениям, почте, заметкам и файлам.",
@@ -93,7 +94,8 @@ const ru: typeof en = {
   ownAllow: "Разрешить",
   cancel: "Отмена",
   ownOnNow: "«Добавить свой инструмент» уже на странице «Инструменты», вместе с добавленными вами инструментами.",
-  ownOffNow: "Ваши инструменты скрыты. Установленные остались установленными.",
+  ownOffNow:
+    "Добавленные вами инструменты, которые WireCat не проверял, скрыты. Установленные остались установленными. Инструменты WireCat остались.",
   ownFlag: "Задано WIRECAT_EXTRA_TOOLS=1, поэтому ваши инструменты читаются при любом положении переключателя.",
   ownDocs: "Как это работает",
   leftOut: "Не добавлены при запуске WireCat:",
@@ -133,8 +135,9 @@ const es: typeof en = {
   own: "Permitir herramientas que WireCat no ha revisado",
   ownInfo: "Sobre las herramientas que WireCat no ha revisado",
   ownHelp:
-    "Muestra Añadir tu propia herramienta en la página Herramientas. Con él añades una herramienta hecha para " +
-    "WireCat por su nombre en npm. WireCat no ha revisado estas herramientas.",
+    "Permite que Añadir tu propia herramienta, en la página Herramientas, añada cualquier herramienta hecha para " +
+    "WireCat por su nombre en npm. WireCat no ha revisado estas herramientas. Una herramienta de WireCat (@wirecat) " +
+    "no necesita este ajuste.",
   ownWarnTitle: "¿Permitir herramientas que WireCat no ha revisado?",
   ownWarn: [
     "Una herramienta añadida así obtiene acceso a todos tus datos personales en WireCat: tus mensajes, correo, notas y archivos.",
@@ -144,7 +147,8 @@ const es: typeof en = {
   ownAllow: "Permitir",
   cancel: "Cancelar",
   ownOnNow: "«Añadir tu propia herramienta» ya está en la página Herramientas, con las herramientas que añadiste.",
-  ownOffNow: "Tus herramientas están ocultas ahora. Las instaladas siguen instaladas.",
+  ownOffNow:
+    "Las herramientas que añadiste y WireCat no ha revisado están ocultas ahora. Las instaladas siguen instaladas. Las herramientas de WireCat se quedan.",
   ownFlag: "WIRECAT_EXTRA_TOOLS=1 está definido, así que tus herramientas se leen sea cual sea este interruptor.",
   ownDocs: "Cómo funciona",
   leftOut: "Excluidas al iniciar WireCat:",

@@ -6,10 +6,10 @@ use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
 
-/// The switch may have been turned off since the dialog opened.
-fn allowed() -> Result<(), AppError> {
+/// The switch may have been turned off since the dialog opened. A `@wirecat` package needs no switch.
+fn allowed(package: &str) -> Result<(), AppError> {
     let status = own_tools::status();
-    if status.allowed || status.flag {
+    if own_tools::may_add(package, status.allowed || status.flag) {
         Ok(())
     } else {
         Err(AppError::Failed("Allow tools WireCat has not checked in Settings first.".into()))
@@ -32,7 +32,7 @@ pub async fn set_own_tools_allowed(allow: bool) -> Result<(), AppError> {
 #[tauri::command]
 pub async fn own_tool_discover(package: String, desktop: Option<String>) -> Result<own_tools::Discovery, AppError> {
     crate::log::command("own_tool_discover", async move {
-        allowed()?;
+        allowed(package.trim())?;
         blocking(move || own_tools::discover(package.trim(), desktop.as_deref())).await
     })
     .await
@@ -46,8 +46,8 @@ pub async fn own_tool_add(
     on_event: Channel<InstallEvent>,
 ) -> Result<(), AppError> {
     crate::log::command("own_tool_add", async move {
-        allowed()?;
         let reviewed = own_tools::take_review(&token).map_err(AppError::Failed)?;
+        allowed(&reviewed.tool.package)?;
         let running = Arc::clone(&running);
         blocking(move || own_tools::add(&token, reviewed, &running, &on_event)).await
     })
