@@ -50,7 +50,7 @@
     "longDescription": "WireCat Desktop installs, updates and checks the WireCat command-line tools for AI agents.",
     "copyright": "Copyright (c) 2026 Viacheslav Ptsarev",
     "license": "Apache-2.0",
-    "licenseFile": "../LICENSE",
+    "resources": { "../LICENSE": "LICENSE" },
     "publisher": "WireCat",
     "homepage": "https://wirecat.dev",
     "linux": {

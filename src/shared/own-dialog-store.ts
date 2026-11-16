@@ -8,13 +8,15 @@ type OwnDialog = {
   open: boolean
   update: { pkg: string; name: string } | null
   read: string | null
+  /** "Allow tools WireCat has not checked" is off: the dialog asks to turn it on before the name. */
+  allow: boolean
   /** The own tool just removed from WireCat: its row is gone, so the Tools page says what happened and what stays. */
   removed: { name: string; pkg: string; installed: boolean } | null
 }
 
 export const useOwnDialog = create<
   OwnDialog & {
-    show(update?: OwnDialog["update"], read?: string | null): void
+    show(update?: OwnDialog["update"], read?: string | null, allow?: boolean): void
     close(): void
     removedOne(removed: OwnDialog["removed"]): void
   }
@@ -22,8 +24,9 @@ export const useOwnDialog = create<
   open: false,
   update: null,
   read: null,
+  allow: false,
   removed: null,
   removedOne: (removed) => set({ removed }),
-  show: (update = null, read = null) => set({ open: true, update, read }),
+  show: (update = null, read = null, allow = false) => set({ open: true, update, read, allow }),
   close: () => set({ open: false }),
 }))

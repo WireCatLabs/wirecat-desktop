@@ -123,6 +123,11 @@ type SignInState = {
   /** The last page a question's hint named, such as the provider's app password page; a failure offers it again. */
   hintPage: string | null
   run: number
+  /**
+   * This run is a setup flow's `apply` (the tool describes its own form): no hand-made step takes a failure back, and
+   * the flow, not the dialog, says what comes next.
+   */
+  setup: boolean
   onFinish: (() => void) | null
   /** When each account last finished a sign-in here; survives the dialog closing. */
   signedInAt: Record<string, number>
@@ -130,6 +135,11 @@ type SignInState = {
   start(tool: string, profile: string, onFinish?: () => void, method?: string, reuse?: boolean): void
   /** Saves the owner's own app id first when one is typed, then runs the sign-in. */
   begin(): void
+  /**
+   * Runs the setup flow's `apply` with the path's answers (one line of JSON) for the dialog's tool and profile; the
+   * steps draw as a sign-in's, and `onEnd` gets the last one.
+   */
+  startSetupRun(answers: string, onEnd: (e: Done | Failed | Of<"stopped">) => void): void
   /** Starts the same sign-in again, after a failure. */
   again(): void
   /** Back to the plan: a run in progress is stopped; the address and the own app typed there stay. */
@@ -178,6 +188,7 @@ const closed = {
   comparing: false,
   passwordProblem: null as SignInState["passwordProblem"],
   hintPage: null as string | null,
+  setup: false,
 }
 
 export type PlanStep = "choose" | "password" | "webhook" | "paste" | "app"
@@ -404,7 +415,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       case "failed": {
         const s = get()
         // A refused webhook keeps its address: after ticking a right in Bitrix24 it stays the same, so Check again works.
-        const app = isBitrixApp(s) ? appProblem(e) : null
+        const app = isBitrixApp(s) && !s.setup ? appProblem(e) : null
         if (app)
           return set({
             ...closed,
@@ -418,7 +429,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
             planStep: "app",
             appProblem: app,
           })
-        const refusal = s.tool === BITRIX && !isBitrixApp(s) ? webhookProblem(e) : null
+        const refusal = s.tool === BITRIX && !isBitrixApp(s) && !s.setup ? webhookProblem(e) : null
         if (refusal)
           return set({
             ...closed,
@@ -432,7 +443,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
             planStep: "paste",
             webhookProblem: refusal,
           })
-        if (typed.sentIn === s.run && e.reason && WRONG_PASSWORD.has(e.reason))
+        if (typed.sentIn === s.run && e.reason && WRONG_PASSWORD.has(e.reason) && !s.setup)
           return set({
             ...closed,
             ...kept(s),
@@ -493,6 +504,47 @@ export const useSignIn = create<SignInState>()((set, get) => {
     run()
   }
 
+  /**
+   * Runs one tool process for run `run`. A stop sent before Rust registered the run is lost, so a word from a run nobody
+   * watches stops it again. Rust sends the last word after the tool exited: from then on the next run may start, and a
+   * late word is ignored.
+   */
+  const launch = (
+    tool: string,
+    run: number,
+    call: (onEvent: (e: SignInEvent) => void) => Promise<void>,
+    onEnd?: (e: Done | Failed | Of<"stopped">) => void,
+  ) => {
+    const mine = () => get().run === run && get().tool !== null
+    const end = (e: SignInEvent) => {
+      apply(e)
+      if (e.event === "done" || e.event === "failed" || e.event === "stopped") onEnd?.(e)
+    }
+    let ended = false
+    let over = () => {}
+    const last = new Promise<void>((done) => {
+      over = done
+    })
+    const onEvent = (e: SignInEvent) => {
+      const final = e.event === "stopped" || e.event === "done" || e.event === "failed"
+      if (mine()) end(e)
+      else if (!ended && !final) stopInBackground(tool)
+      if (final) over()
+    }
+    // A run closed a moment ago may still be stopping, even when nothing runs on screen.
+    const started = previousEnded().then(() => (mine() ? call(onEvent) : undefined))
+    ending = Promise.race([started.catch(() => {}), last]).then(() => {
+      ended = true
+    })
+    started.then(
+      () => {
+        if (mine() && running(get().phase))
+          end({ event: "failed", message: "The sign-in ended without saying how.", code: ENDED })
+      },
+      (e) => mine() && end({ event: "failed", message: errorText(e), code: failedCode(e) }),
+    )
+  }
+
   return {
     ...closed,
     run: 0,
@@ -531,34 +583,14 @@ export const useSignIn = create<SignInState>()((set, get) => {
         planStep: same ? previous.planStep : "choose",
       })
       const inputs = inputsFor(tool, chosen, get())
-      const mine = () => get().run === run && get().tool !== null
-      // A stop sent before Rust registered the run is lost, so a word from a run nobody watches stops it again. Rust
-      // sends the last word after the tool exited: from then on the next run may start, and a late word is ignored.
-      let ended = false
-      let over = () => {}
-      const last = new Promise<void>((done) => {
-        over = done
-      })
-      const onEvent = (e: SignInEvent) => {
-        const final = e.event === "stopped" || e.event === "done" || e.event === "failed"
-        if (mine()) apply(e)
-        else if (!ended && !final) stopInBackground(tool)
-        if (final) over()
-      }
-      // A run closed a moment ago may still be stopping, even when nothing runs on screen.
-      const started = previousEnded().then(() =>
-        mine() ? platform.signIn(tool, chosen, profile, onEvent, inputs) : undefined,
-      )
-      ending = Promise.race([started.catch(() => {}), last]).then(() => {
-        ended = true
-      })
-      started.then(
-        () => {
-          if (mine() && running(get().phase))
-            apply({ event: "failed", message: "The sign-in ended without saying how.", code: ENDED })
-        },
-        (e) => mine() && apply({ event: "failed", message: errorText(e), code: failedCode(e) }),
-      )
+      launch(tool, run, (onEvent) => platform.signIn(tool, chosen, profile, onEvent, inputs))
+    },
+    startSetupRun(answers, onEnd) {
+      const { tool, profile, onFinish, run } = get()
+      if (!tool || !profile) return
+      forget()
+      set({ ...closed, tool, profile, run: run + 1, onFinish, setup: true })
+      launch(tool, run + 1, (onEvent) => platform.setupApply(tool, profile, answers, onEvent), onEnd)
     },
     begin() {
       const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep } = get()

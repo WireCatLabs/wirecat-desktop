@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from "react"
 import { entryProblem } from "@/domain/catalog"
 import { applyInstallEvent } from "@/domain/install-progress"
 import type { InstallSession } from "@/domain/status"
+import { settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import type { OwnRefusal, OwnReview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -29,6 +30,8 @@ import { refusalWords } from "./own-refusal"
 type Refusal = OwnRefusal | { kind: "entry"; problem: string } | { kind: "unexpected"; detail: string }
 
 type Step =
+  /** The setting is off: its warning, and Allow turns it on here, as in Settings, then the name. */
+  | { kind: "allow"; saving: boolean; error: string | null }
   /** `select`: back from a refusal, with the name kept and selected so typing replaces it. */
   | { kind: "name"; select?: boolean }
   | { kind: "reading"; pkg: string }
@@ -64,7 +67,8 @@ const RETRY_SAME = new Set<Refusal["kind"]>(["offline", "too_large", "unexpected
 export function OwnToolDialog() {
   const m = useMessages(ownMessages)
   const r = useMessages(ownReviewMessages)
-  const { open, update, read: reading, close } = useOwnDialog()
+  const sm = useMessages(settingsMessages)
+  const { open, update, read: reading, allow: mustAllow, close } = useOwnDialog()
   const [step, setStep] = useState<Step>({ kind: "name" })
   const [pkg, setPkg] = useState("")
   const [pasted, setPasted] = useState("")
@@ -105,6 +109,17 @@ export function OwnToolDialog() {
       )
   }
 
+  const allow = () => {
+    setStep({ kind: "allow", saving: true, error: null })
+    platform
+      .setOwnToolsAllowed(true)
+      .then(reloadAddedTools)
+      .then(
+        () => setStep({ kind: "name" }),
+        (e) => setStep({ kind: "allow", saving: false, error: errorText(e) }),
+      )
+  }
+
   const uninstall = (review: OwnReview) => {
     setStep({ kind: "uninstalling", review, done: false })
     const finish = () => setStep({ kind: "uninstalling", review, done: true })
@@ -123,7 +138,7 @@ export function OwnToolDialog() {
       void read(reading, null)
     } else {
       setPkg("")
-      setStep({ kind: "name" })
+      setStep(mustAllow ? { kind: "allow", saving: false, error: null } : { kind: "name" })
     }
   }, [open])
 
@@ -134,18 +149,23 @@ export function OwnToolDialog() {
     needAccept.clear()
   }, [step.kind])
 
-  const busy = step.kind === "reading" || (step.kind === "installing" && !step.session.outcome)
+  const busy =
+    step.kind === "reading" ||
+    (step.kind === "allow" && step.saving) ||
+    (step.kind === "installing" && !step.session.outcome)
   const done = step.kind === "installing" && step.session.outcome?.event === "done"
   const title = update ? m.updateTitle(update.name) : m.title
   return (
     <Dialog
       open={open}
       title={
-        step.kind === "confirm"
-          ? m.confirmTitle(step.review.package)
-          : step.kind === "check"
-            ? r.check.title(step.review.package)
-            : title
+        step.kind === "allow"
+          ? sm.ownWarnTitle
+          : step.kind === "confirm"
+            ? m.confirmTitle(step.review.package)
+            : step.kind === "check"
+              ? r.check.title(step.review.package)
+              : title
       }
       onClose={() => !busy && close()}
       wide
@@ -158,11 +178,12 @@ export function OwnToolDialog() {
           done={done}
           pkg={pkg}
           pasted={pasted}
-          on={{ read, install, uninstall, setStep, close, ask }}
+          on={{ read, install, uninstall, allow, setStep, close, ask }}
         />
       }
     >
       <AutoHeight swap={step.kind}>
+        {step.kind === "allow" && <AllowStep step={step} />}
         {step.kind === "name" && (
           <NameStep
             m={m}
@@ -216,6 +237,7 @@ type On = {
   read(pkg: string, desktop: string | null): void
   install(review: OwnReview): void
   uninstall(review: OwnReview): void
+  allow(): void
   setStep(step: Step): void
   close(): void
   ask(field: Field): void
@@ -240,6 +262,15 @@ function Actions({
 }) {
   const cancel = <Button onClick={on.close}>{m.cancel}</Button>
   switch (step.kind) {
+    case "allow":
+      return (
+        <>
+          {cancel}
+          <Button variant="danger" busy={step.saving} disabled={step.saving} onClick={on.allow}>
+            {m.allowAndContinue}
+          </Button>
+        </>
+      )
     case "name":
       return (
         <>
@@ -344,6 +375,27 @@ function Actions({
     default:
       return null
   }
+}
+
+/** The same warning as Settings' switch: this setting is turned on only through it. */
+function AllowStep({ step }: { step: Extract<Step, { kind: "allow" }> }) {
+  const m = useMessages(ownMessages)
+  const sm = useMessages(settingsMessages)
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[0.95rem]">{m.allowIntro(sm.own)}</p>
+      <ul className="flex list-disc flex-col gap-2 pl-5 text-[0.95rem]">
+        {sm.ownWarn.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      {step.error && (
+        <ErrorNotice inline raw={step.error}>
+          {m.allowFailed}
+        </ErrorNotice>
+      )}
+    </div>
+  )
 }
 
 /** A failure in the verify step came after npm installed the package, so its program is on the computer. */

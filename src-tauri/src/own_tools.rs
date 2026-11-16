@@ -38,7 +38,7 @@ const TIMEOUT: Duration = Duration::from_secs(20);
 
 /// The catalog keys a manifest's `desktop` object may hold; every one the interface needs is written, `null` when
 /// unused, because an entry the interface refuses is not shown at all.
-const KEYS: [&str; 21] = [
+const KEYS: [&str; 22] = [
     "tagline",
     "profiles",
     "doctor",
@@ -60,6 +60,7 @@ const KEYS: [&str; 21] = [
     "storeReset",
     "storage",
     "settings",
+    "meetings",
 ];
 
 /// Format 2 of `contracts/wirecat.json`, as `cli-dev manifest` writes it. Only what Desktop reads is typed; `desktop`
@@ -624,7 +625,7 @@ fn taken_by_others(catalog: &Catalog, saved: &str, package: &str) -> Taken {
     taken
 }
 
-const SYNC_WHAT: [&str; 6] = ["messages", "files", "meetings", "notes and mail", "mail", "records"];
+const SYNC_WHAT: [&str; 7] = ["messages", "files", "meetings", "calls", "notes and mail", "mail", "records"];
 
 const FIRST_PORT: u64 = 8770;
 const LAST_PORT: u64 = 8999;
@@ -1774,11 +1775,49 @@ mod tests {
         assert!(r.review.sign_in.is_some_and(|s| s.asks.contains("API token")));
         assert!(r.review.syncs && r.review.skill && r.review.mcp && r.review.described);
         assert_eq!(r.entry["sync"]["what"], "records", "\"recorded calls\" is not a noun the app counts");
-        assert!(t.meetings.is_none(), "a manifest cannot name the meetings commands a client's calls open with");
+        assert!(t.meetings.is_none(), "0.1.0 names no meetings commands, so its calls stay unlinked");
 
         let saved = json!({ "version": 1, "tools": [r.entry] }).to_string();
         let (tools, extra) = community::parse(&saved, catalog());
         assert!(extra.rejected.is_empty() && tools[0].id == "beeline", "read again at the next start");
+    }
+
+    #[test]
+    fn a_beeline_manifest_with_meetings_links_its_calls_and_counts_calls() {
+        const MANIFEST: &str = include_str!("../tests/fixtures/own-tools/beeline-cli-0.3.0-wirecat.json");
+        let tarball = tgz(&[("package/package.json", b"{}"), ("package/contracts/wirecat.json", MANIFEST.as_bytes())]);
+        let view = json!({
+            "name": "@wirecat/beeline-cli",
+            "version": "0.3.0",
+            "repository": { "type": "git", "url": "git+https://github.com/WireCatLabs/beeline-cli.git" },
+            "maintainers": ["wirecat <npm@example.com>"],
+            "bin": { "beeline": "dist/bin/beeline.js", "wcat-beeline": "dist/bin/beeline.js" },
+            "dist": { "integrity": integrity(&tarball), "tarball": "https://registry.npmjs.org/x.tgz" }
+        });
+        let fake = Fake { view: Ok(view), tarball, asked: RefCell::new(Vec::new()) };
+        let r = review("@wirecat/beeline-cli", None, &fake, catalog(), "").unwrap();
+        let m = r.tool.meetings.as_ref().unwrap();
+        assert_eq!(m.provider, "beeline");
+        assert_eq!(m.transcript.join(" "), "{profile} meetings transcript {id} --no-record --json");
+        assert_eq!(r.entry["sync"]["what"], "calls");
+    }
+
+    #[test]
+    fn meetings_need_a_free_plain_provider_and_the_call_as_id() {
+        let meetings = |provider: &str, show: &[&str]| {
+            with_desktop(
+                "meetings",
+                json!({ "provider": provider, "show": show, "transcript": ["meetings", "transcript", "{id}"] }),
+            )
+        };
+        let id = ["meetings", "show", "{id}"];
+        assert!(review("@example/acme-crm-cli", None, &Fake::with(&meetings("acme", &id)), catalog(), "").is_ok());
+        for bad in [meetings("Acme PBX", &id), meetings("acme", &["meetings", "show"]), meetings("acme", &["sh -c"])] {
+            assert!(matches!(refused(&Fake::with(&bad)), Refusal::BadManifest { .. }), "{bad}");
+        }
+        assert!(
+            matches!(refused(&Fake::with(&meetings("asterisk", &id))), Refusal::Collision { with, .. } if with == "Asterisk")
+        );
     }
 
     #[test]

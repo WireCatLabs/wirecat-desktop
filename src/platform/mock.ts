@@ -40,6 +40,7 @@ import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { searchHarderMock } from "./mock-search-harder"
 import { settingsMock } from "./mock-settings"
+import { setupMock } from "./mock-setup"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { isMockLogin, linkedProfiles, signInMock } from "./mock-signin"
 import { storeDamageMock, withDoctorDamage } from "./mock-store-damage"
@@ -92,6 +93,7 @@ const LATEST: Record<string, string> = {
   gcal: "0.19.0",
   funnel: "0.1.1",
   pbx: "0.3.0",
+  notion: "0.2.0",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
 const storeCheck = params.get("store-check")
@@ -744,6 +746,7 @@ export function createMock(os: Platform["os"]): Platform {
       return { started: true, reason: null, message: null }
     },
     ...signInMock(),
+    ...setupMock(),
     ...driveFoldersMock(),
     ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
     ...botMock(),

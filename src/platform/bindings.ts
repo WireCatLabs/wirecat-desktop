@@ -209,6 +209,11 @@ export type ClientCall = {
 	startedAt: string | null,
 	durationMs: number | null,
 	hasTranscript: boolean,
+	/**  A phone call's `in` or `out` (cli-core 0.674.0); `None` for a meeting, an older CLI or any other word. */
+	direction: string | null,
+	/**  Who took or made the call on the owner's side, by name. */
+	manager: string | null,
+	clientPhone: string | null,
 };
 
 export type CloudflareStatus = {
@@ -1584,6 +1589,12 @@ export type ShellReach = {
 	finds: boolean | null,
 	/**  The shell the user's terminal runs. */
 	primary: boolean,
+};
+
+/**  The document as the tool printed it, and each image it names that passed the checks, as a `data:` URL. */
+export type Shown = {
+	document: unknown,
+	images: { [key in string]: string },
 };
 
 /**  A profile already signed in to the portal the owner is about to sign in to, and whose webhook it holds. */

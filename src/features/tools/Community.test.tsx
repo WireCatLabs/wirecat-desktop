@@ -2,7 +2,7 @@ import type { FC } from "react"
 import { beforeAll, expect, it, vi } from "vitest"
 import { addCommunityTools } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
-import { ACME, OWN } from "@/platform/mock-community"
+import { ACME, OWN, OWN_WIRECAT } from "@/platform/mock-community"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useOwnDialog } from "@/shared/own-dialog-store"
@@ -15,6 +15,7 @@ beforeAll(async () => {
   addCommunityTools([
     { source: "community", entry: ACME },
     { source: "own", entry: OWN },
+    { source: "own", entry: OWN_WIRECAT },
   ])
   ;({ App } = await import("@/app/App"))
 })
@@ -22,7 +23,7 @@ beforeAll(async () => {
 it("lists a registered tool on the Tools page with its badge and trust note", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Community tools" })
   const row = within(list)
     .getByRole("button", { name: /^Acme Notes/ })
     .closest("li") as HTMLElement
@@ -33,12 +34,27 @@ it("lists a registered tool on the Tools page with its badge and trust note", as
 it("marks an own tool Not verified, never Community", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Tools WireCat has not checked" })
   const row = within(list)
     .getByRole("button", { name: /^Acme CRM/ })
     .closest("li") as HTMLElement
   expect(within(row).getByText("Not verified")).toBeInTheDocument()
   expect(within(row).queryByText("Community")).not.toBeInTheDocument()
+})
+
+it("lists an own @wirecat tool among the additional WireCat tools, verified by WireCat", async () => {
+  useOnboarding.setState({ status: "done", open: false })
+  render(<App />)
+  const list = await screen.findByRole("list", { name: "Additional WireCat tools" })
+  const row = within(list)
+    .getByRole("button", { name: /^Beeline/ })
+    .closest("li") as HTMLElement
+  expect(
+    await within(row).findByText(/A WireCat tool that this version of the app does not include yet/),
+  ).toBeInTheDocument()
+  expect(within(row).getByText("Verified by WireCat")).toBeInTheDocument()
+  expect(within(row).queryByText("Not verified")).not.toBeInTheDocument()
+  expect(within(row).queryByText(/made by WireCatLabs/)).not.toBeInTheDocument()
 })
 
 it("offers a registered tool on Choose tools with its badge", async () => {

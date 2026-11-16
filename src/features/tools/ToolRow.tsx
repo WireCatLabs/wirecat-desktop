@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import { useRef } from "react"
-import { type CatalogTool, findTool, isCommunity, isOwn, maker, ownerId } from "@/domain/catalog"
+import { type CatalogTool, findTool, isCommunity, isOwn, isWirecatPackage, maker, ownerId } from "@/domain/catalog"
 import { listBlocksInstalls } from "@/domain/community-list"
 import { fitSeverity } from "@/domain/compat"
 import { type ToolStatus, toolStatus } from "@/domain/status"
@@ -130,7 +130,11 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             {tool.name}
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
-            {isCommunity(tool) && <Pill>{isOwn(tool) ? om.notChecked : m.community}</Pill>}
+            {isCommunity(tool) && (
+              <Pill tone={isOwn(tool) && isWirecatPackage(tool) ? "brand" : "neutral"}>
+                {isOwn(tool) ? (isWirecatPackage(tool) ? om.wirecatChecked : om.notChecked) : m.community}
+              </Pill>
+            )}
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
             <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>
@@ -165,7 +169,11 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               </p>
             ) : isCommunity(tool) && !installs?.length ? (
               <p className="mt-1 line-clamp-2 text-body text-ink-soft">
-                {isOwn(tool) ? om.trust(maker(tool)) : m.trust(maker(tool))}
+                {isOwn(tool)
+                  ? isWirecatPackage(tool)
+                    ? om.trustWirecat
+                    : om.trust(maker(tool))
+                  : m.trust(maker(tool))}
               </p>
             ) : (
               <p className="mt-1 truncate text-body text-ink-soft max-[999px]:whitespace-normal">

@@ -14,6 +14,7 @@ pub mod meetings;
 pub mod memory;
 pub mod node;
 pub mod notes_setup;
+pub mod organization_card;
 pub mod own_tools;
 pub mod people;
 pub mod person_profile;

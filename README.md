@@ -144,9 +144,11 @@ arrives; installed ones keep working. Your own tools do not use the list.
 
 For a tool that is not on the list: your own, a colleague's, or one from a private repository.
 
-1. In Settings, turn on **Allow tools WireCat has not checked**. A warning opens. Confirm it with **Allow**.
-2. On the Tools page, click **Add your own tool**, at the top next to **Check again**. Type the npm name, such as `@scope/name`, and click
-   **Check package**. WireCat only reads npm. Nothing is installed, and no code of the package runs.
+1. On the Tools page, click **Add your own tool**, under the list of tools. While **Allow tools WireCat has not
+   checked** is off (it is off at first), a warning opens. Confirm it with **Allow and continue**; this turns the
+   setting on, as the switch in Settings does.
+2. Type the npm name, such as `@scope/name`, and click **Check package**. WireCat only reads npm. Nothing is
+   installed, and no code of the package runs.
 3. Read the review screen (below), then click **Add**.
 4. WireCat offers **Check it with your AI agent** first. Your agent (Claude Code, Codex or Gemini, when one is
    installed) opens in a terminal with a prepared request: download exactly the reviewed package file, check its

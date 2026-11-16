@@ -113,8 +113,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.tag.outputs.tag }}
         run: |
+          set -o pipefail
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.dmg" --dir dl
-          mount="$(hdiutil attach -nobrowse dl/*.dmg | awk -F'\t' '/\/Volumes\// {print $NF}')"
+          mount="$(hdiutil attach -nobrowse -noverify -noautoopen dl/*.dmg |
+            awk -F'\t' '/\/Volumes\// {print $NF}')"
+          [ -d "$mount" ] || { echo "::error::hdiutil mounted no volume from the .dmg."; exit 1; }
           mkdir -p ~/Applications
           cp -R "$mount"/*.app ~/Applications/
           hdiutil detach "$mount"

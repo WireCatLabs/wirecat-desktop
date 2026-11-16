@@ -1,6 +1,7 @@
 import { groupDigits } from "@/domain/format"
 import type { DateMeaning, FieldGroup, QueryReason } from "@/domain/search"
 import { type Messages, plural } from "@/i18n"
+import type { QueryWriter } from "@/platform/search-schemas"
 
 type What = "messages" | "meetings" | "documents" | "notes" | "mail"
 
@@ -70,10 +71,8 @@ const en = {
     error: (why: string) => `The query could not be written: ${why}.`,
     by: {
       "claude-code": "Claude Code, with your Claude plan,",
-      chatgpt: "ChatGPT, with your plan,",
       codex: "Codex, with your ChatGPT plan,",
-      key: "Your API key's model",
-    } as Record<"claude-code" | "chatgpt" | "codex" | "key", string>,
+    } as Record<QueryWriter, string>,
     codexWarning:
       "Codex can read files on this computer while it writes. WireCat starts it in an empty folder where it can change nothing, and asks it not to look.",
     noneTitle: "To write a query from your words, WireCat needs one of these agents on this computer:",
@@ -326,9 +325,7 @@ const ru: typeof en = {
     error: (why) => `Не удалось составить запрос: ${why}.`,
     by: {
       "claude-code": "Claude Code (ваш план Claude)",
-      chatgpt: "ChatGPT (ваш план)",
       codex: "Codex (ваш план ChatGPT)",
-      key: "Модель по вашему API-ключу",
     },
     codexWarning:
       "Codex может читать файлы на этом компьютере, пока пишет. WireCat запускает его в пустой папке, где он ничего не может изменить, и просит не смотреть.",
@@ -582,9 +579,7 @@ const es: typeof en = {
     error: (why) => `No se pudo escribir la consulta: ${why}.`,
     by: {
       "claude-code": "Claude Code, con tu plan de Claude,",
-      chatgpt: "ChatGPT, con tu plan,",
       codex: "Codex, con tu plan de ChatGPT,",
-      key: "El modelo de tu clave de API",
     },
     codexWarning:
       "Codex puede leer archivos de este ordenador mientras escribe. WireCat lo inicia en una carpeta vacía donde no puede cambiar nada y le pide que no mire.",

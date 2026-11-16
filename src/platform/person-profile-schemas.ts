@@ -40,9 +40,27 @@ export const PersonProfileSchema = v.object({
         startedAt: text,
         durationMs: v.nullable(v.number()),
         hasTranscript: v.boolean(),
+        direction: v.optional(text, null),
+        manager: v.optional(text, null),
+        clientPhone: v.optional(text, null),
       }),
     ),
   ),
 })
 
 export type PersonProfile = v.InferOutput<typeof PersonProfileSchema>
+
+/** What `organization_card.rs` builds from memo's `organizations context`, for a company's card. */
+export const OrganizationCardSchema = v.object({
+  reference: v.string(),
+  name: text,
+  people: v.array(v.object({ reference: v.string(), name: text, role: text })),
+  peopleTotal: v.number(),
+  deals: v.array(
+    v.object({ reference: v.string(), kind: text, title: text, stage: text, amount: text, currency: text }),
+  ),
+  dealsTotal: v.number(),
+  meetings: v.nullable(v.number()),
+})
+
+export type OrganizationCard = v.InferOutput<typeof OrganizationCardSchema>

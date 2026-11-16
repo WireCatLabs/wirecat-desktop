@@ -70,6 +70,9 @@ fn memo() -> Result<(&'static Tool, &'static LocalOnlySource), String> {
     Ok((tool, src))
 }
 
+/// The command whose listing in `commands --json` opens the feature on a memo the catalog's version does not name.
+const COMMAND: &[&str] = &["models", "local-only", "show"];
+
 fn gate(src: &LocalOnlySource, version: Option<&str>) -> bool {
     src.min_version.as_deref().is_some_and(|need| !tools::older(version, need))
 }
@@ -121,7 +124,7 @@ fn ask(tool: &Tool, args: &[String]) -> Result<LocalOnlyStatus, String> {
 pub fn status() -> Result<LocalOnly, String> {
     let (tool, src) = memo()?;
     let version = tools::installed_version(tool);
-    if !gate(src, version.as_deref()) {
+    if !crate::command_tree::released_or_listed(tool, gate(src, version.as_deref()), COMMAND) {
         return Ok(LocalOnly::Old { version, need: src.min_version.clone() });
     }
     Ok(LocalOnly::Ready { status: Box::new(ask(tool, &src.show)?) })
@@ -130,7 +133,7 @@ pub fn status() -> Result<LocalOnly, String> {
 /// The owner moved the switch in Settings; memo's answer is the whole new state.
 pub fn set(on: bool) -> Result<LocalOnlyStatus, String> {
     let (tool, src) = memo()?;
-    if !gate(src, tools::installed_version(tool).as_deref()) {
+    if !crate::command_tree::released_or_listed(tool, gate(src, tools::installed_version(tool).as_deref()), COMMAND) {
         return Err("This memo has no local only yet. It comes with a memo update.".into());
     }
     ask(tool, if on { &src.on } else { &src.off })

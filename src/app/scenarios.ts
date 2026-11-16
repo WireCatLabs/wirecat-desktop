@@ -6,6 +6,7 @@ import { greetOnArrival } from "@/features/guides"
 import { useAddSource } from "@/features/memory"
 import { useNotifications } from "@/features/notifications"
 import { useSearch } from "@/features/search"
+import { useSetupFlow } from "@/features/signin"
 import { useTasks } from "@/features/tasks"
 import { useSync } from "@/features/tools"
 import { platform } from "@/platform/bridge"
@@ -121,6 +122,40 @@ export async function runMockScenario() {
   if (params.has("drive-folders") && !signIn) {
     useSignIn.getState().start("drive", "personal")
     useSignIn.getState().begin()
+  }
+  // `?setup=pbx`: pbx describes its own flow (`mock-setup.ts`). `&setup-step=<step>` walks to that step with
+  // `&setup-answers=cdr_source:mysql,phone_region:ES+RU` (`+` makes a list); `check` goes on into the run.
+  const setup = params.get("setup")
+  if (setup) {
+    // No pbx release describes its flow yet, so the catalog names no version; this load stands for the one that does.
+    const entry = findTool(setup)
+    if (entry?.signIn) entry.signIn = { ...entry.signIn, setupFrom: "0.0.0" }
+    await useTools.getState().refresh()
+    useSignIn.getState().start(setup, "personal")
+    const step = params.get("setup-step")
+    if (step) {
+      const answers = Object.fromEntries(
+        (params.get("setup-answers") ?? "")
+          .split(",")
+          .filter(Boolean)
+          .map((pair) => {
+            const [key = "", value = ""] = pair.split(":")
+            return [key, value.includes("+") ? value.split("+") : value]
+          }),
+      )
+      await new Promise<void>((done) => {
+        const stop = useSetupFlow.subscribe((flow) => {
+          if (!flow.doc) return
+          stop()
+          done()
+        })
+      })
+      const flow = useSetupFlow.getState()
+      const run = flow.doc?.steps[step]?.kind === "run"
+      const before = run ? Object.keys(flow.doc?.steps ?? {}).find((id) => flow.doc?.steps[id]?.next === step) : step
+      flow.walkTo(before ?? step, answers)
+      if (run) void useSetupFlow.getState().next()
+    }
   }
   const [plan, planMethod] = (params.get("signin-plan") ?? "").split(":")
   if (plan) {

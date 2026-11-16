@@ -1,0 +1,96 @@
+{
+  "format": "wirecat.setup",
+  "version": 1,
+  "tool": "example",
+  "requires": ["run"],
+  "start": "method",
+  "steps": {
+    "method": {
+      "title": "method.title",
+      "blocks": [
+        {
+          "type": "choice",
+          "id": "method",
+          "options": [
+            { "value": "oauth", "label": "method.oauth", "hint": "method.oauth.hint", "icon": "browser" },
+            { "value": "token", "label": "method.token", "hint": "method.token.hint", "icon": "key" }
+          ]
+        }
+      ],
+      "next": [{ "when": { "field": "method", "is": "oauth" }, "to": "oauth" }, { "to": "token-kind" }]
+    },
+    "oauth": {
+      "kind": "run",
+      "title": "oauth.title",
+      "action": "oauth",
+      "blocks": [{ "type": "text", "text": "oauth.body" }],
+      "next": [{ "when": { "result": "oauth", "is": "ok" }, "to": "done" }, { "to": "method" }]
+    },
+    "token-kind": {
+      "title": "token.kind.title",
+      "blocks": [
+        {
+          "type": "choice",
+          "id": "token_kind",
+          "options": [
+            { "value": "personal", "label": "token.personal" },
+            { "value": "app", "label": "token.app", "hint": "token.app.hint" }
+          ]
+        }
+      ],
+      "next": [{ "when": { "field": "token_kind", "is": "app" }, "to": "app" }, { "to": "token" }]
+    },
+    "token": {
+      "title": "token.title",
+      "blocks": [
+        { "type": "text", "text": "token.where" },
+        { "type": "image", "asset": "token-page", "alt": "token.image.alt" },
+        { "type": "input", "id": "token", "secret": "token", "input": "password", "label": "token.label" },
+        { "type": "note", "role": "tip", "text": "token.scopes" }
+      ],
+      "next": "check"
+    },
+    "app": {
+      "title": "app.title",
+      "blocks": [
+        { "type": "input", "id": "client_id", "setting": "client_id", "input": "text", "label": "app.id" },
+        { "type": "input", "id": "client_secret", "secret": "client", "input": "password", "label": "app.secret" }
+      ],
+      "next": "check"
+    },
+    "check": {
+      "kind": "run",
+      "title": "check.title",
+      "action": "apply",
+      "next": [{ "when": { "result": "check", "is": "ok" }, "to": "done" }, { "to": "token-kind" }]
+    },
+    "done": { "kind": "done", "title": "done.title", "blocks": [{ "type": "text", "text": "done.body" }] }
+  },
+  "assets": { "token-page": { "file": "setup/token-page.png", "width": 960, "height": 540 } },
+  "texts": {
+    "en": {
+      "method.title": "How do you want to connect?",
+      "method.oauth": "Sign in with the browser",
+      "method.oauth.hint": "The service asks you to allow access.",
+      "method.token": "Paste a token",
+      "method.token.hint": "For a server or a script.",
+      "oauth.title": "Sign in",
+      "oauth.body": "The browser opens. Allow access there, then come back.",
+      "token.kind.title": "Which token?",
+      "token.personal": "A personal token",
+      "token.app": "An app of your own",
+      "token.app.hint": "A client id and secret from the service's developer page.",
+      "token.title": "Paste the token",
+      "token.where": "Create a token on the service's settings page.",
+      "token.image.alt": "The settings page with the button that creates a token",
+      "token.label": "Token",
+      "token.scopes": "Read access is enough.",
+      "app.title": "Your app",
+      "app.id": "Client id",
+      "app.secret": "Client secret",
+      "check.title": "Checking",
+      "done.title": "Connected",
+      "done.body": "The tool can read your account now."
+    }
+  }
+}

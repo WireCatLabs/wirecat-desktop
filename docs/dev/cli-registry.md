@@ -253,7 +253,9 @@ permissions.", with Back and **Install and run**. Only that button installs.
    the tool is listed at once. Remove from WireCat does the same.
 
 **How it looks.** A tool from this file carries the badge **Not verified** instead of **Community**, on the Tools page
-and on Choose tools. The badge comes from the source, the file, not from a key in the entry, so a signed-list entry can
+and on Choose tools. Until it is installed, its row says "Added by you, made by `<owner>`. WireCat has not checked
+it."; a `@wirecat` package says instead that it is a WireCat tool this version of the app does not include yet, since
+only WireCat publishes under that scope. The badge comes from the source, the file, not from a key in the entry, so a signed-list entry can
 neither claim it nor drop it. Its details have **Remove from WireCat**, which deletes the entry; when the tool is installed it offers **Uninstall it
 first**, so the uninstall runs while the tool is still in the catalog.
 
@@ -280,7 +282,12 @@ for listed tools, and nothing the owner adds reaches another computer.
 - `desktop`: a catalog entry with exactly these keys, `null` when unused: `tagline`, `profiles`, `doctor`, `runs`,
   `search`, `setup`, `signIn`, `skill`, `mcpServer`, `tasks`, `sync`, `storeInfo`, `storeTables`,
   `storeTableSizes`, `storeCheck`, `storeBackup`, `storeBackupEncrypted`, `storeResetPreview`, `storeReset`,
-  `storage`, `settings`. `community.rs` checks it like a listed entry.
+  `storage`, `settings`. `community.rs` checks it like a listed entry. `meetings` may be added (cli-base 0.104.0,
+  `ManifestIdentity.meetingsProvider`): `{ provider, show, transcript }`, how a client's call opens from the Clients
+  page and Meetings (`calls.rs`, `call_recording.rs`). The provider is a lower-case name no other tool uses, so a
+  manifest cannot take over Zoom's or Asterisk's calls, and both commands take the call as `{id}`. `sync.what` is one
+  of `messages`, `files`, `meetings`, `calls`, `notes and mail`, `mail`, `records`; any other text counts as
+  `records`.
 - `network`: `{ hosts, user_hosts }`. No `network` means the tool did not say; `hosts: []` means none.
 - `entities`: `{ <name>: { fields } }`.
 

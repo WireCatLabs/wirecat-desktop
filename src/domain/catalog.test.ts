@@ -14,7 +14,19 @@ import {
 
 describe("catalog", () => {
   it("lists the tools with unique ids, and a binary of their own unless part of another", () => {
-    expect(tools.map((t) => t.id)).toEqual(["tg", "max", "wa", "zm", "drive", "gcal", "memo", "email", "bitrix", "pbx"])
+    expect(tools.map((t) => t.id)).toEqual([
+      "tg",
+      "max",
+      "wa",
+      "zm",
+      "drive",
+      "gcal",
+      "memo",
+      "email",
+      "bitrix",
+      "pbx",
+      "notion",
+    ])
     const owners = tools.filter((t) => !t.partOf)
     expect(new Set(owners.map((t) => t.bin)).size).toBe(owners.length)
   })

@@ -78,6 +78,7 @@ import type {
   ScheduleTest,
   SearchHarder,
   SendTo,
+  Shown as SetupShown,
   Signed,
   SyncSchedule,
   TemplatePreview,
@@ -130,7 +131,7 @@ import type {
   Unlinked,
 } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
-import type { PersonProfile } from "./person-profile-schemas"
+import type { OrganizationCard, PersonProfile } from "./person-profile-schemas"
 import type { ImportOutcome, RecordType } from "./records-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
@@ -519,6 +520,8 @@ export type Platform = {
   peopleUnmerge(ref: string, merge: string): Promise<PersonDetail>
   /** What the match dialog compares about one person: contacts, companies, activity and the latest messages. */
   peopleProfile(ref: string): Promise<PersonProfile>
+  /** A company's card: its people, open deals and leads, and its people's call count. */
+  organizationCard(ref: string): Promise<OrganizationCard>
   /** One memory or fact as memo now has it. */
   memoryShow(ref: string): Promise<MemoryEntry>
   /** The open source review of a memory or a fact: each source as the record cited it and as it is now. */
@@ -609,6 +612,17 @@ export type Platform = {
   signInOnPortal(id: string, host: string): Promise<Signed[]>
   /** Asks the tool to stop, then ends it after a few seconds; `signIn` then answers `stopped`, or `done` with what came. */
   signInStop(id: string): Promise<void>
+  /**
+   * The tool's own connection flow (`setup show`, the setup format v1) and the images it names, read from its package.
+   * Refuses as too old when the tool predates the format.
+   */
+  setupShow(id: string, profile: string): Promise<SetupShown>
+  /** `setup apply --dry-run` on the answers of the path (JSON, on the tool's stdin): the tool's walk, nothing saved. */
+  setupCheck(id: string, profile: string, answers: string): Promise<unknown>
+  /** The flow's `apply` run: steps arrive as a sign-in's do; `signInAnswer` and `signInStop` reach it. */
+  setupApply(id: string, profile: string, answers: string, onEvent: (e: SignInEvent) => void): Promise<void>
+  /** The system's file or folder window for a flow's `file` or `folder` input; null when closed. */
+  setupPickPath(folder: boolean, accept: string[]): Promise<string | null>
   /** zm's own `app --json`: what to enter when making the Zoom app; `old` from a zm before it, which has the list built in. */
   zoomAppSetup(id: string): Promise<ZoomAppAnswer>
   /** One level of the profile's Drive folders; no `parent` lists My Drive, Shared with me and the shared drives. */

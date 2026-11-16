@@ -67,7 +67,7 @@ describe("First start", () => {
     expect(await screen.findByText("Ready to install WireCat tools.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Continue" }))
 
-    await waitFor(() => expect(screen.getAllByRole("checkbox")).toHaveLength(5))
+    await waitFor(() => expect(screen.getAllByRole("checkbox")).toHaveLength(6))
     const drive = screen.getByRole("checkbox", { name: /Google Drive/ })
     expect(drive).not.toBeChecked()
     await user.click(drive)
@@ -145,7 +145,7 @@ describe("Help", () => {
   it("walks through the window and closes with Escape", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await screen.findByRole("list", { name: "WireCat tools" })
+    await screen.findByRole("list", { name: "Built-in tools" })
 
     const help = screen.getByRole("button", { name: "Help" })
     await user.click(help)

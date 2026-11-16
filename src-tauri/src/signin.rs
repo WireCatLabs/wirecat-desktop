@@ -95,6 +95,17 @@ pub struct Prepared {
     /// Variables the tool would read ahead of what the owner typed; removed from this run.
     unset: Vec<String>,
     _client: Option<ClientFile>,
+    /// A setup flow's answers: stdin's first line, then stdin stays open for the tool's `needs` questions.
+    first: Option<Answer>,
+}
+
+/// A setup flow's `apply` run (`setup_flow.rs`): the answers of the path reach the tool on stdin, never as arguments.
+pub fn setup_apply(profile: &str, answers: Answer) -> Result<Prepared, String> {
+    if answers.contains(['\n', '\r']) {
+        return Err("The answers are one line of JSON.".into());
+    }
+    let args = crate::setup_flow::apply_args(profile)?;
+    Ok(Prepared { args, env: Vec::new(), stdin: None, unset: Vec::new(), _client: None, first: Some(answers) })
 }
 
 /// The catalog's words for the method with the profile the owner chose or named; never a default one.
@@ -155,7 +166,7 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     } else if inputs.oauth {
         args.extend(method.oauth.clone().ok_or_else(|| "This sign-in takes no browser choice.".to_string())?);
     }
-    Ok(Prepared { args, env, stdin, unset, _client: client })
+    Ok(Prepared { args, env, stdin, unset, _client: client, first: None })
 }
 
 fn flag<'a>(name: Option<&'a String>, what: &str) -> Result<&'a String, String> {
@@ -360,7 +371,7 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
     for name in &prepared.unset {
         cmd.env_remove(name);
     }
-    let mut parser = Parser::default();
+    let mut parser = if prepared.first.is_some() { Parser::setup() } else { Parser::default() };
     let mut outcome = None;
     let k = key(&tool.id);
     let result = run::stream_stoppable(
@@ -368,15 +379,7 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
         TIMEOUT,
         stopped,
         GRACE,
-        |mut stdin| match &prepared.stdin {
-            // Dropped at once: the tool reads until EOF.
-            Some(secret) => {
-                let _ = stdin.write_all(secret.as_bytes()).and_then(|()| stdin.write_all(b"\n"));
-            }
-            None => {
-                answers().lock().unwrap().insert(k.clone(), stdin);
-            }
-        },
+        |stdin| hand_stdin(prepared, &k, stdin),
         |line| match parser.read(line) {
             Some(e @ (SignInEvent::Done { .. } | SignInEvent::Failed { .. })) => outcome = Some(e),
             Some(e) => send(e),
@@ -385,6 +388,19 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
     );
     answers().lock().unwrap().remove(&k);
     send(finish(&tool.name, result, outcome, stopped()));
+}
+
+/// A secret read until EOF is written and stdin closed; otherwise stdin stays open for answers, after a setup flow's
+/// answers on its first line.
+fn hand_stdin(prepared: &Prepared, key: &str, mut stdin: ChildStdin) {
+    if let Some(secret) = &prepared.stdin {
+        let _ = stdin.write_all(secret.as_bytes()).and_then(|()| stdin.write_all(b"\n"));
+        return;
+    }
+    if let Some(first) = &prepared.first {
+        let _ = stdin.write_all(first.as_bytes()).and_then(|()| stdin.write_all(b"\n")).and_then(|()| stdin.flush());
+    }
+    answers().lock().unwrap().insert(key.to_string(), stdin);
 }
 
 /// What the run ended with. A stop during the history wait still answers `done` with what was kept; a stop before
@@ -420,6 +436,7 @@ fn failed(message: String) -> SignInEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::run::Line;
 
     #[test]
     fn a_sign_in_waits_for_an_install_of_its_package() {
@@ -638,6 +655,45 @@ mod tests {
             assert!(args(gcal, "browser", "personal", own(bad)).is_err(), "{bad}");
         }
         assert!(args(catalog::tool("zm").unwrap(), "browser", "personal", own(json)).is_err());
+    }
+
+    #[test]
+    fn a_setup_flows_answers_go_only_to_stdin_as_one_line() {
+        let prepared = setup_apply("office", Answer::new(r#"{"db":"pa ss;word"}"#.into())).unwrap();
+        assert_eq!(prepared.args, ["office", "setup", "run", "apply", "--json", "--answer-stdin"]);
+        assert!(prepared.env.is_empty() && prepared.stdin.is_none());
+        assert!(setup_apply("office", Answer::new("{}\n{}".into())).is_err());
+        assert!(setup_apply("--help", Answer::new("{}".into())).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_setup_run_reads_its_answers_first_and_its_questions_after() {
+        let prepared = setup_apply("office", Answer::new(r#"{"db":"x"}"#.into())).unwrap();
+        let k = key("pbx");
+        let cmd = run::command(
+            std::path::Path::new("sh"),
+            &[
+                "-c",
+                r#"read a; echo '{"event":"needs","field":"code","secret":false,"prompt":"code"}' >&2; read b; echo "{\"item\":{\"a\":${#a},\"b\":${#b}}}""#,
+            ],
+            None,
+        );
+        let mut out = String::new();
+        let result = run::stream_stoppable(
+            cmd,
+            Duration::from_secs(10),
+            || false,
+            GRACE,
+            |stdin| hand_stdin(&prepared, &k, stdin),
+            |line| match line {
+                Line::Err(_) => answer("pbx", &Answer::new("12345".into())).unwrap(),
+                Line::Out(l) => out.push_str(&l),
+            },
+        );
+        answers().lock().unwrap().remove(&k);
+        assert_eq!(result.unwrap(), Some(0));
+        assert_eq!(out.trim(), r#"{"item":{"a":10,"b":5}}"#);
     }
 
     #[test]

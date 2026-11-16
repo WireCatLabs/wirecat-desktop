@@ -24,7 +24,7 @@ afterEach(() => useTour.getState().close())
 it("keeps a stop whose page takes longer to load than a stop waits", async () => {
   const user = userEvent.setup()
   render(<App />)
-  await screen.findByRole("list", { name: "WireCat tools" })
+  await screen.findByRole("list", { name: "Built-in tools" })
   await user.click(screen.getByRole("button", { name: "Help" }))
   await user.click(screen.getByRole("menuitem", { name: "Take the tour" }))
   await screen.findByRole("dialog", { name: "Tools" })

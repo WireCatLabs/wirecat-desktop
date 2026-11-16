@@ -1,13 +1,15 @@
 import { Bot, Terminal } from "lucide-react"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { readMailNotes } from "@/domain/mail-signin"
 import { keyringFallback } from "@/domain/signin-notes"
+import { isNewer } from "@/domain/status"
 import { telegramNote } from "@/domain/telegram-signin"
 import { useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useBotSignIn } from "@/shared/bot-signin-store"
+import { recordError } from "@/shared/errors"
 import { botMessages } from "@/shared/messages-bot"
 import {
   BITRIX,
@@ -18,6 +20,7 @@ import {
   running,
   useSignIn,
 } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
@@ -27,6 +30,7 @@ import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { MOTION } from "@/ui/motion"
 import { noticeBox } from "@/ui/notice"
+import { useSetupDocument } from "./api"
 import { explainView } from "./Failure"
 import { type SigninMessages, signinMessages } from "./messages"
 import { bitrixMessages } from "./messages-bitrix"
@@ -35,15 +39,61 @@ import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
 import { Plan } from "./Plan"
+import { SetupFlowDialog, SetupLoading } from "./SetupFlow"
 import { SignInPath } from "./SignInPath"
 import { checksInPlan, type SignInView, Stage, stageKey } from "./Stages"
 import { KeyringNotice } from "./TelegramGuide"
 
 /**
- * Signs a profile in with the tool's own sign-in, drawn in the window: a QR code, a code for the phone, a page to
- * open, the questions the tool asks, then its progress.
+ * Signs a profile in with the tool's own sign-in, drawn in the window. A tool that describes its own flow
+ * (`setup show`) gets that flow; any other keeps its hand-made form.
  */
 export function SignInDialog() {
+  const { tool, profile, phase, setup } = useSignIn(
+    useShallow((s) => ({ tool: s.tool, profile: s.profile, phase: s.phase, setup: s.setup })),
+  )
+  const installed = useTools((s) => (tool ? s.installs[tool]?.[0]?.version : undefined))
+  const from = tool ? findTool(tool)?.signIn?.setupFrom : undefined
+  // Only a tool whose catalog entry names the version that describes its flow is asked; an unknown installed version is
+  // asked too, and an older one refuses with "unknown command" anyway.
+  const describes = from !== undefined && (!installed || !isNewer(from, installed))
+  // Asked only when the dialog opens on its plan: a retry or a switch of method is the hand-made form's own.
+  const flow = useSetupDocument(describes ? tool : null, profile, phase === "plan" || setup)
+  if (flow.kind === "flow")
+    return (
+      <FlowBoundary key={`${tool}:${profile}`} fallback={<HandMadeSignIn />}>
+        <SetupFlowDialog doc={flow.document} images={flow.images} />
+      </FlowBoundary>
+    )
+  if (flow.kind === "loading") return <SetupLoading />
+  return <HandMadeSignIn />
+}
+
+/**
+ * A flow comes from the tool's package: if drawing it breaks, the break stays in the sign-in, which falls back to the
+ * hand-made form, and the window around it keeps working. The error goes to the app's log.
+ */
+class FlowBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { broke: boolean }> {
+  override state = { broke: false }
+
+  static getDerivedStateFromError() {
+    return { broke: true }
+  }
+
+  override componentDidCatch(error: Error, info: ErrorInfo) {
+    recordError("render", error, `${error.stack ?? ""}\n${info.componentStack ?? ""}`.trim())
+  }
+
+  override render() {
+    return this.state.broke ? this.props.fallback : this.props.children
+  }
+}
+
+/**
+ * The hand-made sign-in: a QR code, a code for the phone, a page to open, the questions the tool asks, then its
+ * progress.
+ */
+function HandMadeSignIn() {
   const live = useSignIn()
   const s = useHeldSwitch(live)
   const m = useMessages(signinMessages)

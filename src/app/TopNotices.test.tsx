@@ -54,7 +54,7 @@ describe("the community list notice at the top", () => {
     expect(notice).toHaveTextContent(
       "The list of community tools is out of date, so community tools cannot be installed or updated. Installed ones keep working.",
     )
-    const list = await screen.findByRole("list", { name: "WireCat tools" })
+    const list = await screen.findByRole("list", { name: "Community tools" })
     const row = within(list)
       .getByRole("button", { name: /^Acme Notes/ })
       .closest("li") as HTMLElement

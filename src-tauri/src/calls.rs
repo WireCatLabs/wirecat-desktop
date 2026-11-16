@@ -1,7 +1,7 @@
 //! A client's calls and recorded meetings, as cli-core 0.650.0 and later reads them: `meetings` on a CRM's
-//! `deals show` and `leads show`, and on memo's person context. A CLI from before leaves the field out, and the card
-//! shows nothing. A call opens in the tool that recorded it (catalog `meetings`, found by cli-core's provider name)
-//! with the profile the owner chose. Titles, names and transcripts are other people's words on the owner's own page:
+//! `deals show` and `leads show`, and on memo's person context; a phone call's `call` fields since 0.674.0. A CLI
+//! from before leaves the field out, and the card shows nothing. A call opens in the tool that recorded it (catalog
+//! `meetings`, found by cli-core's provider name) with the profile the owner chose. Titles, names and transcripts are other people's words on the owner's own page:
 //! shown as plain text, never logged.
 
 use crate::catalog::{self, MeetingsSource, Tool};
@@ -31,35 +31,51 @@ pub struct ClientCall {
     pub started_at: Option<String>,
     pub duration_ms: Option<u64>,
     pub has_transcript: bool,
+    /// A phone call's `in` or `out` (cli-core 0.674.0); `None` for a meeting, an older CLI or any other word.
+    pub direction: Option<String>,
+    /// Who took or made the call on the owner's side, by name.
+    pub manager: Option<String>,
+    pub client_phone: Option<String>,
 }
 
 fn text(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(Value::as_str).map(str::to_string)
 }
 
-pub(crate) fn tool_for(provider: &str) -> Option<(&'static Tool, &'static MeetingsSource)> {
-    catalog::catalog().tools.iter().find_map(|t| t.meetings.as_ref().filter(|m| m.provider == provider).map(|m| (t, m)))
+fn tool_in<'a>(tools: &'a [Tool], provider: &str) -> Option<(&'a Tool, &'a MeetingsSource)> {
+    tools.iter().find_map(|t| t.meetings.as_ref().filter(|m| m.provider == provider).map(|m| (t, m)))
 }
 
-fn call(v: &Value) -> Option<ClientCall> {
+pub(crate) fn tool_for(provider: &str) -> Option<(&'static Tool, &'static MeetingsSource)> {
+    tool_in(&catalog::catalog().tools, provider)
+}
+
+fn call(tools: &[Tool], v: &Value) -> Option<ClientCall> {
     let account = &v["account"];
     let provider = text(account, "provider")?;
     Some(ClientCall {
         reference: text(v, "ref").filter(|r| r.starts_with("meeting:"))?,
         meeting_id: v["meeting_id"].as_u64().and_then(|id| u32::try_from(id).ok())?,
-        tool: tool_for(&provider).map(|(t, _)| t.id.clone()),
+        tool: tool_in(tools, &provider).map(|(t, _)| t.id.clone()),
         provider,
         account: text(account, "account")?,
         title: text(v, "title"),
         started_at: text(v, "started_at"),
         duration_ms: v["duration_ms"].as_u64(),
         has_transcript: v["has_transcript"].as_bool().unwrap_or(false),
+        direction: text(&v["call"], "direction").filter(|d| d == "in" || d == "out"),
+        manager: text(&v["call"]["manager"], "name"),
+        client_phone: text(&v["call"], "client_phone"),
     })
 }
 
 /// `None` when the answer has no `meetings` at all: the installed CLI is older than cli-core 0.650.0.
 pub fn calls_of(answer: &Value) -> Option<Vec<ClientCall>> {
-    Some(answer.get("meetings")?.as_array()?.iter().filter_map(call).collect())
+    calls_in(&catalog::catalog().tools, answer)
+}
+
+fn calls_in(tools: &[Tool], answer: &Value) -> Option<Vec<ClientCall>> {
+    Some(answer.get("meetings")?.as_array()?.iter().filter_map(|v| call(tools, v)).collect())
 }
 
 /// What the recording tool printed for one call, as it printed it: the interface reads the participants and lines.
@@ -120,13 +136,16 @@ mod tests {
             "meetings": [
                 { "ref": "meeting:4/77", "meeting_id": 77, "account": { "provider": "asterisk", "account": "office" },
                   "title": "+34 600 111 222 → 201", "started_at": "2026-11-12T09:30:00.000Z", "duration_ms": 184_000,
-                  "has_transcript": true, "event": null, "people": ["person:7"] },
+                  "has_transcript": true, "event": null, "people": ["person:7"],
+                  "call": { "direction": "in", "manager": { "name": "Ana", "person": "person:2" },
+                            "client_phone": "+34600111222" } },
                 { "ref": "meeting:2/5", "meeting_id": 5, "account": { "provider": "zoom", "account": "ana@example.org" },
                   "title": null, "started_at": null, "duration_ms": null, "has_transcript": false, "event": "event:3",
                   "people": ["person:7"] },
                 { "ref": "meeting:9/1", "meeting_id": 1, "account": { "provider": "beeline", "account": "line" },
                   "title": "Входящий звонок · Ана ↔ +79001112233", "started_at": "2026-11-11T08:00:00.000Z",
-                  "duration_ms": 60_000, "has_transcript": false, "event": null, "people": ["person:7"] },
+                  "duration_ms": 60_000, "has_transcript": false, "event": null, "people": ["person:7"],
+                  "call": { "direction": "missed", "manager": null, "client_phone": null } },
                 { "ref": "deal:1", "meeting_id": 1, "account": { "provider": "zoom", "account": "x" } }
             ]
         })
@@ -142,7 +161,38 @@ mod tests {
         assert!(calls[0].has_transcript);
         assert_eq!(calls[1].tool.as_deref(), Some("zm"));
         assert_eq!(calls[1].title, None);
-        assert_eq!(calls[2].tool, None, "beeline is not a WireCat tool yet");
+        assert_eq!(calls[2].tool, None, "beeline is not installed as an own tool here");
+    }
+
+    #[test]
+    fn a_call_of_an_own_tool_opens_in_it_when_its_manifest_names_the_provider() {
+        let manifest: Value =
+            serde_json::from_str(include_str!("../tests/fixtures/own-tools/beeline-cli-0.3.0-wirecat.json")).unwrap();
+        let mut entry = manifest["desktop"].clone();
+        let fixed = json!({ "id": "beeline", "community": true, "name": "beeline", "bin": "wcat-beeline",
+                            "package": "@wirecat/beeline-cli", "summary": "Beeline calls",
+                            "docs": "https://github.com/WireCatLabs/beeline-cli#readme", "repo": null });
+        for (k, v) in fixed.as_object().unwrap() {
+            entry[k] = v.clone();
+        }
+        let saved = json!({ "version": 1, "tools": [entry] }).to_string();
+        let (own, extra) = crate::community::parse(&saved, catalog::catalog());
+        assert!(extra.rejected.is_empty(), "{:?}", extra.rejected);
+        let tools: Vec<Tool> = own;
+        let calls = calls_in(&tools, &shown()).unwrap();
+        assert_eq!(calls[2].tool.as_deref(), Some("beeline"));
+        let (_, src) = tool_in(&tools, "beeline").unwrap();
+        assert_eq!(words(&src.show, "line", 1).unwrap(), ["line", "meetings", "show", "1", "--no-record", "--json"]);
+    }
+
+    #[test]
+    fn a_phone_call_keeps_its_direction_manager_and_client_number_and_a_meeting_has_none() {
+        let calls = calls_of(&shown()).unwrap();
+        assert_eq!(calls[0].direction.as_deref(), Some("in"));
+        assert_eq!(calls[0].manager.as_deref(), Some("Ana"));
+        assert_eq!(calls[0].client_phone.as_deref(), Some("+34600111222"));
+        assert_eq!((calls[1].direction.clone(), calls[1].manager.clone()), (None, None));
+        assert_eq!(calls[2].direction, None, "only in and out are shown; other vocabularies are dropped");
     }
 
     #[test]

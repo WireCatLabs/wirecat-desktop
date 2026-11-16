@@ -11,6 +11,7 @@ export const RU_TAGLINE: Record<string, string> = {
   email: "Ваша почта по IMAP, с поиском на вашем компьютере",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
+  notion: "Страницы и базы данных\u00a0· поиск",
 }
 
 export const RU_SUMMARY: Record<string, string> = {
@@ -27,6 +28,8 @@ export const RU_SUMMARY: Record<string, string> = {
   bitrix:
     "Читайте и меняйте CRM портала Битрикс24 — сделки, лиды, контакты и компании — со страницы «Клиенты» и через вашего агента.",
   pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
+  notion:
+    "Копируйте на этот компьютер страницы и базы данных Notion, которые видит ваш токен, ищите по ним и давайте агенту их текст.",
 }
 
 export const ES_TAGLINE: Record<string, string> = {
@@ -40,6 +43,7 @@ export const ES_TAGLINE: Record<string, string> = {
   email: "Tu correo por IMAP, con búsqueda en tu ordenador",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
+  notion: "Páginas y bases de datos\u00a0· búsqueda",
 }
 
 export const ES_SUMMARY: Record<string, string> = {
@@ -56,4 +60,6 @@ export const ES_SUMMARY: Record<string, string> = {
   bitrix:
     "Lee y cambia el CRM de un portal de Bitrix24 —negociaciones, prospectos, contactos y empresas— desde la página Clientes y con tu agente.",
   pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
+  notion:
+    "Copia a este equipo las páginas y bases de datos de Notion que ve tu token, búscalas y da a tu agente su texto.",
 }

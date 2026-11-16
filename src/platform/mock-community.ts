@@ -61,6 +61,33 @@ export const OWN = {
   storage: { app: "example-acme-crm-cli", env: "ACME_CRM" },
 }
 
+/** An own tool from WireCat's own scope that this release does not build in; `?own=wirecat` adds it. */
+export const OWN_WIRECAT = {
+  ...OWN,
+  id: "beeline",
+  name: "Beeline",
+  tagline: "Beeline Cloud PBX calls, transcribed on your computer",
+  bin: "wcat-beeline",
+  package: "@wirecat/beeline-cli",
+  summary: "Beeline Cloud PBX call recordings as meetings: sync, transcribe on this computer, search and export",
+  docs: "https://github.com/WireCatLabs/beeline-cli#readme",
+  repo: "https://github.com/WireCatLabs/beeline-cli",
+  storage: { app: "beeline-cli", env: "BEELINE" },
+  mcpServer: null,
+  sync: {
+    run: ["{profile}", "meetings", "sync", "--record", "--json"],
+    last: null,
+    lastShape: "runs",
+    what: "calls",
+    note: null,
+  },
+  meetings: {
+    provider: "beeline",
+    show: ["{profile}", "meetings", "show", "{id}", "--no-record", "--json"],
+    transcript: ["{profile}", "meetings", "transcript", "{id}", "--no-record", "--json"],
+  },
+}
+
 /** A list kept 24 days more; `?registry=expiring` leaves it three days, `expired` ran out two days ago. */
 function registryMock(params: URLSearchParams): Pick<CommunityStatus, "state" | "expiresAt"> {
   const registry = params.get("registry")
@@ -80,7 +107,12 @@ export function extraToolsMock(params: URLSearchParams): ExtraTools {
   const community = params.get("community")
   const listed = community === "1" || community === "bad" || params.has("registry") ? [ACME] : []
   if (community === "bad") listed.push({ ...ACME, id: "evil", package: "@wirecat/evil" })
-  const own = (ownShown ?? true) && (ownAdded ?? params.get("own") === "1") ? [OWN] : []
+  const own =
+    params.get("own") === "wirecat"
+      ? [OWN_WIRECAT]
+      : (ownShown ?? true) && (ownAdded ?? params.get("own") === "1")
+        ? [OWN]
+        : []
   const rejected: ExtraTools["rejected"] =
     community === "bad" ? [{ source: "community", text: 'shady: the command word "setup;rm" is not allowed.' }] : []
   return {

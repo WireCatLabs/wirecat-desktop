@@ -1,5 +1,6 @@
-import { LoaderCircle, ShieldAlert, TriangleAlert } from "lucide-react"
+import { LoaderCircle, ShieldAlert, ShieldCheck, TriangleAlert } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
+import { isWirecatPackage } from "@/domain/catalog"
 import { entityLabel, groupAccess } from "@/domain/own-access"
 import { useLang, useMessages } from "@/i18n"
 import type { OwnReview, OwnSignal, OwnUpdate } from "@/platform/bindings"
@@ -22,12 +23,16 @@ function WarnBox({ children }: { children: ReactNode }) {
   return <div className={cx("flex flex-col gap-1 text-body text-ink", noticeBox("warn"))}>{children}</div>
 }
 
-/** Red, because the access it describes is the whole of the owner's data; no `alert` role, since nothing went wrong. */
-export function Danger({ lines, m }: { lines: string[]; m: OwnText }) {
+/**
+ * Red, because the access it describes is the whole of the owner's data; no `alert` role, since nothing went wrong.
+ * A `@wirecat` package is WireCat's own, so it gets the same facts without the alarm.
+ */
+export function Danger({ lines, m, ours = false }: { lines: string[]; m: OwnText; ours?: boolean }) {
   const lang = useLang()
+  const Icon = ours ? ShieldCheck : ShieldAlert
   return (
-    <div className={cx("flex gap-3 text-body text-ink", noticeBox("bad"))}>
-      <ShieldAlert className="mt-[0.15rem] size-5 shrink-0 text-bad" aria-hidden />
+    <div className={cx("flex gap-3 text-body text-ink", noticeBox(ours ? "warn" : "bad"))}>
+      <Icon className={cx("mt-[0.15rem] size-5 shrink-0", ours ? "text-warn" : "text-bad")} aria-hidden />
       <div className="flex flex-col gap-1">
         <ul className="flex flex-col gap-1">
           {lines.map((line, i) => (
@@ -44,12 +49,10 @@ export function Danger({ lines, m }: { lines: string[]; m: OwnText }) {
   )
 }
 
-export const dangerLines = (r: OwnReviewText, usesCore: boolean) => [
-  r.danger.runs,
-  ...(usesCore ? [r.danger.core] : []),
-  r.danger.trust,
-  r.danger.noResponsibility,
-]
+export const dangerLines = (r: OwnReviewText, usesCore: boolean, ours = false) =>
+  ours
+    ? [r.danger.wirecat, r.danger.runs]
+    : [r.danger.runs, ...(usesCore ? [r.danger.core] : []), r.danger.trust, r.danger.noResponsibility]
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -309,16 +312,17 @@ export function ReviewStep({ review, m, accepted, accept, need, acceptId }: Revi
   const r = useMessages(ownReviewMessages)
   const agent = [review.skill && m.skill, review.mcp && m.mcp].filter(Boolean).join(" · ") || m.noAgent
   const update = review.update
+  const ours = isWirecatPackage(review)
   return (
     <div className="flex flex-col gap-4 text-[0.95rem]">
       <div>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-[1.05rem]">
           {review.name} <span className="font-mono font-normal text-ink-soft">{review.package}</span>
-          <Pill tone="bad">{r.notVerified}</Pill>
+          {ours ? <Pill tone="brand">{m.wirecatChecked}</Pill> : <Pill tone="bad">{r.notVerified}</Pill>}
         </p>
         <p className="mt-1 text-ink-soft">{review.summary}</p>
       </div>
-      <Danger lines={dangerLines(r, review.usesCore)} m={m} />
+      <Danger lines={dangerLines(r, review.usesCore, ours)} m={m} ours={ours} />
       {update && (
         <Changes
           review={{ ...review, update }}

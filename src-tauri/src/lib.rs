@@ -61,6 +61,7 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+mod organization_card;
 mod own_risks;
 mod own_scan;
 #[cfg(test)]
@@ -91,6 +92,7 @@ mod search;
 mod search_harder;
 mod self_test;
 mod settings;
+mod setup_flow;
 mod signin;
 mod signin_steps;
 mod skills;
@@ -404,6 +406,7 @@ pub fn run() {
             commands::people::people_check,
             commands::people::people_add,
             commands::people::people_find,
+            commands::organization_card::organization_card,
             commands::person_profile::people_profile,
             commands::memory::memory_review_show,
             commands::memory::memory_review_decide,
@@ -450,6 +453,10 @@ pub fn run() {
             commands::signin::remove_bot,
             commands::signin::sign_in_answer,
             commands::signin::sign_in_on_portal,
+            commands::signin::setup_show,
+            commands::signin::setup_check,
+            commands::signin::setup_apply,
+            commands::signin::setup_pick_path,
             commands::signin::sign_in_stop,
             commands::setup_extras::zoom_app_setup,
             commands::setup_extras::drive_folders_browse,

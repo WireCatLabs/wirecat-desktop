@@ -12,6 +12,7 @@ import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { reduceMotion } from "@/testing/motion"
 import { act, fireEvent, render, screen, within } from "@/testing/render"
+import { openSignIn } from "@/testing/signin"
 import { MOTION } from "@/ui/motion"
 import { NewProfile } from "../tools/Health"
 import { SignInDialog } from "./SignInDialog"
@@ -202,7 +203,7 @@ describe("signing in to WhatsApp inside the window", () => {
 describe("answering what the tool asks", () => {
   async function open(tool: string, profile = "personal") {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start(tool, profile))
+    await openSignIn(tool, profile)
     act(() => useSignIn.getState().begin())
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     return screen.getByRole("dialog")
@@ -441,7 +442,7 @@ describe("Telegram's own app keys", () => {
 
   async function openTg() {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("tg", "personal"))
+    await openSignIn("tg", "personal")
     const dialog = screen.getByRole("dialog", { name: "Sign in to Telegram" })
     expect(within(dialog).getAllByText("First time only")).toHaveLength(3)
     act(() => useSignIn.getState().begin())
@@ -616,7 +617,7 @@ describe("Telegram's QR code", () => {
   async function scanStage(expiresAt: string | null) {
     localStorage.clear()
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("tg", "personal"))
+    await openSignIn("tg", "personal")
     act(() => useSignIn.getState().begin())
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt, scan })
@@ -656,7 +657,7 @@ describe("Telegram's QR code", () => {
 describe("signing in to mail", () => {
   it("asks the provider first, then the app password in the window, and a new try keeps the address but never it", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     const dialog = screen.getByRole("dialog", { name: "Sign in to Email" })
     await userEvent.click(within(dialog).getByRole("radio", { name: /Another mail server/ }))
     // The steps of the provider left behind fade out over the new ones for a moment.
@@ -719,7 +720,7 @@ describe("signing in to mail", () => {
 
   it("offers Gmail's Google sign-in first and chosen, and the app password under other ways", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     const dialog = screen.getByRole("dialog")
     await userEvent.click(within(dialog).getByRole("radio", { name: /^Gmail/ }))
     await settled()
@@ -737,7 +738,7 @@ describe("signing in to mail", () => {
   it("walks Gmail's app password on one step, answers the tool from it, and comes back there when Gmail refuses", async () => {
     const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     const dialog = screen.getByRole("dialog")
     await userEvent.click(within(dialog).getByRole("radio", { name: /^Gmail/ }))
     await settled()
@@ -787,7 +788,7 @@ describe("signing in to mail", () => {
 
   it("signs Gmail in by Google with WireCat's app, asking for no client of the owner's", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     act(() => useSignIn.setState({ method: "gmail" }))
     await settled()
     const dialog = screen.getByRole("dialog")
@@ -806,7 +807,7 @@ describe("signing in to mail", () => {
     const mail = (version: string) => ({ path: "~/.local/bin/mail", version, manager: "npm", problem: null })
     useTools.setState({ installs: { email: [mail("0.21.0")] } })
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     act(() => useSignIn.setState({ method: "gmail" }))
     await settled()
     const dialog = screen.getByRole("dialog")
@@ -834,7 +835,7 @@ describe("signing in to mail", () => {
 
   it("takes the owner's own Google client as typed ID and secret, sent as a client file", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work", undefined, undefined))
+    await openSignIn("email", "work")
     act(() => useSignIn.setState({ method: "gmail" }))
     await settled()
     const dialog = screen.getByRole("dialog")
@@ -868,7 +869,7 @@ describe("signing in to mail", () => {
   it("saves the owner's own Microsoft app for the profile before the browser opens", async () => {
     const saved = vi.spyOn(platform, "settingsSet").mockResolvedValue()
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     const dialog = screen.getByRole("dialog")
     expect(within(dialog).getByRole("radio", { name: /Microsoft/ })).toBeChecked()
     expect(within(dialog).queryByLabelText("App password")).not.toBeInTheDocument()
@@ -888,7 +889,7 @@ describe("in Russian", () => {
   it("names the dialog and counts what came from the phone in Russian forms", async () => {
     useLanguage.setState({ choice: "ru" })
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("wa", "personal"))
+    await openSignIn("wa", "personal")
     act(() => useSignIn.getState().begin())
     const dialog = await screen.findByRole("dialog", { name: "Вход в WhatsApp" })
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
@@ -901,7 +902,7 @@ describe("in Russian", () => {
   it("translates a failure the tool reports with a code", async () => {
     useLanguage.setState({ choice: "ru" })
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("max", "personal"))
+    await openSignIn("max", "personal")
     act(() => useSignIn.getState().begin())
     const dialog = await screen.findByRole("dialog")
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
@@ -913,7 +914,7 @@ describe("in Russian", () => {
 describe("the setup wizard every tool shares", () => {
   async function plan(tool: string) {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start(tool, "personal"))
+    await openSignIn(tool, "personal")
     return screen.getByRole("dialog")
   }
 
@@ -994,7 +995,7 @@ describe("the setup wizard every tool shares", () => {
 describe("going back inside the dialog", () => {
   it("email: the browser step has Back, which stops the run and keeps the typed address", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("email", "work"))
+    await openSignIn("email", "work")
     useSignIn.setState({ address: "me@outlook.com" })
     act(() => useSignIn.getState().start("email", "work", undefined, "microsoft"))
     const dialog = screen.getByRole("dialog", { name: "Sign in to Email" })
@@ -1010,7 +1011,7 @@ describe("going back inside the dialog", () => {
 
   it("Zoom: the app checklist has Back to the plan", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("zm", "personal"))
+    await openSignIn("zm", "personal")
     const dialog = screen.getByRole("dialog")
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
@@ -1021,7 +1022,7 @@ describe("going back inside the dialog", () => {
 
   it("WhatsApp: Back stays in place but is off while the history arrives, and says why", async () => {
     render(<SignInDialog />)
-    act(() => useSignIn.getState().start("wa", "personal"))
+    await openSignIn("wa", "personal")
     const dialog = screen.getByRole("dialog")
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
@@ -1031,5 +1032,21 @@ describe("going back inside the dialog", () => {
     expect(back).toHaveAccessibleDescription(/chat history is arriving/)
     await userEvent.click(back)
     expect(useSignIn.getState().phase).toBe("progress")
+  })
+})
+
+describe("signing in to Notion", () => {
+  it("asks for the token in the window and gives it to the run, not as an app password", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("notion", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Notion" })
+    expect(within(dialog).queryByLabelText("App password")).not.toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText("Token"), "ntn_example")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("notion", "token", "work", expect.any(Function), {
+        password: "ntn_example",
+      }),
+    )
   })
 })

@@ -13,6 +13,7 @@ Shapes that the app and a tool, or the app and a server, must both follow. Chang
 | With | Contract |
 | --- | --- |
 | A tool's sign-in (`session start`) | [signin-api.md](signin-api.md) |
+| A tool's own setup flow (`setup show`, the setup format v1) | [setup-api.md](setup-api.md) |
 | A tool's sync | [sync-api.md](sync-api.md) |
 | A tool's run log (`runs list`, `runs show`) | [runs-api.md](runs-api.md) |
 | A tool's HTTP MCP server and its public address | [mcp-server-api.md](mcp-server-api.md) |
@@ -76,7 +77,8 @@ src-tauri/src/
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable; the sandbox name (`WIRECAT_SANDBOX`).
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
-                real install and uninstall against a test package; CI runs it on all three systems.
+                real install and uninstall against a test package; CI runs it on Linux, and the install check after a
+                release installs a tool with the same code on all three systems.
   tools.rs      finding executables, versions, profiles, doctor runs.
   install.rs    install, update and uninstall with progress events, verification, failure reasons. The verify step
                 says what it does (`check` events: `path`, `start`, `skills`), so the row names it instead of one long
@@ -169,6 +171,9 @@ src-tauri/src/
   person_profile.rs what a match's details and a person's card show about one person: memo's `context <ref> --limit
                 10 --trimmed` and the person's row from `people check -- <name words>`, slimmed to contacts, companies,
                 counts, the latest messages and their calls (see "The Contacts page").
+  organization_card.rs a company's card, opened from a deal's or lead's company: memo's `organizations context
+                <ref> --limit 20`, slimmed to its people, open deals and leads, and its people's call count. memo lists
+                no calls of a company, so each person's calls are read only when the owner opens that person.
   calls.rs      a client's calls: cli-core's `meetings` on a CRM's `deals show`/`leads show` and on memo's person
                 context (0.650.0 and later; an older CLI names none and the card shows nothing). A call opens in the
                 tool whose catalog `meetings.provider` recorded it, as the profile the owner picks: `meetings show` and
@@ -218,6 +223,8 @@ src-tauri/src/
                 Gemini notes, counted with the newest three names.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
+  setup_flow.rs a tool's own setup flow ([setup-api.md](setup-api.md)): `setup show`, the dry run and the `apply` run
+                as fixed argument lists, and the flow's images read only from inside the tool's package.
   bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
                 token on the tool's stdin to its own `bot auth set`; `bot list` for the names. See "Connecting a bot".
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
@@ -337,7 +344,10 @@ src-tauri/src/
   cache.rs      what the app remembers about a tool's program while it runs (memory only).
   command_tree.rs what an installed tool can run, from its own `commands --json`, read once per installed version and
                 only when asked: a feature turns on when the tool lists its command, not by a version written by hand
-                (DEBT-340). `account remove` uses it when the catalog's version says no.
+                (DEBT-340). `released_or_listed` opens a feature when the catalog's version says no but the tool lists
+                its command: `account remove`, memo's `models local-only` and `models picture-reading`, drive's
+                `transcripts list`. Gates on an option or a changed answer (`--order`, `related:`, a field) keep their
+                catalog version, since `commands --json` lists commands, not what they print.
   tool_network.rs where an installed tool says its data goes: `network` in the package's own
                 `contracts/wirecat.json`, read from disk, never run. A tool that ships none declares nothing.
   window_size.rs the main window's first size, and its saved size and place restored.

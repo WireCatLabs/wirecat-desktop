@@ -5,8 +5,15 @@ type Words = [what: string, todo: string]
 const en = {
   open: "Add your own tool",
   notChecked: "Not verified",
+  wirecatChecked: "Verified by WireCat",
   trust: (maker: string) => `Added by you, made by ${maker}. WireCat has not checked it.`,
+  trustWirecat: "Added by you. A WireCat tool that this version of the app does not include yet.",
   title: "Add your own tool",
+  addHint: "A tool WireCat does not list, such as one you or a colleague made, is added by its npm name.",
+  allowIntro: (setting: string) =>
+    `Adding your own tool needs the setting “${setting}”, which is off. Allow turns it on here, as in Settings:`,
+  allowAndContinue: "Allow and continue",
+  allowFailed: "Could not turn the setting on.",
   updateTitle: (name: string) => `Update ${name}`,
   warn: [
     "It runs as you on this computer, so it can read everything WireCat keeps: your messages, mail, notes and files.",
@@ -139,8 +146,15 @@ const en = {
 const ru: typeof en = {
   open: "Добавить свой инструмент",
   notChecked: "Не проверен",
+  wirecatChecked: "Проверен WireCat",
   trust: (maker) => `Добавлен вами, автор ${maker}. WireCat его не проверял.`,
+  trustWirecat: "Добавлен вами. Инструмент WireCat, которого ещё нет в этой версии приложения.",
   title: "Добавить свой инструмент",
+  addHint: "Инструмент, которого нет в списке WireCat, например ваш или коллеги, добавляется по имени в npm.",
+  allowIntro: (setting) =>
+    `Чтобы добавить свой инструмент, нужна настройка «${setting}», а она выключена. «Разрешить» включит её здесь, как в настройках:`,
+  allowAndContinue: "Разрешить и продолжить",
+  allowFailed: "Не удалось включить настройку.",
   updateTitle: (name) => `Обновить ${name}`,
   warn: [
     "Он работает от вашего имени на этом компьютере, поэтому может прочитать всё, что хранит WireCat: ваши сообщения, почту, заметки и файлы.",
@@ -269,8 +283,15 @@ const ru: typeof en = {
 const es: typeof en = {
   open: "Añadir tu propia herramienta",
   notChecked: "Sin verificar",
+  wirecatChecked: "Verificada por WireCat",
   trust: (maker) => `Añadida por ti, hecha por ${maker}. WireCat no la ha revisado.`,
+  trustWirecat: "Añadida por ti. Una herramienta de WireCat que esta versión de la app aún no incluye.",
   title: "Añadir tu propia herramienta",
+  addHint: "Una herramienta que WireCat no lista, como una tuya o de un colega, se añade por su nombre en npm.",
+  allowIntro: (setting) =>
+    `Para añadir tu propia herramienta hace falta el ajuste «${setting}», que está desactivado. Permitir lo activa aquí, como en Ajustes:`,
+  allowAndContinue: "Permitir y continuar",
+  allowFailed: "No se pudo activar el ajuste.",
   updateTitle: (name) => `Actualizar ${name}`,
   warn: [
     "Se ejecuta como tú en este equipo, así que puede leer todo lo que guarda WireCat: tus mensajes, correo, notas y archivos.",

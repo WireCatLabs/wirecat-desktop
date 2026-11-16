@@ -20,7 +20,7 @@ beforeEach(() => {
 
 it("opens a row on a click and on Enter, but not when a drag over its text ends there", async () => {
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Built-in tools" })
   const header = within(list).getByRole("button", { name: /^Telegram/ })
   const row = header.closest("li") as HTMLElement
   await within(row).findByRole("button", { name: "Manage" })
@@ -39,7 +39,7 @@ it("opens a row on a click and on Enter, but not when a drag over its text ends 
 it("opens a row while the tool check is still running (BUG-24)", async () => {
   answerAtOnce(false)
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Built-in tools" })
   const header = within(list).getByRole("button", { name: /^Telegram/ })
   expect(useTools.getState().installs.tg).toBeUndefined()
 
@@ -86,7 +86,7 @@ const doneInstall = () =>
   })
 
 const rowOf = async (name: RegExp) => {
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Built-in tools" })
   return within(list).getByRole("button", { name }).closest("li") as HTMLElement
 }
 
@@ -208,7 +208,7 @@ it("installs without asking when the check finds nothing", async () => {
   })
   const install = vi.spyOn(platform, "install").mockResolvedValue()
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Built-in tools" })
   const row = within(list)
     .getByRole("button", { name: /^Google Drive/ })
     .closest("li") as HTMLElement
@@ -219,7 +219,7 @@ it("installs without asking when the check finds nothing", async () => {
 
 it("gives an open tool's panel one purple button, with an account to sync and one to reconnect", async () => {
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Built-in tools" })
   const header = within(list).getByRole("button", { name: /^Telegram/ })
   const row = header.closest("li") as HTMLElement
   await within(row).findByRole("button", { name: "Manage" })

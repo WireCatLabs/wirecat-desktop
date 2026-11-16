@@ -1,0 +1,1224 @@
+{
+  "title": "WireCat setup document, version 1",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "wirecat.setup"
+    },
+    "version": {
+      "const": 1
+    },
+    "tool": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,31}$"
+    },
+    "toolVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$"
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_./-]{0,63}$"
+      }
+    },
+    "start": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,47}$"
+    },
+    "steps": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{0,47}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+          },
+          "kind": {
+            "enum": [
+              "form",
+              "run",
+              "done"
+            ],
+            "type": "string"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/block"
+            }
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "when": {
+                      "$ref": "#/$defs/condition"
+                    },
+                    "to": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,47}$"
+                    }
+                  },
+                  "required": [
+                    "to"
+                  ]
+                }
+              }
+            ]
+          },
+          "back": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+          },
+          "asks": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "input"
+                },
+                "setting": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "secret": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                },
+                "input": {
+                  "enum": [
+                    "text",
+                    "number",
+                    "port",
+                    "toggle",
+                    "password",
+                    "file",
+                    "folder",
+                    "select",
+                    "multiselect",
+                    "countries",
+                    "timezone"
+                  ],
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "hint": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "placeholder": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "optional": {
+                  "type": "boolean"
+                },
+                "default": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "multiline": {
+                  "type": "boolean"
+                },
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "accept": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\.[a-z0-9]{1,10}$"
+                  }
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                      },
+                      "hint": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                      },
+                      "icon": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "label"
+                    ]
+                  }
+                },
+                "options_from": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                },
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "input",
+                "label"
+              ]
+            }
+          },
+          "result": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,47}$"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "maxProperties": 60
+    },
+    "assets": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{0,47}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(\\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\\.(png|jpe?g|webp)$"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "file"
+        ]
+      }
+    },
+    "texts": {
+      "type": "object",
+      "properties": {
+        "en": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "required": [
+        "en"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+        },
+        "additionalProperties": {
+          "type": "string",
+          "maxLength": 4000
+        }
+      }
+    },
+    "values": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "set": {
+                "const": true
+              }
+            },
+            "required": [
+              "set"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "tool",
+    "start",
+    "steps",
+    "texts"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "block": {
+      "anyOf": [
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "params": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{0,31}$"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "heading"
+                },
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "level": {
+                  "enum": [
+                    2,
+                    3
+                  ],
+                  "type": "number"
+                },
+                "params": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{0,31}$"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "note"
+                },
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "params": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{0,31}$"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "image"
+                },
+                "asset": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,47}$"
+                },
+                "alt": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "caption": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                }
+              },
+              "required": [
+                "type",
+                "asset",
+                "alt"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "code"
+                },
+                "code": {
+                  "type": "string",
+                  "maxLength": 4000
+                },
+                "copy": {
+                  "type": "boolean"
+                },
+                "language": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                }
+              },
+              "required": [
+                "type",
+                "code"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "input"
+                },
+                "setting": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "secret": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                },
+                "input": {
+                  "enum": [
+                    "text",
+                    "number",
+                    "port",
+                    "toggle",
+                    "password",
+                    "file",
+                    "folder",
+                    "select",
+                    "multiselect",
+                    "countries",
+                    "timezone"
+                  ],
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "hint": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "placeholder": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "optional": {
+                  "type": "boolean"
+                },
+                "default": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "multiline": {
+                  "type": "boolean"
+                },
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "accept": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\.[a-z0-9]{1,10}$"
+                  }
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                      },
+                      "hint": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                      },
+                      "icon": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "label"
+                    ]
+                  }
+                },
+                "options_from": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                },
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "input",
+                "label"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "choice"
+                },
+                "setting": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "label": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "hint": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                      },
+                      "hint": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                      },
+                      "icon": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "label"
+                    ]
+                  },
+                  "minItems": 1
+                },
+                "optional": {
+                  "type": "boolean"
+                },
+                "default": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "options"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "group"
+                },
+                "blocks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/block"
+                  }
+                },
+                "title": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                }
+              },
+              "required": [
+                "type",
+                "blocks"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "link"
+                },
+                "href": {
+                  "type": "string",
+                  "pattern": "^https:\\/\\/[^\\s\"<>]{1,2000}$"
+                },
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                }
+              },
+              "required": [
+                "type",
+                "href",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "requirement"
+                },
+                "check": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                },
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "fix": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                }
+              },
+              "required": [
+                "type",
+                "check",
+                "text"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "when": {
+                  "$ref": "#/$defs/condition"
+                },
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                },
+                "class": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+                  }
+                },
+                "fallback": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+                },
+                "type": {
+                  "const": "divider"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "when": {
+              "$ref": "#/$defs/condition"
+            },
+            "role": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+            },
+            "class": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9/-]{0,31}$"
+              }
+            },
+            "fallback": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.-]{0,95}$"
+            },
+            "type": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9/-]{0,31}$",
+              "not": {
+                "enum": [
+                  "text",
+                  "heading",
+                  "note",
+                  "image",
+                  "code",
+                  "input",
+                  "choice",
+                  "group",
+                  "link",
+                  "requirement",
+                  "divider"
+                ]
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "condition": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "is": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "required": [
+            "field",
+            "is"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "in": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            }
+          },
+          "required": [
+            "field",
+            "in"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "set": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "field",
+            "set"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "result": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,47}$"
+            },
+            "is": {
+              "const": "ok"
+            }
+          },
+          "required": [
+            "result",
+            "is"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "result": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,47}$"
+            },
+            "error": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            }
+          },
+          "required": [
+            "result",
+            "error"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          },
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          },
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/condition"
+            }
+          },
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

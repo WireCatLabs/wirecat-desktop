@@ -72,6 +72,16 @@ const ToolSchema = v.object({
       pick: v.optional(v.boolean()),
       /** zm's `app --json`: what to enter when making the Zoom app, read by `zoom_app_setup` (zoom-cli PR #337). */
       appSetup: v.optional(v.array(v.string())),
+      /**
+       * The first version of the tool that describes its own flow (`setup show`). Only then does the sign-in ask it, so
+       * no other tool starts a process for nothing.
+       */
+      setupFrom: v.optional(v.pipe(v.string(), v.regex(/^\d+\.\d+\.\d+$/))),
+      /**
+       * Domains a built-in tool's setup flow may link to, besides WireCat's; any other link is shown as text. A community
+       * or own entry's list is ignored: a domain is trusted only through Desktop's review.
+       */
+      links: v.optional(v.array(v.pipe(v.string(), v.regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/)))),
       /** b24's `session status`: the portal each profile is on, read by `signInOnPortal`. */
       identity: v.optional(v.array(v.string())),
       identityCheck: v.optional(v.string()),
@@ -250,7 +260,7 @@ const ToolSchema = v.object({
       run: v.nullable(v.array(v.string())),
       last: v.nullable(v.array(v.string())),
       lastShape: v.picklist(["runs", "driveStatus"]),
-      what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail", "records"]),
+      what: v.picklist(["messages", "files", "meetings", "calls", "notes and mail", "mail", "records"]),
       note: v.nullable(v.string()),
       /** The sync on a timer per account, through the tool's own `schedule command`; Rust holds the words. */
       schedule: v.optional(v.nullable(v.object({ every: v.string(), choices: v.array(v.string()) })), null),
@@ -372,6 +382,9 @@ export const maker = (t: CatalogTool) =>
   t.repo
     ? (t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo)
     : (t.package.split("/")[0] ?? t.package)
+
+/** Only WireCat publishes under `@wirecat`, so an own tool from that scope is ours, just not built into this release. */
+export const isWirecatPackage = (t: { package: string }) => t.package.startsWith("@wirecat/")
 
 /** The catalog tool that writes a CRM's accounts, by memo's `provider`; none for a CRM WireCat has no CLI for. */
 export const crmToolOf = (provider: string): CatalogTool | undefined => tools.find((t) => t.crm?.provider === provider)

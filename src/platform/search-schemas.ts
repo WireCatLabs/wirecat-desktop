@@ -71,7 +71,7 @@ export const SearchContextSchema = v.variant("kind", [
 export type SearchContext = v.InferOutput<typeof SearchContextSchema>
 
 /** Who turned the owner's words into a query, in the order WireCat tries them (docs/dev/plans/2026-11-01-search.md). */
-export const QueryWriterSchema = v.picklist(["claude-code", "chatgpt", "codex", "key"])
+export const QueryWriterSchema = v.picklist(["claude-code", "codex"])
 export type QueryWriter = v.InferOutput<typeof QueryWriterSchema>
 
 export const QueryDraftSchema = v.variant("kind", [
