@@ -1208,7 +1208,9 @@ export type OwnLinks = {
 };
 
 /**  Why a package cannot be added, for the dialog to say in the owner's language. */
-export type OwnRefusal = { kind: "not_found" } | { kind: "not_scoped" } | { kind: "wirecat_scope" } | { kind: "no_manifest" } | { kind: "bad_manifest"; key: string; rule: string } | 
+export type OwnRefusal = { kind: "not_found" } | { kind: "not_scoped" } | 
+/**  A `@wirecat` package a built-in tool already installs. */
+{ kind: "wirecat_scope" } | { kind: "no_manifest" } | { kind: "bad_manifest"; key: string; rule: string } | 
 /**  `with` is the tool that already uses the name; `listed` when it is on the signed list. */
 { kind: "collision"; with: string; listed: boolean } | { kind: "provenance_mismatch"; claimed: string; built: string } | { kind: "offline"; detail: string } | { kind: "too_large"; what: string };
 

@@ -295,12 +295,15 @@ const BuiltInSchema = v.pipe(
 )
 
 /** Rust already refused anything unsafe (`community.rs`); this only keeps the interface's own types honest. */
-const CommunitySchema = v.pipe(
+const OwnSchema = v.pipe(
   ToolSchema,
-  v.check(
-    (t) => t.community === true && !t.package.startsWith("@wirecat/") && !t.partOf,
-    "a community tool has its own npm scope and is no part of ours",
-  ),
+  v.check((t) => t.community === true && !t.partOf, "an added tool is no part of ours"),
+)
+
+/** The signed list comes from outside WireCatLabs; an own tool may be a `@wirecat` package we have not built in. */
+const CommunitySchema = v.pipe(
+  OwnSchema,
+  v.check((t) => !t.package.startsWith("@wirecat/"), "a community tool has its own npm scope"),
 )
 
 const CatalogSchema = v.object({
@@ -334,7 +337,7 @@ type Rejection = { source: ToolSource; text: string }
 export function addCommunityTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
   const rejected: Rejection[] = []
   for (const { source, entry } of entries) {
-    const parsed = v.safeParse(CommunitySchema, entry)
+    const parsed = v.safeParse(source === "own" ? OwnSchema : CommunitySchema, entry)
     if (!parsed.success) {
       rejected.push({ source, text: `${describe(entry)}: ${v.summarize(parsed.issues)}` })
     } else if (findTool(parsed.output.id)) {
@@ -357,7 +360,7 @@ export function replaceAddedTools(entries: readonly { source: ToolSource; entry:
 
 /** The interface's own check of an entry Rust built for review, so a tool it would not show is never added. */
 export function entryProblem(entry: unknown): string | null {
-  const parsed = v.safeParse(CommunitySchema, entry)
+  const parsed = v.safeParse(OwnSchema, entry)
   return parsed.success ? null : v.summarize(parsed.issues)
 }
 

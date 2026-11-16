@@ -1,0 +1,505 @@
+{
+  "wcat_manifest": 2,
+  "name": "beeline",
+  "description": "Beeline Cloud PBX call recordings as meetings: sync, transcribe on this computer, search and export",
+  "docs_url": "https://github.com/WireCatLabs/beeline-cli#readme",
+  "package": "@wirecat/beeline-cli",
+  "bin": "wcat-beeline",
+  "commands": [
+    {
+      "path": ["commands"],
+      "summary": "every command by section; --json prints its contract, one path per call",
+      "effects": {
+        "remote": "none",
+        "local": "none"
+      }
+    },
+    {
+      "path": ["commands", "info"],
+      "summary": "one command contract, or all schemas, error reasons and explicit overrides",
+      "effects": {
+        "remote": "none",
+        "local": "none"
+      }
+    },
+    {
+      "path": ["session", "start"],
+      "summary": "sign in with the Beeline API token",
+      "effects": {
+        "remote": "read",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["session", "status"],
+      "summary": "show where this profile's token comes from; never the token",
+      "effects": {
+        "remote": "read",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["session", "end"],
+      "summary": "forget this profile's token on this computer; synced calls stay",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["session", "list"],
+      "summary": "list the profiles here and whether each is signed in",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["account", "remove"],
+      "summary": "sign this profile out and forget it, keeping or deleting its data",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      },
+      "permission": "account.remove",
+      "entity": "account_removal"
+    },
+    {
+      "path": ["meetings", "list"],
+      "summary": "meetings, newest first: the service's and the stored ones, kept in the store",
+      "effects": {
+        "remote": "read",
+        "local": "read"
+      },
+      "permission": "meetings.list",
+      "entity": "meeting"
+    },
+    {
+      "path": ["meetings", "show"],
+      "summary": "show a meeting, read again from the service with its people, transcript and…",
+      "effects": {
+        "remote": "read",
+        "local": "read"
+      },
+      "permission": "meetings.show",
+      "entity": "meeting_details"
+    },
+    {
+      "path": ["meetings", "transcript"],
+      "summary": "show current meeting transcripts",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "permission": "meetings.transcript",
+      "entity": "meeting_transcript"
+    },
+    {
+      "path": ["meetings", "export"],
+      "summary": "export a meeting as Markdown or one transcript as WebVTT",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      },
+      "permission": "meetings.export",
+      "entity": "meeting_export"
+    },
+    {
+      "path": ["meetings", "people"],
+      "summary": "find meeting participants by name or email",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "permission": "meetings.people",
+      "entity": "meeting_participants"
+    },
+    {
+      "path": ["meetings", "sync"],
+      "summary": "bring the stored meetings up to date from the connected account, oldest…",
+      "effects": {
+        "remote": "read",
+        "local": "write"
+      },
+      "permission": "meetings.sync",
+      "entity": "meeting_ingestion"
+    },
+    {
+      "path": ["meetings", "repair"],
+      "summary": "preview filling in what older builds left out of stored transcripts (their…",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      },
+      "permission": "meetings.repair",
+      "entity": "meeting_repair"
+    },
+    {
+      "path": ["meetings", "transcribe"],
+      "summary": "turn call recordings into manager and client dialogues, on this computer",
+      "effects": {
+        "remote": "read",
+        "local": "write"
+      },
+      "permission": "meetings.transcribe",
+      "entity": "call_transcription_report"
+    },
+    {
+      "path": ["events", "list"],
+      "summary": "list stored events",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "permission": "events.list",
+      "entity": "event"
+    },
+    {
+      "path": ["search", "meetings"],
+      "summary": "find words in stored meetings, indexing new ones first",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "permission": "search.meetings",
+      "entity": "meeting_hit"
+    },
+    {
+      "path": ["models", "list"],
+      "summary": "speech and embedding models, their download status and the default of each kind",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "permission": "models.list",
+      "entity": "model"
+    },
+    {
+      "path": ["models", "download"],
+      "summary": "download and verify one speech or embedding model",
+      "effects": {
+        "remote": "read",
+        "local": "write"
+      },
+      "permission": "models.download",
+      "entity": "model"
+    },
+    {
+      "path": ["doctor"],
+      "summary": "the state this installation is in, without connecting unless --online",
+      "effects": {
+        "remote": "read",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["doctor", "reports", "show"],
+      "summary": "what a report holds and never holds, and where to send it; writes nothing",
+      "effects": {
+        "remote": "none",
+        "local": "none"
+      }
+    },
+    {
+      "path": ["doctor", "reports", "create"],
+      "summary": "the report file written: its path, the run it is about, and where to send it",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      },
+      "permission": "doctor.reports.create"
+    },
+    {
+      "path": ["skill", "show"],
+      "summary": "print the tool's instructions for AI agents",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["skill", "install"],
+      "summary": "install the tool's instructions for AI agents",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["skill", "status"],
+      "summary": "whether the installed instructions for AI agents match this version",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["guide"],
+      "summary": "scenarios: the commands for a common task, in order, and why each",
+      "effects": {
+        "remote": "none",
+        "local": "none"
+      }
+    },
+    {
+      "path": ["mcp", "serve"],
+      "summary": "serve this profile's commands to an AI agent",
+      "effects": {
+        "remote": "write",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["mcp", "revoke"],
+      "summary": "forget every login given to a browser app",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["mcp", "server", "start"],
+      "summary": "start the HTTP MCP server in the background",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["mcp", "server", "stop"],
+      "summary": "stop the background HTTP MCP server",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["mcp", "server", "status"],
+      "summary": "whether the HTTP MCP server runs, its login code and the apps logged in",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["mcp", "config"],
+      "summary": "print the local MCP configuration of this profile, or of those --profiles names",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["mcp", "add"],
+      "summary": "add this profile's local MCP server to Codex or Claude Code",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["mcp", "check"],
+      "summary": "check this profile's local MCP handshake and tool list",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["upgrade"],
+      "summary": "upgrade beeline with the package manager that installed it; --check only looks",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["config", "show"],
+      "summary": "the profile, the profiles that exist, and each setting with where it came from",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    },
+    {
+      "path": ["config", "set"],
+      "summary": "save a setting to the configuration file",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["config", "unset"],
+      "summary": "remove a setting from the configuration file",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["config", "migrate"],
+      "summary": "write each setting the file lacks at its default, keeping yours",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["config", "repair"],
+      "summary": "fix the settings file's JSON syntax, keeping every value",
+      "effects": {
+        "remote": "none",
+        "local": "write"
+      }
+    },
+    {
+      "path": ["runs", "list"],
+      "summary": "recorded runs, newest first",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "entity": "run"
+    },
+    {
+      "path": ["runs", "show"],
+      "summary": "one run: what it was, how it ended, and every event it logged",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      },
+      "entity": "run"
+    },
+    {
+      "path": ["runs", "path"],
+      "summary": "the directory holding one run",
+      "effects": {
+        "remote": "none",
+        "local": "none"
+      },
+      "entity": "run_location"
+    },
+    {
+      "path": ["complete"],
+      "summary": "shell completion: `beeline complete zsh` prints the script to source",
+      "effects": {
+        "remote": "none",
+        "local": "read"
+      }
+    }
+  ],
+  "entities": {
+    "meeting": {
+      "fields": [
+        "id",
+        "provider_id",
+        "title",
+        "started_at",
+        "ended_at",
+        "duration_ms",
+        "participants_count",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "event": {
+      "fields": ["id", "origin", "starts_at", "ends_at", "created_at", "updated_at"]
+    },
+    "model": {
+      "fields": ["kind", "id", "downloaded"]
+    },
+    "run": {
+      "fields": [
+        "run_id",
+        "command",
+        "profile",
+        "started_at",
+        "completed_at",
+        "status",
+        "requests",
+        "duration_ms",
+        "cli_version",
+        "runtime",
+        "platform",
+        "arch",
+        "error_code",
+        "provider_error",
+        "kept_because_failed",
+        "operations",
+        "codes",
+        "trace_id",
+        "cli_command",
+        "argv",
+        "unknown_command",
+        "via",
+        "events_dropped",
+        "directory",
+        "event_count",
+        "events_truncated"
+      ]
+    }
+  },
+  "network": {
+    "hosts": [
+      "cloudpbx.beeline.ru",
+      "registry.npmjs.org",
+      "huggingface.co",
+      "*.huggingface.co",
+      "*.hf.co",
+      "github.com",
+      "*.githubusercontent.com"
+    ]
+  },
+  "desktop": {
+    "tagline": "Beeline Cloud PBX calls, transcribed on your computer",
+    "profiles": {
+      "args": ["session", "list", "--no-record", "--json"],
+      "shape": "items"
+    },
+    "doctor": ["{profile}", "doctor", "--record", "--json"],
+    "runs": {
+      "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+      "show": ["runs", "show", "{run}", "--no-record", "--json"]
+    },
+    "search": null,
+    "setup": ["{profile}", "session", "start"],
+    "signIn": {
+      "gives": "Lets your agent read the recorded calls of your Beeline Cloud PBX, transcribed on this computer.",
+      "asks": "A Beeline Cloud PBX API token, from the Beeline cabinet: Услуги → Интеграция по API."
+    },
+    "skill": {
+      "status": ["skill", "status", "--no-record", "--json"],
+      "install": ["skill", "install", "--for", "{target}", "--json"],
+      "show": ["skill", "show", "--no-record", "--json"]
+    },
+    "mcpServer": {
+      "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+      "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+      "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+      "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+      "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+    },
+    "tasks": null,
+    "sync": {
+      "run": ["{profile}", "meetings", "sync", "--record", "--json"],
+      "last": null,
+      "lastShape": "runs",
+      "what": "recorded calls",
+      "note": null
+    },
+    "storeInfo": null,
+    "storeTables": null,
+    "storeTableSizes": null,
+    "storeCheck": null,
+    "storeBackup": null,
+    "storeBackupEncrypted": null,
+    "storeResetPreview": null,
+    "storeReset": null,
+    "storage": {
+      "app": "beeline-cli",
+      "env": "BEELINE"
+    },
+    "settings": null
+  }
+}

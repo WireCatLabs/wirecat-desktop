@@ -2,8 +2,8 @@
 //! this order: the signed list (`registry.rs`) while "Enable community tools" is on, then the owner's own tools in
 //! `<app data>/extra-tools.json` while the own-tools switch is on (`own_tools.rs`), or for development
 //! while `WIRECAT_EXTRA_TOOLS=1` is set. An entry passes only when every command word is plain (no shell syntax), its
-//! package and repository are outside `@wirecat` and `WireCatLabs`, and it claims no name or folder of ours or of an
-//! entry read before it. A listed tool's install still needs npm provenance from its own repository's `release.yml`
+//! package and repository are outside `@wirecat` and `WireCatLabs` (an own tool may be an uncatalogued `@wirecat`
+//! package), and it claims no name or folder of ours or of an entry read before it. A listed tool's install still needs npm provenance from its own repository's `release.yml`
 //! (`provenance.rs`); an own tool's provenance is shown, not required.
 
 use crate::catalog::{Catalog, Tool};
@@ -284,10 +284,15 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
         return Err(rule("bin", format!("the program name {:?} is not allowed.", tool.bin)));
     }
     Taken::free(&taken.bins, "program", &tool.bin, &tool.bin)?;
-    package(&tool.package)?;
+    // Only WireCat publishes under `@wirecat`, so the owner may add one we have not built in; the signed list may not.
+    let wirecat = source == Source::Own && tool.package.starts_with("@wirecat/");
+    if wirecat { scoped(&tool.package) } else { package(&tool.package) }?;
     Taken::free(&taken.packages, "package", &tool.package, &tool.package)?;
     if !(source == Source::Own && entry["repo"].is_null()) {
-        repo(&tool.repo)?;
+        match repo(&tool.repo) {
+            Err(Problem::Ours { .. }) if wirecat => {}
+            other => other?,
+        }
     }
     // `<scope>-<name>` of an own tool's package is often longer than a listed tool's folder.
     storage(&tool, taken, if source == Source::Own { 64 } else { 32 })?;
@@ -302,10 +307,13 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
 
 /// `storage.rs` deletes an own tool's folders by `storage.app`, so it must be the tool's own: `<scope>-<name>` of its
 /// npm package `@<scope>/<name>`, or that and `-` and more. Only the scope's owner can publish under a scope; the
-/// unscoped name alone proves nothing (`@evil/gh`), nor does the manifest's own name.
+/// unscoped name alone proves nothing (`@evil/gh`), nor does the manifest's own name. `@wirecat` is ours, so its
+/// tools keep the folder our CLIs use, `<name>` (`@wirecat/beeline-cli` → `beeline-cli`); `Taken` still refuses a
+/// built-in tool's folder.
 fn own_storage(tool: &Tool) -> Result<(), Problem> {
+    let name = tool.package.strip_prefix("@wirecat/").unwrap_or_else(|| tool.package.trim_start_matches('@'));
     // A folder name holds no `.` or `_` (`plain_name`), so those of the package name become `-` too.
-    let folder = tool.package.trim_start_matches('@').replace(['/', '.', '_'], "-").to_lowercase();
+    let folder = name.replace(['/', '.', '_'], "-").to_lowercase();
     let app = tool.storage.app.to_lowercase();
     if app == folder || app.strip_prefix(&folder).is_some_and(|rest| rest.starts_with('-')) {
         return Ok(());
@@ -382,6 +390,11 @@ pub fn package(name: &str) -> Result<(), Problem> {
     if name.starts_with("@wirecat/") {
         return Err(Problem::Ours { key: "package".into() });
     }
+    scoped(name)
+}
+
+/// `@scope/name` in npm's lowercase form, any scope.
+pub fn scoped(name: &str) -> Result<(), Problem> {
     let ok = name.strip_prefix('@').and_then(|s| s.split_once('/')).is_some_and(|(scope, pkg)| {
         [scope, pkg].iter().all(|p| {
             (1..=64).contains(&p.len())
@@ -520,15 +533,46 @@ mod tests {
         assert!(!plain_word("a}b"));
     }
 
+    fn listed_rejected(entry: &Value) -> String {
+        let mut out = Accepted::new(catalog());
+        out.entries(Source::Community, "The community list", vec![entry.clone()]);
+        assert!(out.tools.is_empty(), "accepted {entry}");
+        texts(&out.extra)
+    }
+
     #[test]
     fn rejects_our_scope_our_repositories_and_taken_names() {
-        assert!(rejected(&with("package", json!("@wirecat/acme"))).contains("WireCat's own"));
+        assert!(listed_rejected(&with("package", json!("@wirecat/acme"))).contains("WireCat's own"));
         assert!(rejected(&with("package", json!("acme-cli"))).contains("scoped"));
+        assert!(listed_rejected(&with("repo", json!("https://github.com/WireCatLabs/acme"))).contains("WireCat's own"));
         assert!(rejected(&with("repo", json!("https://github.com/WireCatLabs/acme"))).contains("WireCat's own"));
         assert!(rejected(&with("repo", json!("https://gitlab.com/example/acme"))).contains("github.com"));
         assert!(rejected(&with("id", json!("tg"))).contains("taken"));
         assert!(rejected(&with("bin", json!("memo"))).contains("taken"));
         assert!(rejected(&with("docs", json!("http://example.com"))).contains("https"));
+    }
+
+    #[test]
+    fn an_own_tool_may_be_a_wirecat_package_we_have_not_built_in_but_never_take_a_built_in_name() {
+        let mut own = sample();
+        own["package"] = json!("@wirecat/acme-cli");
+        own["repo"] = json!("https://github.com/WireCatLabs/acme-cli");
+        own["storage"] = json!({ "app": "acme-cli", "env": "ACME" });
+        let (tools, extra) = parse(&file(std::slice::from_ref(&own)), catalog());
+        assert!(extra.rejected.is_empty(), "{:?}", extra.rejected);
+        assert_eq!((tools[0].package.as_str(), tools[0].storage.app.as_str()), ("@wirecat/acme-cli", "acme-cli"));
+        assert!(listed_rejected(&own).contains("WireCat's own"), "the signed list stays outside @wirecat");
+
+        for app in ["wirecat-acme-cli", "acme", "acme-clix"] {
+            own["storage"] = json!({ "app": app, "env": "ACME" });
+            assert!(rejected(&own).contains("must be acme-cli, or start with acme-cli-"), "{app}");
+        }
+        own["package"] = json!("@wirecat/tg");
+        own["storage"] = json!({ "app": "tg-cli", "env": "ACME" });
+        assert!(rejected(&own).contains("data folder tg-cli is taken by Telegram"));
+        own["package"] = json!("@wirecat/tg-cli");
+        own["storage"] = json!({ "app": "tg-cli-own", "env": "ACME" });
+        assert!(rejected(&own).contains("package @wirecat/tg-cli is taken by Telegram"));
     }
 
     #[test]

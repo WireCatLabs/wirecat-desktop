@@ -1,3 +1,4 @@
+import { tools } from "@/domain/catalog"
 import type {
   InstallEvent,
   OwnCommand,
@@ -265,10 +266,12 @@ export function ownToolsMock(params: URLSearchParams) {
     },
     async ownToolDiscover(pkg: string, desktop: string | null): Promise<OwnDiscovery> {
       await delay(900)
-      if (!/^@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/.test(pkg)) {
-        return { outcome: "refused", refusal: { kind: pkg.startsWith("@wirecat/") ? "wirecat_scope" : "not_scoped" } }
+      if (tools.some((t) => !t.community && t.package === pkg)) {
+        return { outcome: "refused", refusal: { kind: "wirecat_scope" } }
       }
-      if (pkg.startsWith("@wirecat/")) return { outcome: "refused", refusal: { kind: "wirecat_scope" } }
+      if (!/^@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/.test(pkg)) {
+        return { outcome: "refused", refusal: { kind: "not_scoped" } }
+      }
       if (discovered === "no_manifest" && desktop) {
         const access = { reads: [], changes: [], writes: [], unknown: true }
         return { outcome: "review", review: ownReview({ package: pkg, described: false, access }) }

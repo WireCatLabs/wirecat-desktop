@@ -88,10 +88,7 @@ const en = {
       "Only scoped package names work here, such as @scope/name.",
       "Ask the tool's author for its full npm name.",
     ] as Words,
-    wirecat_scope: [
-      "This name belongs to WireCat's own tools.",
-      "WireCat's own tools are already on the Tools page. Install them there.",
-    ] as Words,
+    wirecat_scope: ["This tool is already built into WireCat.", "Install it on the Tools page."] as Words,
     no_manifest: [
       "This tool does not describe itself to WireCat.",
       "Paste its desktop object from the tool's documentation below, or ask its author to publish a version with a manifest.",
@@ -225,10 +222,7 @@ const ru: typeof en = {
       "Здесь работают только имена с областью, например @scope/name.",
       "Спросите у автора полное имя пакета в npm.",
     ],
-    wirecat_scope: [
-      "Это имя принадлежит собственным инструментам WireCat.",
-      "Инструменты WireCat уже есть на странице «Инструменты». Установите их там.",
-    ],
+    wirecat_scope: ["Этот инструмент уже встроен в WireCat.", "Установите его на странице «Инструменты»."],
     no_manifest: [
       "Этот инструмент не описывает себя для WireCat.",
       "Вставьте ниже его объект desktop из документации инструмента или попросите автора выпустить версию с манифестом.",
@@ -360,10 +354,7 @@ const es: typeof en = {
       "Aquí solo valen nombres con ámbito, como @scope/name.",
       "Pide al autor el nombre completo del paquete en npm.",
     ],
-    wirecat_scope: [
-      "Este nombre pertenece a las herramientas propias de WireCat.",
-      "Las herramientas de WireCat ya están en la página Herramientas. Instálalas allí.",
-    ],
+    wirecat_scope: ["Esta herramienta ya viene incluida en WireCat.", "Instálala en la página Herramientas."],
     no_manifest: [
       "Esta herramienta no se describe ante WireCat.",
       "Pega abajo su objeto desktop de la documentación de la herramienta, o pide a su autor que publique una versión con manifiesto.",
