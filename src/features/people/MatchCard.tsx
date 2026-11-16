@@ -11,6 +11,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { NotStrong } from "./AgentMerges"
 import {
   addressesOf,
   type Contacts,
@@ -108,6 +109,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         <Signal group={group} match={first} value={shared} hidden={hidden.current} names={names} />
       )}
       <MatchFacts facts={facts} />
+      <NotStrong strength={first.strength} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}

@@ -9,3 +9,9 @@ throwaway store seeded with made-up people (`MESSAGING_STORE` in a temp folder, 
 match from `review.json`; `people links check --json`; `people confirm 1 --from-app --json`. The second doubt in
 `links-check.json` and every `moves` field are written by hand in the shape cli-core #2833 adds, one with an unknown
 `op`.
+
+`review-brief.json`, `review-merged.json` and `show-agent-merge.json` are memo with agent merges (cli-memo
+`feat/agent-merges`, 2026-11-16) on a throwaway store of made-up people: an agent's `people link` of two messenger
+accounts with one mobile number (merged at once) and of a messenger account and a CRM contact with one office landline
+(waits as a match); then `people review --brief`, `people review --kind merged` and `people show` of the merged
+person. `run_id` and `duration_ms` were removed.

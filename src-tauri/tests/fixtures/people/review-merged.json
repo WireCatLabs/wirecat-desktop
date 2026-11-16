@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "id": "merge:4-2",
+      "kind": "agent_merge",
+      "person": "person:4",
+      "from": "person:2",
+      "identities": [
+        {
+          "identity": "telegram:11",
+          "name": "Rin Example"
+        }
+      ],
+      "by": "claude-code",
+      "run": "20261116T140102Z-people-link-4a55f3",
+      "reason": "same mobile in both messengers",
+      "evidence": {
+        "persons": ["person:2", "person:4"],
+        "strong": true,
+        "facts": [
+          {
+            "kind": "phone",
+            "value": "+79001234567",
+            "holders": [["telegram:11"], ["max:22"]],
+            "others": 0,
+            "strong": true,
+            "weak": null
+          }
+        ],
+        "weak": null
+      },
+      "proposal": "1",
+      "at": "2026-11-16T14:01:02.093Z",
+      "undo": "memo people unmerge merge:4-2"
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 100,
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}

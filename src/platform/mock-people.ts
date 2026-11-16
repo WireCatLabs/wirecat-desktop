@@ -1,5 +1,6 @@
 import { WHATSAPP_PHONE } from "@/domain/people"
 import { CommandError, TOO_OLD } from "./command-error"
+import { agentMergesOf, NORA_MERGE, WEAK } from "./mock-agent-merges"
 import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
@@ -97,6 +98,15 @@ function seed(): Held[] {
       ],
     ),
     person("person:9", "Lena Ortiz", [account("max:9020", "Лена Ортис", [["5", "personal"]], "initial", 20)]),
+    person(
+      "person:60",
+      "Nora Vidal",
+      [
+        account("telegram:6060", "Nora", [["1", "personal"]], "initial", 25, "nora_v"),
+        account("whatsapp:34600606060", "Nora Vidal", [["7", "personal"]], "agent", 1),
+      ],
+      [NORA_MERGE],
+    ),
     person("person:4", "Kai Moreno", [
       account(
         "telegram:5120",
@@ -338,6 +348,7 @@ const MATCHES: Match[] = [
     proposer: { kind: "rule", name: "rule" },
     ...UNSHARED,
     score: 0.7,
+    strength: WEAK.company,
   },
   // One shared mailbox three people sign from: memo suggests the pairs and never joins them by itself.
   ...(
@@ -361,6 +372,7 @@ const MATCHES: Match[] = [
       score: 0.4,
       shared: "role",
       mailbox: "info@harbour.example",
+      strength: WEAK.role,
     }),
   ),
   {
@@ -376,6 +388,7 @@ const MATCHES: Match[] = [
     proposer: { kind: "agent", name: "claude-code" },
     ...UNSHARED,
     score: null,
+    strength: WEAK.nothing,
   },
 ]
 
@@ -582,6 +595,8 @@ export function peopleMock(): Pick<
         kinded,
         companyMailbox,
         oneCompany,
+        agentMerges: scenario === "none" ? [] : agentMergesOf(people),
+        agentMergesMore: false,
       }
     },
     async peoplePage({ kind, page, size, query, sort }) {

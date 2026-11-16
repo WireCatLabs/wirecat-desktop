@@ -5,6 +5,27 @@ import * as v from "valibot"
 
 const text = v.nullable(v.string())
 
+/** memo's own reading of what two people share, never an agent's word; `weak` says why it is not strong. */
+const StrengthSchema = v.object({
+  strong: v.boolean(),
+  weak: text,
+  facts: v.array(
+    v.object({ kind: v.string(), value: v.string(), others: v.number(), strong: v.boolean(), weak: text }),
+  ),
+})
+
+/** Two people an agent joined on strong evidence, still one; Undo takes `id`. */
+const AgentMergeSchema = v.object({
+  id: v.string(),
+  person: v.string(),
+  from: v.string(),
+  identities: v.array(v.string()),
+  agent: text,
+  reason: text,
+  at: text,
+  evidence: v.nullable(StrengthSchema),
+})
+
 export const MatchSchema = v.object({
   id: v.string(),
   /** The person `identity` is on, then the one it would join. */
@@ -23,6 +44,8 @@ export const MatchSchema = v.object({
   /** `role` or `line`: `mailbox` is shared, a company's or a family's, which WireCat never joins people by itself. */
   shared: text,
   mailbox: text,
+  /** Absent from a memo before agents merged, and from the page's own older answers. */
+  strength: v.optional(v.nullable(StrengthSchema)),
 })
 
 /** Accounts an agent says are not this person: `unlink` moves them to one new person, `unmerge` undoes `merge`. */
@@ -106,6 +129,8 @@ export const PeopleReadSchema = v.variant("kind", [
     companyMailbox: v.optional(v.boolean()),
     /** This memo makes the people of a match one company's mailboxes (`people resolve … organization`). */
     oneCompany: v.optional(v.boolean()),
+    agentMerges: v.optional(v.array(AgentMergeSchema)),
+    agentMergesMore: v.optional(v.boolean()),
   }),
 ])
 
@@ -136,7 +161,15 @@ export const PersonDetailSchema = v.object({
     }),
   ),
   merges: v.array(
-    v.object({ id: v.string(), from: v.string(), identities: v.array(v.string()), method: text, at: text }),
+    v.object({
+      id: v.string(),
+      from: v.string(),
+      identities: v.array(v.string()),
+      method: text,
+      at: text,
+      /** An agent's join: which agent, and why. */
+      agent: v.optional(v.nullable(v.object({ name: v.string(), reason: text }))),
+    }),
   ),
   matches: v.array(MatchSchema),
 })
@@ -173,6 +206,8 @@ export const ResolvedSchema = v.variant("kind", [
 ])
 
 export type Match = v.InferOutput<typeof MatchSchema>
+export type Strength = v.InferOutput<typeof StrengthSchema>
+export type AgentMerge = v.InferOutput<typeof AgentMergeSchema>
 export type Resolved = v.InferOutput<typeof ResolvedSchema>
 export type Split = v.InferOutput<typeof SplitSchema>
 export type Doubts = v.InferOutput<typeof DoubtsSchema>

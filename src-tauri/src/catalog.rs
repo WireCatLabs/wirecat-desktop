@@ -324,6 +324,9 @@ pub struct PeopleSource {
     /// `people resolve <id> organization`: the people of a match are one company's own mailboxes.
     #[serde(default)]
     pub one_company: Option<crate::enrichment::Gate>,
+    /// Agents merge on strong evidence: `people review --brief` carries each match's strength, `--kind merged` lists them.
+    #[serde(default)]
+    pub agent_merges: Option<crate::enrichment::Gate>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

@@ -1,0 +1,87 @@
+{
+  "item": {
+    "ref": "person:4",
+    "name": "Rin E",
+    "display_name": "Rin E",
+    "identities": [
+      {
+        "identity": "max:22",
+        "name": "Rin E",
+        "username": null,
+        "phone": "+79001234567",
+        "email": null,
+        "phones": ["+79001234567"],
+        "emails": [],
+        "seen_in": [
+          {
+            "account": "2",
+            "scope": "personal"
+          }
+        ],
+        "method": "initial",
+        "linked_by": "ingest",
+        "linked_at": "2026-11-16T14:01:01.762Z"
+      },
+      {
+        "identity": "telegram:11",
+        "name": "Rin Example",
+        "username": null,
+        "phone": "79001234567",
+        "email": null,
+        "phones": ["79001234567"],
+        "emails": [],
+        "seen_in": [
+          {
+            "account": "1",
+            "scope": "personal"
+          }
+        ],
+        "method": "agent",
+        "linked_by": "agent:claude-code",
+        "linked_at": "2026-11-16T14:01:02.093Z"
+      }
+    ],
+    "merges": [
+      {
+        "id": "merge:4-2",
+        "from": "2",
+        "to": "4",
+        "identities": [
+          {
+            "provider": "telegram",
+            "id": "11",
+            "name": "Rin Example"
+          }
+        ],
+        "method": "agent",
+        "by": "agent:claude-code",
+        "at": "2026-11-16T14:01:02.093Z",
+        "agent": {
+          "proposal": "1",
+          "bot": "claude-code",
+          "run": "20261116T140102Z-people-link-4a55f3",
+          "reason": "same mobile in both messengers",
+          "evidence": {
+            "persons": ["person:2", "person:4"],
+            "strong": true,
+            "facts": [
+              {
+                "kind": "phone",
+                "value": "+79001234567",
+                "holders": [["telegram:11"], ["max:22"]],
+                "others": 0,
+                "strong": true,
+                "weak": null
+              }
+            ],
+            "weak": null
+          }
+        }
+      }
+    ],
+    "matches": []
+  },
+  "meta": {
+    "complete": true
+  }
+}
