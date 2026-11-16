@@ -212,7 +212,23 @@ pub(crate) fn reason(json: Option<&Value>) -> Option<&str> {
     error["reason"].as_str().or_else(|| error["details"]["reason"].as_str())
 }
 
+/// cli-core's `profile.missing` tells a terminal user to type a profile; in the window the owner picks one instead.
+fn profile_missing(json: Option<&Value>) -> Option<String> {
+    if reason(json) != Some("profile.missing") {
+        return None;
+    }
+    let names: Vec<&str> = json?["error"]["details"]["profiles"].as_array()?.iter().filter_map(Value::as_str).collect();
+    Some(if names.is_empty() {
+        "This needs a profile, and there is none on this computer yet: sign in first, which makes one.".into()
+    } else {
+        format!("This needs a profile. Choose one of yours: {}.", names.join(", "))
+    })
+}
+
 pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {
+    if let Some(m) = profile_missing(json) {
+        return m;
+    }
     if let Some(m) = json.and_then(|v| v["error"]["message"].as_str()) {
         return redact::text(m);
     }
@@ -444,6 +460,19 @@ mod tests {
         assert!(install_args(src, "all").is_err());
         assert!(install_args(src, "--help").is_err());
         assert!(install_args(src, "claude agents").is_err());
+    }
+
+    #[test]
+    fn a_missing_profile_lists_the_profiles_instead_of_a_command_line() {
+        let out = run::Output { code: Some(2), stdout: String::new(), stderr: String::new() };
+        let named = json!({"error": {"code": "validation_error", "message": "name a profile: `tg <profile> …`",
+            "details": {"reason": "profile.missing", "profiles": ["personal", "work"]}}});
+        assert_eq!(failure(&out, Some(&named)), "This needs a profile. Choose one of yours: personal, work.");
+        let none =
+            json!({"error": {"reason": "profile.missing", "message": "name a profile", "details": {"profiles": []}}});
+        assert!(failure(&out, Some(&none)).contains("none on this computer"));
+        let other = json!({"error": {"message": "database is locked", "details": {"profiles": ["x"]}}});
+        assert_eq!(failure(&out, Some(&other)), "database is locked");
     }
 
     #[test]
