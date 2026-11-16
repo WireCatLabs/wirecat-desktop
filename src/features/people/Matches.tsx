@@ -7,9 +7,11 @@ import { Lamp } from "@/ui/Lamp"
 import { noticeBox } from "@/ui/notice"
 import { Pager } from "@/ui/Pager"
 import { SectionTitle } from "@/ui/SectionTitle"
+import { AgentMerges } from "./AgentMerges"
 import { groupMatches } from "./groups"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
+import { agentMessages } from "./messages-agent"
 import { SortWithAgent } from "./SortWithAgent"
 import { SplitCard } from "./SplitCard"
 import { usePeople } from "./store"
@@ -20,12 +22,14 @@ const PAGE = 10
 /** On the people list: how many matches wait, and the way to them. */
 export function MatchesWaiting() {
   const m = useMessages(peopleMessages)
+  const a = useMessages(agentMessages)
   const waiting = usePeople(
     (s) => groupMatches(s.matches, s.decided).filter((g) => g.matches.some((x) => !s.decided[x.id])).length,
   )
   const splits = usePeople((s) => new Set(s.splits.filter((x) => !s.splitDecided[x.id]).map((x) => x.person)).size)
+  const merged = usePeople((s) => s.agentMerges.length)
   const head = useId()
-  if (waiting + splits === 0) return null
+  if (waiting + splits + merged === 0) return null
   const review = (
     <Button
       variant="primary"
@@ -43,11 +47,12 @@ export function MatchesWaiting() {
       <div className="min-w-0">
         <h2 id={head} className="flex items-center gap-2 font-semibold">
           <Lamp tone="warn" size="sm" />
-          {waiting > 0 ? m.waiting(waiting) : m.splitsWaiting(splits)}
+          {waiting > 0 ? m.waiting(waiting) : splits > 0 ? m.splitsWaiting(splits) : a.agentMergedN(merged)}
         </h2>
         <p className="mt-[0.15rem] text-[0.9rem] text-ink-soft">
-          {waiting > 0 ? m.waitingHelp : m.splitsHelp}
+          {waiting > 0 ? m.waitingHelp : splits > 0 ? m.splitsHelp : a.agentMergedHelp}
           {waiting > 0 && splits > 0 && ` ${m.splitsToo(splits)}`}
+          {waiting + splits > 0 && merged > 0 && ` ${a.agentMergedToo(merged)}`}
         </p>
       </div>
       {waiting > 0 ? <SortWithAgent>{review}</SortWithAgent> : review}
@@ -65,6 +70,7 @@ export function Matches() {
   const page = usePeople((s) => s.matchPage)
   const { setView, setMatchPage, want } = usePeople.getState()
   const head = useId()
+  const merged = usePeople((s) => s.agentMerges.length)
   const groups = groupMatches(matches, decided)
   const cards = [
     ...splits.map((split) => ({ key: `split:${split.id}`, split, group: null })),
@@ -92,8 +98,9 @@ export function Matches() {
         <SectionTitle id={head}>{m.matchesTitle}</SectionTitle>
         <p className="mt-1 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.matchesIntro}</p>
       </div>
+      <AgentMerges />
       {cards.length === 0 ? (
-        <p className="text-[0.95rem] text-ink-soft">{m.noMatches}</p>
+        merged === 0 && <p className="text-[0.95rem] text-ink-soft">{m.noMatches}</p>
       ) : (
         <div className="flex flex-col gap-[0.8rem]">
           {shown.map((c) =>

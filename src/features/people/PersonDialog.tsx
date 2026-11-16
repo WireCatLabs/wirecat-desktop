@@ -5,12 +5,14 @@ import { Button } from "@/ui/Button"
 import { CopyRef } from "@/ui/CopyRef"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { groupMatches } from "./groups"
 import { IdentityList } from "./IdentityList"
 import { useJoinedFromName, usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
+import { agentMessages } from "./messages-agent"
 import { PersonContacts } from "./PersonContacts"
 import { PersonTasks } from "./PersonTasks"
 import { Refusal } from "./Refusal"
@@ -99,6 +101,7 @@ function Details({ reference }: { reference: string }) {
 
 function Merges({ person }: { person: PersonDetail }) {
   const m = useMessages(peopleMessages)
+  const a = useMessages(agentMessages)
   const lang = useLang()
   const joinedFrom = useJoinedFromName()
   if (person.merges.length === 0) return null
@@ -116,6 +119,14 @@ function Merges({ person }: { person: PersonDetail }) {
                 </span>
               )}
               <span className="block font-mono text-[0.85rem] text-ink-dim">{merge.identities.join(", ")}</span>
+              {merge.agent && (
+                <span className="mt-[0.2rem] flex flex-wrap items-center gap-x-[0.5rem] gap-y-1">
+                  <Pill size="sm" tone="brand">
+                    {a.agentMergedBy(merge.agent.name)}
+                  </Pill>
+                  {merge.agent.reason && <span className="selectable text-[0.88rem]">{merge.agent.reason}</span>}
+                </span>
+              )}
             </span>
             <Button
               size="sm"

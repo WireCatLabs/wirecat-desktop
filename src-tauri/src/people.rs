@@ -197,6 +197,69 @@ pub struct Match {
     /// `role` or `line`: the address is a shared mailbox, which memo only suggests and never joins by itself.
     pub shared: Option<String>,
     pub mailbox: Option<String>,
+    /// What the two share and why an agent could not merge them on it; absent before memo carries it.
+    pub strength: Option<Strength>,
+}
+
+/// A phone or address both people hold, and whether it is strong enough for an agent to merge them.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Fact {
+    pub kind: String,
+    pub value: String,
+    pub others: u64,
+    pub strong: bool,
+    pub weak: Option<String>,
+}
+
+/// memo's own reading of the evidence, never an agent's word: `weak` names why it is not strong, as memo words it.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Strength {
+    pub strong: bool,
+    pub weak: Option<String>,
+    pub facts: Vec<Fact>,
+}
+
+fn strength(v: &Value) -> Option<Strength> {
+    Some(Strength {
+        strong: v["strong"].as_bool()?,
+        weak: text(v, "weak"),
+        facts: list(v, "facts", |f| {
+            Some(Fact {
+                kind: text(f, "kind")?,
+                value: text(f, "value")?,
+                others: f["others"].as_u64().unwrap_or(0),
+                strong: f["strong"].as_bool().unwrap_or(false),
+                weak: text(f, "weak"),
+            })
+        }),
+    })
+}
+
+/// Two people an agent merged on strong evidence, still one: the owner sees why and may undo it.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct AgentMerge {
+    /// `merge:<to>-<from>`, what Undo takes.
+    pub id: String,
+    pub person: String,
+    pub from: String,
+    pub identities: Vec<String>,
+    pub agent: Option<String>,
+    pub reason: Option<String>,
+    pub at: Option<String>,
+    pub evidence: Option<Strength>,
+}
+
+fn agent_merge(v: &Value) -> Option<AgentMerge> {
+    Some(AgentMerge {
+        id: text(v, "id").filter(|m| merge_word(m).is_some())?,
+        person: person_of(&v["person"])?,
+        from: person_of(&v["from"])?,
+        identities: list(v, "identities", |i| text(i, "identity")),
+        agent: text(v, "by"),
+        reason: text(v, "reason"),
+        at: text(v, "at"),
+        evidence: strength(&v["evidence"]),
+    })
 }
 
 fn matched(v: &Value) -> Option<Match> {
@@ -215,6 +278,7 @@ fn matched(v: &Value) -> Option<Match> {
         score: v["score"].as_f64(),
         shared: text(v, "shared"),
         mailbox: text(v, "mailbox"),
+        strength: strength(&v["strength"]),
         persons: (persons.len() == 2).then_some(persons)?,
     })
 }
@@ -282,6 +346,9 @@ pub enum Read {
         company_mailbox: bool,
         /// This memo makes the people of a match one company's mailboxes (`people resolve … organization`).
         one_company: bool,
+        /// What agents merged on strong evidence, still one; empty from a memo before agents merged.
+        agent_merges: Vec<AgentMerge>,
+        agent_merges_more: bool,
     },
 }
 
@@ -316,10 +383,22 @@ fn counts_with(call: &Call) -> BTreeMap<String, KindCount> {
         .collect()
 }
 
-fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
+/// The agents' merges the page lists; more are named, not shown.
+const AGENT_MERGE_LIMIT: &str = "100";
+
+/// `agent`: this memo merges for agents, so its review takes `--brief` (each side the page reads itself) and lists them.
+fn read_with(call: &Call, kind: &str, agent: bool) -> Result<Read, String> {
     let kind = KINDS.iter().find(|k| **k == kind).copied().unwrap_or("person");
-    let (people, matches) = std::thread::scope(|s| {
-        let m = s.spawn(|| call(&words(&["people", "review", "--limit", MATCH_LIMIT])));
+    let (people, matches, merged) = std::thread::scope(|s| {
+        let m = s.spawn(|| {
+            let mut review = vec!["people", "review", "--limit", MATCH_LIMIT];
+            if agent {
+                review.push("--brief");
+            }
+            call(&words(&review))
+        });
+        let a = agent
+            .then(|| s.spawn(|| call(&words(&["people", "review", "--kind", "merged", "--limit", AGENT_MERGE_LIMIT]))));
         let asked = format!("kind:{kind}");
         // The table reads its rows a page at a time (`page`); this one row tells a memo with kinds from one without.
         let people = match call(&words(&["people", "list", &asked, "--limit", "1"])) {
@@ -331,9 +410,11 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
             }
             r => r.map(|v| (v, true)),
         };
-        (people, joined(m))
+        (people, joined(m), a.map(joined))
     });
     let ((people, kinded), matches) = (people?, matches?);
+    // The merges are an addition to the page: a failed read of them never hides the matches.
+    let merged = merged.and_then(Result::ok).unwrap_or(Value::Null);
     let more = |v: &Value| v["page"]["has_more"].as_bool().unwrap_or(false);
     Ok(Read::Ready {
         people: list(&people, "items", listed),
@@ -344,6 +425,8 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
         kinded,
         company_mailbox: false,
         one_company: false,
+        agent_merges: list(&merged, "items", agent_merge),
+        agent_merges_more: more(&merged),
     })
 }
 
@@ -422,7 +505,8 @@ pub fn read(kind: &str) -> Result<Read, String> {
     if crate::tools::older(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
-    let mut read = with_memo(|call| read_with(call, kind))?;
+    let agent = agent_merges_open(tool, first.version.as_deref());
+    let mut read = with_memo(|call| read_with(call, kind, agent))?;
     if let Read::Ready { company_mailbox, one_company, .. } = &mut read {
         *company_mailbox = company_mailbox_open(tool, first.version.as_deref());
         *one_company = one_company_open(tool, first.version.as_deref());
@@ -433,6 +517,11 @@ pub fn read(kind: &str) -> Result<Read, String> {
 /// Whether the installed memo takes `people resolve … company --mailbox`; a null `minVersion` is not released yet.
 fn company_mailbox_open(tool: &Tool, version: Option<&str>) -> bool {
     tool.people.as_ref().and_then(|p| p.company_mailbox.as_ref()).is_some_and(|g| g.open(version))
+}
+
+/// Whether the installed memo merges for agents: `people review --brief` and `--kind merged`.
+fn agent_merges_open(tool: &Tool, version: Option<&str>) -> bool {
+    tool.people.as_ref().and_then(|p| p.agent_merges.as_ref()).is_some_and(|g| g.open(version))
 }
 
 /// Whether the installed memo takes `people resolve … organization`.
@@ -480,6 +569,14 @@ pub struct Merge {
     pub identities: Vec<String>,
     pub method: Option<String>,
     pub at: Option<String>,
+    /// An agent's merge: which agent, and why.
+    pub agent: Option<MergeAgent>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct MergeAgent {
+    pub name: String,
+    pub reason: Option<String>,
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -539,6 +636,7 @@ fn merge(v: &Value) -> Option<Merge> {
         identities: list(v, "identities", |i| Some(format!("{}:{}", text(i, "provider")?, id_text(&i["id"])?))),
         method: text(v, "method"),
         at: text(v, "at"),
+        agent: text(&v["agent"], "bot").map(|name| MergeAgent { name, reason: text(&v["agent"], "reason") }),
     })
 }
 
@@ -1227,6 +1325,9 @@ mod tests {
             "review-split" => include_str!("../tests/fixtures/people/review-split.json"),
             "links-check" => include_str!("../tests/fixtures/people/links-check.json"),
             "split-confirm" => include_str!("../tests/fixtures/people/split-confirm.json"),
+            "review-brief" => include_str!("../tests/fixtures/people/review-brief.json"),
+            "review-merged" => include_str!("../tests/fixtures/people/review-merged.json"),
+            "show-agent-merge" => include_str!("../tests/fixtures/people/show-agent-merge.json"),
             _ => panic!("no fixture {name}"),
         };
         serde_json::from_str(text).unwrap()
@@ -1458,11 +1559,58 @@ mod tests {
     }
 
     #[test]
+    fn a_memo_that_merges_for_agents_gives_each_match_its_strength_and_lists_the_agents_merges() {
+        let asked = Mutex::new(Vec::new());
+        let call = |a: &[String]| -> Result<Value, String> {
+            asked.lock().unwrap().push(a.to_vec());
+            Ok(match (a[1].as_str(), a.contains(&"merged".to_string())) {
+                ("review", true) => fixture("review-merged"),
+                ("review", false) => fixture("review-brief"),
+                _ => fixture("list"),
+            })
+        };
+        let Read::Ready { matches, agent_merges, .. } = read_with(&call, "person", true).unwrap() else { panic!() };
+        let weak = matches[0].strength.as_ref().unwrap();
+        assert!(!weak.strong);
+        assert_eq!(weak.weak.as_deref(), Some("landline"));
+        assert_eq!(weak.facts[0].value, "+74951234567");
+        assert_eq!(agent_merges.len(), 1);
+        assert_eq!(agent_merges[0].id, "merge:4-2");
+        assert_eq!(agent_merges[0].agent.as_deref(), Some("claude-code"));
+        assert_eq!(agent_merges[0].identities, ["telegram:11"]);
+        assert!(agent_merges[0].evidence.as_ref().unwrap().strong);
+        let asked = asked.lock().unwrap();
+        assert!(asked.iter().any(|a| a[1] == "review" && a.contains(&"--brief".to_string())));
+
+        let merge = &person(&fixture("show-agent-merge")).unwrap().merges[0];
+        assert_eq!(merge.method.as_deref(), Some("agent"));
+        assert_eq!(merge.agent.as_ref().map(|a| a.name.as_str()), Some("claude-code"));
+    }
+
+    #[test]
+    fn an_older_memo_is_asked_neither_brief_nor_merged() {
+        let asked = Mutex::new(Vec::new());
+        let call = |a: &[String]| -> Result<Value, String> {
+            asked.lock().unwrap().push(a.to_vec());
+            Ok(if a[1] == "review" { fixture("review") } else { fixture("list") })
+        };
+        let Read::Ready { agent_merges, .. } = read_with(&call, "person", false).unwrap() else { panic!() };
+        assert!(agent_merges.is_empty());
+        assert!(
+            asked
+                .lock()
+                .unwrap()
+                .iter()
+                .all(|a| !a.contains(&"--brief".to_string()) && !a.contains(&"merged".to_string()))
+        );
+    }
+
+    #[test]
     fn a_split_is_never_read_as_a_match_and_keeps_its_own_row() {
         let call = |a: &[String]| -> Result<Value, String> {
             Ok(if a[1] == "review" { fixture("review-split") } else { fixture("list") })
         };
-        let Read::Ready { matches, splits, .. } = read_with(&call, "person").unwrap() else { panic!() };
+        let Read::Ready { matches, splits, .. } = read_with(&call, "person", false).unwrap() else { panic!() };
         assert_eq!(matches.len(), 1);
         assert_eq!(splits.len(), 2);
         assert_eq!(splits[0].person, "person:3");
@@ -1614,7 +1762,7 @@ mod tests {
     fn reads_everyone_and_the_matches_with_whether_memo_has_more() {
         let f = Fake::new("confirm");
         let Read::Ready { people, people_more, matches, matches_more, .. } =
-            read_with(&|a: &[String]| f.call(a), "person").unwrap()
+            read_with(&|a: &[String]| f.call(a), "person", false).unwrap()
         else {
             panic!()
         };
@@ -1662,7 +1810,7 @@ mod tests {
                 "last_contact": "2026-11-08T10:12:00.000Z"
             }], "page": {"has_more": true, "total": {"value": total, "relation": "eq"}}}))
         };
-        let Read::Ready { people, kinded, .. } = read_with(&call, "organization").unwrap() else { panic!() };
+        let Read::Ready { people, kinded, .. } = read_with(&call, "organization", false).unwrap() else { panic!() };
         assert!(kinded);
         let kinds = counts_with(&call);
         assert_eq!(kinds.get("person"), Some(&KindCount { value: 1240, more: false }));
@@ -1674,7 +1822,7 @@ mod tests {
         assert_eq!(people[0].messages_from, Some(314));
         let asked = seen.lock().unwrap().clone();
         assert!(asked.contains(&words(&["people", "list", "kind:organization", "--limit", "1"])));
-        assert_eq!(read_with(&call, "nonsense").map(|_| ()), Ok(()));
+        assert_eq!(read_with(&call, "nonsense", false).map(|_| ()), Ok(()));
         assert!(
             seen.lock().unwrap().iter().all(|a| !a.iter().any(|w| w.contains("nonsense"))),
             "an unknown kind is person"
@@ -1749,7 +1897,7 @@ mod tests {
                 }
             }
         };
-        let Read::Ready { people, kinded, .. } = read_with(&older, "person").unwrap() else { panic!() };
+        let Read::Ready { people, kinded, .. } = read_with(&older, "person", false).unwrap() else { panic!() };
         assert!(!kinded);
         assert!(counts_with(&older).is_empty());
         assert_eq!(people[0].kind, None);
@@ -1771,7 +1919,7 @@ mod tests {
                 _ => Ok(fixture("list")),
             }
         };
-        let Read::Ready { people, kinded, .. } = read_with(&no_strangers, "stranger").unwrap() else { panic!() };
+        let Read::Ready { people, kinded, .. } = read_with(&no_strangers, "stranger", false).unwrap() else { panic!() };
         assert!(people.is_empty() && kinded);
         assert!(!counts_with(&no_strangers).contains_key("stranger"));
         let out = run::Output {
@@ -1791,7 +1939,9 @@ mod tests {
             v["page"]["has_more"] = json!(true);
             Ok(v)
         };
-        let Read::Ready { people_more, matches_more, .. } = read_with(&more, "person").unwrap() else { panic!() };
+        let Read::Ready { people_more, matches_more, .. } = read_with(&more, "person", false).unwrap() else {
+            panic!()
+        };
         assert!(people_more && matches_more);
     }
 

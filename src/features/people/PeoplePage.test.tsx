@@ -118,10 +118,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 131/)
+    expect(pages).toHaveTextContent(/^1–50 of 132/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 131/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 132/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -488,6 +488,30 @@ describe("People", () => {
     expect(within(dialog).getByRole("listitem")).toHaveTextContent(/Email.*Lena Ortiz/)
     await user.click(within(dialog).getByRole("button", { name: "Undo the join" }))
     expect(unmerge).toHaveBeenCalledWith("person:7", "merge:7-12")
+  })
+
+  it("lists an agent's join with what it rested on, and the owner undoes it", async () => {
+    const unmerge = vi.spyOn(platform, "peopleUnmerge")
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await openMatches(user)
+    const joined = await screen.findByRole("region", { name: "Joined by an agent" })
+    const row = within(joined).getByRole("listitem")
+    expect(row).toHaveTextContent(/Nora Vidal.*by claude-code/)
+    expect(row).toHaveTextContent("Phone +34600606060")
+    await user.click(within(row).getByRole("button", { name: "Undo" }))
+    const dialog = await screen.findByRole("dialog", { name: "Undo this join?" })
+    await user.click(within(dialog).getByRole("button", { name: "Undo the join" }))
+    expect(unmerge).toHaveBeenCalledWith("person:60", "merge:60-61")
+  })
+
+  it("says why memo did not join a match on its own", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await openMatches(user)
+    expect(
+      (await screen.findAllByText(/Not joined on its own: Address info@harbour.example, it is a role address/)).length,
+    ).toBeGreaterThan(0)
   })
 
   it("finds a person by an account they have, and opens them", async () => {

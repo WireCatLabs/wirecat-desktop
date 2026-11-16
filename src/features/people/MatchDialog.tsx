@@ -14,6 +14,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
+import { NotStrong } from "./AgentMerges"
 import { addressesOf, type Contacts, contactsOf, keyOf, matchFacts, sameMark, sharedValue } from "./contacts"
 import { groupMatches, type MatchGroup } from "./groups"
 import { useComparableName, usePersonName } from "./labels"
@@ -140,6 +141,7 @@ export function MatchDialog() {
         <div className="flex flex-col gap-[1.1rem] pb-[0.4rem]">
           <SharedSignal match={match} value={shared} />
           <MatchFacts facts={matchFacts(match, people.map(comparable), contacts)} />
+          <NotStrong strength={match.strength} />
           {moving && (
             <p className="text-ink-soft">
               {m.moveHeading(moveWords(match, m.anAccount), name(match.persons[1] ?? ""))} {m.moveHelp}

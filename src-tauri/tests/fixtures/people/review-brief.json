@@ -1,0 +1,49 @@
+{
+  "items": [
+    {
+      "id": "2",
+      "kind": "identity_link",
+      "persons": ["person:3", "person:5"],
+      "joins": "person",
+      "identity": "telegram:12",
+      "with": "bitrix24:contact/5",
+      "signal": "agent",
+      "score": null,
+      "shared": null,
+      "mailbox": null,
+      "candidates": [],
+      "reason": "same office number",
+      "evidence": ["+74951234567"],
+      "proposed_by": {
+        "type": "bot",
+        "id": "3",
+        "name": "claude-code",
+        "kind": "agent"
+      },
+      "created_at": "2026-11-16T14:01:02.379Z",
+      "strength": {
+        "persons": ["person:3", "person:5"],
+        "strong": false,
+        "facts": [
+          {
+            "kind": "phone",
+            "value": "+74951234567",
+            "holders": [["telegram:12"], ["bitrix24:contact/5"]],
+            "others": 0,
+            "strong": false,
+            "weak": "landline"
+          }
+        ],
+        "weak": "landline"
+      }
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 500,
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}

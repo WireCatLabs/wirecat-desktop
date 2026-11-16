@@ -97,6 +97,24 @@ function seed(): Held[] {
       ],
     ),
     person("person:9", "Lena Ortiz", [account("max:9020", "Лена Ортис", [["5", "personal"]], "initial", 20)]),
+    person(
+      "person:60",
+      "Nora Vidal",
+      [
+        account("telegram:6060", "Nora", [["1", "personal"]], "initial", 25, "nora_v"),
+        account("whatsapp:34600606060", "Nora Vidal", [["7", "personal"]], "agent", 1),
+      ],
+      [
+        {
+          id: "merge:60-61",
+          from: "person:61",
+          identities: ["whatsapp:34600606060"],
+          method: "agent",
+          at: ago(DAY),
+          agent: { name: "claude-code", reason: "Nora's mobile is the same in Telegram and WhatsApp." },
+        },
+      ],
+    ),
     person("person:4", "Kai Moreno", [
       account(
         "telegram:5120",
@@ -338,6 +356,11 @@ const MATCHES: Match[] = [
     proposer: { kind: "rule", name: "rule" },
     ...UNSHARED,
     score: 0.7,
+    strength: {
+      strong: false,
+      weak: "company",
+      facts: [{ kind: "phone", value: "+34912400188", others: 0, strong: false, weak: "company" }],
+    },
   },
   // One shared mailbox three people sign from: memo suggests the pairs and never joins them by itself.
   ...(
@@ -361,6 +384,11 @@ const MATCHES: Match[] = [
       score: 0.4,
       shared: "role",
       mailbox: "info@harbour.example",
+      strength: {
+        strong: false,
+        weak: "role-address",
+        facts: [{ kind: "email", value: "info@harbour.example", others: 1, strong: false, weak: "role-address" }],
+      },
     }),
   ),
   {
@@ -376,6 +404,7 @@ const MATCHES: Match[] = [
     proposer: { kind: "agent", name: "claude-code" },
     ...UNSHARED,
     score: null,
+    strength: { strong: false, weak: "nothing-shared", facts: [] },
   },
 ]
 
@@ -582,6 +611,29 @@ export function peopleMock(): Pick<
         kinded,
         companyMailbox,
         oneCompany,
+        // As memo: an agent's join is listed until it is undone.
+        agentMerges:
+          scenario === "none"
+            ? []
+            : people.flatMap((p) =>
+                p.merges
+                  .filter((x) => x.method === "agent")
+                  .map((x) => ({
+                    id: x.id,
+                    person: p.ref,
+                    from: x.from,
+                    identities: x.identities,
+                    agent: x.agent?.name ?? null,
+                    reason: x.agent?.reason ?? null,
+                    at: x.at,
+                    evidence: {
+                      strong: true,
+                      weak: null,
+                      facts: [{ kind: "phone", value: "+34600606060", others: 0, strong: true, weak: null }],
+                    },
+                  })),
+              ),
+        agentMergesMore: false,
       }
     },
     async peoplePage({ kind, page, size, query, sort }) {

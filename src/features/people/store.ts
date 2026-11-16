@@ -4,6 +4,7 @@ import { without } from "@/domain/record"
 import { tasksQuery } from "@/domain/tasks"
 import { platform } from "@/platform/bridge"
 import type {
+  AgentMerge,
   Doubts,
   KindCount,
   Listed,
@@ -87,6 +88,9 @@ type PeopleState = {
   /** The open matches, with any the owner decided since the last full read kept in place. */
   matches: Match[]
   matchesMore: boolean
+  /** What agents joined on strong evidence, still one: the owner checks them and may undo one. */
+  agentMerges: AgentMerge[]
+  agentMergesMore: boolean
   decided: Record<string, MatchAnswer>
   /** Splits an agent proposed, with any the owner decided since the last full read kept in place. */
   splits: Split[]
@@ -276,6 +280,8 @@ export const usePeople = create<PeopleState>((set, get) => {
           ...read.matches.filter((r) => !s.matches.some((m) => m.id === r.id)),
         ],
         matchesMore: read.matchesMore,
+        agentMerges: read.agentMerges ?? [],
+        agentMergesMore: read.agentMergesMore ?? false,
         // A decided split keeps its place; one memo lists for the first time goes after the rest.
         splits: [
           ...s.splits.flatMap((x) => {
@@ -310,6 +316,8 @@ export const usePeople = create<PeopleState>((set, get) => {
     seen: {},
     matches: [],
     matchesMore: false,
+    agentMerges: [],
+    agentMergesMore: false,
     decided: {},
     splits: [],
     splitDecided: {},
@@ -378,6 +386,8 @@ export const usePeople = create<PeopleState>((set, get) => {
             : { people: ready?.people ?? [], peopleMore: ready?.peopleMore ?? false, total: null, error: null }),
           matches: ready?.matches ?? [],
           matchesMore: ready?.matchesMore ?? false,
+          agentMerges: ready?.agentMerges ?? [],
+          agentMergesMore: ready?.agentMergesMore ?? false,
           splits: ready?.splits ?? [],
           splitDecided: {},
           kinded,
