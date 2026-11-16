@@ -65,7 +65,7 @@ export function SetupFlowDialog({ doc, images }: { doc: SetupDocument; images: R
                 <h3 id="setup-step-title" className="text-[1.25rem] font-semibold text-ink">
                   {t(step.title)}
                 </h3>
-                {flow.notice && <NoticeView notice={flow.notice} />}
+                {flow.notice && <NoticeView notice={flow.notice} ended={step.kind === "done"} />}
                 <Blocks blocks={step.blocks ?? []} view={view} />
                 {runs && <Stage name={name} s={s} />}
               </section>
@@ -77,10 +77,14 @@ export function SetupFlowDialog({ doc, images }: { doc: SetupDocument; images: R
   )
 }
 
-function NoticeView({ notice }: { notice: Notice }) {
+function NoticeView({ notice, ended }: { notice: Notice; ended: boolean }) {
   const m = useMessages(flowMessages)
   if (notice.kind === "stuck") return <ErrorNotice>{m.stuck}</ErrorNotice>
-  return <ErrorNotice raw={notice.text}>{notice.kind === "check" ? m.checkFailed : m.runFailed}</ErrorNotice>
+  return (
+    <ErrorNotice raw={notice.text}>
+      {notice.kind === "check" ? m.checkFailed : ended ? m.runEnded : m.runFailed}
+    </ErrorNotice>
+  )
 }
 
 function FlowActions() {

@@ -48,7 +48,6 @@ export const INPUT_KINDS = [
   "countries",
   "timezone",
 ] as const
-export type InputKind = (typeof INPUT_KINDS)[number]
 
 /**
  * The reserved display classes, each mapped to Desktop's own design tokens (NEED-2666). A name outside this map is
@@ -158,7 +157,6 @@ const OptionSchema = v.object({
   hint: v.optional(textId),
   icon: v.optional(id(PATTERNS.name)),
 })
-export type Option = v.InferOutput<typeof OptionSchema>
 export type Value = string | number | boolean | string[]
 const ValueSchema = v.union([v.string(), v.number(), v.boolean(), v.array(v.string())])
 
@@ -300,7 +298,7 @@ const FEATURES = new Set<string>([
   ...INPUT_KINDS.map((kind) => `input.${kind}`),
   ...Object.keys(DISPLAY_CLASSES).map((name) => `class.${name}`),
 ])
-export const RUN_ACTIONS = new Set(["apply"])
+const RUN_ACTIONS = new Set(["apply"])
 
 export const blocksOf = (blocks: readonly Block[] = [], depth = 1): { block: Block; depth: number }[] =>
   blocks.flatMap((block) => [{ block, depth }, ...(block.type === "group" ? blocksOf(block.blocks, depth + 1) : [])])
@@ -310,7 +308,7 @@ const conditionDepth = (c: Condition): number => {
   return 1 + inner.reduce((deepest, one) => Math.max(deepest, conditionDepth(one)), 0)
 }
 
-export const targetsOf = (step: Step): string[] =>
+const targetsOf = (step: Step): string[] =>
   step.next === undefined ? [] : typeof step.next === "string" ? [step.next] : step.next.map(({ to }) => to)
 
 export type Parsed =
@@ -352,7 +350,7 @@ export function parseSetup(raw: unknown): Parsed {
 export type Outcome = { outcome: "ok" } | { outcome: "error"; code: string }
 export type Known = { field: (id: string) => unknown; result: (name: string) => Outcome | undefined }
 
-export const holds = (c: Condition, known: Known): boolean => {
+const holds = (c: Condition, known: Known): boolean => {
   if ("all" in c) return c.all.every((one) => holds(one, known))
   if ("any" in c) return c.any.some((one) => holds(one, known))
   if ("not" in c) return !holds(c.not, known)
@@ -378,7 +376,7 @@ export const visibleFields = (blocks: readonly Block[] = [], known: Known): Fiel
     return block.type === "input" || block.type === "choice" ? [block as Field] : []
   })
 
-export const allFields = (doc: SetupDocument): Field[] =>
+const allFields = (doc: SetupDocument): Field[] =>
   Object.values(doc.steps).flatMap((step) =>
     blocksOf(step.blocks).flatMap(({ block }) =>
       block.type === "input" || block.type === "choice" ? [block as Field] : [],
@@ -390,8 +388,8 @@ export const nextOf = (step: Step, known: Known): string | undefined => {
   return step.next?.find((edge) => !edge.when || holds(edge.when, known))?.to
 }
 
-export const secretOf = (field: Field) => (field.type === "input" ? field.secret : undefined)
-export const isPassword = (field: Field) => field.type === "input" && field.input === "password"
+const secretOf = (field: Field) => (field.type === "input" ? field.secret : undefined)
+const isPassword = (field: Field) => field.type === "input" && field.input === "password"
 
 export const blank = (value: unknown) =>
   value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)
@@ -410,7 +408,7 @@ export const currentOf = (field: Field, current: Current = {}): Value | undefine
 }
 
 /** What the CLI reads: a port or a number as a number, the rest as typed. */
-export const coerce = (field: Field, raw: unknown): unknown => {
+const coerce = (field: Field, raw: unknown): unknown => {
   if (blank(raw)) return undefined
   const kind = field.type === "choice" ? "select" : field.input
   if ((kind === "port" || kind === "number") && typeof raw === "string") {

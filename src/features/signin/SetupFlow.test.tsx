@@ -9,6 +9,7 @@ import { platform } from "@/platform/bridge"
 import { CommandError, TOO_OLD } from "@/platform/command-error"
 import type { SignInEvent } from "@/platform/signin-schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { useSandbox } from "@/shared/sandbox-store"
 import { useSignIn } from "@/shared/signin-store"
 import { reduceMotion } from "@/testing/motion"
 import { act, render, screen, within } from "@/testing/render"
@@ -182,6 +183,26 @@ describe("pbx's own flow", () => {
     expect(within(dialog).getByRole("button", { name: /What to check/ })).toBeVisible()
     await userEvent.click(within(dialog).getByRole("button", { name: "Back" }))
     expect(heading(dialog)).toBe("Recordings and numbers")
+  })
+
+  it("asks in a test copy before the run signs a real account in, and runs nothing on No", async () => {
+    describes(pbx)
+    const ask = vi.spyOn(useSandbox.getState(), "confirmSignIn").mockResolvedValue(false)
+    useSandbox.setState({ name: "demo", confirmSignIn: ask })
+    const dialog = await open()
+    act(() =>
+      useSetupFlow.getState().walkTo("recordings", {
+        cdr_source: "csv",
+        files_from: "local",
+        cdr_csv_path: "/tmp/Master.csv",
+        phone_region: ["ES"],
+      }),
+    )
+    await next(dialog)
+    expect(ask).toHaveBeenCalled()
+    expect(platform.setupApply).not.toHaveBeenCalled()
+    expect(heading(dialog)).toBe("Recordings and numbers")
+    useSandbox.setState({ name: null })
   })
 
   it("edits a profile: its settings filled in, a kept password left empty and not sent", async () => {

@@ -147,7 +147,7 @@ describe("asterisk's sign-in plan", () => {
   }
 
   it("starts no run, so none without the password, once the dialog is closed while the settings save", async () => {
-    const dialog = open()
+    const dialog = await open()
     await fillDatabase(dialog)
     const release = slowSaves()
     const start = within(dialog).getByRole("button", { name: "Start sign-in" })

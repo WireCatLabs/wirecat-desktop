@@ -16,6 +16,7 @@ import {
 } from "@/domain/setup-flow"
 import { platform } from "@/platform/bridge"
 import { errorText } from "@/shared/errors"
+import { useSandbox } from "@/shared/sandbox-store"
 import { useSignIn } from "@/shared/signin-store"
 
 /**
@@ -86,11 +87,19 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
   const visited = () => [...get().history, get().at]
 
   /** Moves to `to`; a run step starts at once, with the answers of the path. */
-  const enter = (to: string | undefined, notice: Notice | null = null) => {
+  const enter = (to: string | undefined, notice: Notice | null = null, confirmed = false) => {
     const { doc, at, history, answers, moves } = get()
     if (!doc) return
     if (to === undefined || !doc.steps[to] || moves + 1 >= SETUP_LIMITS.transitions)
       return set({ notice: { kind: "stuck" }, checking: false })
+    // A test copy asks before the run, as the hand-made form's Start does: the run signs a real account in.
+    if (doc.steps[to]?.kind === "run" && !confirmed && useSandbox.getState().name) {
+      void useSandbox
+        .getState()
+        .confirmSignIn()
+        .then((ok) => (ok && get().doc === doc && get().at === at ? enter(to, notice, true) : set({ checking: false })))
+      return
+    }
     set({
       at: to,
       history: [...history, at],

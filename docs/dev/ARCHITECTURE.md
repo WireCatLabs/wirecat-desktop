@@ -13,6 +13,7 @@ Shapes that the app and a tool, or the app and a server, must both follow. Chang
 | With | Contract |
 | --- | --- |
 | A tool's sign-in (`session start`) | [signin-api.md](signin-api.md) |
+| A tool's own setup flow (`setup show`, the setup format v1) | [setup-api.md](setup-api.md) |
 | A tool's sync | [sync-api.md](sync-api.md) |
 | A tool's run log (`runs list`, `runs show`) | [runs-api.md](runs-api.md) |
 | A tool's HTTP MCP server and its public address | [mcp-server-api.md](mcp-server-api.md) |
@@ -218,6 +219,8 @@ src-tauri/src/
                 Gemini notes, counted with the newest three names.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
+  setup_flow.rs a tool's own setup flow ([setup-api.md](setup-api.md)): `setup show`, the dry run and the `apply` run
+                as fixed argument lists, and the flow's images read only from inside the tool's package.
   bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
                 token on the tool's stdin to its own `bot auth set`; `bot list` for the names. See "Connecting a bot".
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced

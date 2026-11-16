@@ -1,4 +1,4 @@
-//! A tool's connection flow as its CLI describes it (the WireCat setup format v1, `docs/dev/setup-api.md`). Desktop
+//! A tool's connection flow as its CLI describes it (the setup format v1, `docs/dev/setup-api.md`). Desktop
 //! trusts nothing in the document and runs no command from it: only the three fixed commands below, as argument lists,
 //! with the profile the owner chose. The interface checks the document's shape (`src/domain/setup-flow.ts`); here the
 //! size of the answer, and the images, which are read only from inside the tool's own package.
@@ -160,7 +160,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let root = dir.join("pkg");
         std::fs::create_dir_all(root.join("setup")).unwrap();
-        (dir.clone(), std::fs::canonicalize(&root).unwrap())
+        {
+            let root = std::fs::canonicalize(&root).unwrap();
+            (dir, root)
+        }
     }
 
     #[test]

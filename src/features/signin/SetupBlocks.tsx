@@ -109,8 +109,12 @@ function BlockView({ block, view, row }: { block: Block; view: FlowView; row: bo
       )
     case "note":
       return wrap(<Note role={roleOf("note", block.role)} text={view.t(block.text, block.params)} view={view} />)
-    case "image":
-      return <Picture block={block} view={view} classes={own} />
+    case "image": {
+      // A height sizes the picture itself; the rest place its figure.
+      const tall = (block.class ?? []).filter((name) => name.startsWith("h-"))
+      const rest = (block.class ?? []).filter((name) => !name.startsWith("h-"))
+      return <Picture block={block} view={view} classes={classesOf(rest)} height={classesOf(tall)} />
+    }
     case "code":
       return wrap(<Code code={block.code} copy={block.copy !== false} />)
     case "input":
@@ -143,7 +147,7 @@ function BlockView({ block, view, row }: { block: Block; view: FlowView; row: bo
 }
 
 /** Restricted Markdown: React escapes every string, so raw HTML stays text, and a link goes only where allowed. */
-export function Rich({ text, domains }: { text: string; domains: readonly string[] }) {
+function Rich({ text, domains }: { text: string; domains: readonly string[] }) {
   const parts = markdown(text)
   return (
     <div className="selectable flex flex-col gap-2 text-body leading-relaxed text-ink">
@@ -178,8 +182,10 @@ function inlines(parts: readonly Inline[], domains: readonly string[]): ReactNod
 function InlineView({ part, domains }: { part: Inline; domains: readonly string[] }): ReactNode {
   if (part.t === "text") return part.v
   if (part.t === "code") return <code className="rounded bg-app-3 px-1 font-mono text-[0.92em]">{part.v}</code>
-  if (part.t === "strong") return <strong>{inlines(part.c, domains)}</strong>
-  if (part.t === "em") return <em>{inlines(part.c, domains)}</em>
+  if (part.t !== "link") {
+    const Mark = part.t
+    return <Mark>{inlines(part.c, domains)}</Mark>
+  }
   const href = allowedLink(part.href, domains)
   return href ? <ExtLink href={href}>{inlines(part.c, domains)}</ExtLink> : inlines(part.c, domains)
 }
@@ -216,24 +222,26 @@ function Picture({
   block,
   view,
   classes,
+  height,
 }: {
   block: Extract<Block, { type: "image" }>
   view: FlowView
   classes: string
+  height: string
 }) {
   const m = useMessages(flowMessages)
   const src = view.images[block.asset]
   const alt = view.t(block.alt)
   const size = view.doc.assets?.[block.asset]
   return (
-    <figure className={cx("flex min-w-0 flex-col gap-1.5", classes)}>
+    <figure className={cx("flex min-w-0 flex-col items-start gap-1.5", classes)}>
       {src && IMAGE_URL.test(src) ? (
         <img
           src={src}
           alt={alt}
           width={size?.width}
           height={size?.height}
-          className="h-auto max-w-full rounded-rack border border-line object-contain"
+          className={cx("h-auto w-auto max-w-full rounded-rack border border-line object-contain", height)}
         />
       ) : (
         <div className="rounded-rack border border-line-strong border-dashed px-4 py-3 text-body text-ink-soft">
