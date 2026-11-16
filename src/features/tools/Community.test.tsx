@@ -45,7 +45,7 @@ it("marks an own tool Not verified, never Community", async () => {
 it("says an own @wirecat tool is WireCat's, only not in this version of the app", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Tools WireCat has not checked" })
   const row = within(list)
     .getByRole("button", { name: /^Beeline/ })
     .closest("li") as HTMLElement
