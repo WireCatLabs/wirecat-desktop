@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { findTool } from "@/domain/catalog"
 import { explainFailure } from "@/domain/signin-failure"
 import { DriveFolderPicker, DriveTranscripts, driveMessages } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -9,25 +10,27 @@ import { wizardMessages } from "./messages-wizard"
 import { SyncNow } from "./ZoomApp"
 
 /**
- * After Drive signs in: the folder picker, with a sign-in's own words when Drive refuses to list them, then whether
- * Meet transcripts and Gemini notes, which sit outside the owner's folders, are added too.
+ * After Drive or Notion signs in: the folder picker, with a sign-in's own words when the tool refuses to list them,
+ * then, for Drive, whether Meet transcripts and Gemini notes, which sit outside the owner's folders, are added too.
  */
 export function DriveFolders({ tool, profile, name }: { tool: string; profile: string; name: string }) {
   const [added, setAdded] = useState(false)
   const [included, setIncluded] = useState(false)
   const failed = (level: Failed, retry: () => void) => (
-    <LevelFailed level={level} name={name} profile={profile} onRetry={retry} />
+    <LevelFailed level={level} tool={tool} name={name} profile={profile} onRetry={retry} />
   )
   return (
     <div className="flex w-full flex-col gap-4">
       <DriveFolderPicker tool={tool} profile={profile} failed={failed} onAdded={() => setAdded(true)} />
-      <DriveTranscripts
-        key={profile}
-        tool={tool}
-        profile={profile}
-        failed={failed}
-        onChosen={(mode) => setIncluded(mode === "include")}
-      />
+      {findTool(tool)?.folderPicker?.transcripts && (
+        <DriveTranscripts
+          key={profile}
+          tool={tool}
+          profile={profile}
+          failed={failed}
+          onChosen={(mode) => setIncluded(mode === "include")}
+        />
+      )}
       {(added || included) && <SyncNow tool={tool} profile={profile} />}
     </div>
   )
@@ -37,11 +40,13 @@ type Failed = { message: string; code: string | null; reason: string | null }
 
 function LevelFailed({
   level,
+  tool,
   name,
   profile,
   onRetry,
 }: {
   level: Failed
+  tool: string
   name: string
   profile: string
   onRetry: () => void
@@ -49,7 +54,7 @@ function LevelFailed({
   const wm = useMessages(wizardMessages)
   const sm = useMessages(driveMessages)
   const explained = explainFailure({
-    tool: "drive",
+    tool,
     profile,
     message: level.message,
     code: level.code,

@@ -604,7 +604,7 @@ export type DocumentsRead = { kind: "missing" } |
 export type DriveFolder = {
 	id: string,
 	name: string,
-	/**  `my_drive`, `shared_with_me`, `shared_drive` or `folder`. */
+	/**  drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`. */
 	kind: string,
 	parent: string | null,
 	location: string | null,
@@ -735,8 +735,11 @@ export type Folder = {
 export type FolderAdded = { result: "added" } | { result: "failed"; message: string; code: string | null; reason: string | null };
 
 export type FolderLevel = 
-/**  `partial` is true when Google searched only some drives, so folders may be missing. */
-{ result: "listed"; folders: DriveFolder[]; partial: boolean } | { result: "failed"; message: string; code: string | null; reason: string | null };
+/**
+ *  `partial` is true when the tool says its search was cut, so folders may be missing. `next_cursor` goes on to
+ *  the rest of the level.
+ */
+{ result: "listed"; folders: DriveFolder[]; partial: boolean; nextCursor: string | null } | { result: "failed"; message: string; code: string | null; reason: string | null };
 
 export type FolderRemoved = { result: "removed" } | { result: "failed"; message: string; code: string | null; reason: string | null };
 

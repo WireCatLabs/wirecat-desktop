@@ -1,5 +1,5 @@
-//! Choosing Drive folders in the window: drive's own `folders browse` lists one level of the owner's Google Drive and
-//! `folders add` imports one. Folder names are the owner's data: they reach the window and nothing else, never a log.
+//! Choosing folders in the window: the tool's own `folders browse` lists one level of the owner's Google Drive
+//! or Notion workspace and `folders add` imports one. Folder names are the owner's data: they reach the window and nothing else, never a log.
 
 use crate::catalog::{self, Tool};
 use crate::signin_steps::NEEDS_UPDATE;
@@ -13,11 +13,18 @@ const BROWSE: Duration = Duration::from_mins(1);
 const SHARED_WITH_ME: &str = "shared-with-me";
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FolderPickerSource {
     /// `{profile}` is the profile the owner chose.
     pub browse: Vec<String>,
     /// The flag that takes the folder to list inside.
     pub parent: String,
+    /// The flag that goes on from the `next_cursor` of the last page; absent for a tool that answers one level whole.
+    #[serde(default)]
+    pub cursor: Option<String>,
+    /// The first version whose `folders browse` the window reads; absent when every installed one does.
+    #[serde(default)]
+    pub min_version: Option<String>,
     /// `{profile}` and `{folder}`, a validated Google id.
     pub add: Vec<String>,
     /// The folder ids the profile's sync imports, without names.
@@ -70,7 +77,7 @@ pub enum ChosenFolders {
 pub struct DriveFolder {
     pub id: String,
     pub name: String,
-    /// `my_drive`, `shared_with_me`, `shared_drive` or `folder`.
+    /// drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`.
     pub kind: String,
     pub parent: Option<String>,
     pub location: Option<String>,
@@ -81,12 +88,14 @@ pub struct DriveFolder {
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
-#[serde(rename_all = "camelCase", tag = "result")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "result")]
 pub enum FolderLevel {
-    /// `partial` is true when Google searched only some drives, so folders may be missing.
+    /// `partial` is true when the tool says its search was cut, so folders may be missing. `next_cursor` goes on to
+    /// the rest of the level.
     Listed {
         folders: Vec<DriveFolder>,
         partial: bool,
+        next_cursor: Option<String>,
     },
     Failed {
         message: String,
@@ -122,15 +131,39 @@ fn valid_id(id: &str) -> bool {
 }
 
 fn checked(id: &str) -> Result<(), String> {
-    if valid_id(id) { Ok(()) } else { Err("That is not a Drive folder id.".into()) }
+    if valid_id(id) { Ok(()) } else { Err("That is not a folder id.".into()) }
 }
 
-pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>) -> Result<FolderLevel, String> {
+/// A cursor the tool printed: notion's is a prefix and base64url.
+fn valid_cursor(cursor: &str) -> bool {
+    (1..=8192).contains(&cursor.len())
+        && !cursor.starts_with('-')
+        && cursor.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '=' | '+' | '/'))
+}
+
+pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>, cursor: Option<&str>) -> Result<FolderLevel, String> {
     let src = source(tool)?;
     let mut args = catalog::with_profile(&src.browse, Some(profile))?;
     if let Some(parent) = parent {
         checked(parent)?;
         args.extend([src.parent.clone(), parent.to_string()]);
+    }
+    if let Some(cursor) = cursor {
+        let flag = src.cursor.as_ref().ok_or_else(|| format!("{} lists a level whole", tool.name))?;
+        if !valid_cursor(cursor) {
+            return Err("That is not a cursor the tool gave.".into());
+        }
+        args.extend([flag.clone(), cursor.to_string()]);
+    }
+    // Only the level's first page: a cursor came from a version that passed this check.
+    if cursor.is_none()
+        && src.min_version.as_deref().is_some_and(|need| crate::task_board::unusable(tool, need).is_some())
+    {
+        return Ok(FolderLevel::Failed {
+            message: FOLDERS_TOO_OLD.into(),
+            code: Some(NEEDS_UPDATE.into()),
+            reason: None,
+        });
     }
     let (out, json) = skills::call(tool, &args, BROWSE)?;
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
@@ -251,14 +284,23 @@ fn read_transcripts(json: &Value) -> TranscriptsFound {
     }
 }
 
-const FOLDERS_TOO_OLD: &str = "This version cannot list Drive folders yet. Update it on the Tools page.";
+const FOLDERS_TOO_OLD: &str = "This version cannot list folders yet. Update it on the Tools page.";
 const TRANSCRIPTS_TOO_OLD: &str = "This version cannot find meeting transcripts yet. Update it on the Tools page.";
 
 fn read_level(json: &Value) -> FolderLevel {
     let body = skills::body(json);
     let items = json["items"].as_array().or_else(|| body["items"].as_array());
     let missing = !json["missing"].is_null() || !body["missing"].is_null();
-    FolderLevel::Listed { folders: items.into_iter().flatten().filter_map(folder_of).collect(), partial: missing }
+    let next_cursor = [&json["page"], &body["page"]]
+        .into_iter()
+        .find_map(|page| page["next_cursor"].as_str())
+        .filter(|c| valid_cursor(c))
+        .map(str::to_string);
+    FolderLevel::Listed {
+        folders: items.into_iter().flatten().filter_map(folder_of).collect(),
+        partial: missing,
+        next_cursor,
+    }
 }
 
 fn folder_of(v: &Value) -> Option<DriveFolder> {
@@ -291,13 +333,45 @@ mod tests {
             ],
             "missing": [{ "field": "items", "why": "Google searched only some of the drives" }]
         });
-        let FolderLevel::Listed { folders, partial } = read_level(&json) else { panic!("not listed") };
+        let FolderLevel::Listed { folders, partial, next_cursor } = read_level(&json) else { panic!("not listed") };
         assert!(partial);
+        assert_eq!(next_cursor, None);
         assert_eq!(folders.len(), 2);
         assert_eq!((folders[0].child_folders, folders[0].added), (Some(3), true));
         assert_eq!(folders[1].child_folders, None);
         let nested = serde_json::json!({ "item": { "items": [{ "id": "a", "name": "A", "kind": "folder" }] } });
-        assert!(matches!(read_level(&nested), FolderLevel::Listed { folders, partial: false } if folders.len() == 1));
+        assert!(
+            matches!(read_level(&nested), FolderLevel::Listed { folders, partial: false, .. } if folders.len() == 1)
+        );
+    }
+
+    #[test]
+    fn reads_notion_pages_and_databases_and_the_cursor_to_the_rest() {
+        let json = serde_json::json!({
+            "items": [
+                { "id": "1f2e3d4c-0000-4000-8000-000000000001", "name": "Roadmap", "kind": "page",
+                  "url": "https://app.notion.com/p/1f2e", "parent": null, "added": true },
+                { "id": "1f2e3d4c-0000-4000-8000-000000000002", "name": "Tasks", "kind": "database",
+                  "url": "https://app.notion.com/p/1f2f", "parent": null, "added": false },
+            ],
+            "page": { "mode": "cursor", "has_more": true, "next_cursor": "notion-browse1.eyJwYXJlbnQiOiJ4In0" },
+        });
+        let FolderLevel::Listed { folders, next_cursor, .. } = read_level(&json) else { panic!("not listed") };
+        assert_eq!(folders.iter().map(|f| f.kind.as_str()).collect::<Vec<_>>(), ["page", "database"]);
+        assert_eq!(next_cursor.as_deref(), Some("notion-browse1.eyJwYXJlbnQiOiJ4In0"));
+        let odd = serde_json::json!({ "items": [], "page": { "next_cursor": "--parent" } });
+        assert!(matches!(read_level(&odd), FolderLevel::Listed { next_cursor: None, .. }));
+    }
+
+    #[test]
+    fn a_cursor_is_what_the_tool_printed_and_never_an_option() {
+        assert!(valid_cursor("notion-browse1.e30"));
+        for bad in ["", "-x", "--limit", "a b", "a;b", &"x".repeat(8193)] {
+            assert!(!valid_cursor(bad), "{bad}");
+        }
+        let notion = catalog::tool("notion").unwrap();
+        assert!(browse(notion, "personal", None, Some("--all")).is_err());
+        assert!(browse(catalog::tool("drive").unwrap(), "personal", None, Some("notion-browse1.e30")).is_err());
     }
 
     #[test]
@@ -311,8 +385,8 @@ mod tests {
         let drive = catalog::tool("drive").unwrap();
         assert!(add(drive, "personal", "shared-with-me").is_err());
         assert!(add(drive, "--help", "abc").is_err());
-        assert!(browse(drive, "personal", Some("-x")).is_err());
-        assert!(browse(catalog::tool("tg").unwrap(), "personal", None).is_err());
+        assert!(browse(drive, "personal", Some("-x"), None).is_err());
+        assert!(browse(catalog::tool("tg").unwrap(), "personal", None, None).is_err());
         assert!(remove(drive, "personal", "--all").is_err());
         assert!(remove(drive, "a;b", "abc").is_err());
     }
