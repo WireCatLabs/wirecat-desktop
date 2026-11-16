@@ -53,7 +53,7 @@ describe("a link in a digest", () => {
   })
 
   it("opens a CRM deal in its card on Clients", async () => {
-    await follow("Open: Site for Northstar")
+    await follow("Open: Northstar Labs · Site for Northstar")
     expect(await screen.findByRole("dialog", { name: /Site for Northstar/ })).toBeInTheDocument()
     expect(useNav.getState().active).toBe("clients")
   })
@@ -105,6 +105,7 @@ describe("a link in a digest", () => {
   it("gives an item with no ref nothing to click", async () => {
     await openDigest()
     const money = screen.getByRole("region", { name: "Money" })
-    expect(within(money).queryByRole("button", { name: "Open: November rent" })).not.toBeInTheDocument()
+    expect(within(money).getByRole("button", { name: "Details: Vector LLC · November rent" })).toBeInTheDocument()
+    expect(within(money).queryByRole("button", { name: "Open: Vector LLC · November rent" })).not.toBeInTheDocument()
   })
 })

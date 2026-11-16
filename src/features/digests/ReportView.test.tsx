@@ -42,7 +42,7 @@ describe("a CRM digest", () => {
     expect(text).toMatch(/Call about the contract — overdue by 2 hours/)
     expect(text).toMatch(/Send the quote — due today/)
     expect(text).toContain("5 more")
-    expect(within(crm).getByRole("button", { name: "Open: Northstar site" })).toBeTruthy()
+    expect(within(crm).getByRole("button", { name: "Open: Northstar site · won" })).toBeTruthy()
     expect(within(crm).getByRole("button", { name: "Open: Atlas warehouse" })).toBeTruthy()
   })
 

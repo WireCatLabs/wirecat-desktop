@@ -244,8 +244,9 @@ function Item({ item, now }: { item: ReportItem; now: number }) {
     item.quote ? `«${item.quote}»` : null,
   ].filter((part): part is string => part !== null)
   const target = targetOfRefs(item.refs)
-  // A money item's topic is what happened to it ("won"); its who names the deal or the payer.
-  const what = (item.type === "money" ? (item.who ?? item.topic) : (item.topic ?? item.who)) ?? ""
+  // A money item's topic may be only what happened to it ("won"), so its name carries the who, as its first line does.
+  const what =
+    item.type === "money" ? [item.who, item.topic].filter(Boolean).join(" · ") : (item.topic ?? item.who ?? "")
   // A click on the item's text opens its details; a click on a link inside it only follows the link.
   const toggleFromText = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, a") || window.getSelection()?.toString()) return
