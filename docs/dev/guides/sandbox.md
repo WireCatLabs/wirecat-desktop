@@ -87,7 +87,7 @@ memo gives deals, facts and memories no id a loader could set, so they are match
 - **Digest days** are files a digest run would leave (`~/.local/share/cli-memo/schedules/morning-digest/runs`, in the
   `wirecat.report/1` format), since making them otherwise is a paid model run; `src/platform/digest-seed.test.ts`
   holds them to the page's schema. `memo digest add` needs `claude` on PATH, so a stub that only fails is on PATH for
-  that one call. The app does not see it, so the digests on the Agents tab say no agent is set up.
+  that one call. The app does not see it, so the digests' Settings tab says no agent is set up.
 - **Removing a row from the data does not remove it from a sandbox.** `--reset` starts over.
 - **The loader runs only inside a sandbox**: it stops unless `HOME` is `…/wirecat-sandbox/<name>/home`, the store and
   every `XDG_*_HOME` are inside it, and the keyring is off. A `tools` sandbox holding a store copied with

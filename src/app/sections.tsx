@@ -57,6 +57,9 @@ const ClientsPage = lazyPage(() => import("@/features/clients/page").then((m) =>
 const ConfigPage = lazyPage(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
 const LinkPage = lazyPage(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazyPage(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
+const DigestSettingsPage = lazyPage(() =>
+  import("@/features/digests/page").then((m) => ({ default: m.DigestSettingsPage })),
+)
 const MeetingsPage = lazyPage(() => import("@/features/meetings/page").then((m) => ({ default: m.MeetingsPage })))
 const DocumentsPage = lazyPage(() => import("@/features/documents/page").then((m) => ({ default: m.DocumentsPage })))
 const GuidesPage = lazyPage(() => import("@/features/guides/page").then((m) => ({ default: m.GuidesPage })))
@@ -75,6 +78,7 @@ export type SectionId =
   | "search"
   | "tasks"
   | "digests"
+  | "digest-settings"
   | "clients"
   | "guides"
   | "memory"
@@ -107,9 +111,10 @@ export type Section = {
 export const sections: readonly Section[] = [
   { id: "tools", icon: Wrench, page: ToolsPage },
   { id: "agents", icon: Bot, page: AgentsPage, tabOf: "tools" },
-  // The digests: their presets, every digest and its schedule, and what each wrote (owner, 2026-11-14).
-  { id: "digests", icon: Newspaper, page: DigestsPage, tabOf: "tools" },
   { id: "tasks", icon: ListTodo, page: TasksPage },
+  // What each digest wrote, and apart from it their presets, schedules and editors (owner, 2026-11-16).
+  { id: "digests", icon: Newspaper, page: DigestsPage },
+  { id: "digest-settings", icon: Settings, page: DigestSettingsPage, tabOf: "digests" },
   { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "people", icon: Users, page: PeoplePage },
   { id: "meetings", icon: Video, page: MeetingsPage },

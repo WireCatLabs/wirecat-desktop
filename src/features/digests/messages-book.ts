@@ -162,6 +162,7 @@ const en = {
   },
   one: {
     back: "All digests",
+    read: "Read what it wrote",
     needs: "Waits for you",
     needsLead: "This digest does not run on its schedule until you act. Memo says:",
     needsConsent:
@@ -348,6 +349,7 @@ const ru: typeof en = {
   },
   one: {
     back: "Все сводки",
+    read: "Читать сводки",
     needs: "Ждет вас",
     needsLead: "Эта сводка не запустится по расписанию, пока вы не ответите. Memo пишет:",
     needsConsent:
@@ -536,6 +538,7 @@ const es: typeof en = {
   },
   one: {
     back: "Todos los resúmenes",
+    read: "Leer lo que escribió",
     needs: "Te espera",
     needsLead: "Este resumen no se ejecuta según su horario hasta que actúes. Memo dice:",
     needsConsent:

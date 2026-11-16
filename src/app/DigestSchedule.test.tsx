@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { editorMessages } from "@/features/digests/messages-editors"
-import { useTasks } from "@/features/tasks"
 import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { agentsFixture } from "@/platform/mock-background-agent"
@@ -64,11 +63,17 @@ const ready = (digests: DigestItem[], over: Partial<Extract<DigestBook, { state:
   ...over,
 })
 
-async function openPage(book?: DigestBook) {
+async function openReports(book?: DigestBook) {
   if (book) vi.spyOn(platform, "digestBook").mockResolvedValue(book)
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole("tab", { name: /^Digests/ }))
+  await user.click(screen.getByRole("button", { name: /^Digests/ }))
+  return user
+}
+
+async function openPage(book?: DigestBook) {
+  const user = await openReports(book)
+  await user.click(screen.getByRole("tab", { name: /^Settings/ }))
   return user
 }
 
@@ -141,7 +146,7 @@ describe("the table of digests", () => {
 })
 
 describe("a digest whose last run failed", () => {
-  it("leads the tab with it, and its page says the newest day is the agent's account of the failure", async () => {
+  it("leads the Digests tab with it, and opens its newest day as the agent's account of the failure", async () => {
     const failed = {
       ...morning,
       last: { at: new Date(Date.now() - 3_600_000).toISOString(), ok: false, costUsd: null },
@@ -155,7 +160,7 @@ describe("a digest whose last run failed", () => {
       document: null,
       text: "memo review agenda failed: command.crashed",
     })
-    const user = await openPage(ready([failed, weekly]))
+    const user = await openReports(ready([weekly, failed]))
     const failures = await screen.findByRole("region", { name: "Digests whose last run failed" })
     expect(failures).toHaveTextContent("“Morning digest” failed 1 h ago: it wrote no digest.")
     expect(failures).not.toHaveTextContent("Weekly digest")
@@ -163,6 +168,7 @@ describe("a digest whose last run failed", () => {
     expect(await screen.findByText("memo review agenda failed: command.crashed")).toBeInTheDocument()
     expect(screen.getByText(/This run failed: instead of a digest/)).toBeInTheDocument()
     expect(screen.queryByText(/here is its text as it was/)).not.toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "Digest" })).toHaveTextContent("Morning digest")
   })
 })
 
@@ -731,11 +737,14 @@ describe("the agents memo lets a schedule start", () => {
 })
 
 describe("the digest history", () => {
-  it("marks a day built later and builds past days only after showing the price", async () => {
+  it("marks a day built later on the Digests tab, and builds past days only after showing the price", async () => {
     const backfill = vi.spyOn(platform, "digestBackfill")
-    const user = await openMorning()
+    const user = await openReports()
     const days = await screen.findByRole("navigation", { name: "Days" })
     expect(days).toHaveTextContent("built later")
+
+    await user.click(screen.getByRole("tab", { name: /^Settings/ }))
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }))
 
     const fill = screen.getByRole("button", { name: "Build past days" })
     await waitFor(() => expect(fill).toBeEnabled())
@@ -763,7 +772,7 @@ describe("the digest history", () => {
 
 describe("a digest item", () => {
   it("opens its details in place: quote, where from, and every reference as a link", async () => {
-    const user = await openMorning()
+    const user = await openReports()
     const today = await screen.findByRole("region", { name: "Today" })
     await user.click(within(today).getByRole("button", { name: "Details: warehouse lease" }))
     const details = within(today).getByRole("button", { name: "Details: warehouse lease" })
@@ -774,28 +783,5 @@ describe("a digest item", () => {
     expect(list).toHaveTextContent(/mail · /)
     for (const name of ["Open: the message", "Open: Anna Kotova", "Open: project khimki-warehouse"])
       expect(within(list).getByRole("button", { name })).toBeInTheDocument()
-  })
-
-  it("links who and the project; a person opens the calm not-yet page", async () => {
-    const user = await openMorning()
-    const today = await screen.findByRole("region", { name: "Today" })
-    await user.click(within(today).getAllByRole("button", { name: "Open: Anna Kotova" })[0] as HTMLElement)
-    expect(await screen.findByRole("heading", { name: "This can't open in WireCat yet" })).toBeInTheDocument()
-    expect(screen.getByText(/no page for this person yet/)).toBeInTheDocument()
-    expect(useNav.getState().active).toBe("open")
-  })
-
-  it("opens a known project's tasks, and an unknown one on the calm not-yet page", async () => {
-    const user = await openMorning()
-    const today = await screen.findByRole("region", { name: "Today" })
-    await user.click(within(today).getByRole("button", { name: "Open: project HRB" }))
-    await waitFor(() => expect(useNav.getState().active).toBe("tasks"))
-    expect(useTasks.getState().query).toBe("project:HRB")
-
-    act(() => useNav.getState().go("digests"))
-    const again = await screen.findByRole("region", { name: "Today" })
-    await user.click(within(again).getByRole("button", { name: "Open: project khimki-warehouse" }))
-    expect(await screen.findByRole("heading", { name: "This can't open in WireCat yet" })).toBeInTheDocument()
-    expect(screen.getByText(/no page for this project yet/)).toBeInTheDocument()
   })
 })

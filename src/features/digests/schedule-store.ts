@@ -3,13 +3,21 @@ import { createJSONStorage, persist } from "zustand/middleware"
 import type { BackgroundAgents } from "@/platform/background-agent-schemas"
 import type { Backfill, DigestBook, DigestItem, DigestSpec, SendTo } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useDigestDay } from "@/shared/digest-day"
 import { errorText } from "@/shared/errors"
 import { useNav } from "@/shared/nav"
 import { safeStorage } from "@/shared/safe-storage"
 import { MORNING, useDigests } from "./store"
 
-/** The Digests tab's section id: a tab of Tools, not a sidebar item. */
+/** The section of what the digests wrote, and its Settings tab, where each digest is set up. */
 export const DIGESTS_SECTION = "digests"
+export const DIGEST_SETTINGS = "digest-settings"
+
+/** Opens what a digest wrote on the Digests tab, its newest day first, and marks it. */
+export function readDigest(name: string) {
+  useDigestDay.setState({ digest: name, date: null })
+  useNav.getState().go(DIGESTS_SECTION)
+}
 
 export { MORNING }
 
@@ -160,8 +168,8 @@ export const useDigestBook = create<State>()(
         },
         openDigest: (open) => {
           set({ open, failed: null })
-          // A digest opens on the Digests tab, wherever it was made from.
-          if (open !== null) useNav.getState().go(DIGESTS_SECTION)
+          // A digest's settings open on the Settings tab, wherever it was made from.
+          if (open !== null) useNav.getState().go(DIGEST_SETTINGS)
         },
         save: (spec, create) =>
           change(spec.name, "save", () => platform.digestSave(spec, create), create ? "create" : "save"),
