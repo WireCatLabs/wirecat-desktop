@@ -143,6 +143,10 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
             env.push((flag(method.password.as_ref(), "a password")?.clone(), password));
         }
     }
+    // A tool that reads its secret until EOF would wait forever on a pipe kept open for answers.
+    if method.stdin && stdin.is_none() {
+        return Err("This sign-in needs the password. Type it and start again.".into());
+    }
     if let Some(json) = inputs.client_file {
         let name = flag(method.client_file.as_ref(), "an app of your own")?;
         let file = ClientFile::write(&json)?;
@@ -541,6 +545,9 @@ mod tests {
                 let error = args(asterisk, method, "office", typed(bad)).err().unwrap();
                 assert!(!error.contains("s3cr3t"), "{error}");
             }
+        }
+        for method in ["mysql", "postgres"] {
+            assert!(args(asterisk, method, "office", Inputs::default()).is_err(), "{method}: pbx would wait for stdin");
         }
         let csv = args(asterisk, "csv", "office", Inputs::default()).unwrap();
         assert_eq!(csv.args, ["office", "session", "start", "--json"]);

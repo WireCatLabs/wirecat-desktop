@@ -127,6 +127,38 @@ describe("asterisk's sign-in plan", () => {
     expect([method, inputs]).toEqual(["mysql", { password: "s3cr3t" }])
   })
 
+  // Each `config set` runs pbx for a quarter to half a second, so the seven saves leave the plan on screen for seconds.
+  const slowSaves = () => {
+    let release = () => {}
+    const saved = new Promise<void>((done) => {
+      release = done
+    })
+    vi.spyOn(platform, "settingsSet").mockImplementation(() => saved)
+    return () => act(release)
+  }
+
+  const fillDatabase = async (dialog: HTMLElement) => {
+    await userEvent.click(within(dialog).getByRole("radio", { name: /PostgreSQL/ }))
+    await userEvent.type(within(dialog).getByLabelText("Database server"), "127.0.0.1")
+    await userEvent.type(within(dialog).getByLabelText("Database name"), "asteriskcdrdb")
+    await userEvent.type(within(dialog).getByLabelText("User"), "pbx_reader")
+    await userEvent.type(within(dialog).getByLabelText("Password of the database user"), "s3cr3t")
+  }
+
+  it("starts no run, so none without the password, once the dialog is closed while the settings save", async () => {
+    const dialog = open()
+    await fillDatabase(dialog)
+    const release = slowSaves()
+    const start = within(dialog).getByRole("button", { name: "Start sign-in" })
+    await userEvent.click(start)
+    await userEvent.click(start)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    await release()
+    await act(() => new Promise((done) => setTimeout(done, 50)))
+    expect(platform.signIn).not.toHaveBeenCalled()
+    expect(useSignIn.getState().tool).toBeNull()
+  })
+
   const savedRegion = () =>
     vi.mocked(platform.settingsSet).mock.calls.find(([, , , key]) => key === "phone_region")?.[4]
 
