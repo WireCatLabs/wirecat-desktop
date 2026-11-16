@@ -12,18 +12,20 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { DriveFolderPicker } from "./DriveFolderPicker"
 import { DriveTranscripts } from "./DriveTranscripts"
-import { driveMessages } from "./messages-drive"
+import { driveMessages, folderWords } from "./messages-drive"
 import { SyncButton, useSyncControl } from "./Sync"
 
 type Chosen = { state: "loading" } | { state: "ready"; folders: ChosenFolder[] } | { state: "failed"; message: string }
 
 /**
- * One Drive account's folders, any time after its sign-in: what drive's `folders list` holds, each with Remove
- * (`folders remove`), and the picker to add more. A change takes effect on the next sync, so Sync now follows it.
+ * One Drive or Notion account's folders, any time after its sign-in: what the tool's `folders list` holds, each with
+ * Remove (`folders remove`), and the picker to add more. A change takes effect on the next sync, so Sync now follows
+ * it. Notion lists its whole workspace while nothing is chosen; that row has no Remove.
  */
 export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string; onClose: () => void }) {
   const { tool, profile, onClose } = props
-  const m = useMessages(driveMessages).folders
+  const m = folderWords(useMessages(driveMessages), tool.id).folders
+  const whole = tool.folderPicker?.whole
   const heading = useId()
   const [chosen, setChosen] = useState<Chosen>({ state: "loading" })
   const [adding, setAdding] = useState(false)
@@ -104,24 +106,34 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
           <p className="text-[0.9rem] font-medium text-ink">{m.none}</p>
         ) : (
           <ul className="divide-y divide-line overflow-hidden rounded-button border border-line bg-app">
-            {chosen.folders.map((f) => (
-              <li key={f.id} className="flex items-center gap-3 px-3 py-1.5">
-                <FolderClosed className="size-4 shrink-0 text-ink-dim" aria-hidden />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-ink">{f.name ?? m.notSynced}</span>
-                  {!f.name && <code className="truncate font-mono text-[0.8rem] text-ink-dim">{f.id}</code>}
-                </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busy !== null}
-                  aria-label={m.removeNamed(f.name ?? f.id)}
-                  onClick={() => remove(f)}
-                >
-                  {busy === f.id ? m.removingNow : m.remove}
-                </Button>
-              </li>
-            ))}
+            {chosen.folders.map((f) =>
+              f.id === whole ? (
+                <li key={f.id} className="flex items-center gap-3 px-3 py-1.5">
+                  <FolderClosed className="size-4 shrink-0 text-ink-dim" aria-hidden />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-ink">{m.whole}</span>
+                    <span className="text-[0.85rem] text-ink-soft">{m.wholeDetail}</span>
+                  </span>
+                </li>
+              ) : (
+                <li key={f.id} className="flex items-center gap-3 px-3 py-1.5">
+                  <FolderClosed className="size-4 shrink-0 text-ink-dim" aria-hidden />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-ink">{f.name ?? m.notSynced}</span>
+                    {!f.name && <code className="truncate font-mono text-[0.8rem] text-ink-dim">{f.id}</code>}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy !== null}
+                    aria-label={m.removeNamed(f.name ?? f.id)}
+                    onClick={() => remove(f)}
+                  >
+                    {busy === f.id ? m.removingNow : m.remove}
+                  </Button>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </AutoHeight>
@@ -186,13 +198,15 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
         )}
       </AutoHeight>
 
-      <DriveTranscripts
-        key={profile}
-        tool={tool.id}
-        profile={profile}
-        afterInclude={changed ? undefined : <SyncButton c={sync} />}
-        nested
-      />
+      {tool.folderPicker?.transcripts && (
+        <DriveTranscripts
+          key={profile}
+          tool={tool.id}
+          profile={profile}
+          afterInclude={changed ? undefined : <SyncButton c={sync} />}
+          nested
+        />
+      )}
     </section>
   )
 }

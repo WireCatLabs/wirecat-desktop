@@ -350,3 +350,26 @@ describe("Drive's folders", () => {
     expect(within(panel).getByText(/Drive copies nothing for this account/)).toBeInTheDocument()
   })
 })
+
+describe("Notion's folders", () => {
+  it("shows the whole workspace while nothing is chosen, with no Remove and no transcripts", async () => {
+    vi.spyOn(platform, "driveFoldersChosen").mockResolvedValue({
+      result: "listed",
+      folders: [{ id: "notion-workspace", name: null }],
+    })
+    const transcripts = vi.spyOn(platform, "driveTranscriptsFind")
+    render(
+      <AccountList
+        tool={tool("notion")}
+        profiles={[{ name: "personal", signedIn: true }]}
+        onReload={() => undefined}
+      />,
+    )
+    await userEvent.click(within(await openMenu("personal")).getByRole("menuitem", { name: "Choose folders" }))
+    const panel = screen.getByRole("region", { name: "What Notion copies for personal" })
+    expect(await within(panel).findByText("Everything your token sees")).toBeInTheDocument()
+    expect(within(panel).queryByRole("button", { name: /Stop importing/ })).not.toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Add pages" })).toBeInTheDocument()
+    expect(transcripts).not.toHaveBeenCalled()
+  })
+})

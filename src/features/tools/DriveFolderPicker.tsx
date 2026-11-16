@@ -1,4 +1,4 @@
-import { ChevronRight, FolderClosed, HardDrive, LoaderCircle, Users } from "lucide-react"
+import { ChevronRight, Database, FileText, FolderClosed, HardDrive, LoaderCircle, Users } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { DriveFolder, FolderLevel } from "@/platform/bindings"
@@ -10,19 +10,42 @@ import { Checkbox } from "@/ui/Checkbox"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { useFieldError } from "@/ui/FieldError"
-import { driveMessages } from "./messages-drive"
+import { driveMessages, folderWords } from "./messages-drive"
 
 /** "Shared with me" is a list, not a folder: drive-cli refuses to add it, only what is under it. */
 const SHARED_WITH_ME = "shared_with_me"
 
+const ICONS: Record<string, typeof FolderClosed> = {
+  shared_drive: HardDrive,
+  [SHARED_WITH_ME]: Users,
+  page: FileText,
+  database: Database,
+}
+
 type Crumb = { id: string | null; name: string }
 export type FailedLevel = Extract<FolderLevel, { result: "failed" }>
-type Level = { state: "loading" } | { state: "ready"; level: FolderLevel }
+type Ready = { state: "ready"; level: FolderLevel; more: "idle" | "reading" | "failed" }
+type Level = { state: "loading" } | Ready
+
+/** A page of notion's answer can hold nothing yet and a cursor: read on this many times before asking for Show more. */
+const EMPTY_PAGES = 3
+
+/** The next page of a level after what is shown: its new folders appended, a cut search kept, its cursor taken. */
+function joined(shown: FolderLevel, next: FolderLevel): FolderLevel {
+  if (shown.result !== "listed" || next.result !== "listed") return next
+  const seen = new Set(shown.folders.map((f) => f.id))
+  return {
+    result: "listed",
+    folders: [...shown.folders, ...next.folders.filter((f) => !seen.has(f.id))],
+    partial: shown.partial || next.partial,
+    nextCursor: next.nextCursor,
+  }
+}
 
 /**
- * After Drive signs in: the owner's folders one level at a time (drive-cli PR #335's `folders browse`), ticked ones
- * added with `folders add`. A drive before that command fails the first level with `needs_update`, and the picker
- * says to update.
+ * After Drive or Notion signs in: the owner's folders, or pages and databases, one level at a time (the tool's
+ * `folders browse`, page after page while it gives `next_cursor`), ticked ones added with `folders add`. A tool before
+ * that command fails the first level with `needs_update`, and the picker says to update.
  */
 export function DriveFolderPicker(props: {
   tool: string
@@ -34,7 +57,7 @@ export function DriveFolderPicker(props: {
   titled?: boolean
 }) {
   const { tool, profile, failed, onAdded, titled = true } = props
-  const sm = useMessages(driveMessages)
+  const sm = folderWords(useMessages(driveMessages), tool)
   const heading = useId()
   const [trail, setTrail] = useState<Crumb[]>([{ id: null, name: sm.picker.root }])
   const [levels, setLevels] = useState<Record<string, Level>>({})
@@ -48,22 +71,46 @@ export function DriveFolderPicker(props: {
   const here = trail.at(-1)?.id ?? null
   const key = here ?? ""
 
-  const load = (parent: string | null) => {
+  const read = (parent: string | null, cursor: string | null): Promise<FolderLevel> =>
+    platform
+      .driveFoldersBrowse(tool, profile, parent, cursor)
+      .catch((e) => ({ result: "failed", message: errorText(e), code: null, reason: null }))
+
+  const readOn = async (parent: string | null, cursor: string | null) => {
+    let level = await read(parent, cursor)
+    for (let n = 0; n < EMPTY_PAGES && level.result === "listed" && level.folders.length === 0; n++) {
+      if (!level.nextCursor) break
+      level = joined(level, await read(parent, level.nextCursor))
+    }
+    return level
+  }
+
+  const load = async (parent: string | null) => {
     const k = parent ?? ""
     setLevels((l) => ({ ...l, [k]: { state: "loading" } }))
-    platform.driveFoldersBrowse(tool, profile, parent).then(
-      (level) => setLevels((l) => ({ ...l, [k]: { state: "ready", level } })),
-      (e) =>
-        setLevels((l) => ({
-          ...l,
-          [k]: { state: "ready", level: { result: "failed", message: errorText(e), code: null, reason: null } },
-        })),
+    const level = await readOn(parent, null)
+    setLevels((l) => ({ ...l, [k]: { state: "ready", level, more: "idle" } }))
+  }
+
+  const more = async (parent: string | null, cursor: string) => {
+    const k = parent ?? ""
+    const update = (change: (shown: Ready) => Level) =>
+      setLevels((l) => {
+        const shown = l[k]
+        return shown?.state === "ready" ? { ...l, [k]: change(shown) } : l
+      })
+    update((shown) => ({ ...shown, more: "reading" }))
+    const next = await readOn(parent, cursor)
+    update((shown) =>
+      next.result === "failed"
+        ? { ...shown, more: "failed" }
+        : { state: "ready", level: joined(shown.level, next), more: "idle" },
     )
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: each level is read once, when it is first opened
   useEffect(() => {
-    if (!levels[key]) load(here)
+    if (!levels[key]) void load(here)
   }, [key])
 
   const open = (folder: DriveFolder) => setTrail((t) => [...t, { id: folder.id, name: folder.name }])
@@ -157,12 +204,12 @@ export function DriveFolderPicker(props: {
               {sm.picker.loading}
             </p>
           ) : level.level.result === "failed" ? (
-            failed(level.level, () => load(here))
+            failed(level.level, () => void load(here))
           ) : (
             <div className="flex flex-col gap-2">
               {level.level.partial && <p className="text-[0.9rem] text-ink-soft">{sm.picker.partial}</p>}
               {level.level.folders.length === 0 ? (
-                <p className="py-3 text-ink-soft">{sm.picker.empty}</p>
+                !level.level.nextCursor && <p className="py-3 text-ink-soft">{sm.picker.empty}</p>
               ) : (
                 <ul
                   ref={list}
@@ -174,6 +221,7 @@ export function DriveFolderPicker(props: {
                   {level.level.folders.map((folder) => (
                     <Row
                       key={folder.id}
+                      tool={tool}
                       folder={folder}
                       checked={chosen.has(folder.id)}
                       added={folder.added || added.includes(folder.id)}
@@ -182,6 +230,14 @@ export function DriveFolderPicker(props: {
                     />
                   ))}
                 </ul>
+              )}
+              {level.level.nextCursor && (
+                <More
+                  cursor={level.level.nextCursor}
+                  reading={level.more === "reading"}
+                  failed={level.more === "failed"}
+                  onMore={(cursor) => void more(here, cursor)}
+                />
               )}
             </div>
           )}
@@ -206,24 +262,42 @@ export function DriveFolderPicker(props: {
   )
 }
 
+function More(props: { cursor: string; reading: boolean; failed: boolean; onMore: (cursor: string) => void }) {
+  const { cursor, reading, failed, onMore } = props
+  const sm = useMessages(driveMessages).picker
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <Button size="sm" variant="secondary" busy={reading} onClick={() => onMore(cursor)}>
+        {sm.more}
+      </Button>
+      <span role="status" className="text-[0.9rem] text-bad">
+        {failed ? sm.moreFailed : reading ? <span className="sr-only">{sm.readingMore}</span> : null}
+      </span>
+    </div>
+  )
+}
+
 function Row({
+  tool,
   folder,
   checked,
   added,
   onToggle,
   onOpen,
 }: {
+  tool: string
   folder: DriveFolder
   checked: boolean
   added: boolean
   onToggle: (on: boolean) => void
   onOpen: () => void
 }) {
-  const sm = useMessages(driveMessages)
+  const sm = folderWords(useMessages(driveMessages), tool)
   const id = useId()
   const addable = folder.kind !== SHARED_WITH_ME
-  const opens = folder.childFolders !== 0
-  const Icon = folder.kind === "shared_drive" ? HardDrive : folder.kind === SHARED_WITH_ME ? Users : FolderClosed
+  // A database's children are its rows, and a row is not a folder.
+  const opens = folder.childFolders !== 0 && folder.kind !== "database"
+  const Icon = ICONS[folder.kind] ?? FolderClosed
   const detail =
     folder.kind === SHARED_WITH_ME
       ? sm.picker.sharedWithMe

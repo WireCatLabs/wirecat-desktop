@@ -12,16 +12,18 @@ pub async fn zoom_app_setup(id: String) -> Result<zoom_app::ZoomAppAnswer, AppEr
     .await
 }
 
-/// One level of the profile's Google Drive folders; `parent` is a folder id or `shared-with-me`.
+/// One level of the profile's folders (Drive) or pages and databases (Notion); `parent` is a folder id or
+/// `shared-with-me`, `cursor` the last page's `next_cursor`.
 #[tauri::command]
 pub async fn drive_folders_browse(
     id: String,
     profile: String,
     parent: Option<String>,
+    cursor: Option<String>,
 ) -> Result<drive_folders::FolderLevel, AppError> {
     crate::log::command("drive_folders_browse", async move {
         let tool = known_tool(&id)?;
-        attempt(move || drive_folders::browse(tool, &profile, parent.as_deref())).await
+        attempt(move || drive_folders::browse(tool, &profile, parent.as_deref(), cursor.as_deref())).await
     })
     .await
 }

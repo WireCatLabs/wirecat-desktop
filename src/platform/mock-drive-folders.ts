@@ -76,19 +76,92 @@ const LEVELS: Record<string, DriveFolder[]> = {
   ],
 }
 
+// notion-cli PR #15's `folders browse`: pages and databases, the top in pages of 8 with `nextCursor`, the second page
+// empty as notion's can be. `?notion-folders=cut` says Notion's search was cut at 10,000, `old` is a notion before 0.4.0.
+// Nothing is chosen at first, so `folders list` gives the whole workspace.
+const notionScenario = query.get("notion-folders")
+const WORKSPACE = "notion-workspace"
+const NOTION_PAGE = 8
+const notionItem = (id: string, name: string, kind: "page" | "database", parent: string | null) =>
+  ({
+    id,
+    name,
+    kind,
+    parent,
+    location: null,
+    driveId: null,
+    childFolders: null,
+    added: false,
+  }) satisfies DriveFolder
+const TOP_NAMES = [
+  "Roadmap",
+  "Team wiki",
+  "Meeting notes",
+  "Hiring",
+  "Design reviews",
+  "Reading list",
+  "Travel",
+  "Recipes",
+  "Garden",
+  "Home renovation",
+  "Side projects",
+  "Archive 2025",
+]
+const NOTION_TOP = [
+  ...TOP_NAMES.map((name, i) => notionItem(`n-top-${i}`, name, "page", null)),
+  notionItem("n-db-tasks", "Tasks", "database", null),
+  notionItem("n-db-contacts", "Contacts", "database", null),
+]
+const NOTION_LEVELS: Record<string, DriveFolder[]> = {
+  "n-top-0": [
+    notionItem("n-q1", "Q1 plan", "page", "n-top-0"),
+    notionItem("n-q2", "Q2 plan", "page", "n-top-0"),
+    notionItem("n-db-milestones", "Milestones", "database", "n-top-0"),
+  ],
+  "n-q1": [notionItem("n-q1-launch", "Launch checklist", "page", "n-q1")],
+}
+/** Page 1 holds the first eight, page 2 nothing (notion read past blocks without pages), page 3 the rest. */
+function notionLevel(parent: string | null, cursor: string | null, chosen: string[]): FolderLevel {
+  const mark = (f: DriveFolder) => ({ ...f, added: chosen.includes(f.id) })
+  if (parent !== null)
+    return { result: "listed", folders: (NOTION_LEVELS[parent] ?? []).map(mark), partial: false, nextCursor: null }
+  const page = cursor === null ? 0 : Number(cursor.split(".")[1])
+  const folders = page === 0 ? NOTION_TOP.slice(0, NOTION_PAGE) : page === 1 ? [] : NOTION_TOP.slice(NOTION_PAGE)
+  return {
+    result: "listed",
+    folders: folders.map(mark),
+    partial: notionScenario === "cut" && page === 0,
+    nextCursor: page < 2 ? `notion-browse1.${page + 1}` : null,
+  }
+}
+
 const added = new Set<string>()
 const removed = new Set<string>()
 let refused = false
 
-const chosenNow = () => [...new Set(["1Notes", ...added])].filter((id) => !removed.has(id))
+const chosenNow = () => [...new Set(["1Notes", ...added])].filter((id) => !removed.has(id) && !id.startsWith("n-"))
 
 export function driveFoldersMock(): Pick<
   Platform,
   "driveFoldersBrowse" | "driveFolderAdd" | "driveFoldersChosen" | "driveFolderRemove" | "driveTranscriptsFind"
 > {
   return {
-    async driveFoldersBrowse(_id, _profile, parent): Promise<FolderLevel> {
+    async driveFoldersBrowse(id, _profile, parent, cursor): Promise<FolderLevel> {
       await delay(500)
+      if (id === "notion") {
+        if (notionScenario === "old")
+          return {
+            result: "failed",
+            code: "needs_update",
+            reason: null,
+            message: "This version cannot list folders yet. Update it on the Tools page.",
+          }
+        return notionLevel(
+          parent,
+          cursor,
+          [...added].filter((f) => !removed.has(f)),
+        )
+      }
       if (scenario === "old")
         return { result: "failed", code: "needs_update", reason: null, message: "error: unknown command 'browse'" }
       if (scenario === "fail" && parent === null)
@@ -100,7 +173,7 @@ export function driveFoldersMock(): Pick<
         }
       const chosen = chosenNow()
       const folders = (LEVELS[parent ?? ""] ?? []).map((f) => ({ ...f, added: chosen.includes(f.id) }))
-      return { result: "listed", folders, partial: scenario === "partial" && parent === null }
+      return { result: "listed", folders, partial: scenario === "partial" && parent === null, nextCursor: null }
     },
     async driveFolderAdd(_id, _profile, id): Promise<FolderAdded> {
       await delay(700)
@@ -117,8 +190,17 @@ export function driveFoldersMock(): Pick<
       removed.delete(id)
       return { result: "added" }
     },
-    async driveFoldersChosen(): Promise<ChosenFolders> {
+    async driveFoldersChosen(id): Promise<ChosenFolders> {
       await delay(450)
+      if (id === "notion") {
+        const ids = [...added].filter((f) => f.startsWith("n-") && !removed.has(f))
+        const named = (f: string) =>
+          [...NOTION_TOP, ...Object.values(NOTION_LEVELS).flat()].find((n) => n.id === f)?.name
+        return {
+          result: "listed",
+          folders: ids.length ? ids.map((f) => ({ id: f, name: named(f) ?? null })) : [{ id: WORKSPACE, name: null }],
+        }
+      }
       return {
         result: "listed",
         folders: chosenNow().map((id) => ({ id, name: id === "1Notes" ? "Meeting notes" : null })),

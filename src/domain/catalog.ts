@@ -198,8 +198,21 @@ const ToolSchema = v.object({
   pictureReading: v.optional(v.nullable(v.object({ minVersion: v.nullable(v.string()) })), null),
   /** The messengers: `images read`, one picture's text read by that agent; null `minVersion`: not released. */
   imagesRead: v.optional(v.nullable(v.object({ minVersion: v.nullable(v.string()) })), null),
-  /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
-  folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
+  /**
+   * drive and notion: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and
+   * `drive_folder_add`. `whole` is the id `folders list` gives while nothing is chosen and the whole account is
+   * copied; `transcripts` is only drive's.
+   */
+  folderPicker: v.optional(
+    v.nullable(
+      v.object({
+        parent: v.string(),
+        whole: v.optional(v.nullable(v.string()), null),
+        transcripts: v.optional(v.nullable(v.object({})), null),
+      }),
+    ),
+    null,
+  ),
   /** Only email: mail-cli's own `rules list` for one mailbox, read only, run by `mail_rules_list`. */
   mailRules: v.optional(v.nullable(v.object({})), null),
   /**

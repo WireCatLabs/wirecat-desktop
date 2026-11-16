@@ -409,7 +409,8 @@ function createTauri(): Platform {
       invoke("setup_apply", { id, profile, answers, onEvent: signInChannel(onEvent) }),
     setupPickPath: (folder, accept) => invoke("setup_pick_path", { folder, accept }),
     zoomAppSetup: (id) => invoke("zoom_app_setup", { id }),
-    driveFoldersBrowse: (id, profile, parent) => invoke("drive_folders_browse", { id, profile, parent }),
+    driveFoldersBrowse: (id, profile, parent, cursor) =>
+      invoke("drive_folders_browse", { id, profile, parent, cursor }),
     driveFolderAdd: (id, profile, folder) => invoke("drive_folder_add", { id, profile, folder }),
     driveFoldersChosen: (id, profile) => invoke("drive_folders_chosen", { id, profile }),
     driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),

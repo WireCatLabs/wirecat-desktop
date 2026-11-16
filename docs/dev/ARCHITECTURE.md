@@ -217,7 +217,8 @@ src-tauri/src/
                 enters the command line; Windows' cmd cannot, so there the agent gets a sentence naming the file.
                 Hermes reads the file itself everywhere. One `AgentLaunch` button (`features/fix`) opens the last one
                 used and lists the rest.
-  drive_folders.rs Drive's folders for one profile: `folders browse` and `add` (the picker), `folders list` with each
+  drive_folders.rs Drive's folders, or Notion's pages and databases, for one profile: `folders browse` and `add` (the
+                picker; `--cursor` for the rest of a level when the tool gives `next_cursor`), `folders list` with each
                 name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
                 next sync drops what it copied from there; `transcripts list`, the Docs named like Meet transcripts or
                 Gemini notes, counted with the newest three names.
@@ -813,7 +814,12 @@ sign-in's failure words): `drive_folders_browse(id, profile, parent)` runs `fold
 browse [--parent <id>]` one level at a time, and `drive_folder_add` runs `folders add <id>` for each ticked folder
 (catalog `folderPicker`; ids are checked in `drive_folders.rs`; Shared with me is a list, not a folder, and cannot be
 added). The same picker opens later from an account row's "Choose folders" (`DriveFoldersSettings.tsx`), beside the
-chosen folders with Remove each. Below the picker, and in the same settings, "Meeting transcripts"
+chosen folders with Remove each. Notion uses the same picker from notion-cli 0.4.0 (catalog `folderPicker.minVersion`):
+pages and databases, a database never opened (its children are rows), "Show more" for the level's `next_cursor` (empty
+pages read past, up to three), a note when Notion's search was cut at 10,000 (`missing`), and the whole
+workspace (`whole`, `folders list` while nothing is chosen) shown without Remove. notion-cli does not count a
+page's children, so every page can be opened, and one with none inside says so. Below the picker, and in the same
+settings, "Meeting transcripts"
 (`tools/DriveTranscripts.tsx`) shows what `drive_transcripts_find` found (drive's `transcripts list`) and three choices
 that set the profile's `transcripts` setting through `settings_set`: include, skip, exclude; none is chosen until the
 owner picks one. Email's account rows have "Mail rules" (`tools/MailRules.tsx`): `mail_rules_list(id, profile, page,

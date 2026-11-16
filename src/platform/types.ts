@@ -625,8 +625,11 @@ export type Platform = {
   setupPickPath(folder: boolean, accept: string[]): Promise<string | null>
   /** zm's own `app --json`: what to enter when making the Zoom app; `old` from a zm before it, which has the list built in. */
   zoomAppSetup(id: string): Promise<ZoomAppAnswer>
-  /** One level of the profile's Drive folders; no `parent` lists My Drive, Shared with me and the shared drives. */
-  driveFoldersBrowse(id: string, profile: string, parent: string | null): Promise<FolderLevel>
+  /**
+   * One level of the profile's Drive folders or Notion pages; no `parent` lists the top. `cursor` is the last page's
+   * `nextCursor`, for the rest of the same level.
+   */
+  driveFoldersBrowse(id: string, profile: string, parent: string | null, cursor: string | null): Promise<FolderLevel>
   /** Adds one folder, by its id, to what the profile's sync imports. */
   driveFolderAdd(id: string, profile: string, folder: string): Promise<FolderAdded>
   /** The folders the profile's sync imports, named once a sync has copied them. */

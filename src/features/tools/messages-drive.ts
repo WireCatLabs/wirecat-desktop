@@ -25,7 +25,16 @@ const en = {
     done: (n: number) => `${plural("en", n, { one: "# folder", other: "# folders" })} added. Sync to copy their files.`,
     notAdded: (names: string) => `Not added: ${names}. Try again in a minute.`,
     retry: "Try again",
-    kind: { my_drive: "Your files", shared_drive: "Shared drive", shared_with_me: "" } as Record<string, string>,
+    more: "Show more",
+    readingMore: "Reading more…",
+    moreFailed: "Could not read more.",
+    kind: {
+      my_drive: "Your files",
+      shared_drive: "Shared drive",
+      shared_with_me: "",
+      page: "Page",
+      database: "Database",
+    } as Record<string, string>,
   },
   folders: {
     title: (profile: string) => `Folders Drive copies for ${profile}`,
@@ -45,6 +54,34 @@ const en = {
     changed: "Folders changed. Sync now to copy or drop their text.",
     retry: "Try again",
     close: "Close",
+  },
+  notion: {
+    picker: {
+      title: "Choose what Notion copies",
+      lead: "Notion copies only the pages and databases you choose, with every page inside them. Until you choose one, it copies everything your token sees.",
+      trail: "Pages",
+      root: "Notion",
+      loading: "Reading pages…",
+      empty: "No pages or databases here.",
+      partial:
+        "This list is incomplete: Notion's search gives only its 10,000 most recently edited results, so older pages and databases may be missing.",
+      add: (n: number) => (n === 0 ? "Add" : `Add ${n}`),
+      noneChosen: "Tick at least one page or database to add.",
+      done: (n: number) => `${n} added. Sync to copy their pages.`,
+    },
+    folders: {
+      title: (profile: string) => `What Notion copies for ${profile}`,
+      what: "Only these pages and databases are copied to this computer, with every page inside them, as text you can search. Your agent can search and read them.",
+      removing:
+        "Removing one stops copying it: the next sync deletes its copied text from this computer. Once the last one is removed, the next sync copies everything your token sees again. Nothing changes in Notion.",
+      none: "Nothing chosen, so Notion copies everything your token sees.",
+      add: "Add pages",
+      listFailed: "Could not read the chosen pages and databases.",
+      removeFailed: (name: string, error: string) => `${name} is still copied: ${error}`,
+      changed: "What Notion copies changed. Sync now to copy or drop their text.",
+      whole: "Everything your token sees",
+      wholeDetail: "No page chosen yet. Add one to copy only that.",
+    },
   },
   transcripts: {
     title: "Meeting transcripts",
@@ -106,7 +143,16 @@ const ru: DriveText = {
     done: (n) => `Добавлено папок: ${n}. Синхронизируйте, чтобы скопировать файлы.`,
     notAdded: (names) => `Не добавлены: ${names}. Попробуйте через минуту.`,
     retry: "Попробовать снова",
-    kind: { my_drive: "Ваши файлы", shared_drive: "Общий диск", shared_with_me: "" },
+    more: "Показать ещё",
+    readingMore: "Читаю дальше…",
+    moreFailed: "Не удалось прочитать дальше.",
+    kind: {
+      my_drive: "Ваши файлы",
+      shared_drive: "Общий диск",
+      shared_with_me: "",
+      page: "Страница",
+      database: "База данных",
+    },
   },
   folders: {
     title: (profile) => `Папки, которые Drive копирует для ${profile}`,
@@ -126,6 +172,34 @@ const ru: DriveText = {
     changed: "Папки изменились. Синхронизируйте сейчас, чтобы скопировать или убрать их текст.",
     retry: "Попробовать снова",
     close: "Закрыть",
+  },
+  notion: {
+    picker: {
+      title: "Что копировать из Notion",
+      lead: "Notion копирует только выбранные страницы и базы данных, со всеми страницами внутри. Пока ничего не выбрано, копируется всё, что видит ваш токен.",
+      trail: "Страницы",
+      root: "Notion",
+      loading: "Читаю страницы…",
+      empty: "Здесь нет страниц и баз данных.",
+      partial:
+        "Список неполный: поиск Notion отдаёт только 10 000 недавно изменённых результатов, поэтому старых страниц и баз данных здесь может не быть.",
+      add: (n) => (n === 0 ? "Добавить" : `Добавить: ${n}`),
+      noneChosen: "Отметьте хотя бы одну страницу или базу данных.",
+      done: (n) => `Добавлено: ${n}. Синхронизируйте, чтобы скопировать страницы.`,
+    },
+    folders: {
+      title: (profile) => `Что Notion копирует для ${profile}`,
+      what: "На этот компьютер копируются только эти страницы и базы данных, со всеми страницами внутри, в виде текста для поиска. Ваш агент может искать в них и читать их.",
+      removing:
+        "Если убрать страницу, она перестанет копироваться: при следующей синхронизации её скопированный текст удалится с этого компьютера. Когда убрана последняя, следующая синхронизация снова копирует всё, что видит токен. В Notion ничего не меняется.",
+      none: "Ничего не выбрано, поэтому Notion копирует всё, что видит ваш токен.",
+      add: "Добавить страницы",
+      listFailed: "Не удалось прочитать выбранные страницы и базы данных.",
+      removeFailed: (name, error) => `${name} всё ещё копируется: ${error}`,
+      changed: "Состав копируемого из Notion изменился. Синхронизируйте сейчас, чтобы скопировать или убрать текст.",
+      whole: "Всё, что видит ваш токен",
+      wholeDetail: "Страницы ещё не выбраны. Добавьте одну, чтобы копировать только её.",
+    },
   },
   transcripts: {
     title: "Расшифровки встреч",
@@ -196,7 +270,16 @@ const es: DriveText = {
       `${plural("es", n, { one: "# carpeta añadida", other: "# carpetas añadidas" })}. Sincroniza para copiar sus archivos.`,
     notAdded: (names) => `No añadidas: ${names}. Vuelve a intentarlo en un minuto.`,
     retry: "Reintentar",
-    kind: { my_drive: "Tus archivos", shared_drive: "Unidad compartida", shared_with_me: "" },
+    more: "Mostrar más",
+    readingMore: "Leyendo más…",
+    moreFailed: "No se pudo leer más.",
+    kind: {
+      my_drive: "Tus archivos",
+      shared_drive: "Unidad compartida",
+      shared_with_me: "",
+      page: "Página",
+      database: "Base de datos",
+    },
   },
   folders: {
     title: (profile) => `Carpetas que Drive copia para ${profile}`,
@@ -216,6 +299,34 @@ const es: DriveText = {
     changed: "Las carpetas cambiaron. Sincroniza ahora para copiar o quitar su texto.",
     retry: "Reintentar",
     close: "Cerrar",
+  },
+  notion: {
+    picker: {
+      title: "Elige qué copia Notion",
+      lead: "Notion copia solo las páginas y bases de datos que elijas, con todas las páginas que contienen. Mientras no elijas ninguna, copia todo lo que ve tu token.",
+      trail: "Páginas",
+      root: "Notion",
+      loading: "Leyendo páginas…",
+      empty: "Aquí no hay páginas ni bases de datos.",
+      partial:
+        "Esta lista está incompleta: la búsqueda de Notion da solo sus 10 000 resultados editados más recientemente, así que pueden faltar páginas y bases de datos antiguas.",
+      add: (n) => (n === 0 ? "Añadir" : `Añadir ${n}`),
+      noneChosen: "Marca al menos una página o base de datos.",
+      done: (n) => `${plural("es", n, { one: "# añadida", other: "# añadidas" })}. Sincroniza para copiar sus páginas.`,
+    },
+    folders: {
+      title: (profile) => `Qué copia Notion para ${profile}`,
+      what: "Solo estas páginas y bases de datos se copian a este ordenador, con todas las páginas que contienen, como texto en el que buscar. Tu agente puede buscar en ellas y leerlas.",
+      removing:
+        "Si quitas una, deja de copiarse: la próxima sincronización borra su texto copiado de este ordenador. Cuando quitas la última, la próxima sincronización vuelve a copiar todo lo que ve tu token. En Notion no cambia nada.",
+      none: "No hay nada elegido, así que Notion copia todo lo que ve tu token.",
+      add: "Añadir páginas",
+      listFailed: "No se pudieron leer las páginas y bases de datos elegidas.",
+      removeFailed: (name, error) => `${name} se sigue copiando: ${error}`,
+      changed: "Cambió lo que copia Notion. Sincroniza ahora para copiar o quitar su texto.",
+      whole: "Todo lo que ve tu token",
+      wholeDetail: "Aún no hay páginas elegidas. Añade una para copiar solo esa.",
+    },
   },
   transcripts: {
     title: "Transcripciones de reuniones",
@@ -260,3 +371,12 @@ const es: DriveText = {
 }
 
 export const driveMessages: Messages<DriveText> = { en, ru, es }
+
+/** The picker's and the settings' words for one tool: notion's own where they differ, drive's otherwise. */
+export function folderWords(t: DriveText, tool: string) {
+  const own = tool === "notion" ? t.notion : null
+  return {
+    picker: { ...t.picker, ...own?.picker },
+    folders: { ...t.folders, whole: "", wholeDetail: "", ...own?.folders },
+  }
+}

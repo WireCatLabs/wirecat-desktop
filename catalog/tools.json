@@ -2499,6 +2499,17 @@
           }
         ]
       },
+      "folderPicker": {
+        "minVersion": "0.4.0",
+        "browse": ["{profile}", "folders", "browse", "--no-record", "--json"],
+        "parent": "--parent",
+        "cursor": "--cursor",
+        "whole": "notion-workspace",
+        "add": ["{profile}", "folders", "add", "{folder}", "--record", "--json"],
+        "list": ["{profile}", "folders", "list", "--no-record", "--json"],
+        "remove": ["{profile}", "folders", "remove", "{folder}", "--record", "--json"],
+        "name": ["{profile}", "catalog", "show", "{folder}", "--offline", "--no-record", "--json"]
+      },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": null,
