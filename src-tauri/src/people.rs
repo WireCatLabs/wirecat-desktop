@@ -1602,7 +1602,7 @@ mod tests {
             Ok(if a[1] == "review" { fixture("review") } else { fixture("list") })
         };
         let Read::Ready { agent_merges, .. } = read_with(&call, "person", false).unwrap() else { panic!() };
-        assert!(agent_merges.is_empty());
+        assert_eq!(agent_merges, []);
         assert!(
             asked
                 .lock()
