@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, LoaderCircle } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
-import { entryProblem } from "@/domain/catalog"
+import { entryProblem, isWirecatPackage } from "@/domain/catalog"
 import { applyInstallEvent } from "@/domain/install-progress"
 import type { InstallSession } from "@/domain/status"
 import { settingsMessages } from "@/features/settings"
@@ -30,8 +30,8 @@ import { refusalWords } from "./own-refusal"
 type Refusal = OwnRefusal | { kind: "entry"; problem: string } | { kind: "unexpected"; detail: string }
 
 type Step =
-  /** The setting is off: its warning, and Allow turns it on here, as in Settings, then the name. */
-  | { kind: "allow"; saving: boolean; error: string | null }
+  /** The setting is off and `pkg` is not a @wirecat package: its warning, and Allow turns it on here, then reads `pkg`. */
+  | { kind: "allow"; pkg: string; saving: boolean; error: string | null }
   /** `select`: back from a refusal, with the name kept and selected so typing replaces it. */
   | { kind: "name"; select?: boolean }
   | { kind: "reading"; pkg: string }
@@ -109,14 +109,22 @@ export function OwnToolDialog() {
       )
   }
 
-  const allow = () => {
-    setStep({ kind: "allow", saving: true, error: null })
+  const check = (name: string) =>
+    mustAllow && !isWirecatPackage({ package: name })
+      ? setStep({ kind: "allow", pkg: name, saving: false, error: null })
+      : read(name, null)
+
+  const allow = (name: string) => {
+    setStep({ kind: "allow", pkg: name, saving: true, error: null })
     platform
       .setOwnToolsAllowed(true)
       .then(reloadAddedTools)
       .then(
-        () => setStep({ kind: "name" }),
-        (e) => setStep({ kind: "allow", saving: false, error: errorText(e) }),
+        () => {
+          useOwnDialog.setState({ allow: false })
+          return read(name, null)
+        },
+        (e) => setStep({ kind: "allow", pkg: name, saving: false, error: errorText(e) }),
       )
   }
 
@@ -138,7 +146,7 @@ export function OwnToolDialog() {
       void read(reading, null)
     } else {
       setPkg("")
-      setStep(mustAllow ? { kind: "allow", saving: false, error: null } : { kind: "name" })
+      setStep({ kind: "name" })
     }
   }, [open])
 
@@ -178,7 +186,7 @@ export function OwnToolDialog() {
           done={done}
           pkg={pkg}
           pasted={pasted}
-          on={{ read, install, uninstall, allow, setStep, close, ask }}
+          on={{ read, check, install, uninstall, allow, setStep, close, ask }}
         />
       }
     >
@@ -192,7 +200,7 @@ export function OwnToolDialog() {
             select={step.select === true}
             setPkg={setPkg}
             need={needName}
-            onSubmit={() => (pkg.trim() ? read(pkg.trim(), null) : ask(NAME_FIELD))}
+            onSubmit={() => (pkg.trim() ? check(pkg.trim()) : ask(NAME_FIELD))}
           />
         )}
         {step.kind === "reading" && (
@@ -237,7 +245,8 @@ type On = {
   read(pkg: string, desktop: string | null): void
   install(review: OwnReview): void
   uninstall(review: OwnReview): void
-  allow(): void
+  check(pkg: string): void
+  allow(pkg: string): void
   setStep(step: Step): void
   close(): void
   ask(field: Field): void
@@ -266,7 +275,7 @@ function Actions({
       return (
         <>
           {cancel}
-          <Button variant="danger" busy={step.saving} disabled={step.saving} onClick={on.allow}>
+          <Button variant="danger" busy={step.saving} disabled={step.saving} onClick={() => on.allow(step.pkg)}>
             {m.allowAndContinue}
           </Button>
         </>
@@ -275,7 +284,7 @@ function Actions({
       return (
         <>
           {cancel}
-          <Button variant="primary" onClick={() => (pkg.trim() ? on.read(pkg.trim(), null) : on.ask(NAME_FIELD))}>
+          <Button variant="primary" onClick={() => (pkg.trim() ? on.check(pkg.trim()) : on.ask(NAME_FIELD))}>
             {m.check}
           </Button>
         </>

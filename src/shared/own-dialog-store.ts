@@ -8,7 +8,7 @@ type OwnDialog = {
   open: boolean
   update: { pkg: string; name: string } | null
   read: string | null
-  /** "Allow tools WireCat has not checked" is off: the dialog asks to turn it on before the name. */
+  /** "Allow tools WireCat has not checked" is off: a name outside @wirecat gets that setting's warning first. */
   allow: boolean
   /** The own tool just removed from WireCat: its row is gone, so the Tools page says what happened and what stays. */
   removed: { name: string; pkg: string; installed: boolean } | null

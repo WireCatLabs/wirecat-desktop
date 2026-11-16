@@ -125,9 +125,9 @@ pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
     // The signed list read at start stays until the next start, so a reload for an own tool never changes it.
     static LISTED: std::sync::OnceLock<Option<Result<Vec<Value>, String>>> = std::sync::OnceLock::new();
     let listed = LISTED.get_or_init(|| crate::registry::shown().then(crate::registry::at_start)).clone();
-    let own = (std::env::var(FLAG).ok().as_deref() == Some("1") || crate::own_tools::allowed())
-        .then(|| crate::node::app_data().and_then(|d| std::fs::read_to_string(d.join(FILE)).ok()))
-        .flatten();
+    // Off, the switch still lets `@wirecat` tools through: only WireCat publishes under that scope.
+    let all_own = std::env::var(FLAG).ok().as_deref() == Some("1") || crate::own_tools::allowed();
+    let own = crate::node::app_data().and_then(|d| std::fs::read_to_string(d.join(FILE)).ok());
     if listed.is_none() && own.is_none() {
         return None;
     }
@@ -138,7 +138,7 @@ pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
         None => {}
     }
     if let Some(text) = own {
-        out.file(&text);
+        out.file(&text, all_own);
     }
     Some((out.tools, out.extra))
 }
@@ -147,7 +147,7 @@ pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
 #[cfg(test)]
 pub fn parse(text: &str, builtin: &Catalog) -> (Vec<Tool>, Extra) {
     let mut out = Accepted::new(builtin);
-    out.file(text);
+    out.file(text, true);
     (out.tools, out.extra)
 }
 
@@ -175,9 +175,16 @@ impl Accepted {
         Accepted { taken: Taken::of(builtin, None), tools: Vec::new(), extra: Extra::default() }
     }
 
-    fn file(&mut self, text: &str) {
+    /// `all` is the switch for unchecked tools; without it only `@wirecat` entries are read.
+    fn file(&mut self, text: &str, all: bool) {
         match file_entries(text) {
-            Ok(entries) => self.entries(Source::Own, FILE, entries),
+            Ok(entries) => {
+                let entries = entries
+                    .into_iter()
+                    .filter(|e| all || e["package"].as_str().is_some_and(crate::own_tools::trusted))
+                    .collect();
+                self.entries(Source::Own, FILE, entries);
+            }
             Err(why) => self.extra.reject(Source::Own, why),
         }
     }
@@ -681,6 +688,29 @@ mod tests {
         assert!(tools.is_empty() && extra.rejected[0].text.contains("version"));
         let (tools, extra) = parse(&"x".repeat(MAX_BYTES + 1), catalog());
         assert!(tools.is_empty() && extra.rejected[0].text.contains("larger"));
+    }
+
+    #[test]
+    fn with_the_switch_off_only_wirecat_own_tools_are_read() {
+        let mut ours = sample();
+        ours["id"] = json!("beeline");
+        ours["bin"] = json!("wcat-beeline");
+        ours["package"] = json!("@wirecat/beeline-cli");
+        ours["repo"] = json!("https://github.com/WireCatLabs/beeline-cli");
+        ours["storage"] = json!({ "app": "beeline-cli", "env": "BEELINE" });
+        let mut lookalike = sample();
+        lookalike["id"] = json!("evil");
+        lookalike["bin"] = json!("evil");
+        lookalike["package"] = json!("@wirecat-evil/evil");
+        lookalike["storage"] = json!({ "app": "wirecat-evil-evil", "env": "EVIL" });
+        let text = file(&[ours, sample(), lookalike]);
+        let read = |all| {
+            let mut out = Accepted::new(catalog());
+            out.file(&text, all);
+            out.tools.into_iter().map(|t| t.package).collect::<Vec<_>>()
+        };
+        assert_eq!(read(false), ["@wirecat/beeline-cli"]);
+        assert_eq!(read(true), ["@wirecat/beeline-cli", "@example/acme-cli", "@wirecat-evil/evil"]);
     }
 
     #[test]
