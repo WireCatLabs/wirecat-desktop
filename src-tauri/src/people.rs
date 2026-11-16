@@ -1548,6 +1548,13 @@ mod tests {
     }
 
     #[test]
+    fn agent_merges_open_with_memo_0_141_0() {
+        let tool = memo().unwrap();
+        assert!(!agent_merges_open(tool, Some("0.140.0")));
+        assert!(agent_merges_open(tool, Some("0.141.0")));
+    }
+
+    #[test]
     fn only_a_resolve_gets_memos_refusal_back_whole() {
         let out = run::Output {
             code: Some(2),

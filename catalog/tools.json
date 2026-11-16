@@ -1862,7 +1862,8 @@
       "people": {
         "minVersion": "0.131.84",
         "companyMailbox": { "minVersion": "0.131.86" },
-        "oneCompany": { "minVersion": "0.131.87" }
+        "oneCompany": { "minVersion": "0.131.87" },
+        "agentMerges": { "minVersion": "0.141.0" }
       },
       "digests": {
         "minVersion": "0.131.75",
