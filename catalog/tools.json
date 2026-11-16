@@ -2421,7 +2421,32 @@
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
-      "search": null,
+      "search": {
+        "args": [
+          "{profile}",
+          "search",
+          "--offline",
+          "--timeout",
+          "30s",
+          "--limit",
+          "{limit}",
+          "--page",
+          "{page}",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ],
+        "shape": "item.hits",
+        "what": "documents",
+        "fields": [
+          { "name": "title", "group": "what", "example": "title:plan", "top": true, "values": null },
+          { "name": "tag", "group": "what", "example": "tag:work", "top": true, "values": null },
+          { "name": "date", "group": "when", "example": "date>=30d", "top": true, "values": null },
+          { "name": "text", "group": "what", "example": "text:budget", "top": false, "values": null }
+        ],
+        "values": {}
+      },
       "setup": ["{profile}", "session", "start"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
@@ -2459,7 +2484,18 @@
       "settings": null,
       "signIn": {
         "gives": "Lets your agent read the Notion pages and databases your token can see.",
-        "asks": "A Notion personal access token, or the token of an internal connection you made in Notion."
+        "asks": "A Notion token. At notion.so/profile/integrations, make an internal connection and copy its token, then share the pages you want with that connection in Notion. A personal access token also works and sees what you see.",
+        "identity": ["{profile}", "session", "status", "--no-record", "--json"],
+        "identityCheck": "--check",
+        "methods": [
+          {
+            "id": "token",
+            "label": "Notion token",
+            "words": ["{profile}", "session", "start", "--json"],
+            "password": "WCNOTION_TOKEN",
+            "stdin": true
+          }
+        ]
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
