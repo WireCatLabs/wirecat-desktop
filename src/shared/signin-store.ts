@@ -589,7 +589,12 @@ export const useSignIn = create<SignInState>()((set, get) => {
         ...(setting && ownId.trim() ? [[setting, ownId.trim()] as [string, string]] : []),
         ...(tool === ASTERISK ? sourceSettings(method, get().source, localCountry(navigator.languages)) : []),
       ]
-      const run = () => get().start(tool, profile, onFinish ?? undefined, method)
+      const asked = get().run
+      // The saves take seconds: a second press, or a Cancel that forgot the password, must not start a run after them.
+      const still = () => get().run === asked && get().phase === "plan" && get().tool === tool
+      const run = () => {
+        if (still()) get().start(tool, profile, onFinish ?? undefined, method)
+      }
       const go = () => {
         if (saves.length === 0) return run()
         set({ planError: null })
@@ -602,11 +607,10 @@ export const useSignIn = create<SignInState>()((set, get) => {
       }
       const launch = tool === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go
       if (!useSandbox.getState().name) return launch()
-      const asked = get().run
       void useSandbox
         .getState()
         .confirmSignIn()
-        .then((ok) => ok && get().run === asked && get().phase === "plan" && launch())
+        .then((ok) => ok && still() && launch())
     },
     again() {
       const { tool, profile, onFinish, method, failure } = get()
