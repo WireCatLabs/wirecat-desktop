@@ -38,8 +38,11 @@ describe("Digests", () => {
     expect(today).toHaveTextContent("Anna Kotova · warehouse lease — Answer whether signing on Friday works")
     expect(today).toHaveTextContent("Kai Moreno asks: can the tile delivery move to the 20th?")
     expect(
-      screen.getByText(/Viewed over 24 hr: Telegram, MAX, mail \(4 inboxes\) · 31 chats, 12 emails, 17 tasks/),
+      screen.getByText(
+        /Viewed over 24 hr: Telegram, MAX, mail \(4 inboxes\), CRM \(2 accounts\) · 31 chats, 12 emails, 17 tasks/,
+      ),
     ).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "CRM" })).toHaveTextContent("Vector renewal: lost: price")
     expect(screen.getByText(/Telegram \(@ownerdemo\): sync fails since/)).toBeInTheDocument()
   })
 

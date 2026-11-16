@@ -3,7 +3,7 @@
 
 import { type DeepLinkTarget, formatLink, linkTargetOf, parseLink } from "./links"
 
-export const SECTION_ORDER = ["today", "decisions", "money", "meetings", "projects", "mail"] as const
+export const SECTION_ORDER = ["today", "decisions", "money", "meetings", "projects", "crm", "mail"] as const
 export type SectionKind = (typeof SECTION_ORDER)[number]
 
 export const SECTION_EMOJI: Record<SectionKind, string> = {
@@ -12,6 +12,7 @@ export const SECTION_EMOJI: Record<SectionKind, string> = {
   money: "💰",
   meetings: "📅",
   projects: "🚀",
+  crm: "🤝",
   mail: "📬",
 }
 export const HEALTH_EMOJI = "🛠"

@@ -1,5 +1,6 @@
 import type { Backfill, DigestBook, DigestItem, DigestSpec, OtherSchedule, RouteChoices, ScheduleRun } from "./bindings"
 import type { Digest, DigestDay } from "./digest-schemas"
+import { crmHealth, crmSection } from "./mock-crm-digest"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import type { Platform } from "./types"
@@ -149,8 +150,10 @@ const full = (date: string, summary: string) => ({
         },
       ],
     },
+    crmSection(Date.now()),
   ],
   health: [
+    ...crmHealth,
     {
       source: "Telegram",
       account: "@ownerdemo",
@@ -168,6 +171,7 @@ const full = (date: string, summary: string) => ({
       { kind: "telegram", accounts: 1 },
       { kind: "max", accounts: 1 },
       { kind: "mail", accounts: 4 },
+      { kind: "crm", accounts: 2 },
     ],
     counts: { chats: 31, mail: 12, tasks: 17, meetings: 0 },
   },

@@ -23,7 +23,7 @@ it("reads a source or channel kind it has no words for as none, not the whole re
     to: "2026-11-10T07:00:00Z",
     sources: [
       { kind: "telegram", accounts: 1 },
-      { kind: "crm", accounts: 1 },
+      { kind: "invoices", accounts: 1 },
     ],
     counts: { chats: 1, mail: 0, tasks: 0, meetings: 0 },
   }
