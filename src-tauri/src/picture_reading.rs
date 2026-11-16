@@ -61,6 +61,9 @@ fn memo() -> Result<(&'static Tool, &'static PictureReadingSource), String> {
     Ok((tool, src))
 }
 
+/// The command whose listing in `commands --json` opens the feature on a memo the catalog's version does not name.
+const COMMAND: &[&str] = &["models", "picture-reading", "show"];
+
 fn gate(src: &PictureReadingSource, version: Option<&str>) -> bool {
     src.min_version.as_deref().is_some_and(|need| !tools::older(version, need))
 }
@@ -137,7 +140,7 @@ fn ask(tool: &Tool, args: &[String]) -> Result<PictureReadingSetting, String> {
 pub fn status() -> Result<PictureReading, String> {
     let (tool, src) = memo()?;
     let version = tools::installed_version(tool);
-    if !gate(src, version.as_deref()) {
+    if !crate::command_tree::released_or_listed(tool, gate(src, version.as_deref()), COMMAND) {
         return Ok(PictureReading::Old { version, need: src.min_version.clone() });
     }
     Ok(PictureReading::Ready { setting: ask(tool, &src.show)? })
@@ -146,7 +149,7 @@ pub fn status() -> Result<PictureReading, String> {
 /// The owner chose in Settings; memo's answer is the whole new setting.
 pub fn set(mode: &str, agent: Option<&str>, model: Option<&str>) -> Result<PictureReadingSetting, String> {
     let (tool, src) = memo()?;
-    if !gate(src, tools::installed_version(tool).as_deref()) {
+    if !crate::command_tree::released_or_listed(tool, gate(src, tools::installed_version(tool).as_deref()), COMMAND) {
         return Err("This memo cannot read pictures yet. It comes with a memo update.".into());
     }
     ask(tool, &set_args(src, mode, agent, model)?)

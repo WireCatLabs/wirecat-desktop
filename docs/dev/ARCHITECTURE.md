@@ -341,7 +341,10 @@ src-tauri/src/
   cache.rs      what the app remembers about a tool's program while it runs (memory only).
   command_tree.rs what an installed tool can run, from its own `commands --json`, read once per installed version and
                 only when asked: a feature turns on when the tool lists its command, not by a version written by hand
-                (DEBT-340). `account remove` uses it when the catalog's version says no.
+                (DEBT-340). `released_or_listed` opens a feature when the catalog's version says no but the tool lists
+                its command: `account remove`, memo's `models local-only` and `models picture-reading`, drive's
+                `transcripts list`. Gates on an option or a changed answer (`--order`, `related:`, a field) keep their
+                catalog version, since `commands --json` lists commands, not what they print.
   tool_network.rs where an installed tool says its data goes: `network` in the package's own
                 `contracts/wirecat.json`, read from disk, never run. A tool that ships none declares nothing.
   window_size.rs the main window's first size, and its saved size and place restored.

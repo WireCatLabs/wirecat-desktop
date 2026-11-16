@@ -50,6 +50,12 @@ fn listed(tool: &Tool) -> Option<Paths> {
     paths
 }
 
+/// A feature gated by a catalog version opens too when the installed tool lists its command, so a release that ships
+/// it early or a catalog not yet bumped does not hide it (DEBT-340).
+pub fn released_or_listed(tool: &Tool, released: bool, path: &[&str]) -> bool {
+    released || has(tool, path) == Some(true)
+}
+
 /// `Some(true)` when the installed tool lists the command; `None` when it is not installed or lists nothing.
 pub fn has(tool: &Tool, path: &[&str]) -> Option<bool> {
     listed(tool).map(|paths| paths.contains(&path.join(" ")))

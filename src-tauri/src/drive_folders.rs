@@ -213,7 +213,11 @@ pub fn transcripts(tool: &Tool, profile: &str) -> Result<TranscriptsFound, Strin
     let src = source(tool)?;
     let found = src.transcripts.as_ref().ok_or_else(|| format!("{} cannot list meeting transcripts", tool.name))?;
     let argv = catalog::with_profile(&found.list, Some(profile))?;
-    if !released(tool, found.min_version.as_deref()) {
+    if !crate::command_tree::released_or_listed(
+        tool,
+        released(tool, found.min_version.as_deref()),
+        &["transcripts", "list"],
+    ) {
         return Ok(TranscriptsFound::Failed {
             message: TRANSCRIPTS_TOO_OLD.into(),
             code: Some(NEEDS_UPDATE.into()),

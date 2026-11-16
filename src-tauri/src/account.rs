@@ -172,7 +172,7 @@ pub fn supported(tool: &Tool) -> bool {
         .min_version
         .as_deref()
         .is_some_and(|min| !crate::tools::older(crate::tools::version_of(&bin).as_deref(), min));
-    released || crate::command_tree::has(tool, &["account", "remove"]) == Some(true)
+    crate::command_tree::released_or_listed(tool, released, &["account", "remove"])
 }
 
 /// `--dry-run` with `plan`, `--yes` without: the dialog shows the plan, and only its confirm runs the real one.

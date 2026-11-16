@@ -51,7 +51,7 @@ fn organization_ref(s: &str) -> Result<&str, String> {
     Ok(s)
 }
 
-fn items<'a>(section: &'a Value) -> impl Iterator<Item = &'a Value> {
+fn items(section: &Value) -> impl Iterator<Item = &Value> {
     section["items"].as_array().into_iter().flatten()
 }
 
