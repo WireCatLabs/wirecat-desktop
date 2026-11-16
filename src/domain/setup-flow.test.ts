@@ -9,6 +9,7 @@ import {
   DISPLAY_CLASSES,
   INPUT_KINDS,
   inline,
+  keptSecret,
   knownOf,
   markdown,
   nextOf,
@@ -17,6 +18,7 @@ import {
   pathAnswers,
   problemsHere,
   roleOf,
+  SETUP_LIMITS,
   type SetupDocument,
   textsOf,
   visibleFields,
@@ -88,9 +90,9 @@ describe("cli-core's setup-v1 fixture", () => {
 
 describe("the walk through pbx's flow", () => {
   const doc = flow(parseSetup(pbx))
-  const go = (from: string, answers: Record<string, unknown>, results = {}) => {
+  const go = (from: string, answers: Record<string, unknown>, results = {}, path = ["source", from]) => {
     const step = doc.steps[from]
-    return step ? nextOf(step, knownOf(doc, answers, results)) : undefined
+    return step ? nextOf(step, knownOf(doc, path, answers, results)) : undefined
   }
 
   it("branches on the answers and meets again at one shared step", () => {
@@ -131,19 +133,37 @@ describe("the walk through pbx's flow", () => {
 
   it("hides an input whose condition fails", () => {
     const csv = doc.steps.csv
-    const local = visibleFields(csv?.blocks, knownOf(doc, { files_from: "local" })).map((f) => f.id)
-    const remote = visibleFields(csv?.blocks, knownOf(doc, { files_from: "sftp" })).map((f) => f.id)
+    const path = ["source", "csv"]
+    const local = visibleFields(csv?.blocks, knownOf(doc, path, { files_from: "local" })).map((f) => f.id)
+    const remote = visibleFields(csv?.blocks, knownOf(doc, path, { files_from: "sftp" })).map((f) => f.id)
     expect(local).toEqual(["cdr_csv_path"])
     expect(remote).toEqual(["cdr_csv_path_remote"])
   })
 
   it("reads a profile's current value for a condition when nothing was typed", () => {
     const editing = { ...doc, values: { cdr_source: "csv", files_from: "local" } }
-    expect(nextOf(editing.steps.source as never, knownOf(editing, {}))).toBe("csv")
+    expect(nextOf(editing.steps.source as never, knownOf(editing, ["source"], {}))).toBe("csv")
+  })
+
+  it("reads in a condition only the answers on the path walked, as the CLI does", () => {
+    const answers = { cdr_source: "csv", files_from: "local", cdr_csv_path: "/var/log/Master.csv" }
+    const left = knownOf(doc, ["source", "database", "recordings"], { ...answers, cdr_source: "mysql" })
+    expect(left.field("cdr_csv_path")).toBeUndefined()
+    expect(left.field("cdr_source")).toBe("mysql")
+    expect(knownOf(doc, ["source", "csv"], answers).field("cdr_csv_path")).toBe("/var/log/Master.csv")
+  })
+
+  it("does not read a profile's value of a field the path has not reached", () => {
+    const editing = { ...doc, values: { db_host: "old.host" } }
+    expect(knownOf(editing, ["source"], {}).field("db_host")).toBeUndefined()
+    expect(knownOf(editing, ["source", "database"], { cdr_source: "mysql" }).field("db_host")).toBe("old.host")
   })
 
   it("shows a dry run's problems only for the step on screen", () => {
-    const fields = visibleFields(doc.steps.database?.blocks, knownOf(doc, { cdr_source: "mysql" }))
+    const fields = visibleFields(
+      doc.steps.database?.blocks,
+      knownOf(doc, ["source", "database"], { cdr_source: "mysql" }),
+    )
     const run = {
       valid: false,
       at: "database",
@@ -233,6 +253,33 @@ describe("the security rules", () => {
       why: "requires options_from",
     })
     expect(parseSetup({ ...copy(pbx), version: 2 }).kind).toBe("unsupported")
+  })
+
+  it("finds no step, text, value or answer by a name every object has", () => {
+    for (const name of ["constructor", "__proto__", "toString", "hasOwnProperty"]) {
+      const start = { ...copy(pbx), start: name }
+      expect(parseSetup(start).kind, name).toBe("unsupported")
+      const next = copy(pbx) as { steps: { csv: { next: unknown } } }
+      next.steps.csv.next = name
+      expect(parseSetup(next).kind, name).toBe("unsupported")
+      const doc = flow(parseSetup(pbx))
+      expect(textsOf(doc, "ru")(name)).toBe(name)
+      expect(textsOf(doc, name)("source.title")).toBe("Where are the call records?")
+    }
+    const titled = copy(pbx) as { steps: { source: { title: string } } }
+    titled.steps.source.title = "constructor"
+    expect(textsOf(flow(parseSetup(titled)), "en")("constructor")).toBe("constructor")
+    const field = { type: "input", id: "constructor", input: "text", label: "x", secret: "constructor" } as never
+    expect(keptSecret(field, {})).toBe(false)
+    const own = copy(pbx) as { steps: { source: { blocks: unknown[] } } }
+    own.steps.source.blocks.push(field)
+    expect(knownOf(flow(parseSetup(own)), ["source"], {}).field("constructor")).toBeUndefined()
+  })
+
+  it("measures the 256 KB limit on the document as the tool sent it", () => {
+    const big = copy(pbx) as { steps: { source: Record<string, unknown> } }
+    big.steps.source.padding = "x".repeat(SETUP_LIMITS.bytes)
+    expect(parseSetup(big)).toMatchObject({ kind: "unsupported", why: "the document is over 256 KB" })
   })
 
   it("draws a block type from a newer format as its fallback", () => {

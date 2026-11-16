@@ -25,7 +25,6 @@ const en = {
   checkFailed: "The tool could not check the answers. Try again; if it fails again, the details say why.",
   runFailed: "The check failed. Change what it names and continue again.",
   runEnded: "The check failed.",
-  update: (name: string) => `Update ${name} or WireCat to connect it here.`,
 }
 
 export type FlowText = typeof en
@@ -54,7 +53,6 @@ const ru: FlowText = {
   checkFailed: "Инструмент не смог проверить ответы. Попробуйте ещё раз; если не выйдет, причина в подробностях.",
   runFailed: "Проверка не прошла. Исправьте то, что в ней названо, и продолжите снова.",
   runEnded: "Проверка не прошла.",
-  update: (name) => `Обновите ${name} или WireCat, чтобы подключить его здесь.`,
 }
 
 const es: FlowText = {
@@ -82,7 +80,6 @@ const es: FlowText = {
     "La herramienta no pudo comprobar las respuestas. Vuelve a intentarlo; si falla otra vez, los detalles dicen por qué.",
   runFailed: "La comprobación falló. Corrige lo que indica y continúa de nuevo.",
   runEnded: "La comprobación falló.",
-  update: (name) => `Actualiza ${name} o WireCat para conectarla aquí.`,
 }
 
 export const flowMessages: Messages<FlowText> = { en, ru, es }

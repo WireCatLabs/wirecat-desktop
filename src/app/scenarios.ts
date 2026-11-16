@@ -127,6 +127,9 @@ export async function runMockScenario() {
   // `&setup-answers=cdr_source:mysql,phone_region:ES+RU` (`+` makes a list); `check` goes on into the run.
   const setup = params.get("setup")
   if (setup) {
+    // No pbx release describes its flow yet, so the catalog names no version; this load stands for the one that does.
+    const entry = findTool(setup)
+    if (entry?.signIn) entry.signIn = { ...entry.signIn, setupFrom: "0.0.0" }
     await useTools.getState().refresh()
     useSignIn.getState().start(setup, "personal")
     const step = params.get("setup-step")

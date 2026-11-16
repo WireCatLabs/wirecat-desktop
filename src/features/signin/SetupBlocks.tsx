@@ -31,6 +31,7 @@ import {
   type Known,
   keptSecret,
   markdown,
+  own,
   roleOf,
   type SetupDocument,
   shown,
@@ -199,7 +200,7 @@ const NOTE_ICONS: Record<string, LucideIcon> = {
 }
 
 function Note({ role = "info", text, view }: { role: string | undefined; text: string; view: FlowView }) {
-  const Icon = NOTE_ICONS[role] ?? Info
+  const Icon = own(NOTE_ICONS, role) ?? Info
   const box =
     role === "danger"
       ? noticeBox("bad")
@@ -230,9 +231,9 @@ function Picture({
   height: string
 }) {
   const m = useMessages(flowMessages)
-  const src = view.images[block.asset]
+  const src = own(view.images, block.asset)
   const alt = view.t(block.alt)
-  const size = view.doc.assets?.[block.asset]
+  const size = own(view.doc.assets, block.asset)
   return (
     <figure className={cx("flex min-w-0 flex-col items-start gap-1.5", classes)}>
       {src && IMAGE_URL.test(src) ? (
@@ -328,7 +329,7 @@ function FieldFrame({
   label?: boolean
 }) {
   const m = useMessages(flowMessages)
-  const problem = view.problems[field.id]
+  const problem = own(view.problems, field.id)
   const said = problem === "is needed" ? m.needed : problem
   const hint = field.hint ? view.t(field.hint) : null
   const kept = keptSecret(field, view.doc.values) ? m.keepSecret : null
@@ -351,7 +352,7 @@ function FieldFrame({
 }
 
 const ariaOf = (id: string, field: Field, view: FlowView) => {
-  const invalid = view.problems[field.id] !== undefined
+  const invalid = own(view.problems, field.id) !== undefined
   const said = [invalid ? `${id}-error` : null, field.hint || keptSecret(field, view.doc.values) ? `${id}-hint` : null]
   return {
     "aria-invalid": invalid || undefined,
@@ -366,7 +367,7 @@ function InputField({ field, view }: { field: InputBlock; view: FlowView }) {
   const id = useId()
   const m = useMessages(flowMessages)
   const lang = useLang()
-  const value = view.answers[field.id]
+  const value = own(view.answers, field.id)
   const aria = ariaOf(id, field, view)
   const placeholder = field.placeholder ? view.t(field.placeholder) : undefined
   const set = (next: unknown) => view.answer(field.id, next)
@@ -528,7 +529,7 @@ function ListPicker({ field, view, id, lang }: { field: InputBlock; view: FlowVi
           empty={m.noCountry}
           search
           options={options}
-          selected={asList(view.answers[field.id])}
+          selected={asList(own(view.answers, field.id))}
           onChange={(values) => view.answer(field.id, values)}
         />
       </div>
@@ -575,8 +576,8 @@ function PickPath({ folder, accept, onPick }: { folder: boolean; accept: string[
 function Choice({ field, view }: { field: ChoiceBlock; view: FlowView }) {
   const name = useId()
   const m = useMessages(flowMessages)
-  const value = view.answers[field.id]
-  const problem = view.problems[field.id]
+  const value = own(view.answers, field.id)
+  const problem = own(view.problems, field.id)
   const many = field.options.length
   return (
     <fieldset className="flex flex-col gap-2 border-0 p-0" {...ariaOf(name, field, view)}>
@@ -584,7 +585,7 @@ function Choice({ field, view }: { field: ChoiceBlock; view: FlowView }) {
       <div className={cx("grid gap-2", many >= 3 ? "sm:grid-cols-3" : many === 2 ? "sm:grid-cols-2" : "")}>
         {field.options.map((option) => {
           const id = `${name}-${option.value}`
-          const Icon = option.icon ? ICONS[option.icon] : undefined
+          const Icon = option.icon ? own(ICONS, option.icon) : undefined
           return (
             <label
               key={option.value}

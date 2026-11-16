@@ -99,6 +99,13 @@ export const DISPLAY_CLASSES: Readonly<Record<string, string>> = {
   "cols-3": "grid sm:grid-cols-3",
 }
 
+/**
+ * A record's own entry by a name from the document. A plain `record[name]` also finds what every object has
+ * (`constructor`, `toString`), and the document may use those names.
+ */
+export const own = <T>(record: Readonly<Record<string, T>> | null | undefined, name: string): T | undefined =>
+  record && Object.hasOwn(record, name) ? record[name] : undefined
+
 /** Desktop's classes for a block's reserved names; anything else is dropped. */
 export const classesOf = (names: readonly string[] | undefined): string =>
   (names ?? [])
@@ -114,7 +121,7 @@ const ROLES: Partial<Record<string, readonly string[]>> = {
 
 /** A role Desktop does not know is drawn as the type's default. */
 export const roleOf = (type: string, role: string | undefined): string | undefined =>
-  role !== undefined && ROLES[type]?.includes(role) ? role : undefined
+  role !== undefined && own(ROLES, type)?.includes(role) ? role : undefined
 
 const id = (pattern: RegExp) => v.pipe(v.string(), v.regex(pattern))
 const textId = id(PATTERNS.text)
@@ -316,8 +323,18 @@ export type Parsed =
   /** A flow this renderer cannot draw whole: the dialog keeps the tool's hand-made form, or asks for an update. */
   | { kind: "unsupported"; why: string }
 
+const bytesOf = (raw: unknown) => {
+  try {
+    return new TextEncoder().encode(JSON.stringify(raw) ?? "").length
+  } catch {
+    return Number.POSITIVE_INFINITY
+  }
+}
+
 /** The document checked against the format and the limits, then against what this renderer can draw. */
 export function parseSetup(raw: unknown): Parsed {
+  // Measured as the tool sent it: parsing drops what v1 does not draw, which would hide any size in it.
+  if (bytesOf(raw) > SETUP_LIMITS.bytes) return { kind: "unsupported", why: "the document is over 256 KB" }
   const parsed = v.safeParse(DocumentSchema, raw)
   if (!parsed.success) {
     const issue = parsed.issues[0]
@@ -325,13 +342,12 @@ export function parseSetup(raw: unknown): Parsed {
   }
   const doc = parsed.output
   const unsupported = (why: string): Parsed => ({ kind: "unsupported", why })
-  if (JSON.stringify(doc).length > SETUP_LIMITS.bytes) return unsupported("the document is over 256 KB")
   const steps = Object.entries(doc.steps)
   if (steps.length > SETUP_LIMITS.steps) return unsupported(`more than ${SETUP_LIMITS.steps} steps`)
-  if (!doc.steps[doc.start]) return unsupported(`start names no step: ${doc.start}`)
+  if (!own(doc.steps, doc.start)) return unsupported(`start names no step: ${doc.start}`)
   for (const feature of doc.requires ?? []) if (!FEATURES.has(feature)) return unsupported(`requires ${feature}`)
   for (const [name, step] of steps) {
-    for (const target of targetsOf(step)) if (!doc.steps[target]) return unsupported(`${name} leads to no step`)
+    for (const target of targetsOf(step)) if (!own(doc.steps, target)) return unsupported(`${name} leads to no step`)
     if (step.kind === "run" && !RUN_ACTIONS.has(step.action ?? ""))
       return unsupported(`${name} runs ${step.action ?? "nothing"}, not a built-in action`)
     const conditions = [
@@ -376,13 +392,6 @@ export const visibleFields = (blocks: readonly Block[] = [], known: Known): Fiel
     return block.type === "input" || block.type === "choice" ? [block as Field] : []
   })
 
-const allFields = (doc: SetupDocument): Field[] =>
-  Object.values(doc.steps).flatMap((step) =>
-    blocksOf(step.blocks).flatMap(({ block }) =>
-      block.type === "input" || block.type === "choice" ? [block as Field] : [],
-    ),
-  )
-
 export const nextOf = (step: Step, known: Known): string | undefined => {
   if (typeof step.next === "string") return step.next
   return step.next?.find((edge) => !edge.when || holds(edge.when, known))?.to
@@ -397,13 +406,14 @@ export const blank = (value: unknown) =>
 /** A secret the profile already keeps: its field starts empty, and empty means "keep it". */
 export const keptSecret = (field: Field, current: Current = {}) => {
   const secret = secretOf(field)
-  return secret !== undefined && typeof current[secret] === "object" && current[secret] !== null
+  const kept = secret === undefined ? undefined : own(current, secret)
+  return typeof kept === "object" && kept !== null && !Array.isArray(kept)
 }
 
 /** The profile's current value of a field, never a secret's. */
 export const currentOf = (field: Field, current: Current = {}): Value | undefined => {
   if (field.setting === undefined) return undefined
-  const value = current[field.setting]
+  const value = own(current, field.setting)
   return value === undefined || (typeof value === "object" && !Array.isArray(value)) ? undefined : (value as Value)
 }
 
@@ -421,22 +431,39 @@ const coerce = (field: Field, raw: unknown): unknown => {
 
 export type Answers = Readonly<Record<string, unknown>>
 
-/** `field` conditions read the answer, else the profile's current value; a result reads the run on this path. */
+/**
+ * What conditions read, as cli-core's walk does: a field counts only once a step of `path` has shown it, so an answer
+ * on a branch the owner left, or a profile's value of a field not reached yet, reads as unset. A result reads the run.
+ */
 export const knownOf = (
   doc: SetupDocument,
+  path: readonly string[],
   answers: Answers,
   results: Readonly<Record<string, Outcome>> = {},
 ): Known => {
-  const fields = new Map(allFields(doc).map((f) => [f.id, f]))
-  return {
+  const fields = new Map<string, Field>()
+  const known: Known = {
     field: (name) => {
       const field = fields.get(name)
       if (!field) return undefined
-      const value = coerce(field, answers[name])
+      const value = coerce(field, own(answers, name))
       return value !== undefined ? value : currentOf(field, doc.values)
     },
-    result: (name) => results[name],
+    result: (name) => own(results, name),
   }
+  for (const name of path) {
+    const step = own(doc.steps, name)
+    if (!step || (step.kind ?? "form") !== "form") continue
+    // A field's answer can show another field of the same step: read until what is shown stops changing.
+    let shownBefore = -1
+    for (let round = 0; round < 5; round++) {
+      const now = visibleFields(step.blocks, known)
+      for (const field of now) fields.set(field.id, field)
+      if (now.length === shownBefore) break
+      shownBefore = now.length
+    }
+  }
+  return known
 }
 
 /**
@@ -450,13 +477,12 @@ export function pathAnswers(
   secrets: ReadonlyMap<string, string>,
   results: Readonly<Record<string, Outcome>> = {},
 ): Record<string, unknown> {
-  const known = knownOf(doc, answers, results)
   const sent: Record<string, unknown> = {}
-  for (const name of visited) {
-    const step = doc.steps[name]
+  for (const [i, name] of visited.entries()) {
+    const step = own(doc.steps, name)
     if (!step || (step.kind ?? "form") !== "form") continue
-    for (const field of visibleFields(step.blocks, known)) {
-      const value = isPassword(field) ? secrets.get(field.id) : coerce(field, answers[field.id])
+    for (const field of visibleFields(step.blocks, knownOf(doc, visited.slice(0, i + 1), answers, results))) {
+      const value = isPassword(field) ? secrets.get(field.id) : coerce(field, own(answers, field.id))
       if (!blank(value)) sent[field.id] = value
     }
   }
@@ -465,13 +491,13 @@ export function pathAnswers(
 
 /** Text ids in the app's language, English when the language lacks one; `{name}` takes the block's params. */
 export function textsOf(doc: SetupDocument, lang: string) {
-  const own = (doc.texts as Record<string, Record<string, string>>)[lang] ?? {}
+  const texts = own(doc.texts as Record<string, Record<string, string>>, lang)
   return (textId: string | undefined, values: Record<string, string> = {}) =>
     textId === undefined
       ? ""
-      : (own[textId] ?? doc.texts.en[textId] ?? textId).replace(
+      : (own(texts, textId) ?? own(doc.texts.en, textId) ?? textId).replace(
           /\{([a-z][a-z0-9_]*)\}/g,
-          (all: string, name: string) => values[name] ?? all,
+          (all: string, name: string) => own(values, name) ?? all,
         )
 }
 

@@ -371,7 +371,7 @@ pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &
     for name in &prepared.unset {
         cmd.env_remove(name);
     }
-    let mut parser = Parser::default();
+    let mut parser = if prepared.first.is_some() { Parser::setup() } else { Parser::default() };
     let mut outcome = None;
     let k = key(&tool.id);
     let result = run::stream_stoppable(

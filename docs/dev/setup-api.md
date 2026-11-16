@@ -17,27 +17,35 @@ Rust runs only these, as argument lists, with the profile the owner chose (`src-
 <bin> {profile} setup run apply --json --answer-stdin   answers on stdin's first line; steps as a sign-in's
 ```
 
+- **Who is asked:** only a tool whose catalog entry names `signIn.setupFrom`, the first version that describes its flow,
+  and only when the installed version is that one or newer (or unknown). Every other tool opens its hand-made form at
+  once, with no process started.
 - **A tool from before the format** refuses `setup show` with "unknown command". The dialog keeps its hand-made form
   (`signIn.methods` in the catalog). So does a document that does not parse, or that needs a run action other than
   `apply`, `options_from`, or a feature in `requires` this renderer lacks.
 - **The dry run** walks the answers from the start and stops at the first step with a problem, naming it in `at`. The
-  dialog sends the answers up to the step on screen and marks only that step's inputs; a stop further on means the
-  step passed.
-- **The run** prints the steps of the [sign-in API](signin-api.md) on stderr and the usual envelope on stdout
-  (`item.outcome: "ok"`), or the error object. A `needs` step is answered with `sign_in_answer`, as in a sign-in, and
+  dialog sends the answers up to the step on screen. A stop on this step or one before it keeps the owner here: the
+  refusals of fields shown here mark those fields and take focus, and any other refusal shows in the tool's words above
+  the step. A stop further on means the step passed.
+- **Conditions** read only the fields shown on the steps visited so far, as cli-core's walk does: an answer on a branch
+  the owner left, or a profile's value of a field not reached yet, reads as unset.
+- **The run** prints the steps of the [sign-in API](signin-api.md) on stderr and the usual envelope on stdout, or the
+  error object. Only `item.outcome: "ok"` counts as saved; any other answer is a failure. A `needs` step is answered with `sign_in_answer`, as in a sign-in, and
   a setup run never runs beside a sign-in of the same tool.
 
 ## What Desktop trusts
 
-Nothing in the document. The interface parses it with valibot (`src/domain/setup-flow.ts`) and keeps only what v1
+Nothing in the document. Every lookup by a name from it (a step, a text, an asset, an icon, an answer) reads only the
+record's own entries, so `constructor` or `toString` finds nothing. A flow that still breaks while drawn falls back to
+the hand-made form, and the window stays. The interface parses it with valibot (`src/domain/setup-flow.ts`) and keeps only what v1
 draws; unknown keys, such as each setting's JSON Schema, are dropped.
 
-- **Size:** at most 256 KB, 60 steps, groups and conditions each at most 8 deep, 100 moves per walk.
+- **Size:** at most 256 KB as the tool sent it (before unknown keys are dropped), 60 steps, groups and conditions each at most 8 deep, 100 moves per walk.
 - **Style:** a block's `role` from a closed list per type, and the reserved `class` names, each mapped to a literal
   class of the app's design tokens. Any other name is ignored and never reaches CSS.
 - **Text:** restricted Markdown. React escapes every string, so raw HTML stays text; an image in Markdown stays text.
-- **Links:** `https` only, to `wirecat.dev`, `github.com/WireCatLabs` or a domain in the tool's catalog entry
-  (`signIn.links`). No user, password or port. Any other link is drawn as text.
+- **Links:** `https` only, to `wirecat.dev`, `github.com/WireCatLabs` or a domain in a built-in tool's catalog entry
+  (`signIn.links`). A community or own entry's list is ignored: a domain is trusted only through Desktop's review. No user, password or port. Any other link is drawn as text.
 - **Images:** only from the tool's own package, read by Rust: the asset's path matches the format's pattern, stays
   inside the package once links are followed, is at most 2 MB and is a PNG, JPEG or WebP by its first bytes, never
   SVG. The interface draws only a `data:` URL of those three types.
@@ -56,6 +64,7 @@ dialog leaves them to the hand-made form.
 
 ## In the browser build
 
-`?setup=pbx` makes pbx describe cli-core's example flow (`src/platform/mock-setup.ts`). `&setup-values=1` edits a
+`?setup=pbx` makes pbx describe cli-core's example flow (`src/platform/mock-setup.ts`), with complete Russian texts
+(`mock-setup-texts.ts`), since the fixture's own Russian is partial. `&setup-values=1` edits a
 profile with a kept password; `&setup-step=<step>&setup-answers=cdr_source:mysql,phone_region:ES` opens on a step
 (`check` goes on into the run); `?setup-fail=auth|network` fails the run.

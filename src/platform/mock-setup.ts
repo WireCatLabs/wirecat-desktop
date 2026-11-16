@@ -10,6 +10,7 @@ import {
 import pbx from "@/domain/setup-v1/pbx.json"
 import { CommandError, TOO_OLD } from "./command-error"
 import { delay } from "./mock-delay"
+import { PBX_RU } from "./mock-setup-texts"
 import type { Platform } from "./types"
 
 // A tool that describes its own connection flow (the setup format v1). `?setup=pbx` makes pbx answer `setup show` with
@@ -72,7 +73,6 @@ function sampleScreen(): string | null {
 
 /** The walk `setup apply --dry-run` makes: the first visited step with an empty required input stops it. */
 function dryRun(doc: SetupDocument, answers: Record<string, unknown>) {
-  const known = knownOf(doc, answers)
   const path: string[] = []
   let at: string | undefined = doc.start
   for (let moves = 0; at !== undefined && moves < SETUP_LIMITS.transitions; moves++) {
@@ -80,6 +80,7 @@ function dryRun(doc: SetupDocument, answers: Record<string, unknown>) {
     if (!step) break
     path.push(at)
     if (step.kind === "run" || step.kind === "done") return { valid: true, complete: true, at, path, errors: [] }
+    const known = knownOf(doc, path, answers)
     const errors = visibleFields(step.blocks, known)
       .filter((f) => blank(answers[f.id]) && !f.optional && f.default === undefined)
       .filter((f) => !(f.type === "input" && f.input === "toggle"))
@@ -97,8 +98,9 @@ export function setupMock(): Pick<Platform, "setupShow" | "setupCheck" | "setupP
       await delay(300)
       if (described !== id || id !== "pbx") throw new CommandError(TOO_OLD, "unknown command 'setup'")
       const image = sampleScreen()
+      const document = { ...pbx, texts: { ...pbx.texts, ru: PBX_RU } }
       return {
-        document: editing ? { ...pbx, values: VALUES } : pbx,
+        document: editing ? { ...document, values: VALUES } : document,
         images: image ? { "freepbx-cdr": image } : {},
       }
     },

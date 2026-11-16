@@ -34,6 +34,7 @@ export function useSetupDocument(tool: string | null, profile: string | null, op
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: 0,
   })
+  if (tool === null) return { kind: "hand", why: "the tool describes no flow of its own" }
   if (q.data) return q.data
   return opening ? { kind: "loading" } : { kind: "hand", why: "a run of the hand-made form" }
 }

@@ -8,6 +8,7 @@ import {
   knownOf,
   nextOf,
   type Outcome,
+  own,
   pathAnswers,
   problemsHere,
   SETUP_LIMITS,
@@ -52,7 +53,8 @@ type FlowState = {
   walkTo(step: string, answers: Record<string, unknown>): void
 }
 
-export type Notice = { kind: "stuck" } | { kind: "check" | "run"; text: string }
+/** `refused`: the tool's own words on answers it would not take, shown as they are. */
+export type Notice = { kind: "stuck" } | { kind: "check" | "run" | "refused"; text: string }
 
 const START = {
   doc: null,
@@ -68,7 +70,7 @@ const START = {
 }
 
 const fieldsOf = (doc: SetupDocument, step: string): Field[] =>
-  blocksOf(doc.steps[step]?.blocks).flatMap(({ block }) =>
+  blocksOf(own(doc.steps, step)?.blocks).flatMap(({ block }) =>
     block.type === "input" || block.type === "choice" ? [block as Field] : [],
   )
 
@@ -76,7 +78,7 @@ const fieldsOf = (doc: SetupDocument, step: string): Field[] =>
 const seeded = (doc: SetupDocument, step: string, answers: Record<string, unknown>) => {
   const out = { ...answers }
   for (const field of fieldsOf(doc, step)) {
-    if (out[field.id] !== undefined || (field.type === "input" && field.input === "password")) continue
+    if (own(out, field.id) !== undefined || (field.type === "input" && field.input === "password")) continue
     const value = currentOf(field, doc.values) ?? field.default
     if (value !== undefined) out[field.id] = typeof value === "number" ? String(value) : value
   }
@@ -90,27 +92,31 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
   const enter = (to: string | undefined, notice: Notice | null = null, confirmed = false) => {
     const { doc, at, history, answers, moves } = get()
     if (!doc) return
-    if (to === undefined || !doc.steps[to] || moves + 1 >= SETUP_LIMITS.transitions)
+    const target = to === undefined ? undefined : own(doc.steps, to)
+    if (to === undefined || !target || moves + 1 >= SETUP_LIMITS.transitions)
       return set({ notice: { kind: "stuck" }, checking: false })
     // A test copy asks before the run, as the hand-made form's Start does: the run signs a real account in.
-    if (doc.steps[to]?.kind === "run" && !confirmed && useSandbox.getState().name) {
+    if (target.kind === "run" && !confirmed && useSandbox.getState().name) {
       void useSandbox
         .getState()
         .confirmSignIn()
         .then((ok) => (ok && get().doc === doc && get().at === at ? enter(to, notice, true) : set({ checking: false })))
       return
     }
+    // A step met again, as a failed run's edge back to the password, cuts the history to its last visit: Back from
+    // it goes where Back went before, not to the steps after it.
+    const again = history.lastIndexOf(to)
     set({
       at: to,
-      history: [...history, at],
+      history: again >= 0 ? history.slice(0, again) : [...history, at],
       answers: seeded(doc, to, answers),
       problems: {},
       notice,
       checking: false,
       moves: moves + 1,
     })
-    const step = doc.steps[to]
-    if (step?.kind !== "run") return
+    const step = target
+    if (step.kind !== "run") return
     const sent = JSON.stringify(pathAnswers(doc, get().history, get().answers, secrets, get().results))
     secrets.clear()
     const name = step.result ?? to
@@ -121,7 +127,7 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
       const results = { ...flow.results, [name]: outcome }
       set({ results })
       enter(
-        nextOf(step, knownOf(doc, flow.answers, results)),
+        nextOf(step, knownOf(doc, [...flow.history, to], flow.answers, results)),
         e.event === "failed" ? { kind: "run", text: e.message } : null,
       )
     })
@@ -143,7 +149,7 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
     async next() {
       const { doc, at, checking } = get()
       const { tool, profile } = useSignIn.getState()
-      const step = doc?.steps[at]
+      const step = own(doc?.steps, at)
       if (!doc || !step || checking || !tool || !profile) return
       set({ checking: true, notice: null })
       const answers = pathAnswers(doc, visited(), get().answers, secrets, get().results)
@@ -156,15 +162,23 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
         return
       }
       if (get().doc !== doc || get().at !== at) return
-      const known = knownOf(doc, get().answers, get().results)
-      const problems = problemsHere(checked, visibleFields(step.blocks, known))
-      if (Object.keys(problems).length > 0) return set((s) => ({ checking: false, problems, refusals: s.refusals + 1 }))
-      // A stop on a step before this one would mean an answer there changed under it; say so rather than move on.
-      if (!checked.valid && checked.at !== at && visited().includes(checked.at))
-        return set({
+      const known = knownOf(doc, visited(), get().answers, get().results)
+      const fields = visibleFields(step.blocks, known)
+      // The tool stopped here or on a step before: never past it, whether or not its errors name a field shown here.
+      if (!checked.valid && visited().includes(checked.at)) {
+        const problems = checked.at === at ? problemsHere(checked, fields) : {}
+        const named = new Set(Object.keys(problems))
+        const rest = checked.errors.filter((e) => !named.has(e.input))
+        return set((s) => ({
           checking: false,
-          notice: { kind: "check", text: checked.errors.map((e) => `${e.input} ${e.message}`).join("; ") },
-        })
+          problems,
+          refusals: named.size > 0 ? s.refusals + 1 : s.refusals,
+          notice:
+            rest.length > 0 || named.size === 0
+              ? { kind: "refused", text: rest.map((e) => `${e.input} ${e.message}`).join("; ") || checked.at }
+              : null,
+        }))
+      }
       enter(nextOf(step, known))
     },
     back() {
@@ -173,7 +187,7 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
       // A run step is never entered by going back: it would run again by itself.
       const kept = [...history]
       let to = kept.pop()
-      while (to !== undefined && doc.steps[to]?.kind === "run") to = kept.pop()
+      while (to !== undefined && own(doc.steps, to)?.kind === "run") to = kept.pop()
       if (to === undefined) return
       set({ at: to, history: kept, problems: {}, notice: null, checking: false })
     },
@@ -182,9 +196,10 @@ export const useSetupFlow = create<FlowState>()((set, get) => {
       if (!doc) return
       set({ answers: { ...get().answers, ...answers } })
       for (let i = 0; i < SETUP_LIMITS.transitions && get().at !== step; i++) {
-        const here: SetupDocument["steps"][string] | undefined = doc.steps[get().at]
-        const to = here && nextOf(here, knownOf(doc, get().answers, get().results))
-        if (!to || doc.steps[to]?.kind === "run") break
+        const here: SetupDocument["steps"][string] | undefined = own(doc.steps, get().at)
+        const path = [...get().history, get().at]
+        const to = here && nextOf(here, knownOf(doc, path, get().answers, get().results))
+        if (!to || own(doc.steps, to)?.kind === "run") break
         set((s) => ({ at: to, history: [...s.history, s.at], answers: seeded(doc, to, s.answers) }))
       }
     },
@@ -198,7 +213,7 @@ const omit = (record: Record<string, string>, key: string) => {
 
 /** Whether Back leads anywhere from the step on screen: a step may forbid it, and a done step allows it only by name. */
 export const canGoBack = (s: Pick<FlowState, "doc" | "at" | "history">) => {
-  const step = s.doc?.steps[s.at]
-  if (!step || !s.history.some((h) => s.doc?.steps[h]?.kind !== "run")) return false
+  const step = own(s.doc?.steps, s.at)
+  if (!step || !s.history.some((h) => own(s.doc?.steps, h)?.kind !== "run")) return false
   return step.kind === "done" ? step.back === true : step.back !== false
 }

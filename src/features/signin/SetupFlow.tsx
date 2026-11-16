@@ -1,7 +1,7 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useRef } from "react"
-import { findTool } from "@/domain/catalog"
-import { knownOf, type SetupDocument, textsOf } from "@/domain/setup-flow"
+import { type CatalogTool, findTool, isCommunity, isOwn } from "@/domain/catalog"
+import { knownOf, own, type SetupDocument, textsOf } from "@/domain/setup-flow"
 import { useLang, useMessages } from "@/i18n"
 import { running, useSignIn } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -36,19 +36,25 @@ export function SetupFlowDialog({ doc, images }: { doc: SetupDocument; images: R
   useEffect(() => () => forgetSecrets(), [])
   // The first field the tool refused takes focus, so the owner lands on what to fix.
   useEffect(() => {
-    if (flow.refusals > 0) body.current?.querySelector<HTMLElement>("[aria-invalid='true']")?.focus()
+    if (flow.refusals === 0) return
+    const invalid = body.current?.querySelector<HTMLElement>("[aria-invalid='true']")
+    // A choice or a country list marks its group, which takes no focus: its first radio or its button does.
+    const target = invalid?.matches("input, select, textarea, button")
+      ? invalid
+      : invalid?.querySelector<HTMLElement>("input:not([disabled]), button:not([disabled]), select, textarea")
+    target?.focus()
   }, [flow.refusals])
 
-  const step = flow.doc === doc ? doc.steps[flow.at] : undefined
+  const step = flow.doc === doc ? own(doc.steps, flow.at) : undefined
   const t = textsOf(doc, lang)
   const view: FlowView = {
     doc,
     images,
     t,
-    known: knownOf(doc, flow.answers, flow.results),
+    known: knownOf(doc, [...flow.history, flow.at], flow.answers, flow.results),
     answers: flow.answers,
     problems: flow.problems,
-    domains: tool?.signIn?.links ?? [],
+    domains: tool && builtIn(tool) ? (tool.signIn?.links ?? []) : [],
     answer: flow.answer,
     secret: flow.secret,
   }
@@ -80,6 +86,7 @@ export function SetupFlowDialog({ doc, images }: { doc: SetupDocument; images: R
 function NoticeView({ notice, ended }: { notice: Notice; ended: boolean }) {
   const m = useMessages(flowMessages)
   if (notice.kind === "stuck") return <ErrorNotice>{m.stuck}</ErrorNotice>
+  if (notice.kind === "refused") return <ErrorNotice>{notice.text}</ErrorNotice>
   return (
     <ErrorNotice raw={notice.text}>
       {notice.kind === "check" ? m.checkFailed : ended ? m.runEnded : m.runFailed}
@@ -87,11 +94,14 @@ function NoticeView({ notice, ended }: { notice: Notice; ended: boolean }) {
   )
 }
 
+/** Compiled into Desktop, so its catalog entry went through Desktop's review. */
+const builtIn = (tool: CatalogTool) => !isOwn(tool) && !isCommunity(tool) && tool.source !== "community"
+
 function FlowActions() {
   const s = useSignIn()
   const flow = useSetupFlow()
   const m = useMessages(flowMessages)
-  const step = flow.doc?.steps[flow.at]
+  const step = own(flow.doc?.steps, flow.at)
   if (!step) return null
   const back = canGoBack(flow) ? <BackButton onClick={flow.back} /> : null
   if (step.kind === "run")

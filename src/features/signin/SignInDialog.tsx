@@ -1,13 +1,15 @@
 import { Bot, Terminal } from "lucide-react"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { readMailNotes } from "@/domain/mail-signin"
 import { keyringFallback } from "@/domain/signin-notes"
+import { isNewer } from "@/domain/status"
 import { telegramNote } from "@/domain/telegram-signin"
 import { useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useBotSignIn } from "@/shared/bot-signin-store"
+import { recordError } from "@/shared/errors"
 import { botMessages } from "@/shared/messages-bot"
 import {
   BITRIX,
@@ -18,6 +20,7 @@ import {
   running,
   useSignIn,
 } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
@@ -49,11 +52,41 @@ export function SignInDialog() {
   const { tool, profile, phase, setup } = useSignIn(
     useShallow((s) => ({ tool: s.tool, profile: s.profile, phase: s.phase, setup: s.setup })),
   )
+  const installed = useTools((s) => (tool ? s.installs[tool]?.[0]?.version : undefined))
+  const from = tool ? findTool(tool)?.signIn?.setupFrom : undefined
+  // Only a tool whose catalog entry names the version that describes its flow is asked; an unknown installed version is
+  // asked too, and an older one refuses with "unknown command" anyway.
+  const describes = from !== undefined && (!installed || !isNewer(from, installed))
   // Asked only when the dialog opens on its plan: a retry or a switch of method is the hand-made form's own.
-  const flow = useSetupDocument(tool, profile, phase === "plan" || setup)
-  if (flow.kind === "flow") return <SetupFlowDialog doc={flow.document} images={flow.images} />
+  const flow = useSetupDocument(describes ? tool : null, profile, phase === "plan" || setup)
+  if (flow.kind === "flow")
+    return (
+      <FlowBoundary key={`${tool}:${profile}`} fallback={<HandMadeSignIn />}>
+        <SetupFlowDialog doc={flow.document} images={flow.images} />
+      </FlowBoundary>
+    )
   if (flow.kind === "loading") return <SetupLoading />
   return <HandMadeSignIn />
+}
+
+/**
+ * A flow comes from the tool's package: if drawing it breaks, the break stays in the sign-in, which falls back to the
+ * hand-made form, and the window around it keeps working. The error goes to the app's log.
+ */
+class FlowBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { broke: boolean }> {
+  override state = { broke: false }
+
+  static getDerivedStateFromError() {
+    return { broke: true }
+  }
+
+  override componentDidCatch(error: Error, info: ErrorInfo) {
+    recordError("render", error, `${error.stack ?? ""}\n${info.componentStack ?? ""}`.trim())
+  }
+
+  override render() {
+    return this.state.broke ? this.props.fallback : this.props.children
+  }
 }
 
 /**

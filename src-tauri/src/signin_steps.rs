@@ -73,12 +73,18 @@ pub const NEEDS_UPDATE: &str = "needs_update";
 pub struct Parser {
     scan: Option<String>,
     url: Option<String>,
+    /// A setup flow's `apply` run: its answer counts only with `outcome: "ok"`, as the setup format says.
+    setup: bool,
 }
 
 impl Parser {
+    pub fn setup() -> Self {
+        Self { setup: true, ..Self::default() }
+    }
+
     pub fn read(&mut self, line: Line) -> Option<SignInEvent> {
         match line {
-            Line::Out(l) => answer(&l),
+            Line::Out(l) => answer(&l, self.setup),
             Line::Err(l) => self.diagnostic(&l),
         }
     }
@@ -163,9 +169,16 @@ fn is_drawing(line: &str) -> bool {
     line.chars().all(|c| matches!(c, '█' | '▀' | '▄' | ' '))
 }
 
-fn answer(line: &str) -> Option<SignInEvent> {
+fn answer(line: &str, setup: bool) -> Option<SignInEvent> {
     let value: Value = serde_json::from_str(line.trim()).ok()?;
     let item = &value["item"];
+    if setup && item.is_object() && item["outcome"] != "ok" {
+        return Some(SignInEvent::Failed {
+            message: "The tool did not confirm that the settings were saved.".into(),
+            code: item["code"].as_str().map(str::to_string),
+            reason: None,
+        });
+    }
     if item.is_object() {
         let count = |k: &str| item["received"][k].as_u64().unwrap_or(0);
         let received = item["received"].is_object().then(|| Received {
@@ -344,6 +357,19 @@ mod tests {
                 SignInEvent::Progress { step: "login".into(), message: Some("logging in".into()) },
             ]
         );
+    }
+
+    #[test]
+    fn a_setup_run_succeeds_only_on_the_outcome_ok() {
+        let mut setup = Parser::setup();
+        let ok = r#"{"item":{"outcome":"ok","profile":"office","saved":["db_host"]}}"#;
+        assert!(matches!(setup.read(Line::Out(ok.into())), Some(SignInEvent::Done { .. })));
+        for other in [r#"{"item":{"profile":"office"}}"#, r#"{"item":{"outcome":"error","profile":"office"}}"#] {
+            let read = Parser::setup().read(Line::Out(other.into()));
+            assert!(matches!(read, Some(SignInEvent::Failed { .. })), "{other}");
+        }
+        let sign_in = r#"{"item":{"profile":"office"}}"#;
+        assert!(matches!(Parser::default().read(Line::Out(sign_in.into())), Some(SignInEvent::Done { .. })));
     }
 
     #[test]
