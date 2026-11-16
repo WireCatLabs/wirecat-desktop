@@ -35,7 +35,7 @@ const page = (name: string) => {
 async function startTour(rendered = false) {
   const user = userEvent.setup()
   if (!rendered) render(<App />)
-  await screen.findByRole("list", { name: "WireCat tools" })
+  await screen.findByRole("list", { name: "Built-in tools" })
   await user.click(screen.getByRole("button", { name: "Help" }))
   await user.click(screen.getByRole("menuitem", { name: "Take the tour" }))
   await screen.findByRole("dialog", { name: "Tools" })

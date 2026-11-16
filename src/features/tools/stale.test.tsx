@@ -32,7 +32,7 @@ describe("the Tools page on a revisit", () => {
     vi.spyOn(platform, "latestVersions").mockResolvedValue({ tg: "0.88.0" })
     render(<ToolsPage />)
 
-    const row = () => within(screen.getByRole("list", { name: "WireCat tools" })).getAllByRole("listitem")[0]
+    const row = () => within(screen.getByRole("list", { name: "Built-in tools" })).getAllByRole("listitem")[0]
     expect(screen.getByText("Looking for WireCat tools on this computer…")).toBeInTheDocument()
     expect(within(row() as HTMLElement).getByText(/0\.88\.0/)).toBeInTheDocument()
 

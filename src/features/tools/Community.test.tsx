@@ -22,7 +22,7 @@ beforeAll(async () => {
 it("lists a registered tool on the Tools page with its badge and trust note", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Community tools" })
   const row = within(list)
     .getByRole("button", { name: /^Acme Notes/ })
     .closest("li") as HTMLElement
@@ -33,7 +33,7 @@ it("lists a registered tool on the Tools page with its badge and trust note", as
 it("marks an own tool Not verified, never Community", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const list = await screen.findByRole("list", { name: "Tools WireCat has not checked" })
   const row = within(list)
     .getByRole("button", { name: /^Acme CRM/ })
     .closest("li") as HTMLElement

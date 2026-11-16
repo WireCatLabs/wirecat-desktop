@@ -7,6 +7,7 @@ import { ownReview, riskyReview, UNCHANGED } from "@/platform/mock-community"
 import { useAgents } from "@/shared/agents-store"
 import { useOwnDialog } from "@/shared/own-dialog-store"
 import { render, screen, waitFor, within } from "@/testing/render"
+import { AddOwnTool } from "./AddOwnTool"
 import { OwnToolDialog } from "./OwnToolDialog"
 
 const PKG = "@example/acme-crm-cli"
@@ -21,7 +22,7 @@ const done: InstallEvent = {
 }
 
 beforeEach(async () => {
-  useOwnDialog.setState({ open: true, update: null, read: null })
+  useOwnDialog.setState({ open: true, update: null, read: null, allow: false })
   vi.spyOn(platform, "ownToolRisks").mockResolvedValue([])
   vi.spyOn(platform, "detectAgents").mockResolvedValue([])
   await useAgents.getState().detect()
@@ -321,5 +322,44 @@ describe("Add your own tool", () => {
     await check()
     expect(await screen.findByText(/Something went wrong reading npm: the review store is locked/)).toBeInTheDocument()
     expect(screen.queryByText(/could not reach npm/)).not.toBeInTheDocument()
+  })
+})
+
+describe("Add your own tool while the setting is off", () => {
+  beforeEach(() => {
+    useOwnDialog.setState({ open: false, update: null, read: null, allow: false })
+    vi.spyOn(platform, "ownToolsStatus").mockResolvedValue({ allowed: false, flag: false, added: 0 })
+    vi.spyOn(platform, "extraTools").mockResolvedValue({ tools: [], rejected: [] })
+  })
+
+  it("is offered anyway, and opens on the setting's warning, which turns it on and goes on to the name", async () => {
+    const allow = vi.spyOn(platform, "setOwnToolsAllowed").mockResolvedValue()
+    render(
+      <>
+        <AddOwnTool />
+        <OwnToolDialog />
+      </>,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Add your own tool" }))
+    const dialog = await screen.findByRole("dialog", { name: "Allow tools WireCat has not checked?" })
+    expect(within(dialog).getByText(/gets access to all your personal data/)).toBeInTheDocument()
+    expect(allow).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Allow and continue" }))
+    expect(allow).toHaveBeenCalledWith(true)
+    expect(await screen.findByRole("textbox", { name: "npm package name" })).toBeInTheDocument()
+  })
+
+  it("stays on the warning with the reason when the setting cannot be saved", async () => {
+    vi.spyOn(platform, "setOwnToolsAllowed").mockRejectedValue(new Error("the settings file is read only"))
+    render(
+      <>
+        <AddOwnTool />
+        <OwnToolDialog />
+      </>,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Add your own tool" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Allow and continue" }))
+    expect(await screen.findByText("Could not turn the setting on.")).toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "npm package name" })).not.toBeInTheDocument()
   })
 })

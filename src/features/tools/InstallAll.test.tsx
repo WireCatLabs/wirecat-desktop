@@ -75,3 +75,40 @@ describe("Install all on the Tools page", () => {
     expect(useTools.getState().sessions[first]?.closed).toEqual([])
   })
 })
+
+describe("Update all on the Tools page", () => {
+  const old = [{ ...copy[0], version: "0.1.0" }] as typeof copy
+  const outdated = (ids: readonly string[]) =>
+    useTools.setState({
+      checked: true,
+      sessions: {},
+      installs: Object.fromEntries(official.map((id) => [id, ids.includes(id) ? old : copy])),
+      latest: Object.fromEntries(official.map((id) => [id, "1.0.0"])),
+    })
+
+  it("counts the installed tools with a newer version and updates each, one after another", async () => {
+    const user = userEvent.setup()
+    const [first = "", second = ""] = official
+    const npm = fakeInstaller({ [first]: "1.0.0", [second]: "1.0.0" })
+    outdated([first, second])
+    render(<InstallAll />)
+
+    await user.click(screen.getByRole("button", { name: "Update all (2)" }))
+    await npm.whenStarted(first)
+    expect(screen.getByRole("button", { name: /Updating…/ })).toBeInTheDocument()
+    await npm.finish(first)
+    await npm.whenStarted(second)
+    await npm.finish(second)
+    expect(npm.started).toEqual([first, second])
+  })
+
+  it("is not there while npm has not answered, nor when every tool is current", () => {
+    outdated([])
+    const { unmount } = render(<InstallAll />)
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    unmount()
+    useTools.setState({ latest: null, installs: Object.fromEntries(official.map((id) => [id, old])) })
+    render(<InstallAll />)
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+})

@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import { tools } from "@/domain/catalog"
+import { type ReactNode, useEffect, useId } from "react"
+import { type CatalogTool, isCommunity, isOwn, tools } from "@/domain/catalog"
 import { NodeNotice } from "@/features/system"
 import { useMessages } from "@/i18n"
 import { useCatalog } from "@/shared/catalog-store"
@@ -23,6 +23,24 @@ import { ToolRow } from "./ToolRow"
 import { ToolsIntro } from "./ToolsIntro"
 import { UpgradeWarning } from "./UpgradeWarning"
 
+type Group = "official" | "community" | "own"
+
+const groupOf = (t: CatalogTool): Group => (isOwn(t) ? "own" : isCommunity(t) ? "community" : "official")
+
+function ToolGroup({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId()
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-[0.6rem]">
+      <h2 id={id} className="text-[0.95rem] font-medium text-ink-soft">
+        {title}
+      </h2>
+      <ul aria-labelledby={id} className="overflow-hidden rounded-rack border border-line-strong bg-app">
+        {children}
+      </ul>
+    </section>
+  )
+}
+
 export function ToolsPage() {
   const m = useMessages(toolsMessages).page
   // `tools` is the live list; reading the version re-renders the page when an own tool is added or removed.
@@ -38,6 +56,9 @@ export function ToolsPage() {
   const mayHaveTools = useTools((s) => !s.checked || Object.values(s.installs).some((copies) => copies.length > 0))
   const storageSlot = mayHaveTools && !error && compat !== null
   const progress = refreshing ? m.looking : askingNpm ? m.askingNpm : null
+  const groups = (["official", "community", "own"] as const).map(
+    (g) => [g, tools.filter((t) => groupOf(t) === g)] as const,
+  )
 
   useEffect(() => {
     useTools.getState().refreshIfStale()
@@ -49,16 +70,13 @@ export function ToolsPage() {
         title={m.title}
         status={progress}
         actions={
-          <>
-            <AddOwnTool />
-            <RefreshButton
-              tour="check-again"
-              busy={refreshing}
-              onClick={() => useTools.getState().refresh(true)}
-              label={m.checkAgain}
-              busyLabel={m.checking}
-            />
-          </>
+          <RefreshButton
+            tour="check-again"
+            busy={refreshing}
+            onClick={() => useTools.getState().refresh(true)}
+            label={m.checkAgain}
+            busyLabel={m.checking}
+          />
         }
       />
 
@@ -94,11 +112,17 @@ export function ToolsPage() {
       </div>
 
       <OwnRemoved />
-      <ul aria-label={m.list} className="overflow-hidden rounded-rack border border-line-strong bg-app">
-        {tools.map((t) => (
-          <ToolRow key={t.id} tool={t} />
-        ))}
-      </ul>
+      {groups.map(
+        ([group, list]) =>
+          list.length > 0 && (
+            <ToolGroup key={group} title={m.groups[group]}>
+              {list.map((t) => (
+                <ToolRow key={t.id} tool={t} />
+              ))}
+            </ToolGroup>
+          ),
+      )}
+      <AddOwnTool />
 
       <OwnToolDialog />
 
