@@ -2216,7 +2216,7 @@
       "bin": "notion",
       "package": "@wirecat/notion-cli",
       "summary": "Copy the Notion pages and databases your token can see to this computer, search them and give your agent their text.",
-      "docs": "https://github.com/WireCatLabs/notion-cli#readme",
+      "docs": "https://wirecat.dev/en/docs/notion",
       "repo": "https://github.com/WireCatLabs/notion-cli",
       "profiles": {
         "args": ["session", "list", "--no-record", "--json"],
