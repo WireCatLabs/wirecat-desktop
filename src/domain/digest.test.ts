@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   emojiOf,
   entityOf,
+  healthSource,
   isOverdue,
   orderedSections,
   staleHealth,
@@ -92,5 +93,17 @@ describe("a digest laid out as cli-core's renderer lays it out", () => {
       { reason: "no-schedule", stale_hours: 0 },
     ]
     expect(staleHealth(lines)).toHaveLength(2)
+  })
+
+  it("names a CRM's sync line by its tool and opens its sync, and leaves every other line as written", () => {
+    expect(healthSource({ source: "bitrix24", refs: [] })).toEqual({
+      name: "Bitrix24",
+      target: { type: "sync", tool: "bitrix" },
+    })
+    expect(healthSource({ source: "Telegram", refs: ["sync:telegram/1001"] })).toEqual({
+      name: "Telegram",
+      target: { type: "sync", tool: "telegram", account: "1001" },
+    })
+    expect(healthSource({ source: "example-crm", refs: [] })).toEqual({ name: "example-crm", target: null })
   })
 })

@@ -1,4 +1,5 @@
 import * as v from "valibot"
+import { SECTION_ORDER } from "@/domain/digest"
 
 // `digests.rs` reads memo's run files; the document is cli-core's checked `wirecat.report/1`, read again here because
 // it comes from a file another program wrote. Unknown fields are dropped; a newer section kind or item type fails
@@ -17,12 +18,13 @@ const text = v.nullish(v.string(), null)
 const moment = v.nullish(v.string(), null)
 const refs = v.nullish(v.array(v.string()), [])
 
-const CHANNELS = ["telegram", "max", "whatsapp", "mail", "meeting", "task"] as const
-type Channel = (typeof CHANNELS)[number]
+const CHANNELS = ["telegram", "max", "whatsapp", "mail", "meeting", "task", "crm"] as const
+export type Channel = (typeof CHANNELS)[number]
 const isChannel = (kind: string): kind is Channel => (CHANNELS as readonly string[]).includes(kind)
 
-// memo 0.131.86's digest reads Drive, Calendar and a CRM but files them under these channels (a calendar event is a
-// `meeting`), as cli-core 0.643.0 checks them. A channel a later one adds is shown without one, not as plain text.
+// cli-core 0.678.0's channels: a CRM's own digest (`changes list --format report`) files its items under `crm`; memo
+// files Drive and Calendar under these (a calendar event is a `meeting`). A channel a later one adds is shown without
+// one, not as plain text.
 const channel = v.fallback(v.nullish(v.picklist(CHANNELS), null), null)
 
 export const ReportItemSchema = v.object({
@@ -49,7 +51,7 @@ export const ReportSchema = v.object({
   summary: text,
   sections: v.array(
     v.object({
-      kind: v.picklist(["today", "decisions", "money", "meetings", "projects", "mail"]),
+      kind: v.picklist(SECTION_ORDER),
       items: v.array(ReportItemSchema),
       more: v.nullish(v.number(), 0),
     }),

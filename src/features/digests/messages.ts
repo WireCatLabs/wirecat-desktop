@@ -1,7 +1,7 @@
 import type { SectionKind } from "@/domain/digest"
 import { type Messages, plural } from "@/i18n"
+import type { Channel } from "@/platform/digest-schemas"
 
-type Channel = "telegram" | "max" | "whatsapp" | "mail" | "meeting" | "task"
 type Group = "overdue" | "today" | "tomorrow" | "new"
 type Count = "chats" | "mail" | "tasks" | "meetings"
 
@@ -39,6 +39,7 @@ const en = {
     money: "Money",
     meetings: "Meetings",
     projects: "Projects in motion",
+    crm: "CRM",
     mail: "New mail",
   } satisfies Record<SectionKind, string>,
   health: "Sync",
@@ -57,6 +58,7 @@ const en = {
     mail: "mail",
     meeting: "meeting",
     task: "task",
+    crm: "CRM",
   } satisfies Record<Channel, string>,
   more: (n: number) => `${n} more`,
   groups: {
@@ -142,6 +144,7 @@ const ru: typeof en = {
     money: "Деньги",
     meetings: "Встречи",
     projects: "Проекты в движении",
+    crm: "CRM",
     mail: "Новая почта",
   },
   health: "Синхронизация",
@@ -160,6 +163,7 @@ const ru: typeof en = {
     mail: "почта",
     meeting: "встреча",
     task: "задача",
+    crm: "CRM",
   },
   more: (n) => `ещё ${n}`,
   groups: {
@@ -245,6 +249,7 @@ const es: typeof en = {
     money: "Dinero",
     meetings: "Reuniones",
     projects: "Proyectos en marcha",
+    crm: "CRM",
     mail: "Correo nuevo",
   },
   health: "Sincronización",
@@ -263,6 +268,7 @@ const es: typeof en = {
     mail: "correo",
     meeting: "reunión",
     task: "tarea",
+    crm: "CRM",
   },
   more: (n) => `${n} más`,
   groups: {
