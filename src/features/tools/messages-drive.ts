@@ -83,6 +83,20 @@ const en = {
       wholeDetail: "No page chosen yet. Add one to copy only that.",
     },
   },
+  ydisk: {
+    picker: {
+      title: "Choose what Yandex Disk imports",
+      lead: "Yandex Disk copies only the folders you choose, with everything inside them. You can add more later.",
+      root: "Yandex Disk",
+    },
+    folders: {
+      title: (profile: string) => `Folders Yandex Disk copies for ${profile}`,
+      what: "Only these folders are copied to this computer, as text you can search. Your agent can search and read them. Files outside them stay on Yandex Disk and are not read.",
+      removing:
+        "Removing a folder stops importing it: the next sync deletes its copied text from this computer. The files on Yandex Disk stay as they are.",
+      none: "No folders chosen yet, so Yandex Disk copies nothing for this account.",
+    },
+  },
   transcripts: {
     title: "Meeting transcripts",
     lead: "Google Meet saves transcripts and Gemini notes as Google Docs in the organizer's Drive and shares them with the guests, so most of them are not in your folders.",
@@ -199,6 +213,20 @@ const ru: DriveText = {
       changed: "Состав копируемого из Notion изменился. Синхронизируйте сейчас, чтобы скопировать или убрать текст.",
       whole: "Всё, что видит ваш токен",
       wholeDetail: "Страницы ещё не выбраны. Добавьте одну, чтобы копировать только её.",
+    },
+  },
+  ydisk: {
+    picker: {
+      title: "Что импортировать из Яндекс Диска",
+      lead: "Яндекс Диск копирует только выбранные папки, со всем, что в них лежит. Добавить другие можно и позже.",
+      root: "Яндекс Диск",
+    },
+    folders: {
+      title: (profile) => `Папки Яндекс Диска, которые копируются для ${profile}`,
+      what: "На этот компьютер копируются только эти папки, в виде текста для поиска. Ваш агент может искать в них и читать их. Файлы вне этих папок остаются на Яндекс Диске, их никто не читает.",
+      removing:
+        "Если убрать папку, она перестанет импортироваться: при следующей синхронизации её скопированный текст удалится с этого компьютера. Сами файлы на Яндекс Диске не меняются.",
+      none: "Папки ещё не выбраны, поэтому с Яндекс Диска для этого аккаунта ничего не копируется.",
     },
   },
   transcripts: {
@@ -328,6 +356,20 @@ const es: DriveText = {
       wholeDetail: "Aún no hay páginas elegidas. Añade una para copiar solo esa.",
     },
   },
+  ydisk: {
+    picker: {
+      title: "Elige qué importa Yandex Disk",
+      lead: "Yandex Disk copia solo las carpetas que elijas, con todo lo que contienen. Puedes añadir más después.",
+      root: "Yandex Disk",
+    },
+    folders: {
+      title: (profile) => `Carpetas que Yandex Disk copia para ${profile}`,
+      what: "Solo estas carpetas se copian a este ordenador, como texto en el que buscar. Tu agente puede buscar en ellas y leerlas. Los archivos fuera de ellas se quedan en Yandex Disk y no se leen.",
+      removing:
+        "Quitar una carpeta deja de importarla: la próxima sincronización borra su texto copiado de este ordenador. Los archivos en Yandex Disk no cambian.",
+      none: "Aún no hay carpetas elegidas, así que Yandex Disk no copia nada para esta cuenta.",
+    },
+  },
   transcripts: {
     title: "Transcripciones de reuniones",
     lead: "Google Meet guarda las transcripciones y las notas de Gemini como documentos de Google en el Drive del organizador y los comparte con los invitados, así que la mayoría no están en tus carpetas.",
@@ -372,9 +414,9 @@ const es: DriveText = {
 
 export const driveMessages: Messages<DriveText> = { en, ru, es }
 
-/** The picker's and the settings' words for one tool: notion's own where they differ, drive's otherwise. */
+/** The picker's and the settings' words for one tool: notion's or ydisk's own where they differ, drive's otherwise. */
 export function folderWords(t: DriveText, tool: string) {
-  const own = tool === "notion" ? t.notion : null
+  const own = tool === "notion" ? t.notion : tool === "ydisk" ? t.ydisk : null
   return {
     picker: { ...t.picker, ...own?.picker },
     folders: { ...t.folders, whole: "", wholeDetail: "", ...own?.folders },

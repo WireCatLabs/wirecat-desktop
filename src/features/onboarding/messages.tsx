@@ -542,6 +542,7 @@ const ru: OnboardingText = {
       email:
         "Агент сможет искать и читать вашу почту на этом компьютере. Синхронизация копирует почту сюда и никогда не меняет ваш ящик.",
       notion: "Агент сможет читать страницы и базы данных Notion, которые видит ваш токен.",
+      ydisk: "Агент сможет искать и читать выбранные папки Яндекс Диска и работать с файлами в пределах прав токена.",
       bitrix: "Агент сможет читать и менять CRM портала с правами сотрудника, который создал вебхук.",
       amo: "Агент сможет читать и менять CRM аккаунта с правами администратора, который создал токен.",
       pbx: "Агент сможет находить телефонные звонки вашей компании и читать, что в них было сказано.",
@@ -556,6 +557,8 @@ const ru: OnboardingText = {
       email:
         "Ваш адрес почты, затем вход Microsoft в браузере или пароль приложения — отдельный пароль только для этой программы.",
       notion: "Личный токен доступа Notion или токен внутреннего подключения, которое вы создали в Notion.",
+      ydisk:
+        "OAuth-токен Яндекса от приложения, которое вы один раз регистрируете на oauth.yandex.ru с доступом к Яндекс Диску.",
       bitrix:
         "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов. Или ID и ключ локального приложения, вход в браузере.",
       amo: "Адрес аккаунта и долгосрочный токен закрытой интеграции, которую администратор создаёт в amoCRM или Kommo.",
@@ -863,6 +866,8 @@ const es: OnboardingText = {
       email:
         "Tu agente podrá buscar y leer tu correo en este equipo. La sincronización copia el correo aquí y nunca cambia tu buzón.",
       notion: "Tu agente podrá leer las páginas y bases de datos de Notion que ve tu token.",
+      ydisk:
+        "Tu agente podrá buscar y leer las carpetas de Yandex Disk que elijas, y trabajar con tus archivos hasta donde permita el token.",
       bitrix: "Tu agente podrá leer y cambiar el CRM del portal con los permisos del empleado que creó el webhook.",
       amo: "Tu agente podrá leer y cambiar el CRM de la cuenta con los permisos del administrador que creó el token.",
       pbx: "Tu agente podrá encontrar las llamadas de tu empresa y leer lo que se dijo en ellas.",
@@ -877,6 +882,8 @@ const es: OnboardingText = {
       email:
         "Tu dirección de correo, y después el inicio de sesión de Microsoft en el navegador o una contraseña de aplicación: una contraseña solo para este programa.",
       notion: "Un token de acceso personal de Notion, o el token de una conexión interna que creaste en Notion.",
+      ydisk:
+        "Un token OAuth de Yandex, de una aplicación que registras una vez en oauth.yandex.com con acceso a Yandex Disk.",
       bitrix:
         "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
       amo: "La dirección de la cuenta y un token de larga duración, de una integración privada que un administrador crea en amoCRM o Kommo.",

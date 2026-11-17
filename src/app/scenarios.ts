@@ -123,6 +123,12 @@ export async function runMockScenario() {
     useSignIn.getState().start("drive", "personal")
     useSignIn.getState().begin()
   }
+  // A sample token, as if pasted: ydisk's sign-in reads it on stdin, so it is typed before the run starts.
+  if (params.has("ydisk-folders") && !signIn) {
+    useSignIn.getState().start("ydisk", "personal")
+    setPassword("y0_sample-token")
+    useSignIn.getState().begin()
+  }
   // `?setup=pbx`: pbx describes its own flow (`mock-setup.ts`). `&setup-step=<step>` walks to that step with
   // `&setup-answers=cdr_source:mysql,phone_region:ES+RU` (`+` makes a list); `check` goes on into the run.
   const setup = params.get("setup")

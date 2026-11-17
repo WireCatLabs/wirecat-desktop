@@ -129,3 +129,40 @@ describe("Notion's step after signing in", () => {
     expect(browse.mock.calls.map((c) => c[3])).toEqual([null, "notion-browse1.a", "notion-browse1.a"])
   })
 })
+
+const disk = (path: string): DriveFolder => ({
+  id: `disk:${path}`,
+  name: path.split("/").at(-1) ?? path,
+  kind: "folder",
+  parent: null,
+  location: null,
+  driveId: null,
+  childFolders: null,
+  added: false,
+})
+
+describe("Yandex Disk's step after signing in", () => {
+  it("opens and adds folders by their Disk path, in its own words", async () => {
+    const levels: Record<string, DriveFolder[]> = {
+      "": [disk("/Работа"), disk("/Фото")],
+      "disk:/Работа": [disk("/Работа/Отчёты 2026")],
+    }
+    const browse = vi.spyOn(platform, "driveFoldersBrowse").mockImplementation(async (_tool, _profile, parent) => ({
+      result: "listed",
+      partial: false,
+      folders: levels[parent ?? ""] ?? [],
+      nextCursor: null,
+    }))
+    const add = vi.spyOn(platform, "driveFolderAdd").mockResolvedValue({ result: "added" })
+    render(<DriveFolders tool="ydisk" profile="personal" name="Yandex Disk" />)
+    expect(await screen.findByRole("heading", { name: "Choose what Yandex Disk imports" })).toBeInTheDocument()
+    expect(screen.getByRole("navigation", { name: "Folders" })).toHaveTextContent("Yandex Disk")
+    await userEvent.click(await screen.findByRole("button", { name: "Open Работа" }))
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Отчёты 2026" }))
+    await userEvent.click(screen.getByRole("button", { name: "Add 1 folder" }))
+    expect(await screen.findByText("1 folder added. Sync to copy their files.")).toBeInTheDocument()
+    expect(browse.mock.calls.map((c) => c[2])).toEqual([null, "disk:/Работа"])
+    expect(add).toHaveBeenCalledWith("ydisk", "personal", "disk:/Работа/Отчёты 2026")
+    expect(screen.queryByRole("region", { name: "Meeting transcripts" })).not.toBeInTheDocument()
+  })
+})

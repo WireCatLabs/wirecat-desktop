@@ -7,6 +7,7 @@ import drive from "@/assets/logos/google-drive.svg"
 import max from "@/assets/logos/max.png"
 import notion from "@/assets/logos/notion.svg"
 import whatsapp from "@/assets/logos/whatsapp.svg"
+import yandexDisk from "@/assets/logos/yandex-disk.png"
 import zoom from "@/assets/logos/zoom.svg"
 import { cx } from "@/ui/cx"
 
@@ -23,6 +24,7 @@ const LOGOS: Record<string, string> = {
   bitrix: bitrix24,
   amo: amocrm,
   notion,
+  ydisk: yandexDisk,
 }
 
 const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {

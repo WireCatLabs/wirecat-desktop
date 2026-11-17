@@ -2322,6 +2322,141 @@
       }
     },
     {
+      "id": "ydisk",
+      "name": "Yandex Disk",
+      "tagline": "Folders and files · search",
+      "bin": "ydisk",
+      "package": "@wirecat/yandex-disk-cli",
+      "summary": "Import the Yandex Disk folders you choose, search their files on this computer and give your agent their text.",
+      "docs": "https://wirecat.dev/en/docs/ydisk",
+      "repo": "https://github.com/WireCatLabs/ydisk-cli",
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": {
+        "args": [
+          "{profile}",
+          "search",
+          "--offline",
+          "--timeout",
+          "30s",
+          "--limit",
+          "{limit}",
+          "--page",
+          "{page}",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ],
+        "shape": "item.hits",
+        "what": "documents",
+        "fields": [
+          {
+            "name": "title",
+            "group": "what",
+            "example": "title:plan",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "tag",
+            "group": "what",
+            "example": "tag:work",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "date",
+            "group": "when",
+            "example": "date>=30d",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "text",
+            "group": "what",
+            "example": "text:budget",
+            "top": false,
+            "values": null
+          }
+        ],
+        "values": {}
+      },
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": {
+        "port": 8760,
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+      },
+      "tasks": null,
+      "sync": {
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "files",
+        "note": null
+      },
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "yandex-disk-cli",
+        "env": "YDISK"
+      },
+      "settings": null,
+      "signIn": {
+        "gives": "Lets your agent search and read the Yandex Disk folders you choose, and work with your files as far as the token allows.",
+        "asks": "A Yandex OAuth token, from an app you register once at oauth.yandex.com with access to Yandex Disk.",
+        "identity": ["{profile}", "session", "status", "--no-record", "--json"],
+        "identityCheck": "--check",
+        "methods": [
+          {
+            "id": "token",
+            "label": "Yandex OAuth token",
+            "words": ["{profile}", "session", "start", "--json"],
+            "password": "YDISK_TOKEN",
+            "stdin": true
+          }
+        ]
+      },
+      "folderPicker": {
+        "browse": ["{profile}", "folders", "browse", "--no-record", "--json"],
+        "parent": "--folder",
+        "cursor": "--cursor",
+        "add": ["{profile}", "folders", "add", "{folder}", "--record", "--json"],
+        "list": ["{profile}", "folders", "list", "--no-record", "--json"],
+        "remove": ["{profile}", "folders", "remove", "{folder}", "--record", "--json"],
+        "name": ["{profile}", "catalog", "show", "{folder}", "--offline", "--no-record", "--json"],
+        "by": "path"
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": null,
+        "removes": ["signIn"],
+        "keeps": ["folders", "data", "listed"]
+      }
+    },
+    {
       "id": "bitrix",
       "name": "Bitrix24",
       "tagline": "Deals, leads, contacts and companies\u00a0· changes",

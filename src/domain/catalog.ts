@@ -200,8 +200,8 @@ const ToolSchema = v.object({
   /** The messengers: `images read`, one picture's text read by that agent; null `minVersion`: not released. */
   imagesRead: v.optional(v.nullable(v.object({ minVersion: v.nullable(v.string()) })), null),
   /**
-   * drive and notion: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and
-   * `drive_folder_add`. `whole` is the id `folders list` gives while nothing is chosen and the whole account is
+   * drive, notion and ydisk: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and
+   * `drive_folder_add`; Rust alone reads `by` (ydisk browses and adds by path). `whole` is the id `folders list` gives while nothing is chosen and the whole account is
    * copied; `transcripts` is only drive's.
    */
   folderPicker: v.optional(

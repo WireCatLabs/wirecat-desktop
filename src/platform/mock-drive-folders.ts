@@ -135,6 +135,34 @@ function notionLevel(parent: string | null, cursor: string | null, chosen: strin
   }
 }
 
+// ydisk 0.1.0's `folders browse`: each folder by its Disk path, with no kind and no count of folders inside; `folders
+// add` takes the path, `folders list` and `folders remove` the folder's resource id. `?ydisk-folders=open` signs in with a
+// sample token and opens the picker; `fail` refuses the top (Yandex no longer accepts the token), `add-fail` refuses
+// one folder on Add. Nothing is chosen at first.
+const ydiskScenario = query.get("ydisk-folders")
+const ydiskItem = (path: string) =>
+  ({
+    id: `disk:${path}`,
+    name: path.split("/").at(-1) ?? path,
+    kind: "folder",
+    parent: null,
+    location: null,
+    driveId: null,
+    childFolders: null,
+    added: false,
+  }) satisfies DriveFolder
+const YDISK_LEVELS: Record<string, string[]> = {
+  "": ["/Документы", "/Работа", "/Фото", "/Загрузки", "/Scans"],
+  "disk:/Работа": ["/Работа/Клиенты", "/Работа/Отчёты 2026", "/Работа/Договоры"],
+  "disk:/Работа/Клиенты": ["/Работа/Клиенты/Acme", "/Работа/Клиенты/Ромашка"],
+  "disk:/Документы": ["/Документы/Паспорт и визы", "/Документы/Налоги"],
+}
+/** The resource id ydisk lists a chosen folder by: Yandex's own, the owner's uid and a hash. */
+const resourceId = (path: string) =>
+  `4000000000:${[...path].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(16)}`
+const ydiskAdded = new Map<string, string>()
+let ydiskRefused = false
+
 const added = new Set<string>()
 const removed = new Set<string>()
 let refused = false
@@ -148,6 +176,21 @@ export function driveFoldersMock(): Pick<
   return {
     async driveFoldersBrowse(id, _profile, parent, cursor): Promise<FolderLevel> {
       await delay(500)
+      if (id === "ydisk") {
+        if (ydiskScenario === "fail" && parent === null)
+          return {
+            result: "failed",
+            code: "authentication_error",
+            reason: "auth.failed",
+            message: "Yandex Disk refused the token; sign in again with ydisk personal session start",
+          }
+        const chosen = [...ydiskAdded.values()]
+        const folders = (YDISK_LEVELS[parent ?? ""] ?? []).map((path) => {
+          const f = ydiskItem(path)
+          return { ...f, added: chosen.includes(f.id) }
+        })
+        return { result: "listed", folders, partial: false, nextCursor: null }
+      }
       if (id === "notion") {
         if (notionScenario === "old")
           return {
@@ -175,8 +218,21 @@ export function driveFoldersMock(): Pick<
       const folders = (LEVELS[parent ?? ""] ?? []).map((f) => ({ ...f, added: chosen.includes(f.id) }))
       return { result: "listed", folders, partial: scenario === "partial" && parent === null, nextCursor: null }
     },
-    async driveFolderAdd(_id, _profile, id): Promise<FolderAdded> {
+    async driveFolderAdd(tool, _profile, id): Promise<FolderAdded> {
       await delay(700)
+      if (tool === "ydisk") {
+        if (ydiskScenario === "add-fail" && !ydiskRefused) {
+          ydiskRefused = true
+          return {
+            result: "failed",
+            code: "rate_limited",
+            reason: "provider.rate-limited",
+            message: "Yandex Disk asks to slow down",
+          }
+        }
+        ydiskAdded.set(resourceId(id), id)
+        return { result: "added" }
+      }
       if (scenario === "add-fail" && !refused) {
         refused = true
         return {
@@ -192,6 +248,11 @@ export function driveFoldersMock(): Pick<
     },
     async driveFoldersChosen(id): Promise<ChosenFolders> {
       await delay(450)
+      if (id === "ydisk")
+        return {
+          result: "listed",
+          folders: [...ydiskAdded].map(([folder, path]) => ({ id: folder, name: path.split("/").at(-1) ?? null })),
+        }
       if (id === "notion") {
         const ids = [...added].filter((f) => f.startsWith("n-") && !removed.has(f))
         const named = (f: string) =>
@@ -208,6 +269,7 @@ export function driveFoldersMock(): Pick<
     },
     async driveFolderRemove(_id, _profile, id): Promise<FolderRemoved> {
       await delay(600)
+      ydiskAdded.delete(id)
       removed.add(id)
       added.delete(id)
       return { result: "removed" }

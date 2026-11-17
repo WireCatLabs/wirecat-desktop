@@ -217,7 +217,7 @@ src-tauri/src/
                 enters the command line; Windows' cmd cannot, so there the agent gets a sentence naming the file.
                 Hermes reads the file itself everywhere. One `AgentLaunch` button (`features/fix`) opens the last one
                 used and lists the rest.
-  drive_folders.rs Drive's folders, or Notion's pages and databases, for one profile: `folders browse` and `add` (the
+  drive_folders.rs Drive's or Yandex Disk's folders, or Notion's pages and databases, for one profile: `folders browse` and `add` (the
                 picker; `--cursor` for the rest of a level when the tool gives `next_cursor`), `folders list` with each
                 name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
                 next sync drops what it copied from there; `transcripts list`, the Docs named like Meet transcripts or
@@ -818,7 +818,11 @@ chosen folders with Remove each. Notion uses the same picker from notion-cli 0.4
 pages and databases, a database never opened (its children are rows), "Show more" for the level's `next_cursor` (empty
 pages read past, up to three), a note when Notion's search was cut at 10,000 (`missing`), and the whole
 workspace (`whole`, `folders list` while nothing is chosen) shown without Remove. notion-cli does not count a
-page's children, so every page can be opened, and one with none inside says so. Below the picker, and in the same
+page's children, so every page can be opened, and one with none inside says so. Yandex Disk (ydisk) uses it too:
+its `folders browse --folder` and `folders add` take a Disk path, not an id (catalog `folderPicker.by: "path"`), so a
+folder's `id` in the window is its `disk:/…` path, checked as a path in Rust; `folders list` and `remove` keep
+Yandex's `resource_id`. ydisk names no kind and counts no folders inside, so each row is a folder that can be opened.
+Below the picker, and in the same
 settings, "Meeting transcripts"
 (`tools/DriveTranscripts.tsx`) shows what `drive_transcripts_find` found (drive's `transcripts list`) and three choices
 that set the profile's `transcripts` setting through `settings_set`: include, skip, exclude; none is chosen until the

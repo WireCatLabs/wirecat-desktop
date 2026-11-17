@@ -1,5 +1,5 @@
-//! Choosing folders in the window: the tool's own `folders browse` lists one level of the owner's Google Drive
-//! or Notion workspace and `folders add` imports one. Folder names are the owner's data: they reach the window and nothing else, never a log.
+//! Choosing folders in the window: the tool's own `folders browse` lists one level of the owner's Google Drive,
+//! Notion workspace or Yandex Disk and `folders add` imports one. Folder names are the owner's data: they reach the window and nothing else, never a log.
 
 use crate::catalog::{self, Tool};
 use crate::signin_steps::NEEDS_UPDATE;
@@ -19,6 +19,9 @@ pub struct FolderPickerSource {
     pub browse: Vec<String>,
     /// The flag that takes the folder to list inside.
     pub parent: String,
+    /// What `parent` and `add` take: the folder's id, or (ydisk) its path, while `list` and `remove` keep the id.
+    #[serde(default)]
+    pub by: FolderRef,
     /// The flag that goes on from the `next_cursor` of the last page; absent for a tool that answers one level whole.
     #[serde(default)]
     pub cursor: Option<String>,
@@ -36,6 +39,14 @@ pub struct FolderPickerSource {
     /// Google Docs named like Meet transcripts or Gemini notes, wherever they sit; imports nothing.
     #[serde(default)]
     pub transcripts: Option<TranscriptsSource>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum FolderRef {
+    #[default]
+    Id,
+    Path,
 }
 
 #[derive(Debug, Deserialize)]
@@ -75,9 +86,11 @@ pub enum ChosenFolders {
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DriveFolder {
+    /// What the tool's `folders browse` and `folders add` take for it: an id, or ydisk's `disk:/…` path.
     pub id: String,
     pub name: String,
-    /// drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`.
+    /// drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`; ydisk names
+    /// none, so `folder`.
     pub kind: String,
     pub parent: Option<String>,
     pub location: Option<String>,
@@ -122,16 +135,30 @@ fn source(tool: &Tool) -> Result<&FolderPickerSource, String> {
     tool.folder_picker.as_ref().ok_or_else(|| format!("{} has no folder picker", tool.name))
 }
 
-/// A Google id or the folder id drive printed: letters, digits, `-` and `_`. Never starts with `-`, so the tool
-/// cannot read it as an option.
+/// A Google id, a Notion id or a Yandex Disk `resource_id`: letters, digits, `-`, `_` and `:`. Never starts with
+/// `-`, so the tool cannot read it as an option.
 fn valid_id(id: &str) -> bool {
     (1..=200).contains(&id.len())
         && !id.starts_with('-')
-        && id.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_'))
+        && id.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | ':'))
 }
 
 fn checked(id: &str) -> Result<(), String> {
     if valid_id(id) { Ok(()) } else { Err("That is not a folder id.".into()) }
+}
+
+/// A Yandex Disk path as ydisk printed it. Folder names hold spaces and any letters; argv carries them as they are,
+/// and the leading `/` or `disk:/` keeps it from reading as an option.
+fn valid_path(path: &str) -> bool {
+    (path.starts_with('/') || path.starts_with("disk:/")) && path.len() <= 4096 && !path.chars().any(char::is_control)
+}
+
+fn checked_ref(src: &FolderPickerSource, folder: &str) -> Result<(), String> {
+    match src.by {
+        FolderRef::Id => checked(folder),
+        FolderRef::Path if valid_path(folder) => Ok(()),
+        FolderRef::Path => Err("That is not a folder path.".into()),
+    }
 }
 
 /// A cursor the tool printed: notion's is a prefix and base64url.
@@ -145,7 +172,7 @@ pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>, cursor: Option<&
     let src = source(tool)?;
     let mut args = catalog::with_profile(&src.browse, Some(profile))?;
     if let Some(parent) = parent {
-        checked(parent)?;
+        checked_ref(src, parent)?;
         args.extend([src.parent.clone(), parent.to_string()]);
     }
     if let Some(cursor) = cursor {
@@ -167,7 +194,7 @@ pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>, cursor: Option<&
     }
     let (out, json) = skills::call(tool, &args, BROWSE)?;
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
-        return Ok(read_level(json));
+        return Ok(read_level(json, src.by));
     }
     let (message, code, reason) = skills::refusal(&out, json.as_ref(), FOLDERS_TOO_OLD);
     Ok(FolderLevel::Failed { message, code, reason })
@@ -175,7 +202,7 @@ pub fn browse(tool: &Tool, profile: &str, parent: Option<&str>, cursor: Option<&
 
 pub fn add(tool: &Tool, profile: &str, folder: &str) -> Result<FolderAdded, String> {
     let src = source(tool)?;
-    checked(folder)?;
+    checked_ref(src, folder)?;
     if folder == SHARED_WITH_ME {
         return Err("Files others shared are not a folder. Open it and choose a folder inside.".into());
     }
@@ -287,7 +314,7 @@ fn read_transcripts(json: &Value) -> TranscriptsFound {
 const FOLDERS_TOO_OLD: &str = "This version cannot list folders yet. Update it on the Tools page.";
 const TRANSCRIPTS_TOO_OLD: &str = "This version cannot find meeting transcripts yet. Update it on the Tools page.";
 
-fn read_level(json: &Value) -> FolderLevel {
+fn read_level(json: &Value, by: FolderRef) -> FolderLevel {
     let body = skills::body(json);
     let items = json["items"].as_array().or_else(|| body["items"].as_array());
     let missing = !json["missing"].is_null() || !body["missing"].is_null();
@@ -297,19 +324,23 @@ fn read_level(json: &Value) -> FolderLevel {
         .filter(|c| valid_cursor(c))
         .map(str::to_string);
     FolderLevel::Listed {
-        folders: items.into_iter().flatten().filter_map(folder_of).collect(),
+        folders: items.into_iter().flatten().filter_map(|v| folder_of(v, by)).collect(),
         partial: missing,
         next_cursor,
     }
 }
 
-fn folder_of(v: &Value) -> Option<DriveFolder> {
-    let id = v["id"].as_str().filter(|id| id.len() <= 200).map(str::to_string)?;
+fn folder_of(v: &Value, by: FolderRef) -> Option<DriveFolder> {
+    let id = match by {
+        FolderRef::Id => v["id"].as_str().filter(|id| id.len() <= 200),
+        FolderRef::Path => v["path"].as_str().filter(|path| valid_path(path)),
+    }
+    .map(str::to_string)?;
     let text = |k: &str| v[k].as_str().map(str::to_string);
     Some(DriveFolder {
         id,
         name: v["name"].as_str()?.to_string(),
-        kind: text("kind")?,
+        kind: text("kind").unwrap_or_else(|| "folder".into()),
         parent: text("parent"),
         location: text("location"),
         drive_id: text("drive_id"),
@@ -333,7 +364,9 @@ mod tests {
             ],
             "missing": [{ "field": "items", "why": "Google searched only some of the drives" }]
         });
-        let FolderLevel::Listed { folders, partial, next_cursor } = read_level(&json) else { panic!("not listed") };
+        let FolderLevel::Listed { folders, partial, next_cursor } = read_level(&json, FolderRef::Id) else {
+            panic!("not listed")
+        };
         assert!(partial);
         assert_eq!(next_cursor, None);
         assert_eq!(folders.len(), 2);
@@ -341,7 +374,7 @@ mod tests {
         assert_eq!(folders[1].child_folders, None);
         let nested = serde_json::json!({ "item": { "items": [{ "id": "a", "name": "A", "kind": "folder" }] } });
         assert!(
-            matches!(read_level(&nested), FolderLevel::Listed { folders, partial: false, .. } if folders.len() == 1)
+            matches!(read_level(&nested, FolderRef::Id), FolderLevel::Listed { folders, partial: false, .. } if folders.len() == 1)
         );
     }
 
@@ -356,11 +389,45 @@ mod tests {
             ],
             "page": { "mode": "cursor", "has_more": true, "next_cursor": "notion-browse1.eyJwYXJlbnQiOiJ4In0" },
         });
-        let FolderLevel::Listed { folders, next_cursor, .. } = read_level(&json) else { panic!("not listed") };
+        let FolderLevel::Listed { folders, next_cursor, .. } = read_level(&json, FolderRef::Id) else {
+            panic!("not listed")
+        };
         assert_eq!(folders.iter().map(|f| f.kind.as_str()).collect::<Vec<_>>(), ["page", "database"]);
         assert_eq!(next_cursor.as_deref(), Some("notion-browse1.eyJwYXJlbnQiOiJ4In0"));
         let odd = serde_json::json!({ "items": [], "page": { "next_cursor": "--parent" } });
-        assert!(matches!(read_level(&odd), FolderLevel::Listed { next_cursor: None, .. }));
+        assert!(matches!(read_level(&odd, FolderRef::Id), FolderLevel::Listed { next_cursor: None, .. }));
+    }
+
+    #[test]
+    fn reads_ydisk_folders_by_their_path_and_with_no_kind() {
+        let json = serde_json::json!({
+            "items": [
+                { "id": "fake-2", "name": "Work", "path": "disk:/Work", "added": true },
+                { "id": "fake-4", "name": "Отчёты 2026", "path": "disk:/Work/Отчёты 2026", "added": false },
+                { "id": "fake-5", "name": "Odd", "path": "--folder", "added": false },
+            ],
+            "page": { "mode": "cursor", "limit": 200, "has_more": true, "next_cursor": "200" },
+        });
+        let FolderLevel::Listed { folders, next_cursor, .. } = read_level(&json, FolderRef::Path) else {
+            panic!("not listed")
+        };
+        assert_eq!(folders.iter().map(|f| f.id.as_str()).collect::<Vec<_>>(), ["disk:/Work", "disk:/Work/Отчёты 2026"]);
+        assert_eq!((folders[0].kind.as_str(), folders[0].added), ("folder", true));
+        assert_eq!(next_cursor.as_deref(), Some("200"));
+    }
+
+    #[test]
+    fn ydisk_browses_and_adds_by_path_and_removes_by_id() {
+        let ydisk = catalog::tool("ydisk").unwrap();
+        assert_eq!(source(ydisk).unwrap().by, FolderRef::Path);
+        assert!(browse(ydisk, "personal", Some("fake-2"), None).is_err());
+        assert!(browse(ydisk, "personal", Some("disk:/Work\n--all"), None).is_err());
+        assert!(add(ydisk, "personal", "Work").is_err());
+        assert!(add(ydisk, "personal", "-x").is_err());
+        assert!(remove(ydisk, "personal", "disk:/Work").is_err());
+        assert!(valid_path("disk:/Work/Отчёты 2026") && valid_path("/Work"));
+        assert!(valid_id("1130000057866283:6ea9b2c4f5d0a1b7"));
+        assert_eq!(chosen_ids(&serde_json::json!({ "items": [{ "id": "4000:ab12" }] })), vec!["4000:ab12".to_string()]);
     }
 
     #[test]
