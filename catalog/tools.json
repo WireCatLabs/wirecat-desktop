@@ -1421,7 +1421,7 @@
       "storeResetPreview": null,
       "storeReset": null,
       "storage": {
-        "app": "zm",
+        "app": "zoom-cli",
         "env": "ZM"
       },
       "settings": {
