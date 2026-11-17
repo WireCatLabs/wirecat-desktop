@@ -11,6 +11,8 @@ official file, unchanged, except where noted. The full record of where each came
 | google-drive.svg, google-calendar.svg | https://fonts.gstatic.com/s/i/productlogos/ (2020q4 set) | Google: no recolouring or cropping |
 | zoom.svg | the Zoom wordmark path of Simple Icons (https://github.com/simple-icons/simple-icons, `icons/zoom.svg` in simple-icons 13.21.0, CC0-1.0; its source https://brand.zoom.us/media-library/), retrieved 2026-11-11 | drawn white on a #0B5CFF tile with rounded corners (rx 5 of 16, as bitrix24.svg), the way the Zoom Workplace app icon shows it; checked: no script, link or image |
 | bitrix24.svg | https://www.bitrix24.de/favicon.svg (the icon of https://www.bitrix24.com/), retrieved 2026-11-10 | checked: no script, link or image |
+| notion.svg | the Notion path of Simple Icons (https://github.com/simple-icons/simple-icons, `icons/notion.svg` in simple-icons 13.21.0, CC0-1.0; its source https://www.notion.so), retrieved 2026-11-17 | not Notion's own file (the owner accepted a close lookalike); drawn #000000 on a white tile with a thin #D4D4D4 border and rounded corners (rx 5 of 16), so it reads on both themes; checked: no script, link or image |
+| amocrm.png | https://www.amocrm.ru/favicon.ico (100 px, the only icon its home page links), retrieved 2026-11-17 | the favicon's blue "a" redrawn white on a #008CC7 tile (its own blue) with rounded corners (rx 5 of 16, as bitrix24.svg), 96 px; checked: no script, link or image |
 
 Telegram has no file here: its API terms (https://core.telegram.org/api/terms, 2.4) do not let another app use its
 official logo. `ToolIcon` draws Lucide's `send` icon (https://lucide.dev/icons/send, ISC licence, already a dependency

@@ -1,9 +1,11 @@
-import { FileText, Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
+import { Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
+import amocrm from "@/assets/logos/amocrm.png"
 import bitrix24 from "@/assets/logos/bitrix24.svg"
 import calendar from "@/assets/logos/google-calendar.svg"
 import drive from "@/assets/logos/google-drive.svg"
 import max from "@/assets/logos/max.png"
+import notion from "@/assets/logos/notion.svg"
 import whatsapp from "@/assets/logos/whatsapp.svg"
 import zoom from "@/assets/logos/zoom.svg"
 import { cx } from "@/ui/cx"
@@ -19,6 +21,8 @@ const LOGOS: Record<string, string> = {
   drive,
   gcal: calendar,
   bitrix: bitrix24,
+  amo: amocrm,
+  notion,
 }
 
 const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -26,7 +30,6 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   email: Mail,
   funnel: Globe,
   pbx: Phone,
-  notion: FileText,
 }
 
 /** Telegram's terms forbid its official logo in another app (API terms 2.4): a plain paper plane on a blue disc. */
@@ -39,8 +42,8 @@ function TelegramBadge({ className }: { className?: string | undefined }) {
 }
 
 /**
- * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk, Notion and the Tailscale
- * helper keep a line icon. A community tool ships no icon in the app's code, so every one shows the same package.
+ * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk and the Tailscale helper keep
+ * a line icon. A community tool ships no icon in the app's code, so every one shows the same package.
  */
 export function ToolIcon({ id, className }: { id: string; className?: string | undefined }) {
   if (id === "tg") return <TelegramBadge className={className} />

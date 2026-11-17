@@ -23,9 +23,10 @@ describe("catalog", () => {
       "gcal",
       "memo",
       "email",
-      "bitrix",
-      "pbx",
       "notion",
+      "bitrix",
+      "amo",
+      "pbx",
     ])
     const owners = tools.filter((t) => !t.partOf)
     expect(new Set(owners.map((t) => t.bin)).size).toBe(owners.length)
