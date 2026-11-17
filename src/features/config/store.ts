@@ -334,5 +334,5 @@ export function openSettingsAt(id: string, profile: string) {
   remember((l) => ({ ...l, view: "tool", tool: id, targets: { ...l.targets, [id]: profile } }))
   // A page opened before keeps its tool; one not opened yet starts from what was just remembered.
   if (useConfig.getState().tool !== null) void useConfig.getState().chooseTool(id)
-  useNav.getState().go("settings")
+  useNav.getState().go("tool-settings")
 }

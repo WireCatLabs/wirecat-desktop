@@ -283,7 +283,7 @@ const en = {
     },
     system: {
       title: "Logs and Settings",
-      text: "What each run did and what went wrong, and each tool's settings. How much space each tool's data takes is under Analytics, on the Storage tab.",
+      text: "What each run did and what went wrong, and the settings of WireCat and of each tool. How much space each tool's data takes is under Analytics, on the Storage tab.",
     },
     help: {
       title: "Help is here",
@@ -642,7 +642,7 @@ const ru: OnboardingText = {
     },
     system: {
       title: "Журнал и настройки",
-      text: "Что делал каждый запуск и что пошло не так, и настройки инструментов. Сколько места занимают данные каждого инструмента, видно в «Аналитике», на вкладке «Хранилище».",
+      text: "Что делал каждый запуск и что пошло не так, и настройки WireCat и каждого инструмента. Сколько места занимают данные каждого инструмента, видно в «Аналитике», на вкладке «Хранилище».",
     },
     help: {
       title: "Помощь здесь",
@@ -963,7 +963,7 @@ const es: OnboardingText = {
     },
     system: {
       title: "Registros y Ajustes",
-      text: "Qué hizo cada ejecución y qué falló, y los ajustes de cada herramienta. Cuánto ocupan los datos de cada herramienta está en Analítica, en la pestaña Almacenamiento.",
+      text: "Qué hizo cada ejecución y qué falló, y los ajustes de WireCat y de cada herramienta. Cuánto ocupan los datos de cada herramienta está en Analítica, en la pestaña Almacenamiento.",
     },
     help: {
       title: "La ayuda está aquí",

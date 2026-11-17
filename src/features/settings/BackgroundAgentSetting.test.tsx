@@ -21,13 +21,14 @@ it("lists both agents, chooses none for the owner and says why the button did no
 
   const list = await screen.findByRole("combobox", { name: "Agent for background jobs" })
   expect(list).toHaveTextContent("Not chosen")
+  expect(screen.getByText("Nothing runs until you choose an agent.")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Use this agent" }))
   expect(choose).not.toHaveBeenCalled()
   expect(screen.getByText("Choose an agent first.")).toBeInTheDocument()
   expect(screen.queryByText(/Digests are written by Claude Code/)).not.toBeInTheDocument()
 })
 
-it("says the only ready agent runs the jobs, and greys the others with the reason instead of hiding them", async () => {
+it("says the only ready agent runs the jobs, and greys the others with their state instead of hiding them", async () => {
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["gemini"]))
   const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
@@ -40,10 +41,9 @@ it("says the only ready agent runs the jobs, and greys the others with the reaso
     "aria-disabled",
     "true",
   )
-  expect(screen.getByText(/Greyed agents cannot run background jobs/)).toBeInTheDocument()
 })
 
-it("greys an agent memo cannot limit, with memo's reason, and never offers it", async () => {
+it("greys an agent memo cannot limit and never offers it, keeping memo's reason out of the page", async () => {
   const kimi = {
     id: "kimi",
     name: "Kimi CLI",
@@ -59,8 +59,8 @@ it("greys an agent memo cannot limit, with memo's reason, and never offers it", 
   const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
 
-  expect(await screen.findByText("Kimi CLI: approves every command in print mode")).toBeInTheDocument()
-  expect(screen.getByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
+  expect(await screen.findByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
+  expect(screen.queryByText(/approves every command in print mode/)).not.toBeInTheDocument()
   await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
   expect(screen.getByRole("option", { name: "Kimi CLI · Its commands cannot be limited" })).toHaveAttribute(
     "aria-disabled",
@@ -79,8 +79,7 @@ it("offers Codex after a warning: Cancel keeps the choice, «I understand» conf
   const user = userEvent.setup()
   render(<BackgroundAgentSetting />)
 
-  expect(await screen.findByText(/^Codex: runs any program and reads your files/)).toBeInTheDocument()
-  expect(screen.getByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
+  expect(await screen.findByText("Only Claude Code is ready, so background jobs run in it.")).toBeInTheDocument()
   await user.click(screen.getByRole("combobox", { name: "Agent for background jobs" }))
   await user.click(screen.getByRole("option", { name: "Codex · Ready after a warning" }))
   await user.click(screen.getByRole("button", { name: "Use this agent" }))
@@ -123,4 +122,22 @@ it("on a memo that cannot list its agents, keeps Claude Code, greys Codex and po
   expect(await screen.findByText(/This Memo knows only Claude Code and Codex/)).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Open Memo" })).toBeInTheDocument()
   expect(screen.getByText("Digests are written by Claude Code until you update Memo.")).toBeInTheDocument()
+})
+
+it("names an agent whose program is gone and asks to install it again", async () => {
+  const fixture = agents(["claude"])
+  const lost = {
+    id: "gemini",
+    name: "Gemini CLI",
+    state: "programMissing" as const,
+    signedIn: null,
+    reportsCost: false,
+    reason: null,
+    needsAck: false,
+    acknowledged: false,
+  }
+  vi.spyOn(platform, "backgroundAgents").mockResolvedValue({ ...fixture, agents: [...fixture.agents, lost] })
+  render(<BackgroundAgentSetting />)
+
+  expect(await screen.findByText("Install Gemini CLI again: its program is not found.")).toBeInTheDocument()
 })

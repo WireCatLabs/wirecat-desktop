@@ -407,7 +407,7 @@ or both.
 Every list of a tool's accounts (the Manage panel, the setup's Sign in step) is `AccountList` of `AccountRow`
 (`src/features/tools/`): the name, signed in or not, when it last synced, Sync where the tool syncs per profile, and
 "⋯" (`ui/SplitButton`, `compact`) with Check, Choose folders (drive), Settings (tools with per-profile settings: the
-Settings page opens on that profile), Sign in again, and Remove account. A check opens under its own row
+Tools tab of Settings opens on that profile), Sign in again, and Remove account. A check opens under its own row
 (`CheckResult.tsx`), folds away with its ×, and shows doctor output as `redact.rs` left it.
 
 Remove account (`RemoveAccount.tsx`, `account.rs`) uses cli-core's shared `<profile> account remove` once the installed

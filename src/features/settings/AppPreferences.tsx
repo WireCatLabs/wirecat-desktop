@@ -17,7 +17,7 @@ import { PictureReadingSetting } from "./PictureReadingSetting"
 import { ReadersSetting } from "./ReadersSetting"
 import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./scale"
 
-/** WireCat's own preferences, above the tools' settings on the Settings page. */
+/** WireCat's own preferences: the Settings page's App tab. The tools' settings are its Tools tab. */
 export function AppPreferences() {
   const m = useMessages(settingsMessages)
   return (

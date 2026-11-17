@@ -13,6 +13,7 @@ import {
   ScrollText,
   Search,
   Settings,
+  SlidersHorizontal,
   Users,
   Video,
   Wrench,
@@ -55,6 +56,7 @@ const ConversationPage = lazyPage(() =>
 )
 const ClientsPage = lazyPage(() => import("@/features/clients/page").then((m) => ({ default: m.ClientsPage })))
 const ConfigPage = lazyPage(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
+const AppSettingsPage = lazyPage(() => import("@/features/settings/page").then((m) => ({ default: m.AppSettingsPage })))
 const LinkPage = lazyPage(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazyPage(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
 const DigestSettingsPage = lazyPage(() =>
@@ -89,6 +91,7 @@ export type SectionId =
   | "storage"
   | "logs"
   | "settings"
+  | "tool-settings"
 
 export type Section = {
   id: SectionId | "open" | "conversation"
@@ -125,7 +128,9 @@ export const sections: readonly Section[] = [
   { id: "storage", icon: HardDrive, page: StoragePage, tabOf: "analytics" },
   { id: "search", icon: Search, page: SearchPage },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
-  { id: "settings", icon: Settings, page: ConfigPage, group: "system" },
+  // WireCat's own preferences, and apart from them each tool's settings, one switch away (owner, 2026-11-17).
+  { id: "settings", icon: Settings, page: AppSettingsPage, group: "system" },
+  { id: "tool-settings", icon: SlidersHorizontal, page: ConfigPage, tabOf: "settings" },
   { id: "open", icon: Link2, page: LinkPage, hidden: true },
   { id: "conversation", icon: MessagesSquare, page: ConversationPage, hidden: true },
 ]
