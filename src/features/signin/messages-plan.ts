@@ -12,6 +12,8 @@ import type { Messages } from "@/i18n"
  * `session start` (the server found from the address, the domain alone sent to DNS and autoconfig, the password
  * checked before it is saved); gcal 0.19 and drive 0.59 ask for `calendar.readonly` and `drive.readonly`, and keep the
  * owner's client with the sign-in; zoom-cli `docs/zoom-app.md` (no WireCat Zoom app, the Public Client ID).
+ * Yandex Disk (2026-11-17): ydisk 0.1.0 `docs/installation.md` (the app, its scopes, the token page; the token
+ * checked before it is kept in the keyring, else a private file).
  */
 /**
  * `appKeys`: the steps open with making the owner's own app keys (`messages-telegram.ts`), the first time only.
@@ -30,6 +32,7 @@ const PROVIDERS_GUIDE = "https://wirecat.dev/en/docs/mail/providers"
 const MICROSOFT_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-microsoft"
 const GOOGLE_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-google"
 const ZOOM_APP_GUIDE = "https://wirecat.dev/en/docs/zm/zoom-app"
+const YDISK_GUIDE = "https://wirecat.dev/en/docs/ydisk"
 
 const en = {
   what: "What happens",
@@ -159,6 +162,20 @@ const en = {
       own: {
         text: "Sign in with a Google app of your own instead of WireCat's: a Desktop app client from Google Cloud Console. Choose its JSON file. The tool keeps the client with the sign-in, so the file is not needed again.",
       },
+    },
+    ydisk: {
+      steps: [
+        "The first time: register an app at oauth.yandex.com/client/new. Choose Web services, the redirect URI https://oauth.yandex.ru/verification_code, and the Disk access cloud_api:disk.read and cloud_api:disk.info, with cloud_api:disk.write if your agent may change files.",
+        "Open https://oauth.yandex.ru/authorize?response_type=token&client_id= with the app's ClientID added at the end, signed in to Yandex. Yandex shows the token.",
+        "Paste the token here. ydisk checks it with Yandex before it keeps it.",
+      ],
+      guide: { url: YDISK_GUIDE, label: "How to get the token" },
+      time: "Allow about five minutes the first time.",
+      kept: [
+        "Your Yandex password is typed only on Yandex's own page.",
+        "The token can do only what you allowed when you registered the app.",
+        "The token is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
+      ],
     },
     "email:microsoft": {
       steps: [
@@ -347,6 +364,20 @@ const ru: PlanText = {
         text: "Войдите через своё приложение Google вместо приложения WireCat: клиент типа Desktop app из Google Cloud Console. Выберите его JSON-файл. Инструмент хранит клиента вместе со входом, так что файл больше не понадобится.",
       },
     },
+    ydisk: {
+      steps: [
+        "В первый раз: зарегистрируйте приложение на oauth.yandex.ru/client/new. Выберите «Веб-сервисы», Redirect URI https://oauth.yandex.ru/verification_code и доступы к Диску cloud_api:disk.read и cloud_api:disk.info, а если агент может менять файлы, то и cloud_api:disk.write.",
+        "Откройте https://oauth.yandex.ru/authorize?response_type=token&client_id=, добавив в конце ClientID приложения, войдя в Яндекс. Яндекс покажет токен.",
+        "Вставьте токен сюда. ydisk проверит его в Яндексе, прежде чем сохранить.",
+      ],
+      guide: { url: YDISK_GUIDE, label: "Как получить токен" },
+      time: "В первый раз это займёт около пяти минут.",
+      kept: [
+        "Пароль от Яндекса вводится только на странице самого Яндекса.",
+        "Токен может только то, что вы разрешили при регистрации приложения.",
+        "Токен сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
+      ],
+    },
     "email:microsoft": {
       steps: [
         "Введите адрес почты. Сервер найдётся по нему.",
@@ -531,6 +562,20 @@ const es: PlanText = {
       own: {
         text: "Entra con una app de Google propia en lugar de la de WireCat: un cliente Desktop app de Google Cloud Console. Elige su archivo JSON. La herramienta guarda el cliente con el inicio de sesión, así que el archivo no hace falta otra vez.",
       },
+    },
+    ydisk: {
+      steps: [
+        "La primera vez: registra una aplicación en oauth.yandex.com/client/new. Elige Web services, la URI de redirección https://oauth.yandex.ru/verification_code y los accesos a Disk cloud_api:disk.read y cloud_api:disk.info, con cloud_api:disk.write si tu agente puede cambiar archivos.",
+        "Abre https://oauth.yandex.ru/authorize?response_type=token&client_id= con el ClientID de la aplicación al final, con la sesión de Yandex iniciada. Yandex muestra el token.",
+        "Pega aquí el token. ydisk lo comprueba con Yandex antes de guardarlo.",
+      ],
+      guide: { url: YDISK_GUIDE, label: "Cómo conseguir el token" },
+      time: "La primera vez, unos cinco minutos.",
+      kept: [
+        "Tu contraseña de Yandex se escribe solo en la página de Yandex.",
+        "El token solo puede lo que permitiste al registrar la aplicación.",
+        "El token se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
+      ],
     },
     "email:microsoft": {
       steps: [

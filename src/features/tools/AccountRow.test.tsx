@@ -373,3 +373,23 @@ describe("Notion's folders", () => {
     expect(transcripts).not.toHaveBeenCalled()
   })
 })
+
+describe("Yandex Disk's folders", () => {
+  it("lists the chosen folders in its own words and removes one by its Yandex id", async () => {
+    vi.spyOn(platform, "driveFoldersChosen")
+      .mockResolvedValueOnce({ result: "listed", folders: [{ id: "4000000000:9f2c1e", name: "Отчёты 2026" }] })
+      .mockResolvedValue({ result: "listed", folders: [] })
+    const remove = vi.spyOn(platform, "driveFolderRemove").mockResolvedValue({ result: "removed" })
+    const transcripts = vi.spyOn(platform, "driveTranscriptsFind")
+    render(
+      <AccountList tool={tool("ydisk")} profiles={[{ name: "personal", signedIn: true }]} onReload={() => undefined} />,
+    )
+    await userEvent.click(within(await openMenu("personal")).getByRole("menuitem", { name: "Choose folders" }))
+    const panel = screen.getByRole("region", { name: "Folders Yandex Disk copies for personal" })
+    expect(within(panel).getByText(/Files outside them stay on Yandex Disk/)).toBeInTheDocument()
+    await userEvent.click(await within(panel).findByRole("button", { name: "Stop importing Отчёты 2026" }))
+    expect(remove).toHaveBeenCalledWith("ydisk", "personal", "4000000000:9f2c1e")
+    expect(await within(panel).findByText(/Yandex Disk copies nothing for this account/)).toBeInTheDocument()
+    expect(transcripts).not.toHaveBeenCalled()
+  })
+})

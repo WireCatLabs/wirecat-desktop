@@ -30,6 +30,7 @@ import type { Platform } from "./types"
 // browser, then it is saved; `?signin-fail=bitrix:app-refused|app-payment|app-portal|app-timeout` fails with b24's
 // reasons, the first three back on the application's form.
 // Asterisk (`?signin-plan=pbx:mysql`): the source is saved as settings, then checked; `?signin-fail=pbx:network`.
+// Yandex Disk (`?signin=ydisk`): the pasted token is checked, then saved.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -89,7 +90,7 @@ const WA_PAIR =
 const zmAsks = query.get("zm-client-id") === "ask"
 const zoomAppOld = query.get("zoom-app") === "old"
 const manualServer = query.get("mail-server") === "manual"
-const quick = query.has("drive-folders")
+const quick = query.has("drive-folders") || query.has("ydisk-folders")
 
 const kept = (messages: number): SignInEvent => ({
   event: "done",
@@ -109,6 +110,10 @@ const ZOOM_REDIRECT = "https://wirecat.dev/zoom-callback"
 
 const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
   async pbx(s) {
+    if (await s.wait(1500)) return STOPPED
+    return signedIn
+  },
+  async ydisk(s) {
     if (await s.wait(1500)) return STOPPED
     return signedIn
   },

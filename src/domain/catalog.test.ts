@@ -24,6 +24,7 @@ describe("catalog", () => {
       "memo",
       "email",
       "notion",
+      "ydisk",
       "bitrix",
       "amo",
       "pbx",

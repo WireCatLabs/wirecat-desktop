@@ -1050,3 +1050,22 @@ describe("signing in to Notion", () => {
     )
   })
 })
+
+describe("signing in to Yandex Disk", () => {
+  it("shows how to get the token, then gives the pasted token to the run", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("ydisk", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Yandex Disk" })
+    expect(within(dialog).getByText(/oauth\.yandex\.com\/client\/new/)).toBeInTheDocument()
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    await userEvent.click(within(dialog).getByRole("button", { name: /How to get the token/ }))
+    expect(open).toHaveBeenCalledWith(expect.stringContaining("wirecat.dev/"))
+    await userEvent.type(within(dialog).getByLabelText("Token"), "y0_example")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("ydisk", "token", "work", expect.any(Function), {
+        password: "y0_example",
+      }),
+    )
+  })
+})

@@ -602,9 +602,13 @@ export type DocumentsRead = { kind: "missing" } |
 { kind: "old"; version: string | null; need: string } | { kind: "ready"; sources: DocumentSource[] };
 
 export type DriveFolder = {
+	/**  What the tool's `folders browse` and `folders add` take for it: an id, or ydisk's `disk:/…` path. */
 	id: string,
 	name: string,
-	/**  drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`. */
+	/**
+	 *  drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`; ydisk names
+	 *  none, so `folder`.
+	 */
 	kind: string,
 	parent: string | null,
 	location: string | null,

@@ -12,8 +12,8 @@ pub async fn zoom_app_setup(id: String) -> Result<zoom_app::ZoomAppAnswer, AppEr
     .await
 }
 
-/// One level of the profile's folders (Drive) or pages and databases (Notion); `parent` is a folder id or
-/// `shared-with-me`, `cursor` the last page's `next_cursor`.
+/// One level of the profile's folders (Drive, Yandex Disk) or pages and databases (Notion); `parent` is a folder id,
+/// `shared-with-me` or ydisk's `disk:/…` path, `cursor` the last page's `next_cursor`.
 #[tauri::command]
 pub async fn drive_folders_browse(
     id: String,

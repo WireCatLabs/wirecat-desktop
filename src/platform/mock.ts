@@ -94,6 +94,7 @@ const LATEST: Record<string, string> = {
   funnel: "0.1.1",
   pbx: "0.3.0",
   notion: "0.2.0",
+  ydisk: "0.1.0",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
 const storeCheck = params.get("store-check")
@@ -245,7 +246,9 @@ function mockProfiles(id: string): Profile[] | null {
   }
   // pbx's profile is its Asterisk's name, as a meeting link names the account.
   if (id === "pbx") return [{ name: "office", signedIn: true }]
-  return [{ name: "personal", signedIn: id === "max" || id === "drive" || id === "notion" ? true : null }]
+  return [
+    { name: "personal", signedIn: id === "max" || id === "drive" || id === "notion" || id === "ydisk" ? true : null },
+  ]
 }
 
 function diagnosed(id: string, profile: string | null): Diagnosis {
@@ -332,6 +335,7 @@ export function createMock(os: Platform["os"]): Platform {
   // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
   const accounts = params.get("accounts")
   if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")
+  if (params.has("ydisk-folders")) installed.set("ydisk", LATEST.ydisk ?? "1.0.0")
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
   const agents = agentsMock((id) => installed.get(id), os)

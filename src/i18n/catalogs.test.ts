@@ -12,7 +12,7 @@ const ROOT = join(__dirname, "../..")
 /** Words Spanish writes as English does, where Russian does not: a Spanish copy of them is not English left over. */
 const SAME_IN_SPANISH = new Set([
   ...["Audio", "App", "Bot", "Bots", "bot", "chat", "Chats", "Lead", "Mentor", "Personal", "personal", "Sticker"],
-  ...["Terminal", "Token", "Total", "Google Drive", "Google Calendar", "Yandex", "Beeline Cloud PBX"],
+  ...["Terminal", "Token", "Total", "Google Drive", "Google Calendar", "Yandex", "Yandex Disk", "Beeline Cloud PBX"],
 ])
 
 /** The object literal that starts at `from`, up to its own closing brace: `${…}` inside it nests. */

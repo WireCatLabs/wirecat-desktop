@@ -101,7 +101,8 @@ pub struct Tool {
     /// The messengers: `images read`, one picture of a message read by that agent (`attachments.rs`).
     #[serde(default)]
     pub images_read: Option<crate::attachments::ImagesReadSource>,
-    /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
+    /// drive, notion and ydisk: the tool's own listing of folders or pages, to choose the ones it imports
+    /// (`drive_folders.rs`).
     #[serde(default)]
     pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,
     /// Only email: mail-cli's own `rules list` for one mailbox, shown read only (`mail_rules.rs`).
@@ -517,7 +518,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 13);
+        assert_eq!(catalog().tools.len(), 14);
     }
 
     #[test]
