@@ -25,6 +25,7 @@ describe("catalog", () => {
       "email",
       "notion",
       "bitrix",
+      "amo",
       "pbx",
     ])
     const owners = tools.filter((t) => !t.partOf)

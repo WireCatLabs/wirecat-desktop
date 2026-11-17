@@ -543,6 +543,7 @@ const ru: OnboardingText = {
         "Агент сможет искать и читать вашу почту на этом компьютере. Синхронизация копирует почту сюда и никогда не меняет ваш ящик.",
       notion: "Агент сможет читать страницы и базы данных Notion, которые видит ваш токен.",
       bitrix: "Агент сможет читать и менять CRM портала с правами сотрудника, который создал вебхук.",
+      amo: "Агент сможет читать и менять CRM аккаунта с правами администратора, который создал токен.",
       pbx: "Агент сможет находить телефонные звонки вашей компании и читать, что в них было сказано.",
     },
     asks: {
@@ -557,6 +558,7 @@ const ru: OnboardingText = {
       notion: "Личный токен доступа Notion или токен внутреннего подключения, которое вы создали в Notion.",
       bitrix:
         "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов. Или ID и ключ локального приложения, вход в браузере.",
+      amo: "Адрес аккаунта и долгосрочный токен закрытой интеграции, которую администратор создаёт в amoCRM или Kommo.",
       pbx: "Путь к Master.csv или адрес базы CDR и пароль пользователя, который может только читать.",
     },
   },
@@ -862,6 +864,7 @@ const es: OnboardingText = {
         "Tu agente podrá buscar y leer tu correo en este equipo. La sincronización copia el correo aquí y nunca cambia tu buzón.",
       notion: "Tu agente podrá leer las páginas y bases de datos de Notion que ve tu token.",
       bitrix: "Tu agente podrá leer y cambiar el CRM del portal con los permisos del empleado que creó el webhook.",
+      amo: "Tu agente podrá leer y cambiar el CRM de la cuenta con los permisos del administrador que creó el token.",
       pbx: "Tu agente podrá encontrar las llamadas de tu empresa y leer lo que se dijo en ellas.",
     },
     asks: {
@@ -876,6 +879,7 @@ const es: OnboardingText = {
       notion: "Un token de acceso personal de Notion, o el token de una conexión interna que creaste en Notion.",
       bitrix:
         "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
+      amo: "La dirección de la cuenta y un token de larga duración, de una integración privada que un administrador crea en amoCRM o Kommo.",
       pbx: "La ruta de Master.csv, o la dirección de la base de datos CDR y la contraseña de un usuario de solo lectura.",
     },
   },

@@ -741,7 +741,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
   it("confirms only the chosen CRM's suggestions, and Unmapped goes once nothing waits", async () => {
     const confirm = vi.spyOn(platform, "clientsMapConfirm")
     const { user, map, column } = await openMap()
-    await user.click(within(map).getByRole("radio", { name: "amocrm · acme.example" }))
+    await user.click(within(map).getByRole("radio", { name: "amoCRM · acme.example" }))
     expect(await column(/^Unmapped/)).toHaveTextContent("Estimate")
     expect(map).not.toHaveTextContent("Waiting for payment")
     await user.click(within(map).getByRole("button", { name: "Accept suggestions (1)" }))
@@ -750,7 +750,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(await within(map).findByText("Every suggestion is confirmed.")).toBeVisible()
     expect(within(map).queryByRole("region", { name: /^Unmapped/ })).toBeNull()
     expect(await column(/^Quote/)).toHaveTextContent("Estimate")
-    await waitFor(() => expect(within(map).getByRole("radio", { name: "amocrm · acme.example" })).toHaveFocus())
+    await waitFor(() => expect(within(map).getByRole("radio", { name: "amoCRM · acme.example" })).toHaveFocus())
   })
 
   it("asks the AI model only on a click, and its places wait to be accepted", async () => {

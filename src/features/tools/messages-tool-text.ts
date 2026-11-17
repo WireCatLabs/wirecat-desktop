@@ -11,6 +11,7 @@ export const RU_TAGLINE: Record<string, string> = {
   email: "Ваша почта по IMAP, с поиском на вашем компьютере",
   notion: "Страницы и базы данных\u00a0· поиск",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
+  amo: "Сделки, контакты и компании\u00a0· изменения",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
 }
 
@@ -29,6 +30,7 @@ export const RU_SUMMARY: Record<string, string> = {
     "Копируйте на этот компьютер страницы и базы данных Notion, которые видит ваш токен, ищите по ним и давайте агенту их текст.",
   bitrix:
     "Читайте и меняйте CRM портала Битрикс24 — сделки, лиды, контакты и компании — со страницы «Клиенты» и через вашего агента.",
+  amo: "Читайте и меняйте CRM аккаунта amoCRM или Kommo — сделки, контакты и компании — со страницы «Клиенты» и через вашего агента.",
   pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
 }
 
@@ -43,6 +45,7 @@ export const ES_TAGLINE: Record<string, string> = {
   email: "Tu correo por IMAP, con búsqueda en tu ordenador",
   notion: "Páginas y bases de datos\u00a0· búsqueda",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
+  amo: "Negociaciones, contactos y empresas\u00a0· cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
 }
 
@@ -61,5 +64,6 @@ export const ES_SUMMARY: Record<string, string> = {
     "Copia a este equipo las páginas y bases de datos de Notion que ve tu token, búscalas y da a tu agente su texto.",
   bitrix:
     "Lee y cambia el CRM de un portal de Bitrix24 —negociaciones, prospectos, contactos y empresas— desde la página Clientes y con tu agente.",
+  amo: "Lee y cambia el CRM de una cuenta de amoCRM o Kommo —negociaciones, contactos y empresas— desde la página Clientes y con tu agente.",
   pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
 }

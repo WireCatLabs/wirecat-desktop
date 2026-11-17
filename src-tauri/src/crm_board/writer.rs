@@ -143,7 +143,7 @@ pub(super) fn move_with(
     }
     let template = match kind {
         CrmKind::Deal => &crm.move_deal,
-        CrmKind::Lead => &crm.move_lead,
+        CrmKind::Lead => crm.move_lead.as_ref().ok_or_else(|| invalid(format!("{} has no leads", crm.provider)))?,
     };
     call(&filled(template, &[("{profile}", profile), ("{ref}", reference), ("{stage}", stage)])).map(drop)
 }
@@ -322,6 +322,16 @@ mod tests {
             *seen.lock().unwrap(),
             ["work deals move deal:12 Invoice sent --record --json", "sales leads move lead:3 C2:NEW --record --json"]
         );
+    }
+
+    #[test]
+    fn a_crm_with_no_leads_moves_deals_and_refuses_a_lead_before_its_cli_runs() {
+        let amo = catalog::tool("amo").unwrap().crm.as_ref().unwrap();
+        let seen = Mutex::new(vec![]);
+        let answer = json!({});
+        move_with(&recording(&seen, &answer), amo, CrmKind::Deal, "deal:12", "Quote", "work").unwrap();
+        assert!(move_with(&recording(&seen, &answer), amo, CrmKind::Lead, "lead:3", "Quote", "work").is_err());
+        assert_eq!(*seen.lock().unwrap(), ["work deals move deal:12 Quote --record --json"]);
     }
 
     #[test]
