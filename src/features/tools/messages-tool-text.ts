@@ -9,9 +9,9 @@ export const RU_TAGLINE: Record<string, string> = {
   gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
   memo: "Заметки, файлы и хранилища Obsidian\u00a0· поиск по всему",
   email: "Ваша почта по IMAP, с поиском на вашем компьютере",
+  notion: "Страницы и базы данных\u00a0· поиск",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
-  notion: "Страницы и базы данных\u00a0· поиск",
 }
 
 export const RU_SUMMARY: Record<string, string> = {
@@ -25,11 +25,11 @@ export const RU_SUMMARY: Record<string, string> = {
   memo: "Ваши заметки, файлы, хранилища Obsidian и сообщения в одном месте для ИИ-агента: поиск, теги, люди и воспоминания, на вашем компьютере.",
   email:
     "Gmail, Outlook и другая почта IMAP, скопированная на ваш компьютер: ищите по ней без сети, читайте переписку целиком и смотрите, докуда дошла каждая синхронизация. Синхронизация никогда не меняет ваш ящик.",
+  notion:
+    "Копируйте на этот компьютер страницы и базы данных Notion, которые видит ваш токен, ищите по ним и давайте агенту их текст.",
   bitrix:
     "Читайте и меняйте CRM портала Битрикс24 — сделки, лиды, контакты и компании — со страницы «Клиенты» и через вашего агента.",
   pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
-  notion:
-    "Копируйте на этот компьютер страницы и базы данных Notion, которые видит ваш токен, ищите по ним и давайте агенту их текст.",
 }
 
 export const ES_TAGLINE: Record<string, string> = {
@@ -41,9 +41,9 @@ export const ES_TAGLINE: Record<string, string> = {
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
   memo: "Notas, archivos y bóvedas de Obsidian\u00a0· búsqueda",
   email: "Tu correo por IMAP, con búsqueda en tu ordenador",
+  notion: "Páginas y bases de datos\u00a0· búsqueda",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
-  notion: "Páginas y bases de datos\u00a0· búsqueda",
 }
 
 export const ES_SUMMARY: Record<string, string> = {
@@ -57,9 +57,9 @@ export const ES_SUMMARY: Record<string, string> = {
   memo: "Tus notas, archivos, bóvedas de Obsidian y mensajes en un solo lugar para tu agente de IA: búsqueda, etiquetas, personas y memorias, en tu ordenador.",
   email:
     "Gmail, Outlook y otro correo IMAP copiado a tu equipo: búscalo sin conexión, lee hilos enteros y mira hasta dónde llegó cada sincronización. La sincronización nunca cambia tu buzón.",
+  notion:
+    "Copia a este equipo las páginas y bases de datos de Notion que ve tu token, búscalas y da a tu agente su texto.",
   bitrix:
     "Lee y cambia el CRM de un portal de Bitrix24 —negociaciones, prospectos, contactos y empresas— desde la página Clientes y con tu agente.",
   pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
-  notion:
-    "Copia a este equipo las páginas y bases de datos de Notion que ve tu token, búscalas y da a tu agente su texto.",
 }
