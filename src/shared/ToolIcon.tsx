@@ -1,6 +1,7 @@
 import { Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import amocrm from "@/assets/logos/amocrm.png"
+import attio from "@/assets/logos/attio.png"
 import bitrix24 from "@/assets/logos/bitrix24.svg"
 import calendar from "@/assets/logos/google-calendar.svg"
 import drive from "@/assets/logos/google-drive.svg"
@@ -23,6 +24,7 @@ const LOGOS: Record<string, string> = {
   gcal: calendar,
   bitrix: bitrix24,
   amo: amocrm,
+  attio,
   notion,
   ydisk: yandexDisk,
 }

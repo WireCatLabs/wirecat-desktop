@@ -169,7 +169,8 @@ const ToolSchema = v.object({
       v.object({
         provider: v.string(),
         minVersion: v.string(),
-        moveDeal: v.array(v.string()),
+        /** Absent for a CRM its CLI only reads (Attio): the board keeps its cards read only. */
+        moveDeal: v.optional(v.array(v.string())),
         /** Absent for a CRM with no leads apart from its deals (amoCRM). */
         moveLead: v.optional(v.array(v.string())),
         scope: v.object({ minVersion: v.optional(v.string()), show: v.array(v.string()), set: v.array(v.string()) }),

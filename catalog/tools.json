@@ -2665,6 +2665,89 @@
       }
     },
     {
+      "id": "attio",
+      "name": "Attio",
+      "tagline": "Deals, people and companies · change history",
+      "bin": "attio",
+      "package": "@wirecat/attio-cli",
+      "summary": "Read an Attio workspace's CRM: deals with their stages, people and companies, from the Clients page and your agent.",
+      "docs": "https://github.com/WireCatLabs/attio-cli#readme",
+      "repo": "https://github.com/WireCatLabs/attio-cli",
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": {
+        "port": 8759,
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+      },
+      "tasks": null,
+      "sync": {
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "records",
+        "note": null
+      },
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "attio-cli",
+        "env": "WCATTIO"
+      },
+      "settings": null,
+      "signIn": {
+        "gives": "Lets your agent read the workspace's deals, people and companies with the rights of the token.",
+        "asks": "An access token: in Attio, Workspace settings → Developers → New access token, with read access to records, object configuration and user management. Only a workspace admin can make one.",
+        "methods": [
+          {
+            "id": "token",
+            "label": "Attio access token",
+            "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true
+          }
+        ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": null,
+        "removes": ["signIn"],
+        "keeps": ["settings", "data", "listed"]
+      },
+      "crm": {
+        "provider": "attio",
+        "minVersion": "0.1.0",
+        "showDeal": ["{profile}", "deals", "show", "{ref}", "--no-record", "--json"],
+        "scope": {
+          "minVersion": "0.1.0",
+          "show": ["{profile}", "config", "show", "--no-record", "--json"],
+          "set": ["{profile}", "config", "set", "{setting}", "{value}", "--record", "--json"]
+        }
+      }
+    },
+    {
       "id": "pbx",
       "name": "Asterisk",
       "tagline": "Phone calls and recordings · transcripts",

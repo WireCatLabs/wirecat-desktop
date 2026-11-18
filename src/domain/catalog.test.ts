@@ -27,6 +27,7 @@ describe("catalog", () => {
       "ydisk",
       "bitrix",
       "amo",
+      "attio",
       "pbx",
     ])
     const owners = tools.filter((t) => !t.partOf)

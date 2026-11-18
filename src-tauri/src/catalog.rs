@@ -294,7 +294,9 @@ pub struct CrmSource {
     pub provider: String,
     /// The first release that ships `contracts/wirecat.json`; below it the board keeps this CRM's cards read only.
     pub min_version: String,
-    pub move_deal: Vec<String>,
+    /// Absent for a CRM its CLI only reads (Attio): the board keeps its cards read only.
+    #[serde(default)]
+    pub move_deal: Option<Vec<String>>,
     /// Absent for a CRM with no leads apart from its deals (amoCRM).
     #[serde(default)]
     pub move_lead: Option<Vec<String>>,
@@ -519,7 +521,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 14);
+        assert_eq!(catalog().tools.len(), 15);
     }
 
     #[test]
