@@ -2,7 +2,9 @@ import { LogIn } from "lucide-react"
 import { useId, useState } from "react"
 import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncSchedules, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
+import { openSettingsAt } from "@/features/config"
 import { useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { ACCOUNT_NAME_MAX, nameOf, useAccountNames } from "@/shared/account-names-store"
 import { Button } from "@/ui/Button"
@@ -46,6 +48,7 @@ export function AccountRow(props: {
   const rulesWords = useMessages(mailRulesMessages)
   const [removing, setRemoving] = useState<"remove" | "signOut" | null>(null)
   const [renaming, setRenaming] = useState(false)
+  const [changingId, setChangingId] = useState(false)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
 
   const signIn = () => reconnect(tool, p.name, onReload)
@@ -64,7 +67,9 @@ export function AccountRow(props: {
           },
         ]
       : []),
+    ...(tool.settings?.perProfile ? [{ label: m.settings, onSelect: () => openSettingsAt(tool.id, p.name) }] : []),
     { label: m.rename, onSelect: () => setRenaming(true) },
+    ...(tool.accountRemove?.remove ? [{ label: m.changeId, onSelect: () => setChangingId(true) }] : []),
     ...(tool.accountRemove?.signOut && p.signedIn !== false
       ? [{ label: m.signOut, onSelect: () => setRemoving("signOut") }]
       : []),
@@ -89,6 +94,20 @@ export function AccountRow(props: {
         </Collapse>
         <Collapse open={renaming}>
           {renaming && <Rename tool={tool.id} profile={p.name} onClose={() => setRenaming(false)} />}
+        </Collapse>
+        <Collapse open={changingId}>
+          {changingId && (
+            <ChangeId
+              tool={tool}
+              profile={p.name}
+              onClose={() => setChangingId(false)}
+              onChanged={() => {
+                setChangingId(false)
+                check.clear()
+                onReload()
+              }}
+            />
+          )}
         </Collapse>
       </Collapse>
       <RemoveAccountDialog
@@ -326,6 +345,89 @@ function Rename({ tool, profile, onClose }: { tool: string; profile: string; onC
       <p id={`${id}-hint`} className="text-[0.85rem] text-ink-soft">
         {m.renameHint(profile)}
       </p>
+    </form>
+  )
+}
+
+/**
+ * The profile id itself, through the tool's own `account rename`: the sign-in, settings and data move with it. The
+ * owner's own name for the account follows.
+ */
+function ChangeId(props: { tool: CatalogTool; profile: string; onClose: () => void; onChanged: () => void }) {
+  const { tool, profile, onClose, onChanged } = props
+  const m = useMessages(accountsMessages).row
+  const id = useId()
+  const [value, setValue] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+  const change = async () => {
+    const next = value.trim()
+    if (!next || next === profile) return onClose()
+    setBusy(true)
+    setProblem(null)
+    try {
+      const done = await platform.accountRename(tool.id, profile, next)
+      if (done.result === "renamed") {
+        const names = useAccountNames.getState()
+        const name = nameOf(names.names, tool.id, profile)
+        if (name) names.rename(tool.id, next, name)
+        names.forget(tool.id, profile)
+        return onChanged()
+      }
+      setProblem(
+        done.result === "tooOld"
+          ? m.changeIdTooOld(tool.name)
+          : done.result === "usedByAgents"
+            ? m.changeIdAgents(done.agents.join(", "))
+            : done.message,
+      )
+    } catch (e) {
+      setProblem(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form
+      className="flex flex-col gap-1.5 pt-1"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void change()
+      }}
+    >
+      <label htmlFor={id} className="text-[0.9rem] font-medium text-ink">
+        {m.changeIdLabel(profile)}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          id={id}
+          // biome-ignore lint/a11y/noAutofocus: the field is what "Change profile id" opened
+          autoFocus
+          value={value}
+          placeholder={profile}
+          disabled={busy}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose()
+          }}
+          aria-describedby={`${id}-hint`}
+          className="h-9 min-w-[14rem] flex-1 rounded-control border border-line-strong bg-app px-3 font-mono text-body text-ink"
+        />
+        <Button size="sm" variant="primary" type="submit" disabled={busy}>
+          {busy ? m.changeIdSaving : m.changeIdSave}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onClose} disabled={busy}>
+          {m.renameCancel}
+        </Button>
+      </div>
+      <p id={`${id}-hint`} className="text-[0.85rem] text-ink-soft">
+        {m.changeIdHint}
+      </p>
+      {problem && (
+        <p role="alert" className="text-[0.9rem] text-warn-ink">
+          {problem}
+        </p>
+      )}
     </form>
   )
 }

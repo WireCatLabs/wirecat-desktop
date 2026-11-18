@@ -1,6 +1,6 @@
 import { ownerId, tools } from "@/domain/catalog"
 import { parseLink } from "@/domain/links"
-import type { AccountRemoved } from "./bindings"
+import type { AccountRemoved, AccountRenamed } from "./bindings"
 import { accountRemoveMock } from "./mock-account-remove"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
@@ -217,6 +217,7 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
 const signedOut = new Set<string>(params.get("analytics") === "problems" ? ["max/personal"] : [])
 // Profiles `account remove` forgot: the tools no longer list them.
 const forgotten = new Set<string>()
+const renamed = new Map<string, string>()
 
 function mockProfiles(id: string): Profile[] | null {
   if (id === "memo") return null
@@ -528,6 +529,7 @@ export function createMock(os: Platform["os"]): Platform {
       return (
         mockProfiles(id)
           ?.filter((p) => !forgotten.has(`${id}/${p.name}`))
+          .map((p) => ({ ...p, name: renamed.get(`${id}/${p.name}`) ?? p.name }))
           .map((p) => (signedOut.has(`${id}/${p.name}`) ? { ...p, signedIn: false } : p)) ?? null
       )
     },
@@ -761,6 +763,14 @@ export function createMock(os: Platform["os"]): Platform {
     ...setupMock(),
     ...driveFoldersMock(),
     ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
+    async accountRename(id, profile, newName): Promise<AccountRenamed> {
+      await delay(900)
+      if (params.get("rename-old") === id) return { result: "tooOld" }
+      if (params.get("rename-agents") === id) return { result: "usedByAgents", agents: ["claude", "codex"] }
+      const original = [...renamed].find(([, now]) => now === profile)?.[0] ?? `${id}/${profile}`
+      renamed.set(original, newName)
+      return { result: "renamed" }
+    },
     ...botMock(),
     ...syncMock(),
     ...syncScheduleMock(params),

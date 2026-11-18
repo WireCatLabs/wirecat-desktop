@@ -1,10 +1,12 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { addCommunityTools, findTool, replaceAddedTools, syncSchedules } from "@/domain/catalog"
+import { readLast } from "@/features/config"
 import type { Removal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { OWN } from "@/platform/mock-community"
 import { useAccountNames } from "@/shared/account-names-store"
+import { useNav } from "@/shared/nav"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { AccountRowPlaceholder } from "./AccountRow"
 import { AccountList } from "./Health"
@@ -43,7 +45,7 @@ describe("an account row", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
-    ).toEqual(["Check", "Sign in again", "Rename", "Sign out", "Remove account"])
+    ).toEqual(["Check", "Sign in again", "Settings", "Rename", "Change profile id", "Sign out", "Remove account"])
   })
 
   it("signs out and removes an account of an own tool whose manifest has accountRemove", async () => {
@@ -70,7 +72,7 @@ describe("an account row", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
-    ).toEqual(["Check", "Sign in again", "Rename", "Sign out", "Remove account"])
+    ).toEqual(["Check", "Sign in again", "Rename", "Change profile id", "Sign out", "Remove account"])
   })
 
   it("signs an account out from its menu, keeping it listed, without asking about its data", async () => {
@@ -127,6 +129,36 @@ describe("an account row", () => {
     await userEvent.click(screen.getByRole("button", { name: "Use the profile's name" }))
     expect(within(row).queryByText("Sales team")).not.toBeInTheDocument()
     expect(useAccountNames.getState().names).toEqual({})
+  })
+
+  it("opens the Settings page on this account", async () => {
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Settings" }))
+    expect(useNav.getState().active).toBe("tool-settings")
+    expect(readLast().targets?.tg).toBe("work")
+  })
+
+  it("changes the profile id through the tool, keeps the owner's name for it, and reloads", async () => {
+    useAccountNames.setState({ names: { "tg:work": "Sales team" } })
+    const rename = vi.spyOn(platform, "accountRename").mockResolvedValue({ result: "renamed" })
+    const onReload = vi.fn()
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={onReload} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Change profile id" }))
+    await userEvent.type(screen.getByLabelText("New id for profile work"), "sales{Enter}")
+    await waitFor(() => expect(onReload).toHaveBeenCalled())
+    expect(rename).toHaveBeenCalledWith("tg", "work", "sales")
+    expect(useAccountNames.getState().names).toEqual({ "tg:sales": "Sales team" })
+  })
+
+  it("says which agents start the account by its id, and changes nothing", async () => {
+    useAccountNames.setState({ names: {} })
+    vi.spyOn(platform, "accountRename").mockResolvedValue({ result: "usedByAgents", agents: ["claude", "codex"] })
+    const onReload = vi.fn()
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={onReload} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Change profile id" }))
+    await userEvent.type(screen.getByLabelText("New id for profile work"), "sales{Enter}")
+    expect(await screen.findByRole("alert")).toHaveTextContent("claude, codex start this account by its id")
+    expect(onReload).not.toHaveBeenCalled()
   })
 
   it("shows a check's result under the row it was asked from, and folds it away", async () => {

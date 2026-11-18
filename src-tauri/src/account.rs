@@ -14,6 +14,8 @@ const END: Duration = Duration::from_mins(1);
 /// The full removal signs out first, then may purge the account from the shared store.
 const REMOVE: Duration = Duration::from_mins(2);
 const PLAN: Duration = Duration::from_secs(30);
+/// Renaming moves keyring entries, files and the store's records on this computer; nothing reaches the provider.
+const RENAME: Duration = Duration::from_mins(1);
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -148,6 +150,52 @@ pub const HELD: &str = "Something else runs for this account, such as a sync. St
 
 pub fn held(holder: RemovalHolder) -> AccountRemoval {
     AccountRemoval::Refused { reason: RemovalRefusal::Busy, holder: Some(holder), message: HELD.into() }
+}
+
+/// What cli-core's `account rename` answered. The tool's refusal comes in its own words: a taken name, a profile in use.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "result")]
+pub enum AccountRenamed {
+    Renamed,
+    /// The installed version has no `account rename`, or the tool does not say where its sign-in lives.
+    TooOld,
+    /// Agents that start this profile's own server by its name; they would start a profile that no longer exists.
+    UsedByAgents {
+        agents: Vec<String>,
+    },
+    Refused {
+        message: String,
+    },
+}
+
+/// `{profile} account rename <new> --yes`: the profile keeps its sign-in, settings and data under the new name.
+pub fn rename(tool: &Tool, profile: &str, new_name: &str) -> Result<AccountRenamed, String> {
+    catalog::validate_profile(new_name)?;
+    if full(tool).is_none() || crate::command_tree::has(tool, &["account", "rename"]) != Some(true) {
+        return Ok(AccountRenamed::TooOld);
+    }
+    let agents = crate::mcp::agents_with(tool, profile);
+    if !agents.is_empty() {
+        return Ok(AccountRenamed::UsedByAgents { agents });
+    }
+    let words: Vec<String> = ["{profile}", "account", "rename", new_name, "--record", "--json", "--yes"]
+        .iter()
+        .map(|w| (*w).to_string())
+        .collect();
+    let args = catalog::with_profile(&words, Some(profile))?;
+    let (out, json) = skills::call(tool, &args, RENAME)?;
+    Ok(renamed(&out, json.as_ref()))
+}
+
+fn renamed(out: &crate::run::Output, json: Option<&Value>) -> AccountRenamed {
+    if out.code == Some(0) {
+        return AccountRenamed::Renamed;
+    }
+    let message = skills::failure(out, json);
+    if crate::memo_cli::too_old(skills::reason(json), &format!("{message}\n{}", out.stderr).to_lowercase()) {
+        return AccountRenamed::TooOld;
+    }
+    AccountRenamed::Refused { message }
 }
 
 /// The fallback for a tool without `account remove`: its own sign-out, which keeps the account's data and its name.
@@ -428,6 +476,28 @@ mod tests {
         let leaky = json!({"error": {"code": "internal", "message": "failed for owner@example.org"}});
         let AccountRemoval::Refused { message, .. } = answered(&leaky) else { panic!() };
         assert_eq!(message, "failed for [email]");
+    }
+
+    #[test]
+    fn a_rename_answers_done_too_old_or_the_tool_s_own_refusal() {
+        let ok = output(0, &json!({"item": {"profile": "work", "renamed_to": "home", "moved": []}}));
+        assert_eq!(renamed(&ok, ok.json().as_ref()), AccountRenamed::Renamed);
+        let old = json!({"error": {"code": "usage_error", "message": "unknown command 'rename'"}});
+        let out = output(1, &old);
+        assert_eq!(renamed(&out, out.json().as_ref()), AccountRenamed::TooOld);
+        let taken = json!({"error": {"code": "conflict", "message": "a profile called home already exists", "reason": "account-rename.taken"}});
+        let out = output(1, &taken);
+        assert_eq!(
+            renamed(&out, out.json().as_ref()),
+            AccountRenamed::Refused { message: "a profile called home already exists".into() }
+        );
+    }
+
+    #[test]
+    fn a_rename_refuses_a_name_no_tool_takes() {
+        let tg = catalog::tool("tg").unwrap();
+        assert!(rename(tg, "work", "--help").is_err());
+        assert!(rename(tg, "work", "../home").is_err());
     }
 
     #[test]

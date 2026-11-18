@@ -34,6 +34,7 @@ import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
   AccountRemoval,
   AccountRemoved,
+  AccountRenamed,
   Backfill,
   Brief,
   CallOpened,
@@ -250,6 +251,8 @@ export type Platform = {
   accountRemovePlan(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
   /** `account remove --yes`: signs the profile out and forgets it, keeping or deleting its data. */
   accountRemove(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
+  /** `account rename <new> --yes`: the profile keeps its sign-in, settings and data under the new name. */
+  accountRename(id: string, profile: string, newName: string): Promise<AccountRenamed>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */
   storeInfo(): Promise<StoreInfo | null>
   /** Every installed tool's own `store info`: whether it reads the shared store, and what its next run does to it. */
