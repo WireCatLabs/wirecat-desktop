@@ -1,5 +1,5 @@
 import { LoaderCircle, ShieldAlert, ShieldCheck, TriangleAlert } from "lucide-react"
-import { type ReactNode, useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { isWirecatPackage } from "@/domain/catalog"
 import { entityLabel, groupAccess } from "@/domain/own-access"
 import { useLang, useMessages } from "@/i18n"
@@ -72,7 +72,6 @@ function Changes({
   acceptId,
 }: ReviewProps & { review: OwnReview & { update: OwnUpdate } }) {
   const change = review.update
-  const id = useId()
   const built = (b: OwnReview["built"]) => (b ? m.builtBy(b.repo) : m.notBuilt)
   const names = (parts: string[]) => parts.map((p) => m.parts[p as keyof OwnText["parts"]] ?? p).join(", ")
   const list = (label: string, items: string[]) =>
@@ -102,12 +101,10 @@ function Changes({
         </p>
       )}
       {review.access.unknown && <p>{m.unknownAccess}</p>}
-      <div className="mt-1 flex items-center gap-2">
-        <Checkbox id={acceptId} checked={accepted} onChange={accept} aria-labelledby={id} {...need?.field} />
-        <span id={id} className="font-medium">
-          {m.acceptChanges}
-        </span>
-      </div>
+      <label className="-mx-2 mt-1 flex w-fit cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-app-2">
+        <Checkbox id={acceptId} checked={accepted} onChange={accept} {...need?.field} />
+        <span className="font-medium">{m.acceptChanges}</span>
+      </label>
       {need?.hint}
     </WarnBox>
   )
