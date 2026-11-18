@@ -2661,7 +2661,7 @@
     {
       "id": "attio",
       "name": "Attio",
-      "tagline": "Deals, people and companies · changes",
+      "tagline": "Deals, people and companies · change history",
       "bin": "attio",
       "package": "@wirecat/attio-cli",
       "summary": "Read an Attio workspace's CRM: deals with their stages, people and companies, from the Clients page and your agent.",
@@ -2715,7 +2715,6 @@
       "signIn": {
         "gives": "Lets your agent read the workspace's deals, people and companies with the rights of the token.",
         "asks": "An access token: in Attio, Workspace settings → Developers → New access token, with read access to records, object configuration and user management. Only a workspace admin can make one.",
-        "links": ["attio.com"],
         "methods": [
           {
             "id": "token",

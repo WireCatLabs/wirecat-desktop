@@ -324,6 +324,24 @@ describe("Clients on the base stages", () => {
     expect(await screen.findByText(/Read only: update Bitrix24 on the Tools page/)).toBeInTheDocument()
   })
 
+  it("says a CRM whose tool only reads it changes in the CRM, not that its tool is missing", async () => {
+    const memo = clientsMock("none")
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (...args) => {
+      const read = await memo.clientsRead(...args)
+      if (read.kind !== "base") return read
+      const pipelines = read.pipelines.map((p) =>
+        p.movable.kind === "no" && p.account
+          ? { ...p, account: { ...p.account, provider: "attio" }, movable: { kind: "no" as const, why: "crmNoMoves" } }
+          : p,
+      )
+      return { ...read, pipelines }
+    })
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await screen.findByRole("button", { name: "Read only" }))
+    expect(await screen.findByText(/Read only: Attio reads this CRM but cannot move its cards yet/)).toBeInTheDocument()
+  })
+
   it("keeps a CRM's cards in place on a drop and says they change in the CRM", async () => {
     const user = userEvent.setup()
     const move = vi.spyOn(platform, "clientsMove")

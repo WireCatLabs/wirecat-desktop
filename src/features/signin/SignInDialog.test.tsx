@@ -1109,6 +1109,28 @@ describe("signing in to Yandex Disk", () => {
   })
 })
 
+describe("signing in to Attio", () => {
+  it("shows Attio's steps and help page, then gives the pasted access token to the run", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("attio", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Attio" })
+    expect(within(dialog).getByText(/Workspace settings, then the Developers tab/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/record_permission:read, object_configuration:read/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: /Open Attio/ }))
+    expect(open).toHaveBeenLastCalledWith("https://app.attio.com/")
+    await userEvent.click(within(dialog).getByRole("button", { name: /Attio's help page/ }))
+    expect(open).toHaveBeenLastCalledWith("https://attio.com/help/apps/other-apps/generating-an-api-key")
+    await userEvent.type(within(dialog).getByLabelText("Token"), "attio_example")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("attio", "token", "work", expect.any(Function), {
+        password: "attio_example",
+      }),
+    )
+  })
+})
+
 describe("signing in to an own tool", () => {
   it("says what its manifest asks for, asks for the token in the window and sends it as the run's stdin", async () => {
     addCommunityTools([{ source: "own", entry: OWN }])
