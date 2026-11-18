@@ -27,8 +27,9 @@ You do each part once. After that, every release tag is signed in GitHub without
 | 4 | Certum SimplySign seed (the `otpauth://` link) | **Yes**: it can sign Windows apps as you | No: it goes from the QR image straight to GitHub; Certum's help line resets it |
 | 5 | Certum login e-mail | No | It is your e-mail |
 | 6 | Updater private key and its password | **Yes** | **Yes**: already in the keyring, not yet in your password manager |
+| 7 | apt signing key | **Yes**: it can sign packages every Linux user installs | **Yes**: in the keyring after `bin/apt-key-create` |
 
-Make one password-manager entry called **"WireCat signing"** and put items 1, 2 and 6 in it. GitHub keeps copies
+Make one password-manager entry called **"WireCat signing"** and put items 1, 2, 6 and 7 in it. GitHub keeps copies
 too, but nobody can read a GitHub secret back, so GitHub is not your backup.
 
 ## Before you start
@@ -184,6 +185,25 @@ Paste it into the "WireCat signing" entry. Do the same for the password:
 secret-tool lookup service wirecat account updater-key-password | wl-copy
 ```
 
+## The apt key
+
+The apt repository at `apt.wirecat.dev` is signed with an ed25519 key, "WireCat Packages". Every machine that added
+the repository trusts only this key. Make it once:
+
+```sh
+bin/apt-key-create
+```
+
+It puts the private key in your keyring (service `wirecat`, account `apt-signing-key`) and in the `release`
+environment secret `APT_SIGNING_KEY`, and writes the public key to `src-tauri/linux/wirecat-archive-keyring.gpg` and
+`.asc`. Commit those two files. Then copy the private key into the password manager:
+
+```sh
+secret-tool lookup service wirecat account apt-signing-key | wl-copy
+```
+
+The fingerprint is in `gpg --show-keys src-tauri/linux/wirecat-archive-keyring.asc`.
+
 ## After setup
 
 The next release tag is signed with no other change. To check:
@@ -206,6 +226,7 @@ The next release tag is signed with no other change. To check:
 | Certum seed leaked | See [The seed leaked](#the-seed-leaked). |
 | Certum certificate reissued | See [A new certificate](#a-new-certificate). |
 | Updater key lost | Installed copies can no longer update. Users have to download the next version by hand. Avoid this: keep the copy in the password manager. |
+| apt key lost or leaked | Make a new key and ship its public key in the next `.deb`. Machines with the old key stop getting updates until the user installs that `.deb` by hand. |
 
 ### The seed leaked
 
