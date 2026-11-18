@@ -135,8 +135,8 @@ function notionLevel(parent: string | null, cursor: string | null, chosen: strin
   }
 }
 
-// ydisk 0.1.0's `folders browse`: each folder by its Disk path, with no kind and no count of folders inside; `folders
-// add` takes the path, `folders list` and `folders remove` the folder's resource id. `?ydisk-folders=open` signs in with a
+// ydisk 0.2.0's `folders browse`: each folder by its Disk path, and whether it holds folders (Desktop reads `false` as
+// none and `true` as not counted, so the folder still opens); `folders add` takes the path, `folders list` and `folders remove` the folder's resource id. `?ydisk-folders=open` signs in with a
 // sample token and opens the picker; `fail` refuses the top (Yandex no longer accepts the token), `add-fail` refuses
 // one folder on Add. Nothing is chosen at first.
 const ydiskScenario = query.get("ydisk-folders")
@@ -148,7 +148,7 @@ const ydiskItem = (path: string) =>
     parent: null,
     location: null,
     driveId: null,
-    childFolders: null,
+    childFolders: `disk:${path}` in YDISK_LEVELS ? null : 0,
     added: false,
   }) satisfies DriveFolder
 const YDISK_LEVELS: Record<string, string[]> = {

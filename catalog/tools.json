@@ -2411,7 +2411,7 @@
         "what": "files",
         "note": null
       },
-      "storeInfo": null,
+      "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": null,
       "storeTableSizes": null,
       "storeCheck": null,
@@ -2451,7 +2451,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "remove": null,
+        "remove": {
+          "minVersion": "0.2.0",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn"],
         "keeps": ["folders", "data", "listed"]
       }

@@ -142,9 +142,9 @@ const disk = (path: string): DriveFolder => ({
 })
 
 describe("Yandex Disk's step after signing in", () => {
-  it("opens and adds folders by their Disk path, in its own words", async () => {
+  it("opens and adds folders by their Disk path, in its own words, and opens only a folder that may hold folders", async () => {
     const levels: Record<string, DriveFolder[]> = {
-      "": [disk("/Работа"), disk("/Фото")],
+      "": [disk("/Работа"), { ...disk("/Фото"), childFolders: 0 }],
       "disk:/Работа": [disk("/Работа/Отчёты 2026")],
     }
     const browse = vi.spyOn(platform, "driveFoldersBrowse").mockImplementation(async (_tool, _profile, parent) => ({
@@ -157,7 +157,9 @@ describe("Yandex Disk's step after signing in", () => {
     render(<DriveFolders tool="ydisk" profile="personal" name="Yandex Disk" />)
     expect(await screen.findByRole("heading", { name: "Choose what Yandex Disk imports" })).toBeInTheDocument()
     expect(screen.getByRole("navigation", { name: "Folders" })).toHaveTextContent("Yandex Disk")
-    await userEvent.click(await screen.findByRole("button", { name: "Open Работа" }))
+    expect(await screen.findByRole("checkbox", { name: "Фото" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Open Фото" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Open Работа" }))
     await userEvent.click(await screen.findByRole("checkbox", { name: "Отчёты 2026" }))
     await userEvent.click(screen.getByRole("button", { name: "Add 1 folder" }))
     expect(await screen.findByText("1 folder added. Sync to copy their files.")).toBeInTheDocument()

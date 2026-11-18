@@ -77,6 +77,13 @@ describe("an account row", () => {
     expect(await within(dialog).findByText("Remove and delete its data")).toBeInTheDocument()
   })
 
+  it("offers Yandex Disk keep or delete under Remove account, as ydisk 0.2.0 has account remove", async () => {
+    render(<AccountList tool={tool("ydisk")} profiles={signedIn} onReload={() => undefined} />)
+    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Remove account" }))
+    const dialog = screen.getByRole("dialog", { name: "Remove work?" })
+    expect(await within(dialog).findByText("Remove and delete its data")).toBeInTheDocument()
+  })
+
   it("shows a name of the owner's own with the profile id beside it, and keeps commands on the profile", async () => {
     useAccountNames.setState({ names: {} })
     vi.spyOn(platform, "diagnose").mockResolvedValue({
