@@ -1,7 +1,7 @@
 import { Search } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
-import { AppPreferences, settingsMessages } from "@/features/settings"
+import { settingsMessages } from "@/features/settings"
 import { formatList, useLang, useMessages } from "@/i18n"
 import { nameOf, useAccountNames } from "@/shared/account-names-store"
 import { openSection } from "@/shared/go-tool"
@@ -16,7 +16,6 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
 import { InfoTip } from "@/ui/InfoTip"
 import { Monogram } from "@/ui/Logo"
-import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { LineTab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
@@ -84,17 +83,9 @@ export function ConfigPage() {
 
   return (
     <Page>
-      <PageHeader title={sm.title} intro={sm.intro} />
+      <PageHeader title={sm.tools} intro={sm.toolsIntro(<code className="font-mono">config set</code>)} />
 
-      <AppPreferences />
-
-      <div className="flex flex-col gap-4 border-t border-line pt-[1.5rem]">
-        <div>
-          <SectionTitle>{sm.tools}</SectionTitle>
-          <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">
-            {sm.toolsIntro(<code className="font-mono">config set</code>)}
-          </p>
-        </div>
+      <div className="flex flex-col gap-4">
         <ToolPicker
           label={sm.tool}
           candidates={candidates.length > 0}

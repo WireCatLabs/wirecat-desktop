@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react"
-import { useMessages } from "@/i18n"
+import { formatList, useMessages } from "@/i18n"
 import type { BackgroundAgent, BackgroundAgents } from "@/platform/background-agent-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -119,8 +119,9 @@ export function useAgentWarning() {
 }
 
 /**
- * The owner's pick among the agents found. Every one is listed: those that cannot run a job are greyed with the
- * reason, never left out. "Not chosen" stays until he picks; with one ready, the line under the list says it runs.
+ * The owner's pick among the agents found. Every one is listed: those that cannot run a job are greyed with their
+ * state, never left out. Memo's long reasons are not repeated under the list: they buried the choice (owner,
+ * 2026-11-17). An agent that needs a warning shows its reason in the dialog. "Not chosen" stays until he picks; with one ready, the line under the list says it runs.
  */
 export function BackgroundAgentChoice({ describedBy }: { describedBy?: string }) {
   const m = useMessages(backgroundAgentMessages)
@@ -152,8 +153,8 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
   // An agent waiting for its warning is offered, but never the one that runs by being the only one.
   const usable = ready.filter((a) => !a.needsAck || a.acknowledged)
   const only = agents.chosen === null && usable.length === 1 ? usable[0] : undefined
-  const greyed = agents.agents.some((a) => a.state !== "ready")
   const runs = shown?.state === "ready" ? shown : only
+  const missing = agents.agents.filter((a) => a.state === "programMissing").map((a) => a.name)
   return (
     <div className="flex max-w-[40rem] flex-col gap-3">
       {ready.length === 0 && <p className="text-[0.95rem] text-warn-ink">{m.none}</p>}
@@ -178,15 +179,11 @@ export function BackgroundAgentChoice({ describedBy }: { describedBy?: string })
       />
       {need.hint}
       {only && marked === null && <p className="text-[0.9rem] text-ink-soft">{m.onlyOne(only.name)}</p>}
+      {agents.chosen === null && usable.length > 1 && marked === null && (
+        <p className="text-[0.9rem] text-warn-ink">{m.severalReady}</p>
+      )}
+      {missing.length > 0 && <p className="text-[0.9rem] text-ink-soft">{m.reinstall(formatList(missing))}</p>}
       {runs && !runs.reportsCost && <p className="text-[0.9rem] text-ink-soft">{m.noCost(runs.name)}</p>}
-      {agents.agents
-        .filter((a) => (a.state === "unrestricted" || a.needsAck) && a.reason)
-        .map((a) => (
-          <p key={a.id} className="text-[0.9rem] text-ink-soft">
-            {a.name}: {a.reason}
-          </p>
-        ))}
-      {greyed && <p className="text-[0.9rem] text-ink-soft">{m.greyed}</p>}
       {!agents.listed && (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-[0.9rem] text-ink-soft">{m.oldMemo}</p>

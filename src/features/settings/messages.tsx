@@ -3,7 +3,7 @@ import type { Messages } from "@/i18n"
 
 const en = {
   title: "Settings",
-  intro: "How WireCat looks on this computer, and the settings of each tool.",
+  intro: "How WireCat looks and works on this computer.",
   app: "WireCat",
   size: "Interface size",
   sizeHelp: (mod: string) =>
@@ -54,7 +54,7 @@ const en = {
 
 const ru: typeof en = {
   title: "Настройки",
-  intro: "Как WireCat выглядит на этом компьютере и настройки каждого инструмента.",
+  intro: "Как WireCat выглядит и работает на этом компьютере.",
   app: "WireCat",
   size: "Размер интерфейса",
   sizeHelp: (mod) => `Текст и всё вокруг него. ${mod} + и ${mod} − меняют размер в любом месте, ${mod} 0 сбрасывает.`,
@@ -104,7 +104,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   title: "Ajustes",
-  intro: "Cómo se ve WireCat en este ordenador y los ajustes de cada herramienta.",
+  intro: "Cómo se ve y funciona WireCat en este ordenador.",
   app: "WireCat",
   size: "Tamaño de la interfaz",
   sizeHelp: (mod) =>

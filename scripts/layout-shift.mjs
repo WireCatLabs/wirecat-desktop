@@ -61,9 +61,10 @@ const PAGES = {
   logs: { query: "?onboarding=off&section=logs" },
   digests: { query: "?onboarding=off&section=digests" },
   settings: { query: "?onboarding=off&section=tools", clicks: [nav("settings")] },
+  "tool-settings": { query: "?onboarding=off&section=tools", clicks: [nav("settings"), tab("tool-settings")] },
   "settings-telegram": {
     query: "?onboarding=off&section=tools",
-    clicks: [nav("settings"), 'label:has-text("Telegram")'],
+    clicks: [nav("settings"), tab("tool-settings"), 'label:has-text("Telegram")'],
   },
   "onboarding-computer": { query: "?onboarding=computer" },
   "onboarding-choose": { query: "?onboarding=choose" },

@@ -71,6 +71,22 @@ describe("Navigation", () => {
     expect(screen.queryByRole("table", { name: "Digests" })).not.toBeInTheDocument()
   })
 
+  it("splits Settings into the app's own and the tools' settings, one tab away from each other", async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    act(() => useNav.getState().go("settings"))
+    expect(
+      within(pageTabs("Settings"))
+        .getAllByRole("tab")
+        .map((t) => t.textContent),
+    ).toEqual(["WireCat", "Tool settings"])
+    expect(await screen.findByRole("region", { name: "Agent for background jobs" })).toBeInTheDocument()
+
+    await user.click(within(pageTabs("Settings")).getByRole("tab", { name: /^Tool settings/ }))
+    expect(useNav.getState().active).toBe("tool-settings")
+    expect(screen.queryByRole("region", { name: "Agent for background jobs" })).not.toBeInTheDocument()
+  })
+
   it("switches between what the digests wrote and their settings, each tab keeping its own", async () => {
     const user = userEvent.setup()
     render(<App />)

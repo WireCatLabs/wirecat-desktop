@@ -5,7 +5,7 @@ import { uiMessages } from "@/ui/messages"
 
 const en = {
   heading: "Agent for background jobs",
-  help: "The mail agent and the digests run in it on a schedule. With several ready, nothing runs until you choose.",
+  help: "Runs the mail agent and the digests on a schedule.",
   pick: "Not chosen",
   states: {
     ready: "Ready",
@@ -27,11 +27,11 @@ const en = {
     accept: (name: string) => `I understand, use ${name}`,
     cancel: "Cancel",
   },
-  greyed:
-    "Greyed agents cannot run background jobs. «Its program is not found»: its settings are on this computer, but its command is not, so install it again. «Cannot run on a schedule yet»: Memo cannot start it without you. «Its commands cannot be limited»: a job reads your mail and messages, and a message could make such an agent run anything on this computer, so it does not run background jobs. Memo's reason is under the list.",
   oldMemo: "This Memo knows only Claude Code and Codex. Update Memo to run background jobs in other agents.",
   openMemo: "Open Memo",
   onlyOne: (name: string) => `Only ${name} is ready, so background jobs run in it.`,
+  severalReady: "Nothing runs until you choose an agent.",
+  reinstall: (names: string) => `Install ${names} again: its program is not found.`,
   use: "Use this agent",
   same: "This agent is already in use.",
   need: "Choose an agent first.",
@@ -54,7 +54,7 @@ const en = {
 
 const ru: typeof en = {
   heading: "Агент для фоновых задач",
-  help: "В нём по расписанию работают почтовый агент и сводки. Если готовы несколько, ничего не запускается, пока вы не выберете.",
+  help: "Запускает почтового агента и сводки по расписанию.",
   pick: "Не выбран",
   states: {
     ready: "Готов",
@@ -76,11 +76,11 @@ const ru: typeof en = {
     accept: (name) => `Понимаю, использовать ${name}`,
     cancel: "Отмена",
   },
-  greyed:
-    "Серые агенты не могут выполнять фоновые задачи. «Не найдена его программа»: его настройки на компьютере есть, а команды нет, поэтому установите его заново. «Пока не умеет работать по расписанию»: Memo не может запустить его без вас. «Его команды нельзя ограничить»: задача читает вашу почту и сообщения, и сообщение может заставить такого агента сделать на компьютере что угодно, поэтому фоновые задачи он не выполняет. Причина от Memo указана под списком.",
   oldMemo: "Эта Memo знает только Claude Code и Codex. Обновите Memo, чтобы запускать фоновые задачи в других агентах.",
   openMemo: "Открыть Memo",
   onlyOne: (name) => `Готов только ${name}, поэтому фоновые задачи работают в нём.`,
+  severalReady: "Пока вы не выберете агента, ничего не запускается.",
+  reinstall: (names) => `Установите заново: ${names}. Программа не найдена.`,
   use: "Использовать этого агента",
   same: "Этот агент уже используется.",
   need: "Сначала выберите агента.",
@@ -103,7 +103,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   heading: "Agente para tareas en segundo plano",
-  help: "El agente de correo y los resúmenes se ejecutan en él con horario. Si hay varios listos, nada se ejecuta hasta que elijas.",
+  help: "Ejecuta el agente de correo y los resúmenes con horario.",
   pick: "Sin elegir",
   states: {
     ready: "Listo",
@@ -125,12 +125,12 @@ const es: typeof en = {
     accept: (name) => `Entiendo, usar ${name}`,
     cancel: "Cancelar",
   },
-  greyed:
-    "Los agentes en gris no pueden ejecutar tareas en segundo plano. «No se encuentra su programa»: su configuración está en este equipo, pero su comando no, así que vuelve a instalarlo. «Aún no puede ejecutarse con horario»: Memo no puede iniciarlo sin ti. «Sus comandos no se pueden limitar»: una tarea lee tu correo y tus mensajes, y un mensaje podría hacer que ese agente ejecute cualquier cosa en este equipo, así que no ejecuta tareas en segundo plano. El motivo de Memo está debajo de la lista.",
   oldMemo:
     "Este Memo solo conoce Claude Code y Codex. Actualiza Memo para ejecutar tareas en segundo plano en otros agentes.",
   openMemo: "Abrir Memo",
   onlyOne: (name) => `Solo ${name} está listo, así que las tareas en segundo plano se ejecutan en él.`,
+  severalReady: "Nada se ejecuta hasta que elijas un agente.",
+  reinstall: (names) => `Vuelve a instalar: ${names}. No se encuentra su programa.`,
   use: "Usar este agente",
   same: "Este agente ya está en uso.",
   need: "Elige primero un agente.",

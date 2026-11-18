@@ -19,9 +19,12 @@ const en = {
     storage: "Storage",
     logs: "Logs",
     settings: "Settings",
+    "tool-settings": "Tool settings",
   } satisfies Record<SectionId, string>,
   /** A tab named apart from its section: Analytics' own tab, beside Storage. */
-  tabName: { analytics: "Data", "digest-settings": "Settings" } as Partial<Record<SectionId, string>>,
+  tabName: { analytics: "Data", "digest-settings": "Settings", settings: "WireCat" } as Partial<
+    Record<SectionId, string>
+  >,
   soon: "Soon",
   version: (v: string) => `WireCat ${v}: help and this computer`,
   badgeNew: ", something new here",
@@ -78,8 +81,13 @@ const ru: typeof en = {
     storage: "Хранилище",
     logs: "Журнал",
     settings: "Настройки",
+    "tool-settings": "Настройки инструментов",
   },
-  tabName: { analytics: "Данные", "digest-settings": "Настройки" },
+  tabName: {
+    analytics: "Данные",
+    "digest-settings": "Настройки",
+    settings: "WireCat",
+  },
   soon: "Скоро",
   version: (v) => `WireCat ${v}: помощь и этот компьютер`,
   badgeNew: ", здесь есть новое",
@@ -137,8 +145,13 @@ const es: typeof en = {
     storage: "Almacenamiento",
     logs: "Registros",
     settings: "Ajustes",
+    "tool-settings": "Ajustes de las herramientas",
   },
-  tabName: { analytics: "Datos", "digest-settings": "Ajustes" },
+  tabName: {
+    analytics: "Datos",
+    "digest-settings": "Ajustes",
+    settings: "WireCat",
+  },
   soon: "Pronto",
   version: (v) => `WireCat ${v}: ayuda y este ordenador`,
   badgeNew: ", hay algo nuevo",
