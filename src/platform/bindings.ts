@@ -1273,6 +1273,8 @@ export type OwnReview = {
 export type OwnSignIn = {
 	gives: string,
 	asks: string,
+	/**  The labels of the sign-ins the window runs (`signIn.methods`); empty when it signs in at a terminal only. */
+	here: string[],
 };
 
 export type OwnSignal = { kind: "newPackage"; days: number } | { kind: "fewVersions"; count: number } | { kind: "onePublisher" } | { kind: "noProvenance" } | { kind: "noRepository" } | 

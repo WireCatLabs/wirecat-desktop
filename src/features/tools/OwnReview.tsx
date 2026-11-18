@@ -340,6 +340,7 @@ export function ReviewStep({ review, m, accepted, accept, need, acceptId }: Revi
         <AccessList review={review} m={m} r={r} />
         <ul className="mt-2 flex flex-col gap-0.5 text-ink-soft">
           <li>{review.signIn ? m.signIn(review.signIn.asks, review.signIn.gives) : m.noSignIn}</li>
+          {(review.signIn?.here.length ?? 0) > 0 && <li>{m.signInHere(review.signIn?.here.join(", ") ?? "")}</li>}
           <li>{agent}</li>
         </ul>
       </section>

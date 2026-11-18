@@ -42,8 +42,10 @@ export function Plan() {
   const plan = tool ? planFor(m, tool, method, route) : undefined
   const gmail = tool === "email" && method === "gmail"
   // Gmail's two ways say what each needs on their own cards.
-  const need = tool && !gmail ? needFor(wm, tool, method) : []
+  const known = tool && !gmail ? needFor(wm, tool, method) : []
   const entry = tool ? findTool(tool) : undefined
+  // A tool WireCat has no texts for (an own tool) says what it asks for in its own manifest.
+  const need = known.length === 0 && !plan && entry?.signIn ? [entry.signIn.asks] : known
   const chosen = tool ? methodOf(tool, method) : undefined
   // A refusal is a new run: the step starts again, its field empty.
   if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
@@ -115,7 +117,7 @@ export function Plan() {
             )}
           </section>
         )}
-        {chosen && (chosen.address || chosen.password) && (
+        {chosen && (chosen.address || chosen.password || chosen.stdin) && (
           <Typed missing={planMissing === "address" || planMissing === "password" ? planMissing : null} />
         )}
         {!gmail && plan?.own && chosen && (chosen.clientFile || chosen.clientId) && (
@@ -245,7 +247,7 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
   const id = useId()
   const [password, setTyped] = useState("")
   const chosen = tool ? methodOf(tool, method) : undefined
-  const askPassword = Boolean(chosen?.password) && !ownFile
+  const askPassword = Boolean(chosen?.password || chosen?.stdin) && !ownFile
   // A token read on stdin with no address (notion) is not an app password: the field says what it is.
   const token = Boolean(chosen?.stdin) && !chosen?.address
   const addressNeed = useFieldError(`${id}-address`, {

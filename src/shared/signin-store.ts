@@ -612,10 +612,9 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (chosen?.oauth && get().way === "browser" && !ownFile && oauthTooOld(tool, method))
         return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
-      if (tool === ASTERISK) {
-        if (sourceProblem(method, get().source)) return set({ planMissing: "source" })
-        if (chosen?.stdin && !typed.password) return set({ planMissing: "password" })
-      }
+      if (tool === ASTERISK && sourceProblem(method, get().source)) return set({ planMissing: "source" })
+      // The tool reads its secret until stdin closes, so the run cannot start without it (`signin.rs` refuses too).
+      if (chosen?.stdin && !typed.password) return set({ planMissing: "password" })
       const setting = chosen?.clientId
       const saves: [string, string][] = [
         ...(setting && ownId.trim() ? [[setting, ownId.trim()] as [string, string]] : []),
