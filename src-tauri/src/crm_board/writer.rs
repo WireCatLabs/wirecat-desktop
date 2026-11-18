@@ -365,6 +365,19 @@ mod tests {
         assert_eq!(*seen.lock().unwrap(), ["work deals move deal:12 Quote --record --json"]);
     }
 
+    // A HubSpot key names no user, so hubspot copies the whole account whatever the scope says: no switch to offer.
+    #[test]
+    fn hubspot_moves_deals_refuses_a_lead_before_its_cli_runs_and_offers_no_scope_switch() {
+        let hubspot = catalog::tool("hubspot").unwrap().crm.as_ref().unwrap();
+        let seen = Mutex::new(vec![]);
+        let answer = json!({});
+        move_with(&recording(&seen, &answer), hubspot, CrmKind::Deal, "deal:12", "Quote", "work").unwrap();
+        assert!(move_with(&recording(&seen, &answer), hubspot, CrmKind::Lead, "lead:3", "Quote", "work").is_err());
+        assert_eq!(*seen.lock().unwrap(), ["work deals move deal:12 Quote --record --json"]);
+        let account = CrmAccount { provider: "hubspot".into(), account: "12345678".into() };
+        assert_eq!(scope(&account, Some("work")).unwrap(), unavailable("crmCli"));
+    }
+
     #[test]
     fn a_crm_its_cli_only_reads_refuses_a_move_before_its_cli_runs_and_its_cards_stay_put() {
         let attio = catalog::tool("attio").unwrap().crm.as_ref().unwrap();
