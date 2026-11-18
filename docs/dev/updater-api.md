@@ -56,12 +56,13 @@ A copy looks up `<os>-<arch>-<bundle>` first, then `<os>-<arch>`. So a `.deb` co
 
 ## How a copy takes the update
 
-`update_kind` answers one of four values (`UpdateKind`):
+`update_kind` answers one of five values (`UpdateKind`):
 
 | Kind | Copy | What Install does |
 | --- | --- | --- |
 | `self` | Windows, macOS, AppImage | The updater plugin replaces the app. Windows uses `installMode: passive`. |
 | `deb`, `rpm` | Linux package | Downloads the package and hands it to the system (below). |
+| `apt` | A `.deb` copy with `/etc/apt/sources.list.d/wirecat.sources` | Nothing: the dialog sends the owner to Software Updater and shows `sudo apt update && sudo apt install wirecat`. |
 | `other` | A Linux build with no bundle type (`pnpm app`) | Nothing: the app cannot tell which file replaces it. |
 
 A package copy never gets administrator rights from the app. `update_download_package` downloads the package of the

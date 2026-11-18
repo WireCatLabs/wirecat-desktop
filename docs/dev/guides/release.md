@@ -19,7 +19,9 @@ What `latest.json` holds and how a copy reads it: [updater-api.md](../updater-ap
    `package.json`), `build` (compiles on Linux, macOS and Windows with no secret), `sign` (bundles and signs that
    build in the `release` environment and uploads it to the draft), `updater` (checks every updater signature against
    the public key and writes `latest.json`), `notarize-dmg`, then `publish`. `publish` checks that `latest.json` has
-   all four platforms and makes the release public and latest. To try a change to this workflow, run it on your
+   all four platforms and makes the release public and latest. `apt-repo` then rebuilds the apt repository at
+   `https://apt.wirecat.dev` from the last three releases and deploys it to GitHub Pages
+   ([apt-repo.yml](../../../.github/workflows/apt-repo.yml), [bin/apt-repo-build](../../../bin/apt-repo-build)). To try a change to this workflow, run it on your
    branch with nothing published: `gh workflow run release.yml --ref <branch> -f dry_run=true`.
 5. [install-check.yml](../../../.github/workflows/install-check.yml) then installs the published release on a clean
    runner of each OS and checks that the app starts. On Windows the installer and the installed app must be signed
@@ -31,7 +33,8 @@ What `latest.json` holds and how a copy reads it: [updater-api.md](../updater-ap
    ([self_test.rs](../../../src-tauri/src/self_test.rs), [bin/install-check-self-test](../../../bin/install-check-self-test)).
    It prints one JSON line (`ok`, `node.source` `own` or `system`, `tool`, `steps`, `failure`), kept as the run's
    `self-test-<os>` artifact. A release made before the self-test existed gets a notice for that part instead.
-   Look at its result.
+   Look at its result. Its `apt` job adds `https://apt.wirecat.dev` the way the site says, installs the release
+   from it, and checks that the AppStream catalog parses and names WireCat as the developer.
 
 Installed copies update only after `publish`: the updater reads `latest.json` of the latest public release.
 

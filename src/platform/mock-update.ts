@@ -33,7 +33,14 @@ const checkErrors: Record<string, string> = {
 
 const TOTAL = 18_400_000
 
-const kinds: Record<string, UpdateKind> = { deb: "deb", reveal: "deb", signature: "deb", rpm: "rpm", other: "other" }
+const kinds: Record<string, UpdateKind> = {
+  deb: "deb",
+  reveal: "deb",
+  signature: "deb",
+  rpm: "rpm",
+  apt: "apt",
+  other: "other",
+}
 
 async function download(onProgress: (p: { downloaded: number; total: number | null }) => void) {
   onProgress({ downloaded: 0, total: TOTAL })

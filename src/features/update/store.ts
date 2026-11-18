@@ -82,7 +82,14 @@ export const useUpdate = create<UpdateState>((set, get) => ({
 
   async install() {
     const { update, phase } = get()
-    if (!update || update.kind === "other" || phase === "downloading" || phase === "restarting") return
+    if (
+      !update ||
+      update.kind === "other" ||
+      update.kind === "apt" ||
+      phase === "downloading" ||
+      phase === "restarting"
+    )
+      return
     set({ phase: "downloading", progress: null, failure: null, terminal: "idle" })
     const onProgress = (progress: UpdateProgress) => set({ progress })
     if (update.kind !== "self") {

@@ -16,6 +16,7 @@ import { type UpdateMessages, updateMessages } from "./messages"
 import { type Asked, downloadPage, updatesSection, useUpdate } from "./store"
 
 const RELEASES = "https://github.com/WireCatLabs/wirecat-desktop/releases"
+const APT_UPGRADE = "sudo apt update && sudo apt install wirecat"
 
 /** Shown only once an update is found; it sits left of "Report a problem", so nothing already there moves. */
 export function UpdateButton() {
@@ -215,10 +216,23 @@ export function UpdateDialog() {
   }
 
   const busy = phase === "downloading" || phase === "restarting"
-  const intro = update.kind === "self" ? m.auto : update.kind === "other" ? m.other : m.package[update.kind]
+  const intro =
+    update.kind === "self"
+      ? m.auto
+      : update.kind === "other"
+        ? m.other
+        : update.kind === "apt"
+          ? m.apt
+          : m.package[update.kind]
 
   let actions: ReactNode
-  if (update.kind === "other") {
+  if (update.kind === "apt") {
+    actions = (
+      <Button variant="primary" data-autofocus data-update-next onClick={close}>
+        {m.close}
+      </Button>
+    )
+  } else if (update.kind === "other") {
     actions = (
       <>
         <Button variant="secondary" onClick={close}>
@@ -273,6 +287,12 @@ export function UpdateDialog() {
           <p className="text-ink-soft">
             {intro} <ExtLink href={updatesSection(lang)}>{m.howUpdates}</ExtLink>
           </p>
+          {update.kind === "apt" && (
+            <div className="flex flex-col gap-2">
+              <p className="text-[0.9rem] text-ink-soft">{m.terminal}</p>
+              <CopyField value={APT_UPGRADE} label={m.copyCommand} wrap />
+            </div>
+          )}
           {update.notes && (
             <div className="selectable max-h-[12rem] overflow-y-auto whitespace-pre-line rounded-rack border border-line bg-app-2 px-4 py-3 text-[0.9rem]">
               {update.notes}

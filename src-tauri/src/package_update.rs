@@ -16,17 +16,24 @@ pub enum Kind {
     #[serde(rename = "self")]
     SelfUpdate,
     Deb,
+    /// A .deb copy whose apt source is set up: Software Updater or `apt upgrade` installs the update, so the app
+    /// downloads nothing.
+    Apt,
     Rpm,
     /// A Linux build the bundler did not mark (`pnpm app`): which file would replace it is unknown.
     Other,
 }
 
-pub fn kind(linux: bool, bundle: Option<BundleType>) -> Kind {
+/// Shipped by the .deb (`src-tauri/tauri.linux.conf.json`) or written by the steps on <https://apt.wirecat.dev>.
+const APT_SOURCE: &str = "/etc/apt/sources.list.d/wirecat.sources";
+
+pub fn kind(linux: bool, bundle: Option<BundleType>, apt_source: bool) -> Kind {
     if !linux {
         return Kind::SelfUpdate;
     }
     match bundle {
         Some(BundleType::AppImage) => Kind::SelfUpdate,
+        Some(BundleType::Deb) if apt_source => Kind::Apt,
         Some(BundleType::Deb) => Kind::Deb,
         Some(BundleType::Rpm) => Kind::Rpm,
         _ => Kind::Other,
@@ -34,7 +41,7 @@ pub fn kind(linux: bool, bundle: Option<BundleType>) -> Kind {
 }
 
 pub fn current() -> Kind {
-    kind(cfg!(target_os = "linux"), tauri::utils::platform::bundle_type())
+    kind(cfg!(target_os = "linux"), tauri::utils::platform::bundle_type(), Path::new(APT_SOURCE).exists())
 }
 
 #[derive(specta::Type, Serialize, Clone)]
@@ -317,12 +324,13 @@ mod tests {
 
     #[test]
     fn only_linux_packages_need_the_system_installer() {
-        assert_eq!(kind(false, None), Kind::SelfUpdate);
-        assert_eq!(kind(false, Some(BundleType::Msi)), Kind::SelfUpdate);
-        assert_eq!(kind(true, Some(BundleType::AppImage)), Kind::SelfUpdate);
-        assert_eq!(kind(true, Some(BundleType::Deb)), Kind::Deb);
-        assert_eq!(kind(true, Some(BundleType::Rpm)), Kind::Rpm);
-        assert_eq!(kind(true, None), Kind::Other);
+        assert_eq!(kind(false, None, false), Kind::SelfUpdate);
+        assert_eq!(kind(false, Some(BundleType::Msi), true), Kind::SelfUpdate);
+        assert_eq!(kind(true, Some(BundleType::AppImage), true), Kind::SelfUpdate);
+        assert_eq!(kind(true, Some(BundleType::Deb), false), Kind::Deb);
+        assert_eq!(kind(true, Some(BundleType::Deb), true), Kind::Apt);
+        assert_eq!(kind(true, Some(BundleType::Rpm), true), Kind::Rpm);
+        assert_eq!(kind(true, None, true), Kind::Other);
     }
 
     #[test]

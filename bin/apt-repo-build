@@ -1,0 +1,263 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Builds WireCat's apt repository (https://apt.wirecat.dev, NEED-2732) as a static site: the .deb of the last
+# RELEASES published releases, Packages, the AppStream catalog (DEP-11) that makes App Center show "WireCat" as the
+# developer, and signed Release files. GitHub Pages serves it; .github/workflows/apt-repo.yml runs this.
+#
+#   bin/apt-repo-build --site <dir>   # CI: signs with the armored key in APT_SIGNING_KEY; GH_TOKEN reads releases
+#   bin/apt-repo-build --local        # the owner: builds into LOCAL with a throwaway key and adds it as an apt
+#                                     # source (sudo), then checks what apt and AppStream see
+#   bin/apt-repo-build --remove       # the owner: removes that source and LOCAL
+#
+# What App Center needs (plan step 1, FIND-2799, FIND-2800): Release lists the uncompressed names too, or apt drops
+# DEP-11; the developer is read from the legacy DeveloperName key; icons come from a remote URL, not the cache.
+
+require "digest"
+require "fileutils"
+require "json"
+require "open3"
+require "time"
+require "tmpdir"
+require "zlib"
+
+REPO = "WireCatLabs/wirecat-desktop"
+URL = "https://apt.wirecat.dev"
+RELEASES = 3
+ROOT = File.expand_path("..", __dir__)
+METAINFO = File.join(ROOT, "src-tauri/linux/wirecat.metainfo.xml")
+SOURCES_FILE = File.join(ROOT, "src-tauri/linux/wirecat.sources")
+COMMITTED_KEY = File.join(ROOT, "src-tauri/linux/wirecat-archive-keyring.gpg")
+ICON_64 = File.join(ROOT, "src-tauri/icons/64x64.png")
+ICON_128 = File.join(ROOT, "src-tauri/icons/128x128.png")
+LOCAL = "/var/tmp/wirecat-apt-spike"
+LOCAL_SOURCES = "/etc/apt/sources.list.d/wirecat-spike.sources"
+ICON_NAME = "wirecat_wirecat-desktop.png"
+REMOTE_ICON = "wirecat-128.png"
+DIST = "dists/stable"
+POOL = "pool/main/w/wirecat"
+
+def run(*cmd, env: {}, stdin: nil)
+  out, err, status = Open3.capture3(env, *cmd, stdin_data: stdin)
+  abort "failed: #{cmd.first(3).join(' ')}\n#{err}" unless status.success?
+  out
+end
+
+class Signer
+  GPG = %w[gpg --batch --pinentry-mode loopback --passphrase].freeze
+
+  def self.throwaway(home)
+    new(home).tap { |s| s.gpg("", "--quick-gen-key", "WireCat Local <local@wirecat.invalid>", "ed25519", "sign", "never") }
+  end
+
+  def self.from_armored(home, armored)
+    abort "APT_SIGNING_KEY is empty: run bin/apt-key-create first." if armored.to_s.strip.empty?
+    new(home).tap { |s| run("gpg", "--batch", "--import", env: s.env, stdin: armored) }
+  end
+
+  attr_reader :env
+
+  def initialize(home)
+    FileUtils.mkdir_p(home, mode: 0o700)
+    @env = { "GNUPGHOME" => home }
+  end
+
+  def gpg(*args) = run(*GPG, *args, env: env)
+  def public_key = run("gpg", "--export", env: env)
+  def public_armored = run("gpg", "--armor", "--export", env: env)
+
+  def fingerprints_of(keyring)
+    run("gpg", "--with-colons", "--show-keys", keyring, env: env).scan(/^fpr:+([0-9A-F]+):/).flatten
+  end
+
+  def fingerprint = run("gpg", "--with-colons", "--fingerprint", env: env)[/^fpr:+([0-9A-F]+):/, 1]
+
+  def sign(release)
+    dir = File.dirname(release)
+    gpg("", "--yes", "--local-user", fingerprint, "--clearsign", "-o", File.join(dir, "InRelease"), release)
+    gpg("", "--yes", "--local-user", fingerprint, "--detach-sign", "--armor", "-o", File.join(dir, "Release.gpg"),
+        release)
+  end
+end
+
+class Site
+  def initialize(dir, signer)
+    @dir = dir
+    @signer = signer
+  end
+
+  def build
+    FileUtils.rm_rf(@dir)
+    debs = download
+    write_packages(debs)
+    write_catalog
+    write_release
+    write_extras
+    FileUtils.chmod_R("a+rX", @dir)
+  end
+
+  private
+
+  def path(*parts) = File.join(@dir, *parts)
+
+  def tags
+    list = run("gh", "release", "list", "--repo", REPO, "--exclude-drafts", "--exclude-pre-releases",
+               "--limit", RELEASES.to_s, "--json", "tagName")
+    JSON.parse(list).map { |r| r["tagName"] }
+  end
+
+  def download
+    FileUtils.mkdir_p(path(POOL))
+    tags.each do |tag|
+      run("gh", "release", "download", tag, "--repo", REPO, "--pattern", "wirecat_*_amd64.deb", "--dir", path(POOL))
+    end
+    debs = Dir.glob(path(POOL, "*.deb")).sort
+    abort "no .deb in the last #{RELEASES} releases" if debs.empty?
+    debs
+  end
+
+  def write_both(file, content)
+    FileUtils.mkdir_p(File.dirname(file))
+    File.binwrite(file, content)
+    Zlib::GzipWriter.open("#{file}.gz") { |gz| gz.write(content) }
+  end
+
+  def write_packages(debs)
+    entries = debs.map do |deb|
+      data = File.binread(deb)
+      "#{run('dpkg-deb', '-f', deb).chomp}\n" \
+        "Filename: #{deb.delete_prefix("#{@dir}/")}\n" \
+        "Size: #{data.bytesize}\n" \
+        "MD5sum: #{Digest::MD5.hexdigest(data)}\n" \
+        "SHA1: #{Digest::SHA1.hexdigest(data)}\n" \
+        "SHA256: #{Digest::SHA256.hexdigest(data)}\n"
+    end
+    write_both(path(DIST, "main/binary-amd64/Packages"), entries.join("\n"))
+  end
+
+  def write_catalog
+    metainfo = File.read(METAINFO)
+    icons = %(  <icon type="remote" width="128" height="128">#{URL}/#{REMOTE_ICON}</icon>\n) +
+            %(  <icon type="cached" width="64" height="64" scale="1">#{ICON_NAME}</icon>\n) +
+            %(  <icon type="cached" width="64" height="64" scale="2">#{ICON_NAME}</icon>\n)
+    component = metainfo.sub(/<\?xml.*?\?>\s*/, "").sub("</component>", "  <pkgname>wirecat</pkgname>\n#{icons}</component>")
+    Dir.mktmpdir("dep11") do |tmp|
+      xml = File.join(tmp, "components.xml")
+      yml = File.join(tmp, "components.yml")
+      File.write(xml, %(<?xml version="1.0"?>\n<components version="1.0" origin="wirecat-stable-main">\n#{component}</components>\n))
+      run("appstreamcli", "convert", "--format=yaml", xml, yml)
+      developer = metainfo[%r{<developer[^>]*>\s*<name>([^<]+)</name>}, 1]
+      write_both(path(DIST, "main/dep11/Components-amd64.yml"), "#{File.read(yml)}DeveloperName:\n  C: #{developer}\n")
+      { "64x64" => ICON_64, "64x64@2" => ICON_128 }.each do |size, png|
+        stage = File.join(tmp, size)
+        FileUtils.mkdir_p(stage)
+        FileUtils.cp(png, File.join(stage, ICON_NAME))
+        tar = path(DIST, "main/dep11/icons-#{size}.tar")
+        run("tar", "-cf", tar, "-C", stage, ICON_NAME)
+        Zlib::GzipWriter.open("#{tar}.gz") { |gz| gz.write(File.binread(tar)) }
+      end
+    end
+  end
+
+  def write_release
+    dist = path(DIST)
+    files = Dir.glob("**/*", base: dist).select { |f| File.file?(File.join(dist, f)) }.sort
+    sums = { "MD5Sum" => Digest::MD5, "SHA256" => Digest::SHA256 }.map do |label, digest|
+      lines = files.map do |f|
+        data = File.binread(File.join(dist, f))
+        " #{digest.hexdigest(data)} #{data.bytesize.to_s.rjust(10)} #{f}"
+      end
+      "#{label}:\n#{lines.join("\n")}\n"
+    end
+    release = File.join(dist, "Release")
+    File.write(release, "Origin: WireCat\nLabel: WireCat\nSuite: stable\nCodename: stable\n" \
+                        "Date: #{Time.now.utc.httpdate}\nArchitectures: amd64\nComponents: main\n" \
+                        "Description: WireCat Desktop\n#{sums.join}")
+    @signer.sign(release)
+  end
+
+  def write_extras
+    File.binwrite(path("wirecat-archive-keyring.gpg"), @signer.public_key)
+    File.write(path("wirecat.asc"), @signer.public_armored)
+    FileUtils.cp(SOURCES_FILE, path("wirecat.sources"))
+    FileUtils.cp(ICON_128, path(REMOTE_ICON))
+    File.write(path("CNAME"), "#{URL.delete_prefix('https://')}\n")
+    File.write(path("index.html"), index_html)
+  end
+
+  def index_html
+    <<~HTML
+      <!doctype html>
+      <html lang="en">
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>WireCat apt repository</title>
+      <style>body{font:16px/1.5 system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem}pre{background:#f4f4f4;padding:1rem;overflow-x:auto}</style>
+      <h1>WireCat apt repository</h1>
+      <p>WireCat Desktop for Ubuntu and Debian (amd64). The <code>.deb</code> from
+      <a href="https://wirecat.dev">wirecat.dev</a> adds this repository when you install it. To add it by hand:</p>
+      <pre>sudo curl -fsSLo /usr/share/keyrings/wirecat-archive-keyring.gpg #{URL}/wirecat-archive-keyring.gpg
+      sudo curl -fsSLo /etc/apt/sources.list.d/wirecat.sources #{URL}/wirecat.sources
+      sudo apt update
+      sudo apt install wirecat</pre>
+      <p>Updates then come through Software Updater or <code>sudo apt upgrade</code>.
+      Signing key: <a href="wirecat.asc">wirecat.asc</a>, fingerprint <code>#{@signer.fingerprint}</code>.</p>
+      </html>
+    HTML
+  end
+end
+
+def build_site(dir)
+  Dir.mktmpdir("apt-gnupg") do |home|
+    signer = Signer.from_armored(home, ENV.fetch("APT_SIGNING_KEY", nil))
+    if File.exist?(COMMITTED_KEY) && !signer.fingerprints_of(COMMITTED_KEY).include?(signer.fingerprint)
+      abort "APT_SIGNING_KEY is not the key in #{COMMITTED_KEY}: the .deb would trust another key than the repository."
+    end
+    Site.new(dir, signer).build
+  end
+  puts "built #{dir}"
+end
+
+def sudo_write(file, content)
+  Open3.popen2e("sudo", "tee", file) do |stdin, out, wait|
+    stdin.write(content)
+    stdin.close
+    out.read
+    abort "could not write #{file}" unless wait.value.success?
+  end
+end
+
+def local
+  FileUtils.rm_rf(LOCAL)
+  site = File.join(LOCAL, "repo")
+  Site.new(site, Signer.throwaway(File.join(LOCAL, "gnupg"))).build
+  keyring = File.join(site, "wirecat-archive-keyring.gpg")
+  FileUtils.chmod("a+rx", LOCAL)
+  # copy:, not file:: for file: apt links the catalog to LOCAL, which App Center's snap may not read, and one
+  # unreadable catalog empties App Center's whole Debian list (FIND-2800).
+  sudo_write(LOCAL_SOURCES, "Types: deb\nURIs: copy:#{site}\nSuites: stable\nComponents: main\nSigned-By: #{keyring}\n")
+  puts run("sudo", "apt-get", "update")
+  run("sudo", "appstreamcli", "refresh", "--force")
+  dump = run("appstreamcli", "dump", "dev.wirecat.desktop")
+  {
+    "apt sees wirecat from the local repository" => run("apt-cache", "policy", "wirecat").include?(LOCAL),
+    "AppStream links the app to package wirecat" => dump.include?("<pkgname>wirecat</pkgname>"),
+    "AppStream developer is WireCat" => dump.match?(%r{<developer[^>]*>\s*<name>WireCat</name>})
+  }.each { |label, ok| puts "#{ok ? 'PASS' : 'FAIL'}  #{label}" }
+  puts "\nApp Center: search \"WireCat\" under Debian packages. Undo: #{__FILE__} --remove"
+end
+
+def remove
+  run("sudo", "rm", "-f", LOCAL_SOURCES)
+  run("sudo", "apt-get", "update", "-qq")
+  run("sudo", "appstreamcli", "refresh", "--force")
+  FileUtils.rm_rf(LOCAL)
+  puts "removed #{LOCAL_SOURCES} and #{LOCAL}"
+end
+
+case ARGV
+in ["--site", dir] then build_site(File.expand_path(dir))
+in ["--local"] then local
+in ["--remove"] then remove
+else abort "usage: #{__FILE__} --site <dir> | --local | --remove"
+end

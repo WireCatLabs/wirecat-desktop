@@ -187,16 +187,17 @@ secret-tool lookup service wirecat account updater-key-password | wl-copy
 
 ## The apt key
 
-The apt repository at `apt.wirecat.dev` is signed with an ed25519 key, "WireCat Packages". Every machine that added
-the repository trusts only this key. Make it once:
+The apt repository at `apt.wirecat.dev` is signed with an ed25519 key, "WireCat Packages", fingerprint
+`43982617F046390F83F6C11C2AE6E41E7B91E5C5`, made on 2026-11-18. Every machine that added the repository trusts only
+this key. It was made once with:
 
 ```sh
 bin/apt-key-create
 ```
 
-It puts the private key in your keyring (service `wirecat`, account `apt-signing-key`) and in the `release`
-environment secret `APT_SIGNING_KEY`, and writes the public key to `src-tauri/linux/wirecat-archive-keyring.gpg` and
-`.asc`. Commit those two files. Then copy the private key into the password manager:
+It put the private key in your keyring (service `wirecat`, account `apt-signing-key`) and in the `release`
+environment secret `APT_SIGNING_KEY`, and wrote the public key to `src-tauri/linux/wirecat-archive-keyring.gpg` and
+`.asc`, which are committed. Copy the private key into the password manager:
 
 ```sh
 secret-tool lookup service wirecat account apt-signing-key | wl-copy
@@ -281,6 +282,12 @@ Windows tool is [ssign review](research/2026-11-05-ssign-review.md).
   `--ignore-scripts`) and, on Windows, ssign; it never runs `pnpm install`. Tauri treats a variable that is set but
   empty as a certificate to import (`crates/tauri-bundler/src/bundle/macos/sign.rs`), so each secret is exported only
   when it is needed.
+- **apt.** The `apt-repo` job ([apt-repo.yml](../../.github/workflows/apt-repo.yml)) runs in the `release`
+  environment after `publish`. [bin/apt-repo-build](../../bin/apt-repo-build) imports `APT_SIGNING_KEY` into a
+  temporary GnuPG home, refuses a key whose fingerprint differs from the committed
+  `src-tauri/linux/wirecat-archive-keyring.gpg`, and signs `Release` into `InRelease` and `Release.gpg`. The `.deb`
+  ships `/etc/apt/sources.list.d/wirecat.sources` and that keyring (`src-tauri/tauri.linux.conf.json`). Tauri's bundler writes no `conffiles`, so the source
+  file is a plain package file: `apt remove` takes it away, and an upgrade restores it.
 - **macOS.** Tauri signs and notarizes with the five `APPLE_*` secrets
   ([Tauri: macOS signing](https://v2.tauri.app/distribute/sign/macos/)). `APPLE_SIGNING_IDENTITY` is not needed:
   Tauri infers it from the certificate. `bin/make-apple-certificate` makes the key and the `.p12` without a Mac.

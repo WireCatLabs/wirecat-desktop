@@ -86,6 +86,23 @@ describe("App update", () => {
     expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/download")
   })
 
+  it("sends a copy with the apt source to Software Updater and downloads nothing", async () => {
+    vi.spyOn(platform, "checkUpdate").mockResolvedValue({ ...offer, kind: "apt" })
+    const download = vi.spyOn(platform, "downloadPackageUpdate")
+    const install = vi.spyOn(platform, "installUpdate")
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole("button", { name: "Update to 0.2.0" }))
+    const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
+    expect(within(dialog).getByText(/Open Software Updater to install the new version/)).toBeVisible()
+    expect(within(dialog).getByText("sudo apt update && sudo apt install wirecat")).toBeVisible()
+    expect(within(dialog).queryByRole("button", { name: "Download and install" })).toBeNull()
+    await user.click(within(dialog).getAllByRole("button", { name: "Close" })[0] as HTMLElement)
+    expect(download).not.toHaveBeenCalled()
+    expect(install).not.toHaveBeenCalled()
+  })
+
   it("hands a .deb to the system's installer and says what to do next", async () => {
     vi.spyOn(platform, "checkUpdate").mockResolvedValue({ ...offer, kind: "deb" })
     const install = vi.spyOn(platform, "installUpdate")
