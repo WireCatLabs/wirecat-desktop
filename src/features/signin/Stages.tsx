@@ -13,7 +13,7 @@ import {
   telegramFailure,
   telegramNote,
 } from "@/domain/telegram-signin"
-import { openConnect, openTool, useToolName } from "@/features/tools"
+import { openTool, useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -593,20 +593,8 @@ function NextAfterSignIn() {
   return (
     <div className="mt-2 flex flex-col items-center gap-2">
       {tool.sync?.run && profile && <p className="max-w-[30rem]">{wm.next.syncLead(named(tool))}</p>}
-      {tool.mcpServer && <p>{m.nextConnect}</p>}
       <div className="flex flex-wrap justify-center gap-2">
         {profile && <SyncNow tool={tool.id} profile={profile} primary />}
-        {tool.mcpServer && (
-          <Button
-            size="sm"
-            onClick={() => {
-              close()
-              openConnect(tool.id)
-            }}
-          >
-            {m.connectApp}
-          </Button>
-        )}
         <Button
           size="sm"
           variant="ghost"

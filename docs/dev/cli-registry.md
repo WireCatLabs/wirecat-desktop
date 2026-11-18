@@ -90,7 +90,9 @@ Rust accepts an entry only when:
    line, at most 40 characters), `words` and `stdin`. The words start with `{profile}` and fill no other slot;
    `stdin: true` sends what the owner types as the command's whole stdin, closed after it. A variable, a setting or a
    flag for what the owner typed (`password`, `clientId`, `clientFile`, `address`, `oauth`, `portal`, `appId`) is
-   refused.
+   refused. Its `accountRemove` words (`signOut`, `remove.keepData`, `remove.deleteData`) start with `{profile}` and
+   fill no other slot, and `remove.dryRun` and `remove.confirm` are cli-core's `--dry-run` and `--yes`: the app adds
+   the first to the preview and the second to the real removal, so swapped flags would delete on the preview.
 5. The file is at most 512 KB and the first 32 entries are read.
 
 Each refusal is a sentence the interface writes to its console and Settings lists under the switch of its source. The interface parses the accepted entries again
@@ -287,7 +289,7 @@ for listed tools, and nothing the owner adds reaches another computer.
 - `desktop`: a catalog entry with exactly these keys, `null` when unused: `tagline`, `profiles`, `doctor`, `runs`,
   `search`, `setup`, `signIn`, `skill`, `mcpServer`, `tasks`, `sync`, `storeInfo`, `storeTables`,
   `storeTableSizes`, `storeCheck`, `storeBackup`, `storeBackupEncrypted`, `storeResetPreview`, `storeReset`,
-  `storage`, `settings`. `community.rs` checks it like a listed entry. `meetings` may be added (cli-base 0.104.0,
+  `storage`, `settings`, `accountRemove`. `community.rs` checks it like a listed entry. `meetings` may be added (cli-base 0.104.0,
   `ManifestIdentity.meetingsProvider`): `{ provider, show, transcript }`, how a client's call opens from the Clients
   page and Meetings (`calls.rs`, `call_recording.rs`). The provider is a lower-case name no other tool uses, so a
   manifest cannot take over Zoom's or Asterisk's calls, and both commands take the call as `{id}`. `sync.what` is one
@@ -295,7 +297,9 @@ for listed tools, and nothing the owner adds reaches another computer.
   `records`. `signIn.methods` (cli-base's `ManifestIdentity.signIn.methods`) lets the tool sign in in the window,
   under rule 4 above: the window shows the tool's `signIn.asks` and, for a `stdin` method, a token field. The review
   says the tool signs in in the window, and an update that changes the methods lists the sign-in among the changed
-  parts.
+  parts. `accountRemove` (cli-base's `desktop.accountRemove`) has the catalog's shape and gives the account menu
+  Sign out and Remove account (`account.rs`); a manifest without it gets `null`. An update that adds it or changes
+  its words lists it among the new or changed parts.
 - `network`: `{ hosts, user_hosts }`. No `network` means the tool did not say; `hosts: []` means none.
 - `entities`: `{ <name>: { fields } }`.
 

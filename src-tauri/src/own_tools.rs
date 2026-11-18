@@ -38,7 +38,7 @@ const TIMEOUT: Duration = Duration::from_secs(20);
 
 /// The catalog keys a manifest's `desktop` object may hold; every one the interface needs is written, `null` when
 /// unused, because an entry the interface refuses is not shown at all.
-const KEYS: [&str; 22] = [
+const KEYS: [&str; 23] = [
     "tagline",
     "profiles",
     "doctor",
@@ -61,6 +61,7 @@ const KEYS: [&str; 22] = [
     "storage",
     "settings",
     "meetings",
+    "accountRemove",
 ];
 
 /// Format 2 of `contracts/wirecat.json`, as `cli-dev manifest` writes it. Only what Desktop reads is typed; `desktop`
@@ -302,10 +303,10 @@ pub struct UpdateChange {
     pub new_commands: Vec<String>,
     /// Commands that change the service or write on this computer and did not before.
     pub new_writes: Vec<String>,
-    /// `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none.
+    /// `signIn`, `mcpServer`, `skill`, `sync` or `accountRemove`, when the version before had none.
     pub new_parts: Vec<String>,
     /// Parts the version before had, with other texts or command words now: `signIn`, `doctor`, `setup`, `sync`,
-    /// `mcpServer`, `skill`, `runs`, `profiles` or `storage`.
+    /// `mcpServer`, `skill`, `runs`, `profiles`, `storage` or `accountRemove`.
     pub changed_parts: Vec<String>,
     /// Anything above changed, or the access is unknown: the owner confirms these changes explicitly.
     pub confirm: bool,
@@ -1090,13 +1091,13 @@ fn change_of(old: &Value, entry: &Value, now: Now) -> UpdateChange {
     new_writes.dedup();
     let before_commands = joined(&own["commands"]);
     let new_commands: Vec<String> = now.commands.iter().filter(|c| !before_commands.contains(c)).cloned().collect();
-    let new_parts: Vec<String> = ["signIn", "mcpServer", "skill", "sync"]
+    let new_parts: Vec<String> = ["signIn", "mcpServer", "skill", "sync", "accountRemove"]
         .into_iter()
         .filter(|k| old[*k].is_null() && !entry[*k].is_null())
         .map(str::to_string)
         .collect();
     let changed_parts: Vec<String> =
-        ["signIn", "doctor", "setup", "sync", "mcpServer", "skill", "runs", "profiles", "storage"]
+        ["signIn", "doctor", "setup", "sync", "mcpServer", "skill", "runs", "profiles", "storage", "accountRemove"]
             .into_iter()
             .filter(|k| !old[*k].is_null() && old[*k] != entry[*k])
             .map(str::to_string)
@@ -1987,6 +1988,45 @@ mod tests {
         here["desktop"]["signIn"]["methods"][0]["password"] = json!("NODE_OPTIONS");
         let refusal = refused(&Fake::with(&here));
         assert!(matches!(refusal, Refusal::BadManifest { key, .. } if key == "signIn"), "only the words and stdin");
+    }
+
+    #[test]
+    fn an_account_removal_from_the_manifest_is_read_and_an_update_that_adds_or_changes_it_asks_again() {
+        let first = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
+        assert!(first.entry["accountRemove"].is_null() && first.tool.account_remove.is_none(), "an older manifest");
+        let null = with_desktop("accountRemove", Value::Null);
+        let r = review("@example/acme-crm-cli", None, &Fake::with(&null), catalog(), "").unwrap();
+        assert!(r.tool.account_remove.is_none(), "a present null is no sign-out either");
+        let saved = json!({ "version": 1, "tools": [first.entry] }).to_string();
+        let src = json!({
+            "signOut": ["{profile}", "session", "end", "--record", "--json"],
+            "remove": null,
+            "removes": ["signIn"],
+            "keeps": ["settings", "data", "listed"]
+        });
+        let added = with_desktop("accountRemove", src.clone());
+        let r = review("@example/acme-crm-cli", None, &Fake::with(&added), catalog(), &saved).unwrap();
+        assert!(r.tool.account_remove.as_ref().unwrap().sign_out.is_some());
+        let change = r.review.update.unwrap();
+        assert_eq!(change.new_parts, ["accountRemove"]);
+        assert!(change.confirm);
+
+        let saved = json!({ "version": 1, "tools": [r.entry] }).to_string();
+        let mut other = src;
+        other["signOut"] = json!(["{profile}", "session", "end", "--revoke", "--json"]);
+        let changed = with_desktop("accountRemove", other);
+        let change = review("@example/acme-crm-cli", None, &Fake::with(&changed), catalog(), &saved).unwrap();
+        assert_eq!(change.review.update.unwrap().changed_parts, ["accountRemove"]);
+
+        let mut swapped = changed;
+        swapped["desktop"]["accountRemove"]["remove"] = json!({ "minVersion": null,
+            "keepData": ["{profile}", "account", "remove", "--keep-data"],
+            "deleteData": ["{profile}", "account", "remove", "--delete-data"], "dryRun": "--yes", "confirm": "--yes" });
+        let refusal = refused(&Fake::with(&swapped));
+        assert!(
+            matches!(refusal, Refusal::BadManifest { key, .. } if key == "accountRemove"),
+            "a preview that removes"
+        );
     }
 
     #[test]

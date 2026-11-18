@@ -2316,7 +2316,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "remove": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn"],
         "keeps": ["folders", "data", "listed"]
       }
@@ -2745,7 +2751,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "remove": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn"],
         "keeps": ["settings", "data", "listed"]
       }
