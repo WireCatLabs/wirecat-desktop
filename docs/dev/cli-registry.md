@@ -299,7 +299,9 @@ for listed tools, and nothing the owner adds reaches another computer.
   says the tool signs in in the window, and an update that changes the methods lists the sign-in among the changed
   parts. `accountRemove` (cli-base's `desktop.accountRemove`) has the catalog's shape and gives the account menu
   Sign out and Remove account (`account.rs`); a manifest without it gets `null`. An update that adds it or changes
-  its words lists it among the new or changed parts.
+  its words lists it among the new or changed parts. `sync.last` may hold one word with a quote and spaces,
+  `command:"meetings sync" status:success`, cli-base's filter for a sync path of two or more lower-case words; the
+  quoted path must be `sync.run`'s own.
 - `network`: `{ hosts, user_hosts }`. No `network` means the tool did not say; `hosts: []` means none.
 - `entities`: `{ <name>: { fields } }`.
 

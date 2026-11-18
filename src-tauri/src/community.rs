@@ -442,8 +442,12 @@ fn last_sync_query(entry: &Value) -> Option<String> {
         .skip_while(|w| *w == "{profile}")
         .take_while(|w| !w.starts_with('-'))
         .collect();
-    let plain = |w: &&str| plain_word(w) && w.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
-    (!path.is_empty() && path.iter().all(plain)).then(|| format!("command:\"{}\" status:success", path.join(" ")))
+    // cli-base's own rule for this word: `^command:"[a-z0-9][a-z0-9-]*(?: [a-z0-9][a-z0-9-]*)+" status:success$`.
+    let plain = |w: &&str| {
+        w.starts_with(|c: char| c.is_ascii_lowercase() || c.is_ascii_digit())
+            && w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    };
+    (path.len() >= 2 && path.iter().all(plain)).then(|| format!("command:\"{}\" status:success", path.join(" ")))
 }
 
 fn words_in(key: &str, v: &Value) -> Result<(), Problem> {
@@ -791,9 +795,16 @@ mod tests {
             "command:meetings\" status:success",
             "command:\"meetings sync\";rm status:success",
             "command:\"meetings sync;rm\" status:success",
+            "command:\"meetings sync\"  status:success",
         ] {
             assert!(rejected(&sync(last)).contains("is not allowed"), "{last}");
         }
+        let mut upper = sync("command:\"Meetings sync\" status:success");
+        upper["sync"]["run"] = json!(["{profile}", "Meetings", "sync", "--json"]);
+        assert!(rejected(&upper).contains("is not allowed"), "lower case only, as cli-base writes it");
+        let mut one = sync("command:\"sync\" status:success");
+        one["sync"]["run"] = json!(["{profile}", "sync", "--json"]);
+        assert!(rejected(&one).contains("is not allowed"), "one word needs no quotes");
         let mut elsewhere = sync("status:success");
         elsewhere["doctor"] = json!(["{profile}", "command:\"meetings sync\" status:success"]);
         assert!(rejected(&elsewhere).contains("is not allowed"), "only in sync.last");
