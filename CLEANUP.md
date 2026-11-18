@@ -49,3 +49,4 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-setup-renderer` (worktree, with a 5.7 GB `src-tauri/target` copied from the pbx-signin-hang worktree) and branch `feat/setup-renderer`: the setup format v1 renderer. Remove both after its PR merges. 2026-11-16
 - Branch `pr-assets/setup-renderer` on GitHub: holds only the screenshots the setup renderer's PR body links. Remove after the PR merges. 2026-11-16
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-ydisk` (branch `feat/ydisk`): Yandex Disk in the catalog; remove the worktree once its PR is merged. 2026-11-17
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-hubspot` (branch `feat/hubspot`): HubSpot in the catalog; remove the worktree and the branch once its PR is merged. 2026-11-18
