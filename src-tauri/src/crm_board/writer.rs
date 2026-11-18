@@ -327,7 +327,7 @@ mod tests {
     #[test]
     fn a_crm_its_cli_only_reads_is_read_only_from_the_catalog_without_asking_the_installed_cli() {
         let attio = CrmAccount { provider: "attio".into(), account: "acme".into() };
-        let unnamed = CrmPipeline { account: Some(attio.clone()), ..pipeline(None) };
+        let unnamed = CrmPipeline { account: Some(attio), ..pipeline(None) };
         let asked = |_: &str| -> Writer { panic!("the installed CLI was asked") };
         assert_eq!(movable(&unnamed, &asked), no("crmNoMoves"));
         assert_eq!(movable(&pipeline(None), &asked), no("crmCli"));
