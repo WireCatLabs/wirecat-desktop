@@ -17,6 +17,7 @@ import {
 } from "@/shared/signin-store"
 import { ToolNeeded } from "@/shared/ToolNeeded"
 import { useTools } from "@/shared/tools-store"
+import { Button } from "@/ui/Button"
 import { Disclosure } from "@/ui/Disclosure"
 import { useFieldError } from "@/ui/FieldError"
 import { wideFieldClass } from "@/ui/field"
@@ -48,9 +49,11 @@ export function Plan() {
   if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
   if (tool === BITRIX) return <BitrixSteps />
   if (tool === ASTERISK) return <AsteriskSource />
-  const steps = [
+  const steps: { text: string; once: boolean; link?: StepLinkProps }[] = [
     ...(plan?.appKeys ? tm.appSteps.map((text) => ({ text, once: true })) : []),
-    ...(plan?.steps ?? []).map((text) => ({ text, once: false })),
+    ...(plan?.steps ?? []).map((step) =>
+      typeof step === "string" ? { text: step, once: false } : { ...step, once: false },
+    ),
   ]
   const kept = [...(plan?.kept ?? []), m.wirecat]
   const ways = entry && !entry.signIn?.pick ? signInMethods(entry).length : 0
@@ -95,6 +98,7 @@ export function Plan() {
                       </span>
                     )}
                     {step.text}
+                    {step.link && <StepLink {...step.link} />}
                   </span>
                 </li>
               ))}
@@ -130,6 +134,60 @@ export function Plan() {
         </ul>
       </section>
     </div>
+  )
+}
+
+/**
+ * A step's page. With `ask`, the owner types that value first and it ends the address (Yandex's token page needs the
+ * app's ClientID), so the long address is never shown or edited by hand.
+ */
+type StepLinkProps = { url: string; label: string; ask?: string; waits?: string }
+
+// Yandex's ClientIDs are 32 hex digits; anything else opens Yandex's error page, or puts a pasted token in the address.
+const CLIENT_ID = /^[0-9a-f]{32}$/i
+
+function StepLink({ url, label, ask, waits }: StepLinkProps) {
+  const id = useId()
+  const [value, setValue] = useState("")
+  if (!ask)
+    return (
+      <span className="mt-1.5 block">
+        <OpenLink url={url} variant="secondary">
+          {label}
+        </OpenLink>
+      </span>
+    )
+  const typed = value.trim()
+  return (
+    <span className="mt-1.5 flex flex-wrap items-end gap-2">
+      <span className="flex w-[24rem] max-w-full flex-col gap-1">
+        <label htmlFor={id} className="text-[0.9rem] font-medium text-ink">
+          {ask}
+        </label>
+        <input
+          id={id}
+          autoComplete="off"
+          spellCheck={false}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className={wideFieldClass}
+        />
+      </span>
+      {CLIENT_ID.test(typed) ? (
+        <OpenLink url={`${url}${typed}`} variant="secondary">
+          {label}
+        </OpenLink>
+      ) : (
+        <Button size="sm" variant="secondary" disabled aria-describedby={waits && `${id}-waits`}>
+          {label}
+        </Button>
+      )}
+      {waits && !CLIENT_ID.test(typed) && (
+        <span id={`${id}-waits`} className="basis-full text-[0.9rem] text-ink-soft">
+          {waits}
+        </span>
+      )}
+    </span>
   )
 }
 

@@ -14,9 +14,11 @@ import { Lamp } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
+import { useToolName } from "./tool-text"
 
 /** The tool's bots beside its accounts: each name, what the messenger says of its token, and the way to fix or drop it. */
 export function BotList({ tool }: { tool: CatalogTool }) {
+  const named = useToolName()
   const m = useMessages(botMessages)
   const bots = useBotSignIn((s) => s.bots[tool.id])
   const checked = useBotSignIn((s) => s.checked[tool.id])
@@ -36,7 +38,7 @@ export function BotList({ tool }: { tool: CatalogTool }) {
       <div className="flex min-h-8 items-center justify-between gap-3">
         <h5 id={`bots-${tool.id}`} className="text-[0.9rem] font-medium text-ink">
           {m.bots}
-          <span className="sr-only">, {tool.name}</span>
+          <span className="sr-only">, {named(tool)}</span>
         </h5>
         {hasBots && (
           <RefreshButton

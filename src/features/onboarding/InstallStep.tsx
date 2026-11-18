@@ -14,6 +14,7 @@ import {
   PreflightNotice,
   toolsMessages,
   useFailureMessages,
+  useToolName,
 } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -49,6 +50,7 @@ export function installChosen() {
  * real state at once.
  */
 function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
+  const named = useToolName()
   const installs = useTools((s) => s.installs[tool.id])
   const session = useTools((s) => s.sessions[ownerId(tool.id)])
   const status = toolStatus(installs, undefined, session)
@@ -107,7 +109,7 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
         )}
       </span>
       <ToolIcon id={tool.id} className="size-[1.5rem] shrink-0 text-ink" />
-      <span className="w-[9rem] shrink-0 font-semibold">{tool.name}</span>
+      <span className="w-[9rem] shrink-0 font-semibold">{named(tool)}</span>
       <span aria-live="polite" className="min-w-0 flex-1 text-body text-ink-soft">
         {text}
       </span>

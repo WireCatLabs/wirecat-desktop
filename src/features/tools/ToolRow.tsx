@@ -29,7 +29,7 @@ import { useRegistry } from "./registry-store"
 import { fitLabel, fitLine, useLatestKnown } from "./StorageFit"
 import { RowSyncButton, RowSyncLine, useRowSync } from "./Sync"
 import { ToolDetails } from "./ToolDetails"
-import { toolText } from "./tool-text"
+import { toolText, useToolName } from "./tool-text"
 import { useFits } from "./useFits"
 import { useMcpActivity } from "./useMcpActivity"
 
@@ -53,6 +53,7 @@ const lampLabel = (s: ToolStatus, m: ToolsText["row"]["status"]) =>
   })[s.kind]
 
 export function ToolRow({ tool }: { tool: CatalogTool }) {
+  const named = useToolName()
   const installs = useTools((s) => s.installs[tool.id])
   const latest = useTools((s) => (s.latest ? (s.latest[tool.id] ?? null) : undefined))
   const session = useTools((s) => s.sessions[ownerId(tool.id)])
@@ -127,7 +128,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
           className="group min-w-0 py-3 text-left"
         >
           <h3 className="flex items-baseline gap-[0.6rem] text-[1.08rem] font-semibold leading-tight group-hover:text-brand">
-            {tool.name}
+            {named(tool)}
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
             {isCommunity(tool) && (
@@ -142,7 +143,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
           <Crossfade swap={lineKind}>
             {installing ? (
               <div className="mt-1 max-w-[28rem]">
-                <InstallLine session={installing} name={tool.name} flat />
+                <InstallLine session={installing} name={named(tool)} flat />
               </div>
             ) : blocked ? (
               <p className="mt-1 line-clamp-2 text-[0.95rem] leading-[1.55rem] text-warn-ink">{rm.row}</p>

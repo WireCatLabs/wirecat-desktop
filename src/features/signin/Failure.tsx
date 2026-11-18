@@ -1,6 +1,6 @@
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type ExplainedFailure, explainFailure } from "@/domain/signin-failure"
-import { openTool } from "@/features/tools"
+import { openTool, useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
 import { ReportThis } from "@/shared/ReportThis"
@@ -46,7 +46,8 @@ export function FailureCard({ s, explained }: { s: SignInView; explained: Explai
   const m = useMessages(signinMessages)
   const wm = useMessages(wizardMessages)
   const tool = s.tool ? findTool(s.tool) : undefined
-  const name = tool?.name ?? s.tool ?? ""
+  const named = useToolName()
+  const name = tool ? named(tool) : (s.tool ?? "")
   const text = wm.failure[explained.reason]
   const actions = [explained.primary, explained.fallback].filter((a) => a !== null)
   const other = otherMethod(s)

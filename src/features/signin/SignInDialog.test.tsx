@@ -907,7 +907,7 @@ describe("in Russian", () => {
     const dialog = await screen.findByRole("dialog")
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     send({ event: "failed", code: "needs_update", message: "This version cannot sign in here yet." })
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("Эта версия MAX не умеет входить внутри WireCat.")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("MAX: эта версия не умеет входить внутри WireCat.")
   })
 })
 
@@ -1052,14 +1052,25 @@ describe("signing in to Notion", () => {
 })
 
 describe("signing in to Yandex Disk", () => {
-  it("shows how to get the token, then gives the pasted token to the run", async () => {
+  const CLIENT_ID = "0123456789abcdef0123456789ABCDEF"
+
+  it("opens Yandex's pages from buttons, the token page with the typed ClientID, then gives the token to the run", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     render(<SignInDialog />)
     act(() => useSignIn.getState().start("ydisk", "work"))
     const dialog = screen.getByRole("dialog", { name: "Sign in to Yandex Disk" })
-    expect(within(dialog).getByText(/oauth\.yandex\.com\/client\/new/)).toBeInTheDocument()
-    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    expect(within(dialog).getByText(/For API access or debugging/)).toBeInTheDocument()
+    expect(within(dialog).queryByText(/response_type=token/)).not.toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: /Open Yandex's app page/ }))
+    expect(open).toHaveBeenLastCalledWith("https://oauth.yandex.ru/client/new/")
+    expect(within(dialog).getByRole("button", { name: "Get the token" })).toBeDisabled()
+    await userEvent.type(within(dialog).getByLabelText("ClientID"), ` ${CLIENT_ID} `)
+    await userEvent.click(within(dialog).getByRole("button", { name: /Get the token/ }))
+    expect(open).toHaveBeenLastCalledWith(
+      `https://oauth.yandex.ru/authorize?response_type=token&client_id=${CLIENT_ID}`,
+    )
     await userEvent.click(within(dialog).getByRole("button", { name: /How to get the token/ }))
-    expect(open).toHaveBeenCalledWith(expect.stringContaining("wirecat.dev/"))
+    expect(open).toHaveBeenLastCalledWith(expect.stringContaining("wirecat.dev/"))
     await userEvent.type(within(dialog).getByLabelText("Token"), "y0_example")
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     await vi.waitFor(() =>
@@ -1067,5 +1078,32 @@ describe("signing in to Yandex Disk", () => {
         password: "y0_example",
       }),
     )
+  })
+
+  it.each(["a", "a&x=1", "a/b", "a b", `${CLIENT_ID}x`, "y0_AgAAAAB4bWlrAAbc123-def456_ghi789jkl0mnoPQR"])(
+    "keeps the token button off for %j and says why",
+    async (typed) => {
+      render(<SignInDialog />)
+      act(() => useSignIn.getState().start("ydisk", "work"))
+      const dialog = screen.getByRole("dialog")
+      await userEvent.type(within(dialog).getByLabelText("ClientID"), typed)
+      const button = within(dialog).getByRole("button", { name: "Get the token" })
+      expect(button).toBeDisabled()
+      expect(button).toHaveAccessibleDescription(/32 characters/)
+    },
+  )
+
+  it.each([
+    ["en", "Sign in to Yandex Disk", "Get the token"],
+    ["ru", "Вход в Яндекс Диск", "Получить токен"],
+    ["es", "Iniciar sesión en Yandex Disk", "Obtener el token"],
+  ] as const)("in %s, names the dialog and asks for the ClientID before the token page", async (lang, title, label) => {
+    useLanguage.setState({ choice: lang })
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("ydisk", "work"))
+    const dialog = screen.getByRole("dialog", { name: title })
+    expect(within(dialog).getByRole("button", { name: label })).toBeDisabled()
+    await userEvent.type(within(dialog).getByLabelText("ClientID"), CLIENT_ID)
+    expect(within(dialog).getByRole("button", { name: label })).toBeEnabled()
   })
 })

@@ -1,5 +1,12 @@
 // Each tool's tagline and summary in Russian and Spanish, by catalog id; English is the catalog's own.
 
+import type { Lang } from "@/i18n"
+
+/** A name the service itself uses in that language, as its users know it; tools.json's name everywhere else. */
+export const LOCAL_NAMES: Record<string, Partial<Record<Lang, string>>> = {
+  ydisk: { ru: "Яндекс Диск" },
+}
+
 export const RU_TAGLINE: Record<string, string> = {
   tg: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
   max: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",

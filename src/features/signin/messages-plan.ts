@@ -12,15 +12,22 @@ import type { Messages } from "@/i18n"
  * `session start` (the server found from the address, the domain alone sent to DNS and autoconfig, the password
  * checked before it is saved); gcal 0.19 and drive 0.59 ask for `calendar.readonly` and `drive.readonly`, and keep the
  * owner's client with the sign-in; zoom-cli `docs/zoom-app.md` (no WireCat Zoom app, the Public Client ID).
- * Yandex Disk (2026-11-17): ydisk 0.1.0 `docs/installation.md` (the app, its scopes, the token page; the token
- * checked before it is kept in the keyring, else a private file).
+ * Yandex Disk (2026-11-18): ydisk-cli PR #7 `docs/installation.md` and cli-docs `content/docs/ydisk*.mdx`, checked
+ * against Yandex's register-api and Disk API quickstart (the app type, the Disk rights by Yandex's own labels, the
+ * token page; the token checked before it is kept in the keyring, else a private file).
  */
 /**
  * `appKeys`: the steps open with making the owner's own app keys (`messages-telegram.ts`), the first time only.
  * `guide`: a page with the provider's own steps. `own`: what "Use my own app" means for this sign-in, and its guide.
  */
+/**
+ * A step with a page to open. `ask` is one short value the owner types first (a ClientID), added to the end of `url`:
+ * the address is too long to read, and a page opened without it is useless. `waits` says why the button is still off.
+ */
+type PlanStep = { text: string; link: { url: string; label: string; ask?: string; waits?: string } }
+
 type Plan = {
-  steps: string[]
+  steps: (string | PlanStep)[]
   time?: string
   kept?: string[]
   appKeys?: boolean
@@ -33,6 +40,8 @@ const MICROSOFT_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-microsoft"
 const GOOGLE_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-google"
 const ZOOM_APP_GUIDE = "https://wirecat.dev/en/docs/zm/zoom-app"
 const YDISK_GUIDE = "https://wirecat.dev/en/docs/ydisk"
+const YANDEX_NEW_APP = "https://oauth.yandex.ru/client/new/"
+const YANDEX_TOKEN = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
 
 const en = {
   what: "What happens",
@@ -165,9 +174,23 @@ const en = {
     },
     ydisk: {
       steps: [
-        "The first time: register an app at oauth.yandex.com/client/new. Choose Web services, the redirect URI https://oauth.yandex.ru/verification_code, and the Disk access cloud_api:disk.read and cloud_api:disk.info, with cloud_api:disk.write if your agent may change files.",
-        "Open https://oauth.yandex.ru/authorize?response_type=token&client_id= with the app's ClientID added at the end, signed in to Yandex. Yandex shows the token.",
-        "Paste the token here. ydisk checks it with Yandex before it keeps it.",
+        {
+          text: "Open Yandex's page for a new app and sign in with the account whose Disk you want to use. If Yandex asks for the app type, choose For API access or debugging («Для доступа к API или отладки»).",
+          link: { url: YANDEX_NEW_APP, label: "Open Yandex's app page" },
+        },
+        "Enter any name for the app and your email.",
+        "Under data access («Доступ к данным») tick «Чтение всего Диска» (read the whole Disk) and «Доступ к информации о Диске» (Disk information). Tick «Запись в любом месте на Диске» (write anywhere) only if your agent may change files.",
+        "Create the app («Создать приложение») and copy its ClientID from the app's page.",
+        {
+          text: "Paste the ClientID below and press Get the token. Allow the access, and Yandex shows the token.",
+          link: {
+            url: YANDEX_TOKEN,
+            label: "Get the token",
+            ask: "ClientID",
+            waits: "The button works once the ClientID is in: 32 characters, digits and letters a to f.",
+          },
+        },
+        "Paste the token into the field below. ydisk checks it with Yandex before it keeps it.",
       ],
       guide: { url: YDISK_GUIDE, label: "How to get the token" },
       time: "Allow about five minutes the first time.",
@@ -366,9 +389,23 @@ const ru: PlanText = {
     },
     ydisk: {
       steps: [
-        "В первый раз: зарегистрируйте приложение на oauth.yandex.ru/client/new. Выберите «Веб-сервисы», Redirect URI https://oauth.yandex.ru/verification_code и доступы к Диску cloud_api:disk.read и cloud_api:disk.info, а если агент может менять файлы, то и cloud_api:disk.write.",
-        "Откройте https://oauth.yandex.ru/authorize?response_type=token&client_id=, добавив в конце ClientID приложения, войдя в Яндекс. Яндекс покажет токен.",
-        "Вставьте токен сюда. ydisk проверит его в Яндексе, прежде чем сохранить.",
+        {
+          text: "Откройте страницу Яндекса для нового приложения и войдите в аккаунт, Диск которого хотите подключить. Если Яндекс спросит тип приложения, выберите «Для доступа к API или отладки».",
+          link: { url: YANDEX_NEW_APP, label: "Открыть страницу Яндекса" },
+        },
+        "Введите любое название приложения и свою почту.",
+        "В разделе «Доступ к данным» отметьте «Чтение всего Диска» и «Доступ к информации о Диске». «Запись в любом месте на Диске» отметьте, только если агент может менять файлы.",
+        "Нажмите «Создать приложение» и скопируйте ClientID со страницы приложения.",
+        {
+          text: "Вставьте ClientID ниже и нажмите «Получить токен». Разрешите доступ, и Яндекс покажет токен.",
+          link: {
+            url: YANDEX_TOKEN,
+            label: "Получить токен",
+            ask: "ClientID",
+            waits: "Кнопка заработает, когда вы вставите ClientID: 32 знака, цифры и латинские буквы от a до f.",
+          },
+        },
+        "Вставьте токен в поле ниже. ydisk проверит его в Яндексе, прежде чем сохранить.",
       ],
       guide: { url: YDISK_GUIDE, label: "Как получить токен" },
       time: "В первый раз это займёт около пяти минут.",
@@ -565,9 +602,23 @@ const es: PlanText = {
     },
     ydisk: {
       steps: [
-        "La primera vez: registra una aplicación en oauth.yandex.com/client/new. Elige Web services, la URI de redirección https://oauth.yandex.ru/verification_code y los accesos a Disk cloud_api:disk.read y cloud_api:disk.info, con cloud_api:disk.write si tu agente puede cambiar archivos.",
-        "Abre https://oauth.yandex.ru/authorize?response_type=token&client_id= con el ClientID de la aplicación al final, con la sesión de Yandex iniciada. Yandex muestra el token.",
-        "Pega aquí el token. ydisk lo comprueba con Yandex antes de guardarlo.",
+        {
+          text: "Abre la página de Yandex para una aplicación nueva e inicia sesión con la cuenta cuyo Disk quieres usar. Si Yandex pregunta el tipo de aplicación, elige «Для доступа к API или отладки» (para acceso a la API o depuración).",
+          link: { url: YANDEX_NEW_APP, label: "Abrir la página de Yandex" },
+        },
+        "Escribe cualquier nombre para la aplicación y tu correo.",
+        "En acceso a los datos («Доступ к данным») marca «Чтение всего Диска» (leer todo el Disk) y «Доступ к информации о Диске» (información del Disk). Marca «Запись в любом месте на Диске» (escribir en cualquier lugar) solo si tu agente puede cambiar archivos.",
+        "Crea la aplicación («Создать приложение») y copia su ClientID de la página de la aplicación.",
+        {
+          text: "Pega el ClientID abajo y pulsa «Obtener el token». Permite el acceso y Yandex muestra el token.",
+          link: {
+            url: YANDEX_TOKEN,
+            label: "Obtener el token",
+            ask: "ClientID",
+            waits: "El botón funciona cuando pegas el ClientID: 32 caracteres, cifras y letras de la a a la f.",
+          },
+        },
+        "Pega el token en el campo de abajo. ydisk lo comprueba con Yandex antes de guardarlo.",
       ],
       guide: { url: YDISK_GUIDE, label: "Cómo conseguir el token" },
       time: "La primera vez, unos cinco minutos.",

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react"
 import { ASTERISK } from "@/domain/asterisk-source"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { zoomNeedsClientId } from "@/domain/signin-failure"
+import { useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { APP_KEYS, BITRIX, BITRIX_APP, type PlanStep, useSignIn } from "@/shared/signin-store"
 import { Collapse } from "@/ui/Collapse"
@@ -64,7 +65,8 @@ function Path({ s }: { s: SignInView }) {
   const m = useMessages(wizardMessages)
   const id = useId()
   const tool = s.tool ? findTool(s.tool) : undefined
-  const name = tool?.name ?? s.tool ?? ""
+  const shown = useToolName()
+  const name = tool ? shown(tool) : (s.tool ?? "")
   const path = wizardPath(s.tool ?? "", s.method, routeOf(s))
   // Between the tool's steps (an answer being checked, a stop) the last step it was on stays lit; once it runs, the
   // intro is behind it.

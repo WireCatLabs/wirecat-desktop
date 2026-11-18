@@ -273,7 +273,7 @@ const ru: WizardText = {
   },
   failure: {
     needsUpdate: {
-      title: (name) => `Эта версия ${name} не умеет входить внутри WireCat.`,
+      title: (name) => `${name}: эта версия не умеет входить внутри WireCat.`,
       cause: () => "Она старше, чем вход в этом окне. Обновление займёт минуту, а пока можно войти в терминале.",
     },
     qrExpired: {

@@ -2,6 +2,7 @@ import { LoaderCircle } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { type CatalogTool, findTool, isCommunity, isOwn } from "@/domain/catalog"
 import { knownOf, own, type SetupDocument, textsOf } from "@/domain/setup-flow"
+import { useToolName } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import { running, useSignIn } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -27,7 +28,8 @@ export function SetupFlowDialog({ doc, images }: { doc: SetupDocument; images: R
   const m = useMessages(signinMessages)
   const lang = useLang()
   const tool = s.tool ? findTool(s.tool) : undefined
-  const name = tool?.name ?? s.tool ?? ""
+  const named = useToolName()
+  const name = tool ? named(tool) : (s.tool ?? "")
   const body = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -137,7 +139,9 @@ export function SetupLoading() {
   const s = useSignIn()
   const m = useMessages(signinMessages)
   const fm = useMessages(flowMessages)
-  const name = (s.tool ? findTool(s.tool)?.name : undefined) ?? s.tool ?? ""
+  const named = useToolName()
+  const tool = s.tool ? findTool(s.tool) : undefined
+  const name = tool ? named(tool) : (s.tool ?? "")
   return (
     <Dialog
       open={s.tool !== null}
