@@ -4,7 +4,7 @@ import { findTool, isCommunity, isOwn, maker, ownerId, samePackage, tools } from
 import { computerLine, doneRow } from "@/domain/onboarding-flow"
 import { MachineChoicesList, MachineSetting, machineMessages } from "@/features/settings"
 import { NodeNotice } from "@/features/system"
-import { InstallLine, toolsMessages, toolText } from "@/features/tools"
+import { InstallLine, toolsMessages, toolText, useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { openSection } from "@/shared/go-tool"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -113,6 +113,7 @@ export function Computer() {
 }
 
 export function Choose() {
+  const named = useToolName()
   const chosen = useOnboarding((s) => s.chosen)
   const installs = useTools((s) => s.installs)
   const toggle = useOnboarding((s) => s.toggle)
@@ -136,7 +137,7 @@ export function Choose() {
                 <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-[0.5rem]">
-                    <span className="text-[1.02rem] font-semibold">{t.name}</span>
+                    <span className="text-[1.02rem] font-semibold">{named(t)}</span>
                     <span className="font-mono text-[0.9rem] text-ink-soft">{t.bin}</span>
                     {t.partOf && <Pill>{m.partOf(findTool(t.partOf)?.name ?? t.partOf)}</Pill>}
                     {isCommunity(t) && <Pill>{tm.row.community}</Pill>}
@@ -176,6 +177,7 @@ export function Choose() {
  * how a skill gets added today.
  */
 export function Agents({ matrix }: { matrix?: ReactNode }) {
+  const named = useToolName()
   const list = useSetupTools().filter((t) => t.skill)
   const m = useMessages(onboardingMessages).agents
   if (matrix) return <>{matrix}</>
@@ -189,7 +191,7 @@ export function Agents({ matrix }: { matrix?: ReactNode }) {
           <ul aria-label={m.list} className="flex flex-col gap-1">
             {list.map((t) => (
               <li key={t.id} className="flex items-baseline gap-3 text-body">
-                <span className="min-w-[7.5rem] shrink-0 text-ink-soft">{t.name}</span>
+                <span className="min-w-[7.5rem] shrink-0 text-ink-soft">{named(t)}</span>
                 <code className="selectable font-mono text-[0.9rem] text-ink">{t.bin} skill install</code>
               </li>
             ))}
@@ -208,6 +210,7 @@ export function leave() {
 }
 
 export function Done() {
+  const named = useToolName()
   const installs = useTools((s) => s.installs)
   const sessions = useTools((s) => s.sessions)
   const list = useSetupTools()
@@ -231,10 +234,10 @@ export function Done() {
               <>
                 <Lamp tone={tone} />
                 <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
-                <span className="flex-1 font-semibold">{t.name}</span>
+                <span className="flex-1 font-semibold">{named(t)}</span>
                 {running ? (
                   <div className="w-[16rem] max-w-[50%]">
-                    <InstallLine session={running} name={t.name} />
+                    <InstallLine session={running} name={named(t)} />
                   </div>
                 ) : (
                   <span className={cx("font-mono text-[1.02rem] tabular-nums", version ? "text-ink" : "text-ink-soft")}>

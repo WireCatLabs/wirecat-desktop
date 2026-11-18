@@ -13,7 +13,7 @@ import {
   telegramFailure,
   telegramNote,
 } from "@/domain/telegram-signin"
-import { openConnect, openTool } from "@/features/tools"
+import { openConnect, openTool, useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -582,6 +582,7 @@ function TokenStage({ need, s }: { need: Need; s: SignInView }) {
 
 /** Rule 9: after the goal, what is worth doing next. Not in the first-run setup, which has its own next step. */
 function NextAfterSignIn() {
+  const named = useToolName()
   const tool = useSignIn((s) => (s.tool ? findTool(s.tool) : undefined))
   const close = useSignIn((s) => s.close)
   const profile = useSignIn((s) => s.profile)
@@ -591,7 +592,7 @@ function NextAfterSignIn() {
   if (!tool || onboarding) return null
   return (
     <div className="mt-2 flex flex-col items-center gap-2">
-      {tool.sync?.run && profile && <p className="max-w-[30rem]">{wm.next.syncLead(tool.name)}</p>}
+      {tool.sync?.run && profile && <p className="max-w-[30rem]">{wm.next.syncLead(named(tool))}</p>}
       {tool.mcpServer && <p>{m.nextConnect}</p>}
       <div className="flex flex-wrap justify-center gap-2">
         {profile && <SyncNow tool={tool.id} profile={profile} primary />}
@@ -614,7 +615,7 @@ function NextAfterSignIn() {
             openTool(tool.id)
           }}
         >
-          {m.openTool(tool.name)}
+          {m.openTool(named(tool))}
         </Button>
       </div>
     </div>

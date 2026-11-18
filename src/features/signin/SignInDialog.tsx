@@ -6,7 +6,7 @@ import { readMailNotes } from "@/domain/mail-signin"
 import { keyringFallback } from "@/domain/signin-notes"
 import { isNewer } from "@/domain/status"
 import { telegramNote } from "@/domain/telegram-signin"
-import { useTerminal } from "@/features/tools"
+import { useTerminal, useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { recordError } from "@/shared/errors"
@@ -99,7 +99,8 @@ function HandMadeSignIn() {
   const m = useMessages(signinMessages)
   const tm = useMessages(telegramMessages)
   const tool = s.tool ? findTool(s.tool) : undefined
-  const name = tool?.name ?? s.tool ?? ""
+  const named = useToolName()
+  const name = tool ? named(tool) : (s.tool ?? "")
   const body = useRef<HTMLDivElement>(null)
   const ended = !running(s.phase)
   const keyring = s.notes.map(keyringFallback).find((k) => k !== null) ?? null

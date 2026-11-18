@@ -141,9 +141,12 @@ export function Plan() {
  * A step's page. With `ask`, the owner types that value first and it ends the address (Yandex's token page needs the
  * app's ClientID), so the long address is never shown or edited by hand.
  */
-type StepLinkProps = { url: string; label: string; ask?: string }
+type StepLinkProps = { url: string; label: string; ask?: string; waits?: string }
 
-function StepLink({ url, label, ask }: StepLinkProps) {
+// Yandex's ClientIDs are 32 hex digits; anything else opens Yandex's error page, or puts a pasted token in the address.
+const CLIENT_ID = /^[0-9a-f]{32}$/i
+
+function StepLink({ url, label, ask, waits }: StepLinkProps) {
   const id = useId()
   const [value, setValue] = useState("")
   if (!ask)
@@ -170,14 +173,19 @@ function StepLink({ url, label, ask }: StepLinkProps) {
           className={wideFieldClass}
         />
       </span>
-      {/^[A-Za-z0-9]{1,64}$/.test(typed) ? (
-        <OpenLink url={`${url}${encodeURIComponent(typed)}`} variant="secondary">
+      {CLIENT_ID.test(typed) ? (
+        <OpenLink url={`${url}${typed}`} variant="secondary">
           {label}
         </OpenLink>
       ) : (
-        <Button size="sm" variant="secondary" disabled>
+        <Button size="sm" variant="secondary" disabled aria-describedby={waits && `${id}-waits`}>
           {label}
         </Button>
+      )}
+      {waits && !CLIENT_ID.test(typed) && (
+        <span id={`${id}-waits`} className="basis-full text-[0.9rem] text-ink-soft">
+          {waits}
+        </span>
       )}
     </span>
   )

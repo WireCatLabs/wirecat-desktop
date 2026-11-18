@@ -22,9 +22,9 @@ import type { Messages } from "@/i18n"
  */
 /**
  * A step with a page to open. `ask` is one short value the owner types first (a ClientID), added to the end of `url`:
- * the address is too long to read, and a page opened without it is useless.
+ * the address is too long to read, and a page opened without it is useless. `waits` says why the button is still off.
  */
-type PlanStep = { text: string; link: { url: string; label: string; ask?: string } }
+type PlanStep = { text: string; link: { url: string; label: string; ask?: string; waits?: string } }
 
 type Plan = {
   steps: (string | PlanStep)[]
@@ -183,7 +183,12 @@ const en = {
         "Create the app («Создать приложение») and copy its ClientID from the app's page.",
         {
           text: "Paste the ClientID below and press Get the token. Allow the access, and Yandex shows the token.",
-          link: { url: YANDEX_TOKEN, label: "Get the token", ask: "ClientID" },
+          link: {
+            url: YANDEX_TOKEN,
+            label: "Get the token",
+            ask: "ClientID",
+            waits: "The button works once the ClientID is in: 32 characters, digits and letters a to f.",
+          },
         },
         "Paste the token into the field below. ydisk checks it with Yandex before it keeps it.",
       ],
@@ -393,7 +398,12 @@ const ru: PlanText = {
         "Нажмите «Создать приложение» и скопируйте ClientID со страницы приложения.",
         {
           text: "Вставьте ClientID ниже и нажмите «Получить токен». Разрешите доступ, и Яндекс покажет токен.",
-          link: { url: YANDEX_TOKEN, label: "Получить токен", ask: "ClientID" },
+          link: {
+            url: YANDEX_TOKEN,
+            label: "Получить токен",
+            ask: "ClientID",
+            waits: "Кнопка заработает, когда вы вставите ClientID: 32 знака, цифры и латинские буквы от a до f.",
+          },
         },
         "Вставьте токен в поле ниже. ydisk проверит его в Яндексе, прежде чем сохранить.",
       ],
@@ -593,15 +603,20 @@ const es: PlanText = {
     ydisk: {
       steps: [
         {
-          text: "Abre la página de Yandex para una aplicación nueva e inicia sesión con la cuenta cuyo Disk quieres usar. Si Yandex pregunta el tipo de aplicación, elige para acceso a la API o depuración («Для доступа к API или отладки»).",
+          text: "Abre la página de Yandex para una aplicación nueva e inicia sesión con la cuenta cuyo Disk quieres usar. Si Yandex pregunta el tipo de aplicación, elige «Для доступа к API или отладки» (para acceso a la API o depuración).",
           link: { url: YANDEX_NEW_APP, label: "Abrir la página de Yandex" },
         },
         "Escribe cualquier nombre para la aplicación y tu correo.",
         "En acceso a los datos («Доступ к данным») marca «Чтение всего Диска» (leer todo el Disk) y «Доступ к информации о Диске» (información del Disk). Marca «Запись в любом месте на Диске» (escribir en cualquier lugar) solo si tu agente puede cambiar archivos.",
         "Crea la aplicación («Создать приложение») y copia su ClientID de la página de la aplicación.",
         {
-          text: "Pega el ClientID abajo y pulsa Obtener el token. Permite el acceso y Yandex muestra el token.",
-          link: { url: YANDEX_TOKEN, label: "Obtener el token", ask: "ClientID" },
+          text: "Pega el ClientID abajo y pulsa «Obtener el token». Permite el acceso y Yandex muestra el token.",
+          link: {
+            url: YANDEX_TOKEN,
+            label: "Obtener el token",
+            ask: "ClientID",
+            waits: "El botón funciona cuando pegas el ClientID: 32 caracteres, cifras y letras de la a a la f.",
+          },
         },
         "Pega el token en el campo de abajo. ydisk lo comprueba con Yandex antes de guardarlo.",
       ],

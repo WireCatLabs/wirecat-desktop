@@ -1,5 +1,7 @@
 import type { CatalogTool } from "@/domain/catalog"
+import { type Lang, useLang } from "@/i18n"
 import type { ToolsText } from "./messages"
+import { LOCAL_NAMES } from "./messages-tool-text"
 
 export const syncNote = (t: CatalogTool) => t.sync?.note?.replace(" {profile}", "") ?? null
 
@@ -11,3 +13,12 @@ export const toolText = (m: ToolsText, t: CatalogTool) => ({
 })
 
 export const groupLabel = (m: ToolsText, key: string, label: string) => m.tool.group[key] ?? label
+
+type Named = Pick<CatalogTool, "id" | "name">
+
+const toolName = (t: Named, lang: Lang) => LOCAL_NAMES[t.id]?.[lang] ?? t.name
+
+export function useToolName() {
+  const lang = useLang()
+  return (t: Named) => toolName(t, lang)
+}
