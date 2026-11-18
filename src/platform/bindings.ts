@@ -1321,11 +1321,11 @@ export type OwnUpdate = {
 	newCommands: string[],
 	/**  Commands that change the service or write on this computer and did not before. */
 	newWrites: string[],
-	/**  `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none. */
+	/**  `signIn`, `mcpServer`, `skill`, `sync` or `accountRemove`, when the version before had none. */
 	newParts: string[],
 	/**
 	 *  Parts the version before had, with other texts or command words now: `signIn`, `doctor`, `setup`, `sync`,
-	 *  `mcpServer`, `skill`, `runs`, `profiles` or `storage`.
+	 *  `mcpServer`, `skill`, `runs`, `profiles`, `storage` or `accountRemove`.
 	 */
 	changedParts: string[],
 	/**  Anything above changed, or the access is unknown: the owner confirms these changes explicitly. */

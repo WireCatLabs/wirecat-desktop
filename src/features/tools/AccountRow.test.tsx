@@ -1,8 +1,9 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { findTool, syncSchedules } from "@/domain/catalog"
+import { addCommunityTools, findTool, replaceAddedTools, syncSchedules } from "@/domain/catalog"
 import type { Removal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { OWN } from "@/platform/mock-community"
 import { useAccountNames } from "@/shared/account-names-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { AccountRowPlaceholder } from "./AccountRow"
@@ -43,6 +44,23 @@ describe("an account row", () => {
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
     ).toEqual(["Check", "Sign in again", "Rename", "Sign out", "Remove account"])
+  })
+
+  it("signs out and removes an account of an own tool whose manifest has accountRemove", async () => {
+    const accountRemove = {
+      signOut: ["{profile}", "session", "end", "--record", "--json"],
+      remove: null,
+      removes: ["signIn"],
+      keeps: ["settings", "data", "listed"],
+    }
+    expect(addCommunityTools([{ source: "own", entry: { ...OWN, accountRemove } }])).toEqual([])
+    try {
+      render(<AccountList tool={tool("acmecrm")} profiles={signedIn} onReload={() => undefined} />)
+      const items = within(await openMenu("work")).getAllByRole("menuitem")
+      expect(items.map((i) => i.textContent)).toEqual(expect.arrayContaining(["Sign out", "Remove account"]))
+    } finally {
+      replaceAddedTools([])
+    }
   })
 
   it("gives Bitrix24 the same actions as every tool", async () => {

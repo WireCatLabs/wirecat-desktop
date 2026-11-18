@@ -285,6 +285,7 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
         return Err(rule("signIn", "a community tool cannot show a command to copy (\"signIn.command\").".into()));
     }
     sign_in_methods(&entry["signIn"]["methods"])?;
+    account_remove(&entry["accountRemove"])?;
     words(entry)?;
     https_links(entry)?;
     let mut tool: Tool =
@@ -378,6 +379,27 @@ fn sign_in_methods(methods: &Value) -> Result<(), Problem> {
     Ok(())
 }
 
+/// `account.rs` appends `dryRun` to the plan and `confirm` to the real run, so a tool that swapped them would delete on
+/// the preview: both are cli-core's own flags, nothing else. The word lists sign out or remove the chosen profile only.
+fn account_remove(src: &Value) -> Result<(), Problem> {
+    let bad = |why: String| Err(rule("accountRemove", why));
+    if src.is_null() {
+        return Ok(());
+    }
+    let remove = &src["remove"];
+    let lists = [&src["signOut"], &remove["keepData"], &remove["deleteData"]];
+    for list in lists.into_iter().filter(|l| !l.is_null()) {
+        let words: Vec<&str> = list.as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+        if words.first() != Some(&"{profile}") || words.len() < 2 || words[1..].iter().any(|w| w.contains('{')) {
+            return bad("its commands must start with {profile} and fill no other slot.".into());
+        }
+    }
+    if !remove.is_null() && (remove["dryRun"] != "--dry-run" || remove["confirm"] != "--yes") {
+        return bad("remove.dryRun must be \"--dry-run\" and remove.confirm \"--yes\".".into());
+    }
+    Ok(())
+}
+
 /// The provider is cli-core's name on the stored calls (`beeline`); each command opens one call, so it names `{id}`.
 fn meetings(m: &crate::catalog::MeetingsSource) -> Result<(), Problem> {
     let name = (2..=32).contains(&m.provider.len())
@@ -395,8 +417,37 @@ fn meetings(m: &crate::catalog::MeetingsSource) -> Result<(), Problem> {
 /// Every string listed in an array is a command word (or a key or value the tool reads), run without a shell except
 /// `setup`, which `terminal.rs` joins into one shell line. So none may hold shell syntax: no spaces, quotes, `$`, `;`,
 /// `|`, `&`, backticks, globs, `~` or newlines. Text the interface shows is never in an array.
+///
+/// One exception: `sync.last` may hold cli-core's `runs list` filter for the sync's own command path, quoted because the
+/// path has more than one word (`command:"meetings sync" status:success`). It is one argument, never a shell line.
 fn words(v: &Value) -> Result<(), Problem> {
-    words_in("entry", v)
+    let Some(query) = last_sync_query(v) else { return words_in("entry", v) };
+    let mut checked = v.clone();
+    for word in checked["sync"]["last"].as_array_mut().into_iter().flatten() {
+        if *word == query {
+            *word = Value::String("query".into());
+        }
+    }
+    words_in("entry", &checked)
+}
+
+/// The filter for `sync.run`'s command path: its words after `{profile}`, up to the first flag.
+fn last_sync_query(entry: &Value) -> Option<String> {
+    let run = entry["sync"]["run"].as_array()?;
+    let path: Vec<&str> = run
+        .iter()
+        .map(Value::as_str)
+        .collect::<Option<Vec<_>>>()?
+        .into_iter()
+        .skip_while(|w| *w == "{profile}")
+        .take_while(|w| !w.starts_with('-'))
+        .collect();
+    // cli-base's own rule for this word: `^command:"[a-z0-9][a-z0-9-]*(?: [a-z0-9][a-z0-9-]*)+" status:success$`.
+    let plain = |w: &&str| {
+        w.starts_with(|c: char| c.is_ascii_lowercase() || c.is_ascii_digit())
+            && w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    };
+    (path.len() >= 2 && path.iter().all(plain)).then(|| format!("command:\"{}\" status:success", path.join(" ")))
 }
 
 fn words_in(key: &str, v: &Value) -> Result<(), Problem> {
@@ -688,6 +739,75 @@ mod tests {
         let mut empty = sample();
         empty["signIn"]["methods"] = json!([]);
         assert!(rejected(&empty).contains("signIn.methods"));
+    }
+
+    #[test]
+    fn an_account_removal_runs_only_its_own_words_and_cli_cores_flags() {
+        let src = json!({
+            "signOut": ["{profile}", "session", "end", "--record", "--json"],
+            "remove": {
+                "minVersion": "0.5.0",
+                "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+                "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+                "dryRun": "--dry-run",
+                "confirm": "--yes"
+            },
+            "removes": ["signIn"],
+            "keeps": ["settings", "data", "listed"]
+        });
+        let (tools, _) = parse(&file(&[with("accountRemove", src.clone())]), catalog());
+        let remove = tools[0].account_remove.as_ref().unwrap();
+        assert_eq!(remove.sign_out.as_ref().unwrap()[1], "session");
+        let bad = |path: &str, value: Value| {
+            let mut changed = src.clone();
+            *changed.pointer_mut(path).unwrap() = value;
+            rejected(&with("accountRemove", changed))
+        };
+        assert!(bad("/remove/dryRun", json!("--yes")).contains("--dry-run"), "a preview that removes");
+        assert!(bad("/remove/confirm", json!("--force")).contains("--yes"));
+        assert!(bad("/signOut", json!(["session", "end"])).contains("start with {profile}"));
+        assert!(
+            bad("/remove/deleteData", json!(["{profile}", "account", "remove", "{port}"])).contains("no other slot")
+        );
+        assert!(bad("/remove/keepData", json!(["{profile}", "rm -rf ~"])).contains("is not allowed"));
+    }
+
+    #[test]
+    fn a_last_sync_filter_may_quote_only_the_syncs_own_command_path() {
+        let sync = |last: &str| {
+            with(
+                "sync",
+                json!({ "run": ["{profile}", "meetings", "sync", "--record", "--json"],
+                    "last": ["runs", "list", last, "--limit", "50", "--no-record", "--json"],
+                    "lastShape": "runs", "what": "calls", "note": null }),
+            )
+        };
+        let (tools, extra) = parse(&file(&[sync("command:\"meetings sync\" status:success")]), catalog());
+        assert_eq!(texts(&extra), "");
+        assert_eq!(
+            tools[0].sync.as_ref().unwrap().last.as_ref().unwrap()[2],
+            "command:\"meetings sync\" status:success"
+        );
+        for last in [
+            "command:\"meetings delete\" status:success",
+            "command:\"meetings sync\" status:failed",
+            "command:\"meetings sync\" status:success\"",
+            "command:meetings\" status:success",
+            "command:\"meetings sync\";rm status:success",
+            "command:\"meetings sync;rm\" status:success",
+            "command:\"meetings sync\"  status:success",
+        ] {
+            assert!(rejected(&sync(last)).contains("is not allowed"), "{last}");
+        }
+        let mut upper = sync("command:\"Meetings sync\" status:success");
+        upper["sync"]["run"] = json!(["{profile}", "Meetings", "sync", "--json"]);
+        assert!(rejected(&upper).contains("is not allowed"), "lower case only, as cli-base writes it");
+        let mut one = sync("command:\"sync\" status:success");
+        one["sync"]["run"] = json!(["{profile}", "sync", "--json"]);
+        assert!(rejected(&one).contains("is not allowed"), "one word needs no quotes");
+        let mut elsewhere = sync("status:success");
+        elsewhere["doctor"] = json!(["{profile}", "command:\"meetings sync\" status:success"]);
+        assert!(rejected(&elsewhere).contains("is not allowed"), "only in sync.last");
     }
 
     #[test]

@@ -45,8 +45,6 @@ const en = {
   clientId: "Public Client ID",
   saving: "Saving…",
   saveAndSignIn: "Save and sign in",
-  nextConnect: "Next, ChatGPT or Claude in the browser can use it too.",
-  connectApp: "Connect an AI app",
   openTool: (name: string) => `Open ${name}`,
   announce: {
     stopping: "Stopping the sign-in.",
@@ -132,8 +130,6 @@ const ru: typeof en = {
   clientId: "Public Client ID",
   saving: "Сохраняем…",
   saveAndSignIn: "Сохранить и войти",
-  nextConnect: "Теперь им могут пользоваться и ChatGPT или Claude в браузере.",
-  connectApp: "Подключить ИИ-приложение",
   openTool: (name) => `Открыть ${name}`,
   announce: {
     stopping: "Останавливаем вход.",
@@ -223,8 +219,6 @@ const es: typeof en = {
   clientId: "Public Client ID",
   saving: "Guardando…",
   saveAndSignIn: "Guardar e iniciar sesión",
-  nextConnect: "Ahora ChatGPT o Claude en el navegador también pueden usarlo.",
-  connectApp: "Conectar una app de IA",
   openTool: (name) => `Abrir ${name}`,
   announce: {
     stopping: "Deteniendo el inicio de sesión.",
