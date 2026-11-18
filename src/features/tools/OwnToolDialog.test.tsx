@@ -324,7 +324,8 @@ describe("Add your own tool", () => {
     expect(add).toBeEnabled()
     await userEvent.click(add)
     expect(screen.getByText(/Tick the box to accept the changes/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("checkbox", { name: "I accept these changes" }))
+    await userEvent.click(screen.getByText("I accept these changes"))
+    expect(screen.getByRole("checkbox", { name: "I accept these changes" })).toBeChecked()
     await waitFor(() => expect(screen.queryByText(/Tick the box to accept the changes/)).not.toBeInTheDocument())
   })
 
