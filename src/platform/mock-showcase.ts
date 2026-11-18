@@ -36,6 +36,7 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   email: "0.24.0",
   bitrix: "0.13.0",
   amo: "0.1.0",
+  attio: "0.1.0",
   pbx: "0.3.0",
   notion: "0.2.0",
   ydisk: "0.2.0",

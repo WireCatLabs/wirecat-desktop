@@ -333,6 +333,7 @@ export type CrmMovable = { kind: "yes" } |
 /**
  *  A CRM's copy, which only that CRM's own CLI may change: `crmCli` while memo names no CLI the catalog has for
  *  it, `crmCliMissing` or `crmCliOld` while that CLI is not installed or older than the catalog's `crm.minVersion`.
+ *  `crmNoMoves` while the catalog's CLI for it only reads it (no `crm.moveDeal`).
  */
 { kind: "no"; why: string };
 

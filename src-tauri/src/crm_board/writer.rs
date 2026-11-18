@@ -31,6 +31,8 @@ pub(crate) enum Writer {
     Old,
     /// No catalog tool writes this provider.
     None,
+    /// The catalog's tool for this provider only reads it (no `moveDeal`), installed or not.
+    NoMoves,
 }
 
 /// `scope` is the account's `crm.<provider>:<account>.scope`: what its next sync copies. `applied` is always `null`
@@ -57,6 +59,9 @@ fn crm_tool(provider: &str) -> Option<(&'static Tool, &'static CrmSource)> {
 
 pub(crate) fn writer(provider: &str) -> Writer {
     let Some((tool, crm)) = crm_tool(provider) else { return Writer::None };
+    if crm.move_deal.is_none() {
+        return Writer::NoMoves;
+    }
     match task_board::unusable(tool, &crm.min_version) {
         None => Writer::Ready(tool),
         Some(Unusable::Missing) => Writer::Missing,
@@ -71,10 +76,14 @@ fn no(why: &str) -> CrmMovable {
 /// An own pipeline moves through memo; a CRM's only when memo names the CLI that writes it and that CLI can.
 pub(crate) fn movable(p: &CrmPipeline, writer: &dyn Fn(&str) -> Writer) -> CrmMovable {
     let Some(account) = &p.account else { return CrmMovable::Yes };
+    let found = writer(&account.provider);
+    if matches!(found, Writer::NoMoves) {
+        return no("crmNoMoves");
+    }
     let Some(w) = p.writes_with.as_ref().filter(|w| &w.account == account) else { return no("crmCli") };
-    match writer(&account.provider) {
+    match found {
         Writer::Ready(tool) if tool.bin == w.tool => CrmMovable::Yes,
-        Writer::Ready(_) | Writer::None => no("crmCli"),
+        Writer::Ready(_) | Writer::None | Writer::NoMoves => no("crmCli"),
         Writer::Missing => no("crmCliMissing"),
         Writer::Old => no("crmCliOld"),
     }
@@ -142,7 +151,7 @@ pub(super) fn move_with(
         return Err(invalid(format!("a move names the card's own stage, not {stage}")));
     }
     let template = match kind {
-        CrmKind::Deal => &crm.move_deal,
+        CrmKind::Deal => crm.move_deal.as_ref().ok_or_else(|| invalid(format!("{} has no moves", crm.provider)))?,
         CrmKind::Lead => crm.move_lead.as_ref().ok_or_else(|| invalid(format!("{} has no leads", crm.provider)))?,
     };
     call(&filled(template, &[("{profile}", profile), ("{ref}", reference), ("{stage}", stage)])).map(drop)
@@ -300,6 +309,8 @@ mod tests {
         assert_eq!(movable(&pipeline(Some(named("b24"))), &|_| Writer::None), no("crmCli"));
         let own = CrmPipeline { account: None, ..pipeline(None) };
         assert_eq!(movable(&own, &|_| Writer::None), CrmMovable::Yes);
+        assert_eq!(movable(&pipeline(Some(named("attio"))), &|_| Writer::NoMoves), no("crmNoMoves"));
+        assert_eq!(movable(&pipeline(None), &|_| Writer::NoMoves), no("crmNoMoves"));
     }
 
     #[test]
@@ -332,6 +343,17 @@ mod tests {
         move_with(&recording(&seen, &answer), amo, CrmKind::Deal, "deal:12", "Quote", "work").unwrap();
         assert!(move_with(&recording(&seen, &answer), amo, CrmKind::Lead, "lead:3", "Quote", "work").is_err());
         assert_eq!(*seen.lock().unwrap(), ["work deals move deal:12 Quote --record --json"]);
+    }
+
+    #[test]
+    fn a_crm_its_cli_only_reads_refuses_a_move_before_its_cli_runs_and_its_cards_stay_put() {
+        let attio = catalog::tool("attio").unwrap().crm.as_ref().unwrap();
+        let seen = Mutex::new(vec![]);
+        let answer = json!({});
+        assert!(move_with(&recording(&seen, &answer), attio, CrmKind::Deal, "deal:12", "Quote", "work").is_err());
+        assert!(move_with(&recording(&seen, &answer), attio, CrmKind::Lead, "lead:3", "Quote", "work").is_err());
+        assert!(seen.lock().unwrap().is_empty());
+        assert!(matches!(writer("attio"), Writer::NoMoves));
     }
 
     #[test]

@@ -5,7 +5,8 @@
 //!
 //! A move of the owner's own card writes through `memo <kind>s move`. A CRM's copy is changed in the CRM by that CRM's
 //! own CLI (`writer`, catalog `crm`), as the profile memo's `writes_with` names or the owner chose; its pipeline
-//! answers `movable: no` while memo names no CLI for it or that CLI is missing or too old.
+//! answers `movable: no` while memo names no CLI for it, that CLI is missing or too old, or the catalog's CLI for it
+//! only reads it (no `crm.moveDeal`).
 //!
 //! The board's columns are the owner's base set and the cards come from every pipeline; the catalog's
 //! `crmBoard.minVersion` is the first memo with base stages, and an older memo is refused. `base` holds every argv and
@@ -203,6 +204,7 @@ pub enum CrmMovable {
     Yes,
     /// A CRM's copy, which only that CRM's own CLI may change: `crmCli` while memo names no CLI the catalog has for
     /// it, `crmCliMissing` or `crmCliOld` while that CLI is not installed or older than the catalog's `crm.minVersion`.
+    /// `crmNoMoves` while the catalog's CLI for it only reads it (no `crm.moveDeal`).
     No {
         why: String,
     },

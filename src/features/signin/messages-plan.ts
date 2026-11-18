@@ -15,6 +15,11 @@ import type { Messages } from "@/i18n"
  * Yandex Disk (2026-11-18): ydisk-cli PR #7 `docs/installation.md` and cli-docs `content/docs/ydisk*.mdx`, checked
  * against Yandex's register-api and Disk API quickstart (the app type, the Disk rights by Yandex's own labels, the
  * token page; the token checked before it is kept in the keyring, else a private file).
+ * Attio (2026-11-18): Attio's help page https://attio.com/help/apps/other-apps/generating-an-api-key (admins only,
+ * the menu labels, tokens that never expire and are deleted on the same page); the scope ids from the "Required
+ * scopes" of Attio's OpenAPI text in attio-cli `src/generated/manifest.ts`, not their labels in the Scopes screen,
+ * which the help page does not show; attio-cli `docs/commands.md` (`session start` checks the token with Attio and
+ * keeps it in the keyring, else a private file).
  */
 /**
  * `appKeys`: the steps open with making the owner's own app keys (`messages-telegram.ts`), the first time only.
@@ -40,6 +45,8 @@ const MICROSOFT_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-microsoft"
 const GOOGLE_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-google"
 const ZOOM_APP_GUIDE = "https://wirecat.dev/en/docs/zm/zoom-app"
 const YDISK_GUIDE = "https://wirecat.dev/en/docs/ydisk"
+const ATTIO_APP = "https://app.attio.com/"
+const ATTIO_GUIDE = "https://attio.com/help/apps/other-apps/generating-an-api-key"
 const YANDEX_NEW_APP = "https://oauth.yandex.ru/client/new/"
 const YANDEX_TOKEN = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
 
@@ -197,6 +204,25 @@ const en = {
       kept: [
         "Your Yandex password is typed only on Yandex's own page.",
         "The token can do only what you allowed when you registered the app.",
+        "The token is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
+      ],
+    },
+    attio: {
+      steps: [
+        {
+          text: "Open Attio and sign in to the workspace you want to use. Only a workspace admin can make an access token.",
+          link: { url: ATTIO_APP, label: "Open Attio" },
+        },
+        "From the dropdown beside your workspace name, click Workspace settings, then the Developers tab.",
+        "Click + New access token and give it any name.",
+        "Under Scopes, give it read access to records, object configuration and user management (record_permission:read, object_configuration:read, user_management:read). It needs nothing more.",
+        "Save the token and copy it.",
+        "Paste the token into the field below. attio checks it with Attio before it keeps it.",
+      ],
+      guide: { url: ATTIO_GUIDE, label: "Attio's help page" },
+      time: "Allow about two minutes.",
+      kept: [
+        "The token can read only what its scopes allow, and it never expires. Delete it on the same Developers page to stop it.",
         "The token is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
       ],
     },
@@ -415,6 +441,25 @@ const ru: PlanText = {
         "Токен сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
       ],
     },
+    attio: {
+      steps: [
+        {
+          text: "Откройте Attio и войдите в нужное рабочее пространство. Токен доступа может создать только администратор пространства.",
+          link: { url: ATTIO_APP, label: "Открыть Attio" },
+        },
+        "В меню рядом с названием пространства выберите «Workspace settings», затем вкладку «Developers».",
+        "Нажмите «+ New access token» и дайте токену любое название.",
+        "В разделе «Scopes» дайте право чтения записей, настроек объектов и пользователей (record_permission:read, object_configuration:read, user_management:read). Больше ничего не нужно.",
+        "Сохраните токен и скопируйте его.",
+        "Вставьте токен в поле ниже. attio проверит его в Attio, прежде чем сохранить.",
+      ],
+      guide: { url: ATTIO_GUIDE, label: "Справка Attio" },
+      time: "Около двух минут.",
+      kept: [
+        "Токен может читать только то, что разрешают его права, и не истекает. Чтобы отключить его, удалите его на той же странице «Developers».",
+        "Токен сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
+      ],
+    },
     "email:microsoft": {
       steps: [
         "Введите адрес почты. Сервер найдётся по нему.",
@@ -625,6 +670,25 @@ const es: PlanText = {
       kept: [
         "Tu contraseña de Yandex se escribe solo en la página de Yandex.",
         "El token solo puede lo que permitiste al registrar la aplicación.",
+        "El token se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
+      ],
+    },
+    attio: {
+      steps: [
+        {
+          text: "Abre Attio e inicia sesión en el espacio de trabajo que quieres usar. Solo un administrador del espacio puede crear un token de acceso.",
+          link: { url: ATTIO_APP, label: "Abrir Attio" },
+        },
+        "En el menú junto al nombre del espacio, elige Workspace settings y después la pestaña Developers.",
+        "Pulsa + New access token y ponle cualquier nombre.",
+        "En Scopes, dale lectura de registros, configuración de objetos y gestión de usuarios (record_permission:read, object_configuration:read, user_management:read). No necesita nada más.",
+        "Guarda el token y cópialo.",
+        "Pega el token en el campo de abajo. attio lo comprueba con Attio antes de guardarlo.",
+      ],
+      guide: { url: ATTIO_GUIDE, label: "Ayuda de Attio" },
+      time: "Unos dos minutos.",
+      kept: [
+        "El token solo puede leer lo que permiten sus permisos y no caduca. Para desactivarlo, bórralo en la misma página Developers.",
         "El token se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
       ],
     },

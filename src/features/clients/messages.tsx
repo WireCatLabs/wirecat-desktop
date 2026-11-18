@@ -75,6 +75,7 @@ type Words = {
   cancel: string
   readOnlyInstall: (tool: string) => string
   readOnlyUpdate: (tool: string) => string
+  readOnlyNoMoves: (tool: string) => string
   profileTitle: (tool: string, account: string) => string
   profileBody: (tool: string) => string
   profileNone: (tool: string) => string
@@ -175,6 +176,8 @@ const en: Words = {
   cancel: "Cancel",
   readOnlyInstall: (tool) => `Read only: install ${tool} on the Tools page to move this CRM's cards from here.`,
   readOnlyUpdate: (tool) => `Read only: update ${tool} on the Tools page to move this CRM's cards from here.`,
+  readOnlyNoMoves: (tool) =>
+    `Read only: ${tool} reads this CRM but cannot move its cards yet. Change stages in the CRM, then sync.`,
   profileTitle: (tool, account) => `Which ${tool} profile changes ${account}?`,
   profileBody: (tool) =>
     `More than one ${tool} profile is signed in to this account. The one you choose moves its cards and saves its sync setting until WireCat closes.`,
@@ -284,6 +287,8 @@ const ru: Words = {
     `Только чтение: установите ${tool} на странице «Инструменты», чтобы переносить карточки этой CRM отсюда.`,
   readOnlyUpdate: (tool) =>
     `Только чтение: обновите ${tool} на странице «Инструменты», чтобы переносить карточки этой CRM отсюда.`,
+  readOnlyNoMoves: (tool) =>
+    `Только чтение: ${tool} читает эту CRM, но пока не умеет переносить её карточки. Меняйте этапы в CRM, затем синхронизируйте.`,
   profileTitle: (tool, account) => `Какой профиль ${tool} меняет ${account}?`,
   profileBody: (tool) =>
     `В этот аккаунт вошли несколько профилей ${tool}. Выбранный переносит его карточки и сохраняет настройку синхронизации, пока WireCat открыт.`,
@@ -394,6 +399,8 @@ const es: Words = {
     `Solo lectura: instala ${tool} en la página Herramientas para mover desde aquí las tarjetas de este CRM.`,
   readOnlyUpdate: (tool) =>
     `Solo lectura: actualiza ${tool} en la página Herramientas para mover desde aquí las tarjetas de este CRM.`,
+  readOnlyNoMoves: (tool) =>
+    `Solo lectura: ${tool} lee este CRM, pero aún no puede mover sus tarjetas. Cambia las etapas en el CRM y sincroniza.`,
   profileTitle: (tool, account) => `¿Qué perfil de ${tool} cambia ${account}?`,
   profileBody: (tool) =>
     `Hay más de un perfil de ${tool} conectado a esta cuenta. El que elijas mueve sus tarjetas y guarda su ajuste de sincronización hasta que cierres WireCat.`,

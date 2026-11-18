@@ -20,6 +20,7 @@ export const RU_TAGLINE: Record<string, string> = {
   ydisk: "Папки и файлы\u00a0· поиск",
   bitrix: "Сделки, лиды, контакты и компании\u00a0· изменения",
   amo: "Сделки, контакты и компании\u00a0· изменения",
+  attio: "Сделки, люди и компании\u00a0· история изменений",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
 }
 
@@ -40,6 +41,8 @@ export const RU_SUMMARY: Record<string, string> = {
   bitrix:
     "Читайте и меняйте CRM портала Битрикс24 — сделки, лиды, контакты и компании — со страницы «Клиенты» и через вашего агента.",
   amo: "Читайте и меняйте CRM аккаунта amoCRM или Kommo — сделки, контакты и компании — со страницы «Клиенты» и через вашего агента.",
+  attio:
+    "Читайте CRM рабочего пространства Attio — сделки с их этапами, людей и компании — со страницы «Клиенты» и через вашего агента.",
   pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
 }
 
@@ -56,6 +59,7 @@ export const ES_TAGLINE: Record<string, string> = {
   ydisk: "Carpetas y archivos\u00a0· búsqueda",
   bitrix: "Negociaciones, prospectos y contactos\u00a0· cambios",
   amo: "Negociaciones, contactos y empresas\u00a0· cambios",
+  attio: "Negociaciones, personas y empresas\u00a0· historial de cambios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
 }
 
@@ -77,5 +81,7 @@ export const ES_SUMMARY: Record<string, string> = {
   bitrix:
     "Lee y cambia el CRM de un portal de Bitrix24 —negociaciones, prospectos, contactos y empresas— desde la página Clientes y con tu agente.",
   amo: "Lee y cambia el CRM de una cuenta de amoCRM o Kommo —negociaciones, contactos y empresas— desde la página Clientes y con tu agente.",
+  attio:
+    "Lee el CRM de un espacio de trabajo de Attio —negociaciones con sus etapas, personas y empresas— desde la página Clientes y con tu agente.",
   pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
 }

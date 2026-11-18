@@ -219,8 +219,9 @@ function useStagePrompt(read: Based, kind: Kind, settled: boolean) {
 }
 
 /**
- * Why a CRM's cards stay put, in words: its CLI is missing or too old, or memo names none the app can run. Read from
- * every card, not the filtered ones, so the chip does not come and go above the search box while the owner types.
+ * Why a CRM's cards stay put, in words: its CLI is missing, too old or only reads, or memo names none the app can run.
+ * Read from every card, not the filtered ones, so the chip does not come and go above the search box while the owner
+ * types.
  */
 function useReadOnly(read: Based): string | null {
   const m = useMessages(clientMessages)
@@ -232,7 +233,9 @@ function useReadOnly(read: Based): string | null {
     ? m.readOnlyInstall(tool)
     : tool && why === "crmCliOld"
       ? m.readOnlyUpdate(tool)
-      : m.readOnly
+      : tool && why === "crmNoMoves"
+        ? m.readOnlyNoMoves(tool)
+        : m.readOnly
 }
 
 function Body() {

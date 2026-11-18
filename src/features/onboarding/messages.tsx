@@ -545,6 +545,7 @@ const ru: OnboardingText = {
       ydisk: "Агент сможет искать и читать выбранные папки Яндекс Диска и работать с файлами в пределах прав токена.",
       bitrix: "Агент сможет читать и менять CRM портала с правами сотрудника, который создал вебхук.",
       amo: "Агент сможет читать и менять CRM аккаунта с правами администратора, который создал токен.",
+      attio: "Агент сможет читать сделки, людей и компании рабочего пространства с правами токена.",
       pbx: "Агент сможет находить телефонные звонки вашей компании и читать, что в них было сказано.",
     },
     asks: {
@@ -562,6 +563,8 @@ const ru: OnboardingText = {
       bitrix:
         "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов. Или ID и ключ локального приложения, вход в браузере.",
       amo: "Адрес аккаунта и долгосрочный токен закрытой интеграции, которую администратор создаёт в amoCRM или Kommo.",
+      attio:
+        "Токен доступа: в Attio «Workspace settings → Developers → New access token», с правом чтения записей, настроек объектов и пользователей. Создать его может только администратор рабочего пространства.",
       pbx: "Путь к Master.csv или адрес базы CDR и пароль пользователя, который может только читать.",
     },
   },
@@ -870,6 +873,8 @@ const es: OnboardingText = {
         "Tu agente podrá buscar y leer las carpetas de Yandex Disk que elijas, y trabajar con tus archivos hasta donde permita el token.",
       bitrix: "Tu agente podrá leer y cambiar el CRM del portal con los permisos del empleado que creó el webhook.",
       amo: "Tu agente podrá leer y cambiar el CRM de la cuenta con los permisos del administrador que creó el token.",
+      attio:
+        "Tu agente podrá leer las negociaciones, personas y empresas del espacio de trabajo con los permisos del token.",
       pbx: "Tu agente podrá encontrar las llamadas de tu empresa y leer lo que se dijo en ellas.",
     },
     asks: {
@@ -887,6 +892,8 @@ const es: OnboardingText = {
       bitrix:
         "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
       amo: "La dirección de la cuenta y un token de larga duración, de una integración privada que un administrador crea en amoCRM o Kommo.",
+      attio:
+        "Un token de acceso: en Attio, Workspace settings → Developers → New access token, con lectura de registros, configuración de objetos y gestión de usuarios. Solo un administrador del espacio de trabajo puede crearlo.",
       pbx: "La ruta de Master.csv, o la dirección de la base de datos CDR y la contraseña de un usuario de solo lectura.",
     },
   },
