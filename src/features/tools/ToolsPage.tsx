@@ -107,6 +107,7 @@ export function ToolsPage() {
             <StorageSummary />
           </div>
         )}
+        <AddOwnTool />
         <InstallAll />
       </div>
 
@@ -121,8 +122,6 @@ export function ToolsPage() {
             </ToolGroup>
           ),
       )}
-      <AddOwnTool />
-
       <OwnToolDialog />
 
       <UpgradeWarning />

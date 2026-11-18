@@ -145,7 +145,7 @@ arrives; installed ones keep working. Your own tools do not use the list.
 
 For a tool that is not on the list: your own, a colleague's, or one from a private repository.
 
-1. On the Tools page, click **Add your own tool**, under the list of tools.
+1. On the Tools page, click **Add your own tool**, above the list of tools.
 2. Type the npm name, such as `@scope/name`, and click **Check package**. WireCat only reads npm. Nothing is
    installed, and no code of the package runs. A WireCat package (`@wirecat/name`) is read at once. For any other
    package, while **Allow tools WireCat has not checked** is off (it is off at first), a warning opens first. Confirm
