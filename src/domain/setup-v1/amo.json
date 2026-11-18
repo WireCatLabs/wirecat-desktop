@@ -1,0 +1,245 @@
+{
+  "format": "wirecat.setup",
+  "version": 1,
+  "tool": "amo",
+  "toolVersion": "0.1.1",
+  "start": "account",
+  "steps": {
+    "account": {
+      "title": "account.title",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "account.intro"
+        },
+        {
+          "type": "input",
+          "id": "host",
+          "setting": "host",
+          "input": "text",
+          "label": "account.host",
+          "hint": "account.host.hint",
+          "placeholder": "account.host.placeholder",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "next": "integration"
+    },
+    "integration": {
+      "title": "integration.title",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "integration.amocrm"
+        },
+        {
+          "type": "note",
+          "role": "warning",
+          "text": "integration.waiver"
+        },
+        {
+          "type": "group",
+          "role": "details",
+          "title": "integration.kommo.title",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "integration.kommo"
+            }
+          ]
+        }
+      ],
+      "next": "token"
+    },
+    "token": {
+      "title": "token.title",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "token.where"
+        },
+        {
+          "type": "input",
+          "id": "token",
+          "secret": "token",
+          "input": "password",
+          "label": "token.label",
+          "hint": "token.hint"
+        },
+        {
+          "type": "note",
+          "role": "tip",
+          "text": "token.rights"
+        }
+      ],
+      "next": "check"
+    },
+    "check": {
+      "kind": "run",
+      "title": "check.title",
+      "action": "apply",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "check.body"
+        }
+      ],
+      "next": [
+        {
+          "when": {
+            "result": "check",
+            "is": "ok"
+          },
+          "to": "done"
+        },
+        {
+          "when": {
+            "result": "check",
+            "error": "authentication_error"
+          },
+          "to": "token"
+        },
+        {
+          "when": {
+            "result": "check",
+            "error": "validation_error"
+          },
+          "to": "account"
+        },
+        {
+          "when": {
+            "result": "check",
+            "error": "conflict"
+          },
+          "to": "account"
+        },
+        {
+          "to": "failed"
+        }
+      ],
+      "back": false
+    },
+    "failed": {
+      "kind": "done",
+      "title": "failed.title",
+      "blocks": [
+        {
+          "type": "note",
+          "role": "danger",
+          "text": "failed.body"
+        }
+      ],
+      "back": true
+    },
+    "done": {
+      "kind": "done",
+      "title": "done.title",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "done.body"
+        },
+        {
+          "type": "code",
+          "code": "amo <profile> sync\namo <profile> deals list status:open",
+          "copy": true
+        },
+        {
+          "type": "group",
+          "role": "details",
+          "title": "done.oauth.title",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "done.oauth"
+            },
+            {
+              "type": "code",
+              "code": "amo <profile> session start --host https://<subdomain>.amocrm.ru --client-id <integration ID>",
+              "copy": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "texts": {
+    "en": {
+      "account.title": "Which account?",
+      "account.intro": "amo reads your deals and their clients from one amoCRM or Kommo account, and changes them only with your permission.",
+      "account.host": "Account address",
+      "account.host.hint": "The address you open the CRM at: https://<subdomain>.amocrm.ru, or https://<subdomain>.kommo.com for Kommo.",
+      "account.host.placeholder": "https://example.amocrm.ru",
+      "integration.title": "Create a private integration",
+      "integration.amocrm": "An account administrator does this once, in amoCRM:\n\n1. Open **амоМаркет**, click **⋯** at the top left and choose **«Создать интеграцию»**.\n2. Give it a name and a description, such as *WireCat*.\n3. As the Redirect URI, enter `https://wirecat.dev/webhooks/apps/amo-callback`. The token does not use it, but the same integration then also works for a browser sign-in later.\n4. Tick **«Доступ к данным аккаунта»** and save.\n\namoCRM's guide: https://www.amocrm.ru/developers/content/oauth/step-by-step",
+      "integration.waiver": "On an account that is not marked technical, amoCRM first asks you to sign a waiver of technical support for a private integration. amoCRM says it cannot be taken back. Read it before you sign: https://www.amocrm.ru/developers/content/integrations/intro",
+      "integration.kommo.title": "On Kommo",
+      "integration.kommo": "Settings → Integrations → **Create integration**, a private one. Use the same Redirect URI, then open its **Keys and scopes** tab.",
+      "token.title": "Make the token",
+      "token.where": "In the integration, open the **«Ключи»** tab (Kommo: **Keys and scopes**) and click **«Сгенерировать токен»**. Pick an end date, from one day to five years, and copy the token: it is shown only once.",
+      "token.label": "Long-lived token",
+      "token.hint": "Kept in your system keyring or, without one, in a file only you can read.",
+      "token.rights": "The token acts with the rights of the administrator who made it. amo stops agents' changes with its permissions: `amo <profile> config set permissions …`.",
+      "check.title": "Checking the token",
+      "check.body": "amo asks the account who the token belongs to. It saves the address and the token only if the account answers.",
+      "failed.title": "The check did not pass",
+      "failed.body": "The token or the account did not pass amo's check, so nothing was saved. Check the address, the token and your connection, then try again.",
+      "done.title": "Connected",
+      "done.body": "The profile is ready. Copy your deals and their clients into WireCat, then list the open ones:",
+      "done.oauth.title": "Advanced: sign in through the integration instead",
+      "done.oauth": "With the integration's ID and secret key, each person signs in in the browser and acts with their own rights. Run this in a terminal; the secret key is asked hidden:"
+    },
+    "ru": {
+      "account.title": "Какой аккаунт?",
+      "account.intro": "amo читает ваши сделки и их клиентов из одного аккаунта amoCRM или Kommo и меняет их только с вашего разрешения.",
+      "account.host": "Адрес аккаунта",
+      "account.host.hint": "Адрес, по которому вы открываете CRM: https://<поддомен>.amocrm.ru, или https://<поддомен>.kommo.com для Kommo.",
+      "account.host.placeholder": "https://example.amocrm.ru",
+      "integration.title": "Создайте приватную интеграцию",
+      "integration.amocrm": "Это один раз делает администратор аккаунта в amoCRM:\n\n1. Откройте **амоМаркет**, нажмите **⋯** слева вверху и выберите **«Создать интеграцию»**.\n2. Укажите название и описание, например *WireCat*.\n3. В поле «Ссылка для перенаправления» впишите `https://wirecat.dev/webhooks/apps/amo-callback`. Токену она не нужна, но тогда та же интеграция подойдёт и для входа через браузер.\n4. Отметьте **«Доступ к данным аккаунта»** и сохраните.\n\nИнструкция amoCRM: https://www.amocrm.ru/developers/content/oauth/step-by-step",
+      "integration.waiver": "На аккаунте, не отмеченном как технический, amoCRM сначала просит подписать отказ от технической поддержки для приватной интеграции. По словам amoCRM, отозвать его нельзя. Прочитайте его до подписи: https://www.amocrm.ru/developers/content/integrations/intro",
+      "integration.kommo.title": "В Kommo",
+      "integration.kommo": "Settings → Integrations → **Create integration**, приватную (названия из английского интерфейса Kommo). Укажите ту же ссылку для перенаправления и откройте вкладку **Keys and scopes**.",
+      "token.title": "Получите токен",
+      "token.where": "В интеграции откройте вкладку **«Ключи»** (в Kommo: **Keys and scopes**) и нажмите **«Сгенерировать токен»**. Выберите дату окончания, от одного дня до пяти лет, и скопируйте токен: он показывается только один раз.",
+      "token.label": "Долгосрочный токен",
+      "token.hint": "Хранится в системной связке ключей, а без неё в файле, который можете прочитать только вы.",
+      "token.rights": "Токен действует с правами администратора, который его создал. Изменения агентов amo ограничивает разрешениями: `amo <профиль> config set permissions …`.",
+      "check.title": "Проверяем токен",
+      "check.body": "amo спрашивает у аккаунта, чей это токен. Адрес и токен сохранятся, только если аккаунт ответит.",
+      "failed.title": "Проверка не прошла",
+      "failed.body": "Токен или аккаунт не прошли проверку amo, поэтому ничего не сохранено. Проверьте адрес, токен и подключение и попробуйте ещё раз.",
+      "done.title": "Подключено",
+      "done.body": "Профиль готов. Скопируйте свои сделки и их клиентов в WireCat, затем выведите открытые:",
+      "done.oauth.title": "Для опытных: вход через интеграцию",
+      "done.oauth": "С ID и секретным ключом интеграции каждый входит в браузере и действует со своими правами. Выполните в терминале; секретный ключ спросят скрыто:"
+    },
+    "es": {
+      "account.title": "¿Qué cuenta?",
+      "account.intro": "amo lee tus negocios y sus clientes de una cuenta de amoCRM o Kommo, y solo los cambia con tu permiso.",
+      "account.host": "Dirección de la cuenta",
+      "account.host.hint": "La dirección con la que abres el CRM: https://<subdominio>.amocrm.ru, o https://<subdominio>.kommo.com en Kommo.",
+      "account.host.placeholder": "https://example.kommo.com",
+      "integration.title": "Crea una integración privada",
+      "integration.amocrm": "Lo hace una vez un administrador de la cuenta, en amoCRM:\n\n1. Abre **амоМаркет**, pulsa **⋯** arriba a la izquierda y elige **«Создать интеграцию»**.\n2. Ponle un nombre y una descripción, por ejemplo *WireCat*.\n3. Como Redirect URI, escribe `https://wirecat.dev/webhooks/apps/amo-callback`. El token no la usa, pero así la misma integración sirve también para entrar con el navegador.\n4. Marca **«Доступ к данным аккаунта»** y guarda.\n\nGuía de amoCRM: https://www.amocrm.ru/developers/content/oauth/step-by-step",
+      "integration.waiver": "En una cuenta no marcada como técnica, amoCRM pide antes firmar una renuncia al soporte técnico para una integración privada. Según amoCRM, no se puede revocar. Léela antes de firmar: https://www.amocrm.ru/developers/content/integrations/intro",
+      "integration.kommo.title": "En Kommo",
+      "integration.kommo": "Settings → Integrations → **Create integration**, privada (nombres de la interfaz de Kommo en inglés). Usa la misma Redirect URI y abre su pestaña **Keys and scopes**.",
+      "token.title": "Crea el token",
+      "token.where": "En la integración, abre la pestaña **«Ключи»** (en Kommo: **Keys and scopes**) y pulsa **«Сгенерировать токен»**. Elige una fecha de fin, de un día a cinco años, y copia el token: solo se muestra una vez.",
+      "token.label": "Token de larga duración",
+      "token.hint": "Se guarda en el llavero del sistema o, si no hay, en un archivo que solo tú puedes leer.",
+      "token.rights": "El token actúa con los permisos del administrador que lo creó. amo frena los cambios de los agentes con sus permisos: `amo <perfil> config set permissions …`.",
+      "check.title": "Comprobando el token",
+      "check.body": "amo pregunta a la cuenta de quién es el token. Guarda la dirección y el token solo si la cuenta responde.",
+      "failed.title": "La comprobación no pasó",
+      "failed.body": "El token o la cuenta no pasaron la comprobación de amo, así que no se guardó nada. Revisa la dirección, el token y la conexión, y vuelve a intentarlo.",
+      "done.title": "Conectado",
+      "done.body": "El perfil está listo. Copia tus negocios y sus clientes a WireCat y luego muestra los abiertos:",
+      "done.oauth.title": "Avanzado: entrar con la integración",
+      "done.oauth": "Con el ID y la clave secreta de la integración, cada persona entra en el navegador y actúa con sus propios permisos. Ejecútalo en una terminal; la clave secreta se pide oculta:"
+    }
+  }
+}

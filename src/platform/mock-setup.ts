@@ -7,6 +7,7 @@ import {
   type SetupDocument,
   visibleFields,
 } from "@/domain/setup-flow"
+import amo from "@/domain/setup-v1/amo.json"
 import pbx from "@/domain/setup-v1/pbx.json"
 import { CommandError, TOO_OLD } from "./command-error"
 import { delay } from "./mock-delay"
@@ -14,8 +15,8 @@ import { PBX_RU } from "./mock-setup-texts"
 import type { Platform } from "./types"
 
 // A tool that describes its own connection flow (the setup format v1). `?setup=pbx` makes pbx answer `setup show` with
-// cli-core's example flow; every other tool, and pbx without it, is a CLI from before the format, so the sign-in keeps
-// its hand-made form. `&setup-values=1` edits an existing profile: its settings filled in and a database password kept.
+// cli-core's example flow, and `?setup=amo` amo with its own (`amo setup show`, amo 0.1.1, texts in three languages);
+// every other tool, and these two without it, is a CLI from before the format, so the sign-in keeps its hand-made form. `&setup-values=1` edits an existing profile: its settings filled in and a database password kept.
 // `&setup-step=<step>` (with `&setup-answers=cdr_source:mysql,files_from:local`) opens the flow on that step, for
 // captures. `?setup-fail=auth|network` fails the check (`mock-signin.ts`).
 
@@ -96,7 +97,8 @@ export function setupMock(): Pick<Platform, "setupShow" | "setupCheck" | "setupP
   return {
     async setupShow(id) {
       await delay(300)
-      if (described !== id || id !== "pbx") throw new CommandError(TOO_OLD, "unknown command 'setup'")
+      if (described !== id || (id !== "pbx" && id !== "amo")) throw new CommandError(TOO_OLD, "unknown command 'setup'")
+      if (id === "amo") return { document: amo, images: {} }
       const image = sampleScreen()
       const document = { ...pbx, texts: { ...pbx.texts, ru: PBX_RU } }
       return {
@@ -106,7 +108,7 @@ export function setupMock(): Pick<Platform, "setupShow" | "setupCheck" | "setupP
     },
     async setupCheck(_id, _profile, answers) {
       await delay(400)
-      const parsed = parseSetup(pbx)
+      const parsed = parseSetup(described === "amo" ? amo : pbx)
       if (parsed.kind !== "flow") throw new Error(parsed.why)
       const doc = editing ? { ...parsed.document, values: VALUES } : parsed.document
       return dryRun(doc, JSON.parse(answers) as Record<string, unknown>)
