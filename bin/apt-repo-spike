@@ -1,0 +1,176 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Checks, before any CI work, that Ubuntu's App Center shows "WireCat" as the developer when WireCat Desktop comes
+# from an apt repository of our own (NEED-2732, plan step 1). Builds a local signed repository with a throwaway key
+# and AppStream data (DEP-11), adds it as an apt source and refreshes apt and AppStream.
+#
+#   /abs/path/bin/apt-repo-spike           # build, add the source, apt update, print the check
+#   /abs/path/bin/apt-repo-spike --remove  # remove the source and the folder, apt update
+#
+# Run it as yourself: it asks for sudo only to write and remove SOURCES and to run apt update. It installs nothing.
+# Afterwards open App Center, search "WireCat" and look at the developer line.
+
+require "digest"
+require "fileutils"
+require "open3"
+require "time"
+require "zlib"
+
+VERSION = "0.7.3"
+REPO = "WireCatLabs/wirecat-desktop"
+ROOT = File.expand_path("..", __dir__)
+METAINFO = File.join(ROOT, "src-tauri/linux/wirecat.metainfo.xml")
+ICONS = { "64x64" => File.join(ROOT, "src-tauri/icons/64x64.png"),
+          "64x64@2" => File.join(ROOT, "src-tauri/icons/128x128.png"),
+          "128x128" => File.join(ROOT, "src-tauri/icons/128x128.png") }.freeze
+WORK = "/var/tmp/wirecat-apt-spike"
+SOURCES = "/etc/apt/sources.list.d/wirecat-spike.sources"
+DEB_NAME = "wirecat_#{VERSION}_amd64.deb"
+POOL = "pool/main/w/wirecat"
+DIST = "dists/stable"
+ICON_NAME = "wirecat_wirecat-desktop.png"
+
+def run(*cmd, env: {})
+  out, status = Open3.capture2e(env, *cmd)
+  abort "failed: #{cmd.join(' ')}\n#{out}" unless status.success?
+  out
+end
+
+def write(path, content)
+  FileUtils.mkdir_p(File.dirname(path))
+  File.write(path, content)
+end
+
+def remove
+  run("sudo", "rm", "-f", SOURCES)
+  run("sudo", "apt-get", "update", "-qq")
+  run("sudo", "appstreamcli", "refresh", "--force")
+  FileUtils.rm_rf(WORK)
+  puts "removed #{SOURCES} and #{WORK}"
+end
+
+def download_deb(repo_dir)
+  dir = File.join(repo_dir, POOL)
+  FileUtils.mkdir_p(dir)
+  run("gh", "release", "download", "v#{VERSION}", "--repo", REPO, "--pattern", DEB_NAME, "--dir", dir, "--clobber")
+  File.join(dir, DEB_NAME)
+end
+
+def packages_entry(deb, repo_dir)
+  data = File.binread(deb)
+  run("dpkg-deb", "-f", deb).chomp + "\n" \
+    "Filename: #{deb.delete_prefix("#{repo_dir}/")}\n" \
+    "Size: #{data.bytesize}\n" \
+    "MD5sum: #{Digest::MD5.hexdigest(data)}\n" \
+    "SHA1: #{Digest::SHA1.hexdigest(data)}\n" \
+    "SHA256: #{Digest::SHA256.hexdigest(data)}\n"
+end
+
+def gzip(path, content)
+  Zlib::GzipWriter.open(path) { |gz| gz.write(content) }
+end
+
+def dep11(component_dir)
+  cached = ICONS.keys.map do |size|
+    pixels, scale = size.split("@")
+    w, h = pixels.split("x")
+    %(  <icon type="cached" width="#{w}" height="#{h}" scale="#{scale || 1}">#{ICON_NAME}</icon>\n)
+  end.join
+  component = File.read(METAINFO).sub(/<\?xml.*?\?>\s*/, "")
+                  .sub("</component>", "  <pkgname>wirecat</pkgname>\n#{cached}</component>")
+  xml = File.join(WORK, "components.xml")
+  yml = File.join(WORK, "components.yml")
+  write(xml, %(<?xml version="1.0"?>\n<components version="1.0" origin="wirecat-stable-main">\n#{component}</components>\n))
+  run("appstreamcli", "convert", "--format=yaml", xml, yml)
+  dir = File.join(component_dir, "dep11")
+  FileUtils.mkdir_p(dir)
+  File.write(File.join(dir, "Components-amd64.yml"), File.read(yml))
+  gzip(File.join(dir, "Components-amd64.yml.gz"), File.read(yml))
+  ICONS.each do |size, png|
+    stage = File.join(WORK, "icons-#{size}")
+    FileUtils.mkdir_p(stage)
+    FileUtils.cp(png, File.join(stage, ICON_NAME))
+    tar = File.join(dir, "icons-#{size}.tar")
+    run("tar", "-cf", tar, "-C", stage, ICON_NAME)
+    gzip("#{tar}.gz", File.binread(tar))
+  end
+end
+
+def release_file(dist_dir)
+  files = Dir.glob("**/*", base: dist_dir).select { |f| File.file?(File.join(dist_dir, f)) }.sort
+  sums = { "MD5Sum" => Digest::MD5, "SHA256" => Digest::SHA256 }.map do |label, digest|
+    lines = files.map do |f|
+      data = File.binread(File.join(dist_dir, f))
+      " #{digest.hexdigest(data)} #{data.bytesize.to_s.rjust(10)} #{f}"
+    end
+    "#{label}:\n#{lines.join("\n")}\n"
+  end
+  "Origin: WireCat\nLabel: WireCat\nSuite: stable\nCodename: stable\n" \
+    "Date: #{Time.now.utc.httpdate}\nArchitectures: amd64\nComponents: main\n" \
+    "Description: WireCat Desktop (spike, throwaway key)\n#{sums.join}"
+end
+
+def sign(dist_dir, gnupg)
+  env = { "GNUPGHOME" => gnupg }
+  FileUtils.mkdir_p(gnupg, mode: 0o700)
+  gpg = %w[gpg --batch --pinentry-mode loopback --passphrase]
+  run(*gpg, "", "--quick-gen-key", "WireCat Spike <spike@wirecat.invalid>", "ed25519", "sign", "never", env: env)
+  File.binwrite(File.join(WORK, "key.gpg"), run("gpg", "--export", env: env))
+  release = File.join(dist_dir, "Release")
+  run(*gpg, "", "--yes", "--clearsign", "-o", File.join(dist_dir, "InRelease"), release, env: env)
+  run(*gpg, "", "--yes", "--detach-sign", "--armor", "-o", File.join(dist_dir, "Release.gpg"), release, env: env)
+end
+
+def build
+  FileUtils.rm_rf(WORK)
+  repo_dir = File.join(WORK, "repo")
+  dist_dir = File.join(repo_dir, DIST)
+  component_dir = File.join(dist_dir, "main")
+  deb = download_deb(repo_dir)
+  binary = File.join(component_dir, "binary-amd64")
+  FileUtils.mkdir_p(binary)
+  packages = packages_entry(deb, repo_dir)
+  File.write(File.join(binary, "Packages"), packages)
+  gzip(File.join(binary, "Packages.gz"), packages)
+  dep11(component_dir)
+  File.write(File.join(dist_dir, "Release"), release_file(dist_dir))
+  sign(dist_dir, File.join(WORK, "gnupg"))
+  FileUtils.chmod_R("a+rX", repo_dir)
+  FileUtils.chmod("a+r", File.join(WORK, "key.gpg"))
+  FileUtils.chmod("a+rx", WORK)
+  repo_dir
+end
+
+def add_source(repo_dir)
+  sources = "Types: deb\nURIs: file:#{repo_dir}\nSuites: stable\nComponents: main\n" \
+            "Signed-By: #{File.join(WORK, 'key.gpg')}\n"
+  Open3.popen2e("sudo", "tee", SOURCES) do |stdin, out, wait|
+    stdin.write(sources)
+    stdin.close
+    out.read
+    abort "could not write #{SOURCES}" unless wait.value.success?
+  end
+  puts run("sudo", "apt-get", "update")
+  run("sudo", "appstreamcli", "refresh", "--force")
+end
+
+def report
+  dump = run("appstreamcli", "dump", "dev.wirecat.desktop")
+  checks = {
+    "apt sees wirecat #{VERSION} from the spike repository" => run("apt-cache", "policy", "wirecat").include?(WORK),
+    "AppStream links the app to package wirecat" => dump.include?("<pkgname>wirecat</pkgname>"),
+    "AppStream developer is WireCat" => dump.match?(%r{<developer[^>]*>\s*<name>WireCat</name>})
+  }
+  checks.each { |label, ok| puts "#{ok ? 'PASS' : 'FAIL'}  #{label}" }
+  puts "\nNow open App Center, search \"WireCat\" and check the developer line. Undo: #{__FILE__} --remove"
+end
+
+if ARGV == ["--remove"]
+  remove
+elsif ARGV.empty?
+  add_source(build)
+  report
+else
+  abort "usage: #{__FILE__} [--remove]"
+end
