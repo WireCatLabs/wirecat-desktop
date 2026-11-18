@@ -83,10 +83,13 @@ def dep11(component_dir)
   yml = File.join(WORK, "components.yml")
   write(xml, %(<?xml version="1.0"?>\n<components version="1.0" origin="wirecat-stable-main">\n#{component}</components>\n))
   run("appstreamcli", "convert", "--format=yaml", xml, yml)
+  # App Center reads the developer only from the legacy DeveloperName key, which appstreamcli no longer writes.
+  developer = File.read(METAINFO)[%r{<developer[^>]*>\s*<name>([^<]+)</name>}, 1]
+  catalog = "#{File.read(yml)}DeveloperName:\n  C: #{developer}\n"
   dir = File.join(component_dir, "dep11")
   FileUtils.mkdir_p(dir)
-  File.write(File.join(dir, "Components-amd64.yml"), File.read(yml))
-  gzip(File.join(dir, "Components-amd64.yml.gz"), File.read(yml))
+  File.write(File.join(dir, "Components-amd64.yml"), catalog)
+  gzip(File.join(dir, "Components-amd64.yml.gz"), catalog)
   ICONS.each do |size, png|
     stage = File.join(WORK, "icons-#{size}")
     FileUtils.mkdir_p(stage)
@@ -143,7 +146,9 @@ def build
 end
 
 def add_source(repo_dir)
-  sources = "Types: deb\nURIs: file:#{repo_dir}\nSuites: stable\nComponents: main\n" \
+  # copy:, not file:, so apt stores real files: for file: it links the catalog to WORK, which App Center's snap
+  # may not read, and one unreadable catalog empties App Center's whole Debian list.
+  sources = "Types: deb\nURIs: copy:#{repo_dir}\nSuites: stable\nComponents: main\n" \
             "Signed-By: #{File.join(WORK, 'key.gpg')}\n"
   Open3.popen2e("sudo", "tee", SOURCES) do |stdin, out, wait|
     stdin.write(sources)
