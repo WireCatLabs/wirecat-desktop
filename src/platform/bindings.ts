@@ -606,14 +606,17 @@ export type DriveFolder = {
 	id: string,
 	name: string,
 	/**
-	 *  drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`; ydisk names
-	 *  none, so `folder`.
+	 *  drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`; ydisk: `folder`,
+	 *  which 0.1 left out.
 	 */
 	kind: string,
 	parent: string | null,
 	location: string | null,
 	driveId: string | null,
-	/**  `None` when drive did not count them. */
+	/**
+	 *  `None` when the tool did not count them. ydisk only says whether there are any: `has_children: false` is
+	 *  `Some(0)`, and `true` or `null` stays `None`, so the folder still opens.
+	 */
 	childFolders: number | null,
 	added: boolean,
 };

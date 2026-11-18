@@ -821,7 +821,8 @@ workspace (`whole`, `folders list` while nothing is chosen) shown without Remove
 page's children, so every page can be opened, and one with none inside says so. Yandex Disk (ydisk) uses it too:
 its `folders browse --folder` and `folders add` take a Disk path, not an id (catalog `folderPicker.by: "path"`), so a
 folder's `id` in the window is its `disk:/…` path, checked as a path in Rust; `folders list` and `remove` keep
-Yandex's `resource_id`. ydisk names no kind and counts no folders inside, so each row is a folder that can be opened.
+Yandex's `resource_id`. ydisk 0.2.0 says only whether a folder holds folders (`has_children`): `false` is read as
+none, so the row has no Open arrow; `true` or `null` (a level too big to look inside) keeps the arrow.
 Below the picker, and in the same
 settings, "Meeting transcripts"
 (`tools/DriveTranscripts.tsx`) shows what `drive_transcripts_find` found (drive's `transcripts list`) and three choices

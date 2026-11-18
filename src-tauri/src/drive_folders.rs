@@ -89,13 +89,14 @@ pub struct DriveFolder {
     /// What the tool's `folders browse` and `folders add` take for it: an id, or ydisk's `disk:/…` path.
     pub id: String,
     pub name: String,
-    /// drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`; ydisk names
-    /// none, so `folder`.
+    /// drive: `my_drive`, `shared_with_me`, `shared_drive` or `folder`; notion: `page` or `database`; ydisk: `folder`,
+    /// which 0.1 left out.
     pub kind: String,
     pub parent: Option<String>,
     pub location: Option<String>,
     pub drive_id: Option<String>,
-    /// `None` when drive did not count them.
+    /// `None` when the tool did not count them. ydisk only says whether there are any: `has_children: false` is
+    /// `Some(0)`, and `true` or `null` stays `None`, so the folder still opens.
     pub child_folders: Option<u64>,
     pub added: bool,
 }
@@ -344,7 +345,7 @@ fn folder_of(v: &Value, by: FolderRef) -> Option<DriveFolder> {
         parent: text("parent"),
         location: text("location"),
         drive_id: text("drive_id"),
-        child_folders: v["child_folders"].as_u64(),
+        child_folders: v["child_folders"].as_u64().or_else(|| (v["has_children"] == false).then_some(0)),
         added: v["added"].as_bool().unwrap_or(false),
     })
 }
@@ -399,11 +400,16 @@ mod tests {
     }
 
     #[test]
-    fn reads_ydisk_folders_by_their_path_and_with_no_kind() {
+    fn reads_ydisk_folders_by_their_path_and_whether_they_hold_folders() {
         let json = serde_json::json!({
             "items": [
                 { "id": "fake-2", "name": "Work", "path": "disk:/Work", "added": true },
-                { "id": "fake-4", "name": "Отчёты 2026", "path": "disk:/Work/Отчёты 2026", "added": false },
+                { "id": "fake-4", "name": "Отчёты 2026", "path": "disk:/Work/Отчёты 2026", "kind": "folder",
+                  "has_children": false, "added": false },
+                { "id": "fake-6", "name": "Photos", "path": "disk:/Photos", "kind": "folder", "has_children": true,
+                  "added": false },
+                { "id": "fake-7", "name": "Big", "path": "disk:/Big", "kind": "folder", "has_children": null,
+                  "added": false },
                 { "id": "fake-5", "name": "Odd", "path": "--folder", "added": false },
             ],
             "page": { "mode": "cursor", "limit": 200, "has_more": true, "next_cursor": "200" },
@@ -411,8 +417,11 @@ mod tests {
         let FolderLevel::Listed { folders, next_cursor, .. } = read_level(&json, FolderRef::Path) else {
             panic!("not listed")
         };
-        assert_eq!(folders.iter().map(|f| f.id.as_str()).collect::<Vec<_>>(), ["disk:/Work", "disk:/Work/Отчёты 2026"]);
+        let ids = folders.iter().map(|f| f.id.as_str()).collect::<Vec<_>>();
+        assert_eq!(ids, ["disk:/Work", "disk:/Work/Отчёты 2026", "disk:/Photos", "disk:/Big"]);
         assert_eq!((folders[0].kind.as_str(), folders[0].added), ("folder", true));
+        let counts = folders.iter().map(|f| f.child_folders).collect::<Vec<_>>();
+        assert_eq!(counts, [None, Some(0), None, None]);
         assert_eq!(next_cursor.as_deref(), Some("200"));
     }
 

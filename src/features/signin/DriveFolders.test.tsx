@@ -144,7 +144,7 @@ const disk = (path: string): DriveFolder => ({
 describe("Yandex Disk's step after signing in", () => {
   it("opens and adds folders by their Disk path, in its own words", async () => {
     const levels: Record<string, DriveFolder[]> = {
-      "": [disk("/Работа"), disk("/Фото")],
+      "": [disk("/Работа"), { ...disk("/Фото"), childFolders: 0 }],
       "disk:/Работа": [disk("/Работа/Отчёты 2026")],
     }
     const browse = vi.spyOn(platform, "driveFoldersBrowse").mockImplementation(async (_tool, _profile, parent) => ({
@@ -164,5 +164,21 @@ describe("Yandex Disk's step after signing in", () => {
     expect(browse.mock.calls.map((c) => c[2])).toEqual([null, "disk:/Работа"])
     expect(add).toHaveBeenCalledWith("ydisk", "personal", "disk:/Работа/Отчёты 2026")
     expect(screen.queryByRole("region", { name: "Meeting transcripts" })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [null, true],
+    [3, true],
+    [0, false],
+  ])("with %s folders inside, offers Open: %s", async (childFolders, opens) => {
+    vi.spyOn(platform, "driveFoldersBrowse").mockResolvedValue({
+      result: "listed",
+      partial: false,
+      folders: [{ ...disk("/Фото"), childFolders }],
+      nextCursor: null,
+    })
+    render(<DriveFolders tool="ydisk" profile="personal" name="Yandex Disk" />)
+    expect(await screen.findByRole("checkbox", { name: "Фото" })).toBeInTheDocument()
+    expect(Boolean(screen.queryByRole("button", { name: "Open Фото" }))).toBe(opens)
   })
 })

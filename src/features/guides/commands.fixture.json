@@ -2700,7 +2700,7 @@
     ]
   },
   "ydisk": {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "profile": true,
     "global": [
       "--brief",
@@ -2724,6 +2724,8 @@
       "--yes"
     ],
     "commands": [
+      "account",
+      "account remove --delete-data --dry-run --keep-data",
       "api",
       "api disk-get --extra-fields --fields",
       "api list",
@@ -2843,6 +2845,8 @@
       "skill show --for",
       "skill status",
       "status",
+      "store",
+      "store info",
       "sync --embed --limit --rescan",
       "tags",
       "tags add",
