@@ -280,6 +280,8 @@ pub struct Access {
 pub struct SignInText {
     pub gives: String,
     pub asks: String,
+    /// The labels of the sign-ins the window runs (`signIn.methods`); empty when it signs in at a terminal only.
+    pub here: Vec<String>,
 }
 
 /// An update of an own tool: what changed since the review the owner confirmed.
@@ -568,10 +570,7 @@ pub fn review(
         repo,
         built,
         access,
-        sign_in: entry["signIn"].is_object().then(|| SignInText {
-            gives: entry["signIn"]["gives"].as_str().unwrap_or_default().into(),
-            asks: entry["signIn"]["asks"].as_str().unwrap_or_default().into(),
-        }),
+        sign_in: sign_in_of(&entry, &tool),
         syncs: !entry["sync"].is_null(),
         skill: !entry["skill"].is_null(),
         mcp: !entry["mcpServer"].is_null(),
@@ -591,6 +590,14 @@ pub fn review(
         entry: entry.clone(),
     };
     Ok(Reviewed { tool, entry, version, integrity: integrity.to_string(), manifest_sha256: sha, review })
+}
+
+fn sign_in_of(entry: &Value, tool: &Tool) -> Option<SignInText> {
+    entry["signIn"].is_object().then(|| SignInText {
+        gives: entry["signIn"]["gives"].as_str().unwrap_or_default().into(),
+        asks: entry["signIn"]["asks"].as_str().unwrap_or_default().into(),
+        here: tool.sign_in.iter().flat_map(|s| &s.methods).map(|m| line(&m.label, 40)).collect(),
+    })
 }
 
 /// Where npm built it, the facts of that build, and the repository the review shows: the package's own, else the
@@ -1959,6 +1966,27 @@ mod tests {
         let change = r.review.update.unwrap();
         assert_eq!(change.changed_parts, ["signIn", "doctor"]);
         assert!(change.confirm);
+    }
+
+    #[test]
+    fn a_sign_in_in_the_window_is_shown_and_an_update_that_changes_it_asks_again() {
+        let first = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
+        assert!(first.review.sign_in.as_ref().unwrap().here.is_empty(), "a terminal sign-in only");
+        let saved = json!({ "version": 1, "tools": [first.entry] }).to_string();
+        let token = json!({ "id": "token", "label": "API token", "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true });
+        let mut here = manifest();
+        here["desktop"]["signIn"]["methods"] = json!([token]);
+        let r = review("@example/acme-crm-cli", None, &Fake::with(&here), catalog(), &saved).unwrap();
+        assert_eq!(r.review.sign_in.as_ref().unwrap().here, ["API token"]);
+        assert!(r.tool.sign_in.as_ref().unwrap().methods[0].stdin);
+        let change = r.review.update.unwrap();
+        assert_eq!(change.changed_parts, ["signIn"]);
+        assert!(change.confirm);
+
+        here["desktop"]["signIn"]["methods"][0]["password"] = json!("NODE_OPTIONS");
+        let refusal = refused(&Fake::with(&here));
+        assert!(matches!(refusal, Refusal::BadManifest { key, .. } if key == "signIn"), "only the words and stdin");
     }
 
     #[test]

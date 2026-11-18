@@ -1,8 +1,9 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { findTool } from "@/domain/catalog"
+import { addCommunityTools, findTool } from "@/domain/catalog"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { OWN } from "@/platform/mock-community"
 import { MOCK_CODES } from "@/platform/mock-qr"
 import type { SignInEvent } from "@/platform/signin-schemas"
 import { recentErrors } from "@/shared/errors"
@@ -1105,5 +1106,24 @@ describe("signing in to Yandex Disk", () => {
     expect(within(dialog).getByRole("button", { name: label })).toBeDisabled()
     await userEvent.type(within(dialog).getByLabelText("ClientID"), CLIENT_ID)
     expect(within(dialog).getByRole("button", { name: label })).toBeEnabled()
+  })
+})
+
+describe("signing in to an own tool", () => {
+  it("says what its manifest asks for, asks for the token in the window and sends it as the run's stdin", async () => {
+    addCommunityTools([{ source: "own", entry: OWN }])
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start(OWN.id, "work"))
+    const dialog = screen.getByRole("dialog", { name: `Sign in to ${OWN.name}` })
+    expect(within(dialog).getByText(OWN.signIn.asks)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    expect(platform.signIn).not.toHaveBeenCalled()
+    await userEvent.type(within(dialog).getByLabelText("Token"), "acme_example")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith(OWN.id, "token", "work", expect.any(Function), {
+        password: "acme_example",
+      }),
+    )
   })
 })

@@ -99,6 +99,7 @@ describe("Add your own tool", () => {
     expect(within(table).getByRole("row", { name: /Deal/ })).toHaveTextContent("Changes")
     expect(screen.getByText(/Copies contacts, deals and invoices into WireCat's store/)).toBeInTheDocument()
     expect(screen.getByText("Signs in and keeps the sign-in on this computer")).toBeInTheDocument()
+    expect(screen.getByText("It signs in here, in this window: API token.")).toBeInTheDocument()
     const commands = screen.getByRole("button", { name: "Commands (12)" })
     expect(commands).toHaveAttribute("aria-expanded", "false")
     await userEvent.click(commands)

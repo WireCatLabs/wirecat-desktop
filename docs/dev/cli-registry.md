@@ -86,6 +86,11 @@ Rust accepts an entry only when:
    only such a package may name a WireCatLabs repository ([below](#your-own-tools-not-checked)).
 4. It sets none of `partOf`, `commandPrefix`, `memory`, `taskBoard`, `crmBoard`, `crm`, `bot`, `storeReset`,
    `storeResetPreview`, `configRepair`, `storeRecover` or `signIn.command` (a command line shown for the owner to copy).
+   Its `signIn.methods`, the sign-ins the app runs in its own window, hold only `id` (a lower-case name), `label` (one
+   line, at most 40 characters), `words` and `stdin`. The words start with `{profile}` and fill no other slot;
+   `stdin: true` sends what the owner types as the command's whole stdin, closed after it. A variable, a setting or a
+   flag for what the owner typed (`password`, `clientId`, `clientFile`, `address`, `oauth`, `portal`, `appId`) is
+   refused.
 5. The file is at most 512 KB and the first 32 entries are read.
 
 Each refusal is a sentence the interface writes to its console and Settings lists under the switch of its source. The interface parses the accepted entries again
@@ -287,7 +292,10 @@ for listed tools, and nothing the owner adds reaches another computer.
   page and Meetings (`calls.rs`, `call_recording.rs`). The provider is a lower-case name no other tool uses, so a
   manifest cannot take over Zoom's or Asterisk's calls, and both commands take the call as `{id}`. `sync.what` is one
   of `messages`, `files`, `meetings`, `calls`, `notes and mail`, `mail`, `records`; any other text counts as
-  `records`.
+  `records`. `signIn.methods` (cli-base's `ManifestIdentity.signIn.methods`) lets the tool sign in in the window,
+  under rule 4 above: the window shows the tool's `signIn.asks` and, for a `stdin` method, a token field. The review
+  says the tool signs in in the window, and an update that changes the methods lists the sign-in among the changed
+  parts.
 - `network`: `{ hosts, user_hosts }`. No `network` means the tool did not say; `hosts: []` means none.
 - `entities`: `{ <name>: { fields } }`.
 

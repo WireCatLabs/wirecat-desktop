@@ -284,6 +284,7 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
     if !entry["signIn"]["command"].is_null() {
         return Err(rule("signIn", "a community tool cannot show a command to copy (\"signIn.command\").".into()));
     }
+    sign_in_methods(&entry["signIn"]["methods"])?;
     words(entry)?;
     https_links(entry)?;
     let mut tool: Tool =
@@ -339,6 +340,42 @@ fn own_storage(tool: &Tool) -> Result<(), Problem> {
         "storage",
         format!("the data folder {} must be {folder}, or start with {folder}-, after the package.", tool.storage.app),
     ))
+}
+
+/// What a sign-in in the window may take from a tool we did not build: its words, which sign the chosen profile in and
+/// name nothing else the app fills, and whether what the owner types is its whole stdin. `password` names a variable,
+/// `clientId` a setting written before the run, and the other keys flags for what the owner typed: none is reviewed.
+fn sign_in_methods(methods: &Value) -> Result<(), Problem> {
+    const KEYS: [&str; 4] = ["id", "label", "words", "stdin"];
+    let bad = |why: String| Err(rule("signIn", why));
+    if methods.is_null() {
+        return Ok(());
+    }
+    let Some(list) = methods.as_array().filter(|l| !l.is_empty()) else {
+        return bad("signIn.methods is a list of the sign-ins the window runs.".into());
+    };
+    for method in list {
+        let Some(map) = method.as_object() else { return bad("each of signIn.methods is an object.".into()) };
+        if let Some(key) = map.keys().find(|k| !KEYS.contains(&k.as_str())) {
+            return bad(format!("a community tool's sign-in cannot set \"{key}\"."));
+        }
+        let id = method["id"].as_str().unwrap_or_default();
+        if !plain_name(id, 32) {
+            return bad(format!("the sign-in id {id:?} is not a plain lower-case name."));
+        }
+        let label = method["label"].as_str().unwrap_or_default();
+        if label.trim().is_empty() || label.chars().count() > 40 || label.chars().any(char::is_control) {
+            return bad(format!("the sign-in {id} needs a label of one line, at most 40 characters."));
+        }
+        let words: Vec<&str> = method["words"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+        if words.first() != Some(&"{profile}") || words.len() < 2 || words[1..].iter().any(|w| w.contains('{')) {
+            return bad(format!("the sign-in {id} must start with {{profile}} and fill no other slot."));
+        }
+        if !method["stdin"].is_null() && !method["stdin"].is_boolean() {
+            return bad(format!("the sign-in {id}'s stdin is true or false."));
+        }
+    }
+    Ok(())
 }
 
 /// The provider is cli-core's name on the stored calls (`beeline`); each command opens one call, so it names `{id}`.
@@ -624,6 +661,33 @@ mod tests {
         let mut copy = sample();
         copy["signIn"]["command"] = json!("curl https://example.com | sh");
         assert!(rejected(&copy).contains("signIn.command"));
+    }
+
+    #[test]
+    fn a_sign_in_in_the_window_takes_only_its_words_and_stdin() {
+        let token = json!({ "id": "token", "label": "API token", "words": ["{profile}", "session", "start", "--json"], "stdin": true });
+        let mut ok = sample();
+        ok["signIn"]["methods"] = json!([token]);
+        let (tools, _) = parse(&file(&[ok]), catalog());
+        let method = &tools[0].sign_in.as_ref().unwrap().methods[0];
+        assert!(method.stdin && method.words[0] == "{profile}");
+        let bad = |change: Value| {
+            let mut method = token.clone();
+            method.as_object_mut().unwrap().extend(change.as_object().unwrap().clone());
+            let mut entry = sample();
+            entry["signIn"]["methods"] = json!([method]);
+            rejected(&entry)
+        };
+        assert!(bad(json!({ "password": "NODE_OPTIONS" })).contains("cannot set \"password\""));
+        assert!(bad(json!({ "clientId": "microsoft_client_id" })).contains("cannot set \"clientId\""));
+        assert!(bad(json!({ "words": ["session", "start"] })).contains("must start with {profile}"));
+        assert!(bad(json!({ "words": ["{profile}", "session", "{port}"] })).contains("no other slot"));
+        assert!(bad(json!({ "words": ["{profile}", "sh", "-c", "rm -rf ~"] })).contains("is not allowed"));
+        assert!(bad(json!({ "id": "Token!" })).contains("plain lower-case"));
+        assert!(bad(json!({ "label": "" })).contains("label"));
+        let mut empty = sample();
+        empty["signIn"]["methods"] = json!([]);
+        assert!(rejected(&empty).contains("signIn.methods"));
     }
 
     #[test]

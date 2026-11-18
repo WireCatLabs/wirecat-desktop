@@ -57,7 +57,11 @@ export const OWN = {
   summary: "Contacts and deals from Acme CRM, kept locally for search and agents.",
   docs: "https://example.com/acme-crm",
   repo: "https://github.com/example/acme-crm-cli",
-  signIn: { gives: "your contacts and deals", asks: "an Acme API token" },
+  signIn: {
+    gives: "your contacts and deals",
+    asks: "an Acme API token",
+    methods: [{ id: "token", label: "API token", words: ["{profile}", "session", "start", "--json"], stdin: true }],
+  },
   storage: { app: "example-acme-crm-cli", env: "ACME_CRM" },
 }
 
@@ -178,7 +182,7 @@ export function ownReview(overrides: Partial<OwnReview> = {}): OwnReview {
     repo: OWN.repo,
     built: { repo: OWN.repo, workflow: ".github/workflows/release.yml@refs/heads/main" },
     access: { reads: ["contacts list", "deals list"], changes: ["deals update"], writes: ["sync"], unknown: false },
-    signIn: OWN.signIn,
+    signIn: { gives: OWN.signIn.gives, asks: OWN.signIn.asks, here: OWN.signIn.methods.map((m) => m.label) },
     syncs: true,
     skill: true,
     mcp: false,

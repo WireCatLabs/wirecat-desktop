@@ -183,6 +183,7 @@ pub struct SignInSource {
 #[serde(rename_all = "camelCase")]
 pub struct SignInMethod {
     pub id: String,
+    pub label: String,
     pub words: Vec<String>,
     /// The flag that takes the mail address of a new profile (mail's `--address`).
     #[serde(default)]
