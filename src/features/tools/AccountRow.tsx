@@ -1,5 +1,5 @@
 import { LogIn } from "lucide-react"
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncSchedules, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
 import { openSettingsAt } from "@/features/config"
@@ -7,6 +7,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { ACCOUNT_NAME_MAX, nameOf, useAccountNames } from "@/shared/account-names-store"
+import { errorText } from "@/shared/errors"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -25,6 +26,31 @@ import { SyncButton, SyncFollowUp, SyncStatus, SyncStatusLoading, useSyncControl
 import { ScheduleLoading, SyncSchedule } from "./SyncSchedule"
 
 const ROW_BOX = "flex flex-col gap-1.5 px-3 py-2"
+
+// Asked once per tool: the installed version answers from its own command list, which only an update changes.
+const renames = new Map<string, Promise<boolean>>()
+const renamesHere = (id: string) => {
+  let known = renames.get(id)
+  if (!known) {
+    known = platform.accountRenameSupported(id).catch(() => false)
+    renames.set(id, known)
+  }
+  return known
+}
+
+function useRenames(tool: CatalogTool) {
+  const offered = Boolean(tool.accountRemove?.remove)
+  const [can, setCan] = useState(false)
+  useEffect(() => {
+    if (!offered) return
+    let live = true
+    void renamesHere(tool.id).then((yes) => live && setCan(yes))
+    return () => {
+      live = false
+    }
+  }, [offered, tool.id])
+  return can
+}
 
 /**
  * One account of a tool, the same wherever accounts are listed: its name and state, Sync where the tool syncs per
@@ -49,6 +75,7 @@ export function AccountRow(props: {
   const [removing, setRemoving] = useState<"remove" | "signOut" | null>(null)
   const [renaming, setRenaming] = useState(false)
   const [changingId, setChangingId] = useState(false)
+  const renamesId = useRenames(tool)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
 
   const signIn = () => reconnect(tool, p.name, onReload)
@@ -69,7 +96,7 @@ export function AccountRow(props: {
       : []),
     ...(tool.settings?.perProfile ? [{ label: m.settings, onSelect: () => openSettingsAt(tool.id, p.name) }] : []),
     { label: m.rename, onSelect: () => setRenaming(true) },
-    ...(tool.accountRemove?.remove ? [{ label: m.changeId, onSelect: () => setChangingId(true) }] : []),
+    ...(renamesId ? [{ label: m.changeId, onSelect: () => setChangingId(true) }] : []),
     ...(tool.accountRemove?.signOut && p.signedIn !== false
       ? [{ label: m.signOut, onSelect: () => setRemoving("signOut") }]
       : []),
@@ -382,7 +409,7 @@ function ChangeId(props: { tool: CatalogTool; profile: string; onClose: () => vo
             : done.message,
       )
     } catch (e) {
-      setProblem(String(e))
+      setProblem(errorText(e))
     } finally {
       setBusy(false)
     }

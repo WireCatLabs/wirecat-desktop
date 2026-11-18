@@ -251,6 +251,8 @@ export type Platform = {
   accountRemovePlan(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
   /** `account remove --yes`: signs the profile out and forgets it, keeping or deleting its data. */
   accountRemove(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
+  /** Whether the installed version lists `account rename`: the tool says where its sign-in lives. */
+  accountRenameSupported(id: string): Promise<boolean>
   /** `account rename <new> --yes`: the profile keeps its sign-in, settings and data under the new name. */
   accountRename(id: string, profile: string, newName: string): Promise<AccountRenamed>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */

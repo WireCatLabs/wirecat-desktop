@@ -7,13 +7,14 @@ import { platform } from "@/platform/bridge"
 import { OWN } from "@/platform/mock-community"
 import { useAccountNames } from "@/shared/account-names-store"
 import { useNav } from "@/shared/nav"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { AccountRowPlaceholder } from "./AccountRow"
 import { AccountList } from "./Health"
 
 const tool = (id: string) => findTool(id) as NonNullable<ReturnType<typeof findTool>>
 
 beforeEach(() => {
+  vi.spyOn(platform, "accountRenameSupported").mockResolvedValue(true)
   vi.spyOn(platform, "syncLast").mockResolvedValue({
     at: new Date(Date.now() - 12 * 60_000).toISOString(),
     left: null,
@@ -29,6 +30,7 @@ const signedIn = [
 ]
 
 const openMenu = async (profile: string) => {
+  await act(async () => {})
   await userEvent.click(screen.getByRole("button", { name: `More for ${profile}` }))
   return screen.getByRole("menu")
 }

@@ -1,4 +1,4 @@
-import { ownerId, tools } from "@/domain/catalog"
+import { findTool, ownerId, tools } from "@/domain/catalog"
 import { parseLink } from "@/domain/links"
 import type { AccountRemoved, AccountRenamed } from "./bindings"
 import { accountRemoveMock } from "./mock-account-remove"
@@ -763,6 +763,10 @@ export function createMock(os: Platform["os"]): Platform {
     ...setupMock(),
     ...driveFoldersMock(),
     ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
+    async accountRenameSupported(id) {
+      await delay(250)
+      return params.get("rename-old") !== id && Boolean(findTool(id)?.accountRemove?.remove)
+    },
     async accountRename(id, profile, newName): Promise<AccountRenamed> {
       await delay(900)
       if (params.get("rename-old") === id) return { result: "tooOld" }

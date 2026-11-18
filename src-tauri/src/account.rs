@@ -168,10 +168,15 @@ pub enum AccountRenamed {
     },
 }
 
+/// Whether the installed version lists `account rename`: cli-core has it only where the tool names its sign-in.
+pub fn rename_supported(tool: &Tool) -> bool {
+    full(tool).is_some() && crate::command_tree::has(tool, &["account", "rename"]) == Some(true)
+}
+
 /// `{profile} account rename <new> --yes`: the profile keeps its sign-in, settings and data under the new name.
 pub fn rename(tool: &Tool, profile: &str, new_name: &str) -> Result<AccountRenamed, String> {
     catalog::validate_profile(new_name)?;
-    if full(tool).is_none() || crate::command_tree::has(tool, &["account", "rename"]) != Some(true) {
+    if !rename_supported(tool) {
         return Ok(AccountRenamed::TooOld);
     }
     let agents = crate::mcp::agents_with(tool, profile);

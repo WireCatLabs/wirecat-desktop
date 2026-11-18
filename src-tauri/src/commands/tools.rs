@@ -200,6 +200,16 @@ pub async fn account_remove_plan(
     .await
 }
 
+/// Whether the installed version has `account rename`; the account menu offers "Change profile id" only then.
+#[tauri::command]
+pub async fn account_rename_supported(id: String) -> Result<bool, AppError> {
+    crate::log::command("account_rename_supported", async move {
+        let tool = known_tool(&id)?;
+        blocking(move || account::rename_supported(tool)).await
+    })
+    .await
+}
+
 /// Gives the profile another name with the tool's own `account rename`; refused while its sync, an install or a sign-in runs.
 #[tauri::command]
 pub async fn account_rename(
