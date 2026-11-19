@@ -14,6 +14,9 @@ use std::fmt;
 
 pub const FLAG: &str = "WIRECAT_EXTRA_TOOLS";
 pub const FILE: &str = "extra-tools.json";
+/// Set by `own_tool_e2e` once it has moved `HOME` and the data folders, so the tests read that copy's own tools.
+#[cfg(test)]
+pub const TEST_APP_DATA: &str = "WIRECAT_TEST_APP_DATA";
 pub const MAX_BYTES: usize = 512 * 1024;
 const MAX_TOOLS: usize = 32;
 
@@ -124,6 +127,9 @@ fn rule(key: &str, rule: String) -> Problem {
 pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
     // The signed list read at start stays until the next start, so a reload for an own tool never changes it.
     static LISTED: std::sync::OnceLock<Option<Result<Vec<Value>, String>>> = std::sync::OnceLock::new();
+    // A unit test must not read the owner's own tools from the real app data; own_tool_e2e moves it first and says so.
+    #[cfg(test)]
+    std::env::var_os(TEST_APP_DATA)?;
     let listed = LISTED.get_or_init(|| crate::registry::shown().then(crate::registry::at_start)).clone();
     // Off, the switch still lets `@wirecat` tools through: only WireCat publishes under that scope.
     let all_own = std::env::var(FLAG).ok().as_deref() == Some("1") || crate::own_tools::allowed();

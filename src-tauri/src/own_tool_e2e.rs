@@ -284,7 +284,7 @@ fn isolate(root: &Path) {
             remove_env(&format!("{prefix}_{kind}"));
         }
     }
-    let values: [(&str, PathBuf); 16] = [
+    let values: [(&str, PathBuf); 17] = [
         ("HOME", home.clone()),
         ("USERPROFILE", home.clone()),
         ("XDG_CONFIG_HOME", home.join(".config")),
@@ -301,6 +301,7 @@ fn isolate(root: &Path) {
         ("DBUS_SESSION_BUS_ADDRESS", "disabled:".into()),
         ("PATH", PathBuf::from(path)),
         ("npm_config_update_notifier", "false".into()),
+        (crate::community::TEST_APP_DATA, "1".into()),
     ];
     for (name, value) in values {
         set_env(name, value.as_os_str());
