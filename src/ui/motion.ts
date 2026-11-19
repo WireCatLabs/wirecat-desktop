@@ -28,7 +28,7 @@ export const PANEL_MS = MOTION.slow
 
 export const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
 
-export function scrollerOf(el: Element | null): HTMLElement | null {
+function scrollerOf(el: Element | null): HTMLElement | null {
   for (let node = el?.parentElement ?? null; node; node = node.parentElement) {
     const { overflowY } = getComputedStyle(node)
     if (overflowY === "auto" || overflowY === "scroll") return node
