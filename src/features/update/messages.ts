@@ -28,6 +28,7 @@ const en = {
     deb: "This copy was installed from a .deb package (Ubuntu, Debian, Linux Mint). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
     rpm: "This copy was installed from an .rpm package (Fedora, openSUSE). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
   } satisfies Record<Package, string>,
+  apt: "This copy gets its updates from WireCat's apt repository. Open Software Updater to install the new version, or run the command below. Your accounts and data will not be deleted.",
   other:
     "WireCat cannot tell how this copy was installed, so it cannot update it. Get the new version from the download page and install it the way you installed this one. Your accounts and data will not be deleted.",
   howUpdates: "How updates work",
@@ -86,6 +87,7 @@ const ru: typeof en = {
     deb: "WireCat установлен из пакета .deb (Ubuntu, Debian, Linux Mint). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
     rpm: "WireCat установлен из пакета .rpm (Fedora, openSUSE). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
   },
+  apt: "Эта копия получает обновления из apt-репозитория WireCat. Откройте «Обновление приложений», чтобы установить новую версию, или выполните команду ниже. Ваши аккаунты и данные не удалятся.",
   other:
     "WireCat не знает, как была установлена эта копия, поэтому не может её обновить. Скачайте новую версию на странице загрузки и установите её так же, как эту. Ваши аккаунты и данные не удалятся.",
   howUpdates: "Как устроены обновления",
@@ -144,6 +146,7 @@ const es: typeof en = {
     deb: "Esta copia se instaló con un paquete .deb (Ubuntu, Debian, Linux Mint). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
     rpm: "Esta copia se instaló con un paquete .rpm (Fedora, openSUSE). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
   },
+  apt: "Esta copia recibe las actualizaciones del repositorio apt de WireCat. Abre el Actualizador de software para instalar la versión nueva, o ejecuta el comando de abajo. Tus cuentas y tus datos no se borran.",
   other:
     "WireCat no sabe cómo se instaló esta copia, así que no puede actualizarla. Descarga la versión nueva en la página de descargas e instálala como instalaste esta. Tus cuentas y tus datos no se borran.",
   howUpdates: "Cómo funcionan las actualizaciones",

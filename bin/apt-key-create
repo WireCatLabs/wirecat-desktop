@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# One-off: makes the key that signs WireCat's apt repository (apt.wirecat.dev, NEED-2732 step 2).
+# Every machine that added the repository trusts only this key, so losing it means a new key and a new .sources line
+# for every user. The private key goes to the OS keyring (so it is not lost) and to the "release" environment secret
+# APT_SIGNING_KEY; it is never printed or written outside a mode-700 temp folder, which is removed at the end.
+# The public key is written into the repository; commit it.
+#
+#   /abs/path/bin/apt-key-create
+
+require "fileutils"
+require "open3"
+require "tmpdir"
+
+REPO = "WireCatLabs/wirecat-desktop"
+ROOT = File.expand_path("..", __dir__)
+PUBLIC_GPG = File.join(ROOT, "src-tauri/linux/wirecat-archive-keyring.gpg")
+PUBLIC_ASC = File.join(ROOT, "src-tauri/linux/wirecat-archive-keyring.asc")
+KEYS_MD = File.join(Dir.home, ".claude/keys.md")
+SERVICE = "wirecat"
+ACCOUNT = "apt-signing-key"
+SECRET = "APT_SIGNING_KEY"
+USER_ID = "WireCat Packages <packages@wirecat.dev>"
+
+def run(*cmd, env: {}, stdin: nil)
+  out, err, status = Open3.capture3(env, *cmd, stdin_data: stdin)
+  abort "failed: #{cmd.first} #{cmd[1]}\n#{err}" unless status.success?
+  out
+end
+
+%w[gpg secret-tool gh].each do |program|
+  abort "#{program} is missing." unless system("command -v #{program} >/dev/null")
+end
+if system("secret-tool", "lookup", "service", SERVICE, "account", ACCOUNT, out: File::NULL, err: File::NULL)
+  abort "An apt signing key is already in the keyring (service #{SERVICE}, account #{ACCOUNT}). Not replacing it."
+end
+abort "#{PUBLIC_GPG} already exists. Not replacing it." if File.exist?(PUBLIC_GPG)
+abort "Log in first: gh auth login" unless system("gh", "auth", "status", out: File::NULL, err: File::NULL)
+
+Dir.mktmpdir("apt-key", ENV.fetch("XDG_RUNTIME_DIR", Dir.home)) do |dir|
+  FileUtils.chmod(0o700, dir)
+  env = { "GNUPGHOME" => dir }
+  gpg = %w[gpg --batch --pinentry-mode loopback --passphrase]
+  run(*gpg, "", "--quick-gen-key", USER_ID, "ed25519", "sign", "never", env: env)
+  secret = run("gpg", "--armor", "--export-secret-keys", USER_ID, env: env)
+  run("secret-tool", "store", "--label", "WireCat apt signing key", "service", SERVICE, "account", ACCOUNT, stdin: secret)
+  run("gh", "secret", "set", SECRET, "--repo", REPO, "--env", "release", stdin: secret)
+  secret = nil
+  File.binwrite(PUBLIC_GPG, run("gpg", "--export", USER_ID, env: env))
+  File.write(PUBLIC_ASC, run("gpg", "--armor", "--export", USER_ID, env: env))
+  fingerprint = run("gpg", "--with-colons", "--fingerprint", USER_ID, env: env)[/^fpr:+([0-9A-F]+):/, 1]
+  File.open(KEYS_MD, "a") do |f|
+    f.puts "| WireCat apt signing key (ed25519, fingerprint #{fingerprint}) | `#{SERVICE}` | `#{ACCOUNT}` | " \
+           "Signs apt.wirecat.dev; also GitHub env secret `#{SECRET}` (release). Made #{Time.now.strftime('%F')} by " \
+           "wirecat-desktop bin/apt-key-create. Lost = every user re-adds the repository |"
+  end
+  puts "Saved the private key to the keyring (service #{SERVICE}, account #{ACCOUNT}) and to GitHub (#{SECRET})."
+  puts "Fingerprint: #{fingerprint}"
+  puts "Wrote #{PUBLIC_GPG} and #{PUBLIC_ASC}, and a line in #{KEYS_MD}."
+  puts "Copy it into the \"WireCat signing\" password-manager entry: " \
+       "secret-tool lookup service #{SERVICE} account #{ACCOUNT} | wl-copy"
+end

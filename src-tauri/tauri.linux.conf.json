@@ -7,7 +7,9 @@
         "conflicts": ["wire-cat"],
         "replaces": ["wire-cat"],
         "files": {
-          "/usr/share/metainfo/dev.wirecat.desktop.metainfo.xml": "linux/wirecat.metainfo.xml"
+          "/usr/share/metainfo/dev.wirecat.desktop.metainfo.xml": "linux/wirecat.metainfo.xml",
+          "/etc/apt/sources.list.d/wirecat.sources": "linux/wirecat.sources",
+          "/usr/share/keyrings/wirecat-archive-keyring.gpg": "linux/wirecat-archive-keyring.gpg"
         }
       },
       "rpm": {

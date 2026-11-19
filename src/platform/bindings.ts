@@ -1762,7 +1762,12 @@ export type UpdateFailure = { reason: "offline"; detail: string } |
  *  never asks for (rule 6): it downloads the signed package and hands it to the system's installer, which asks for the
  *  password itself. The updater plugin's own `install` would run `pkexec` or pipe a password to `sudo -S`.
  */
-export type UpdateKind = "self" | "deb" | "rpm" | 
+export type UpdateKind = "self" | "deb" | 
+/**
+ *  A .deb copy whose apt source is set up: Software Updater or `apt upgrade` installs the update, so the app
+ *  downloads nothing.
+ */
+"apt" | "rpm" | 
 /**  A Linux build the bundler did not mark (`pnpm app`): which file would replace it is unknown. */
 "other";
 

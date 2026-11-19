@@ -188,6 +188,53 @@ jobs:
           path: self-test
           if-no-files-found: ignore
 
+  # Adds https://apt.wirecat.dev the way its page says, installs the release from it and checks what App Center reads:
+  # one catalog it cannot parse empties its whole Debian list (FIND-2800 in the apt plan).
+  apt:
+    needs: tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      URL: https://apt.wirecat.dev
+      TAG: ${{ needs.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          version="${TAG#v}"
+          bash .github/scripts/ubuntu-dns.sh
+          sudo curl -fsSLo /usr/share/keyrings/wirecat-archive-keyring.gpg "$URL/wirecat-archive-keyring.gpg"
+          sudo curl -fsSLo /etc/apt/sources.list.d/wirecat.sources "$URL/wirecat.sources"
+          # Pages caches files for up to 10 minutes, so a release minutes old may need a few tries.
+          for i in $(seq 1 20); do
+            sudo apt-get -o Acquire::Retries=3 update -q
+            if apt-cache madison wirecat | grep -q " $version "; then break; fi
+            if [ "$i" = 20 ]; then
+              echo "::error::$URL does not list wirecat $version."
+              apt-cache madison wirecat
+              exit 1
+            fi
+            sleep 30
+          done
+          sudo apt-get -o Acquire::Retries=3 install -y -q appstream "wirecat=$version"
+          if dpkg -L wirecat | grep -qx /etc/apt/sources.list.d/wirecat.sources; then
+            if sudo apt-get update -q 2>&1 | grep -i "configured multiple times"; then
+              echo "::error::The .deb's apt source and the documented one are both active."
+              exit 1
+            fi
+          else
+            echo "::notice::wirecat $version does not add the apt source itself (built before the apt key)."
+          fi
+          curl -fsSL "$URL/dists/stable/main/dep11/Components-amd64.yml.gz" | gunzip > components.yml
+          appstreamcli convert --format=xml components.yml components.xml
+          for want in '<pkgname>wirecat</pkgname>' '<developer_name>WireCat</developer_name>' '<icon type="remote"'; do
+            grep -qF "$want" components.xml || { echo "::error::The catalog lacks $want."; exit 1; }
+          done
+          sudo appstreamcli refresh --force
+          appstreamcli get dev.wirecat.desktop | tee appstream.txt
+          grep -qx 'Developer: WireCat' appstream.txt || { echo "::error::AppStream shows no developer WireCat."; exit 1; }
+
   fedora:
     needs: tag
     runs-on: ubuntu-latest
