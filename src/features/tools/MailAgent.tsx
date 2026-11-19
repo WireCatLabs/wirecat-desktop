@@ -17,6 +17,7 @@ import {
 import { useBackgroundAgents } from "@/shared/background-agent-store"
 import { errorText } from "@/shared/errors"
 import { backgroundAgentMessages } from "@/shared/messages-background-agent"
+import { scheduleEditorMessages } from "@/shared/messages-schedule-editor"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -28,7 +29,6 @@ import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
 import { openTool } from "./go"
 import { type MailAgentText, mailAgentMessages } from "./messages-mail-agent"
-import { syncScheduleMessages } from "./messages-sync-schedule"
 
 const TONE: Record<RunOutcome, LampTone> = { ok: "ok", skipped: "warn", failed: "bad" }
 
@@ -44,7 +44,7 @@ const skipWhy = (m: MailAgentText, { reason }: Skipped) =>
  */
 export function MailAgent({ tool }: { tool: CatalogTool }) {
   const m = useMessages(mailAgentMessages)
-  const duration = useMessages(syncScheduleMessages).duration
+  const duration = useMessages(scheduleEditorMessages).duration
   const headingId = useId()
   const switchId = useId()
   const helpId = useId()

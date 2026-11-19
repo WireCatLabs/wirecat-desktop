@@ -50,7 +50,7 @@ pub async fn sync_schedule_status(id: String, profile: String) -> Result<sync_sc
     crate::log::command("sync_schedule_status", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        attempt(move || sync_schedule::status(tool, &profile)).await
+        attempt(move || sync_schedule::status(tool, sync_schedule::Job::Sync, &profile)).await
     })
     .await
 }
@@ -73,7 +73,7 @@ pub async fn sync_schedule_set(
                 (None, Some(at)) => Some(sync_schedule::When::At(at)),
                 (None, None) => None,
             };
-            sync_schedule::set(tool, &profile, when)
+            sync_schedule::set(tool, sync_schedule::Job::Sync, &profile, when)
         })
         .await
     })

@@ -61,6 +61,9 @@ import type {
   FolderLevel,
   FolderRemoved,
   HarderStatus,
+  InboxFilter,
+  InboxPage,
+  InboxRun,
   MailAgent,
   MailRules,
   MeetingDetails,
@@ -640,6 +643,17 @@ export type Platform = {
   driveTranscriptsFind(id: string, profile: string): Promise<TranscriptsFound>
   /** One page of a mailbox's rules (catalog `mailRules`), in the CLI's order: protected first. */
   mailRulesList(id: string, profile: string, page: number, limit: number): Promise<MailRules>
+  /**
+   * One page of every account's mail sorted by the AI model (catalog `mailInbox`), read with `inbox --offline` and
+   * merged: needs an answer first, then the newest. `profiles` is every account; the filter narrows the page.
+   */
+  mailInboxList(id: string, profiles: string[], filter: InboxFilter, page: number, limit: number): Promise<InboxPage>
+  /** One account's `inbox`: sorts its new mail now. `yes` only after the owner agreed to what the tool would send. */
+  mailInboxRun(id: string, profile: string, yes: boolean): Promise<InboxRun>
+  /** The account's sorting on a timer, from the tool's own `schedule list`. */
+  mailInboxScheduleStatus(id: string, profile: string): Promise<SyncSchedule>
+  /** The tool's own `schedule command … -- inbox --yes` at that interval, or `schedule remove` for null. */
+  mailInboxScheduleSet(id: string, profile: string, every: string | null): Promise<SyncSchedule>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.

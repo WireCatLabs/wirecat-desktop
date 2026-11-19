@@ -24,6 +24,7 @@ import { groupsMock } from "./mock-groups"
 import { npmLines } from "./mock-install"
 import { localOnlyMock } from "./mock-local-only"
 import { mailAgentMock } from "./mock-mail-agent"
+import { mailInboxMock } from "./mock-mail-inbox"
 import { mailRulesMock } from "./mock-mail-rules"
 import { mcpServerMock } from "./mock-mcp"
 import { meetingsMock } from "./mock-meetings"
@@ -220,6 +221,12 @@ const forgotten = new Set<string>()
 function mockProfiles(id: string): Profile[] | null {
   if (id === "memo") return null
   if (id === "email") {
+    // `?inbox=…`: two accounts whose mail the AI model sorted (`mock-mail-inbox.ts`).
+    if (params.has("inbox"))
+      return [
+        { name: "personal", signedIn: true },
+        { name: "work", signedIn: true },
+      ]
     if (params.has("sync-schedule") || params.get("sync-recovered") === "email")
       return [{ name: "personal", signedIn: true }]
     return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
@@ -330,6 +337,7 @@ export function createMock(os: Platform["os"]): Platform {
   if (memoState === "missing") installed.delete("memo")
   if (memoState === "old") installed.set("memo", OLD_MEMO)
   if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
+  if (params.has("inbox")) installed.set("email", params.get("inbox") === "old" ? "0.34.0" : "0.35.0")
   if (params.has("sync-schedule") || params.get("sync-recovered") === "email") installed.set("email", "0.22.0")
   if (params.get("clients")?.startsWith("import-")) installed.set("bitrix", LATEST.bitrix ?? "1.0.0")
   // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
@@ -758,6 +766,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncScheduleMock(params),
     ...mailAgentMock(params),
     ...mailRulesMock(params),
+    ...mailInboxMock(params),
     ...documentsMock(),
     ...meetingsMock(),
     ...backgroundAgentMock(params),

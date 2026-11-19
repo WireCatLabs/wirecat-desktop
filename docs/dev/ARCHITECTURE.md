@@ -30,7 +30,7 @@ Shapes that the app and a tool, or the app and a server, must both follow. Chang
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/, people/, groups/, privacy/, about/, fix/).
+  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, inbox/ (the Inbox tab of Digests), tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/, people/, groups/, privacy/, about/, fix/).
   shared/       parts and stores two or more features use: ToolIcon, ToolNeeded, ExtLink, ReportThis, JsonTree, nav, `errorText`, `usePoll`, `safeStorage`, and the stores of tools, agents, storage, system, signin and onboarding (the full list: [guides/reuse.md](guides/reuse.md)). Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
   features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background, the Tailscale, Cloudflare and funnel helper status), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
@@ -253,6 +253,18 @@ src-tauri/src/
   mail_rules.rs one mailbox's rules, read only: mail-cli's own `rules list` (catalog `mailRules`), each rule's
                 conditions, action, tags, protected, `meeting_notes` and source. mail-cli answers every rule at once, so
                 Rust cuts the page the window asked for. Addresses in a rule reach the window only.
+  mail_inbox.rs the Inbox tab of Digests: mail-cli's own `inbox` (catalog `mailInbox`), which sorts new mail with the
+                AI model chosen in Settings into needs an answer, to read and can wait, each with the model's one-line
+                reason. The list is `inbox --offline` for every account the window names (the window passes them all:
+                none is picked here), run side by side, merged, filtered by account and words and cut into one page
+                here, since `inbox` takes no `--limit`, `--page` or query; an account whose read is refused (never
+                synced, store busy, too old) is named with its refusal, never dropped. Sort now is `inbox --json` for
+                one account; the interface runs every account one after another, as they share one model and its rate
+                limit. Under `--json` the tool never asks, so a model outside this computer with memo's `models chats`
+                on ask is refused with `chat-sending.ask` and what it would send (emails, threads, tokens, host); the
+                page shows that and the owner's Send and sort runs that account again with `--yes`. Titles and reasons
+                are other people's mail and the model's reading of it: shown unmasked as plain text, an exception to
+                rule 4 like search.rs, never logged or put in a report. The timer is `sync_schedule.rs`'s inbox job.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
@@ -319,7 +331,8 @@ src-tauri/src/
                 has no `--file -` yet, so it gets `/dev/stdin` (none on Windows: there a save says to use the
                 terminal). A memo without either command answers "unknown command" and the card says it needs an
                 update.
-  sync_schedule.rs an account's sync on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
+  sync_schedule.rs an account's sync, or mail's inbox sorting (`Job::Inbox`, named `mail-inbox-<profile>`, running
+                `inbox --yes`, set on the Settings tab of Digests), on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
                 --every <d> -- <catalog sync.schedule.args>` (or `--at HH:MM`, daily: the setup's "Sync everything on
                 a schedule"), `schedule list`, `schedule run` (its test run, output masked) and `schedule remove`. The
                 tool writes the timer. Its latest run (and `failing_since`) shows under the account, and a failed sync
@@ -1124,7 +1137,8 @@ Guides, Analytics, Search, then Logs and Settings at the bottom. Meetings and Do
 one line each, once their pages exist; an entry without a page would show a disabled «Soon» item.
 
 - **A tab** is an entry with `tabOf`: `agents` is a tab of `tools`, `storage` a tab of `analytics` (owner, NEED-31),
-  `digest-settings` a tab of `digests` (owner, 2026-11-16).
+  `digest-settings` a tab of `digests` (owner, 2026-11-16), `inbox` a tab of `digests` between the two (owner,
+  2026-11-19: mail sorted by the AI model shows there, not on each mail account).
   Its id stays the section id, so `go("agents")`, a saved page, `?section=storage`, the tour and every old link land
   on the tab. `app/TabbedPage.tsx` draws the page: one title, the tabs (`LineTab size="lg"`, React Aria's tabs
   pattern), and the tab's own page in the panel. The tab's page keeps its `Page` and `PageHeader`; inside

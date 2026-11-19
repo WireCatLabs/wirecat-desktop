@@ -41,7 +41,7 @@ describe("Navigation", () => {
     expect(names("Data and settings")).toEqual(["Logs", "Settings"])
   })
 
-  it("opens the old Agents and Storage pages as tabs, and Digests as its own page with a Settings tab", async () => {
+  it("opens the old Agents and Storage pages as tabs, and Digests as its own page with Inbox and Settings tabs", async () => {
     render(<App />)
     expect(
       within(screen.getByRole("tablist", { name: "Tools" }))
@@ -65,7 +65,7 @@ describe("Navigation", () => {
       within(pageTabs("Digests"))
         .getAllByRole("tab")
         .map((t) => t.textContent),
-    ).toEqual(["Digests", "Settings"])
+    ).toEqual(["Digests", "Inbox", "Settings"])
     expect(selectedTab("Digests")).toHaveAccessibleName(/^Digests/)
     expect(await screen.findByRole("navigation", { name: "Days" })).toBeInTheDocument()
     expect(screen.queryByRole("table", { name: "Digests" })).not.toBeInTheDocument()
@@ -92,6 +92,10 @@ describe("Navigation", () => {
     render(<App />)
     await user.click(screen.getByRole("button", { name: /^Digests/ }))
     expect(await screen.findByRole("region", { name: "Today" })).toBeInTheDocument()
+
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Digests", "Inbox", "Settings"])
+    await user.click(screen.getByRole("tab", { name: /^Inbox/ }))
+    expect(useNav.getState().active).toBe("inbox")
 
     await user.click(screen.getByRole("tab", { name: /^Settings/ }))
     expect(useNav.getState().active).toBe("digest-settings")

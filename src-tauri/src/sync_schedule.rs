@@ -1,6 +1,7 @@
-//! A tool's sync on a timer, per account: the tool's own `<bin> <profile> schedule command <name> --every <d> --
-//! <sync words>` (or `--at HH:MM`, daily), `schedule list`, `schedule run` and `schedule remove`. The tool writes the schedule file and the timer; nothing here
-//! does. The schedule is named `<bin>-<profile>`, the name mail's existing ones already carry (`mail-gmail`).
+//! A tool's job on a timer, per account: the tool's own `<bin> <profile> schedule command <name> --every <d> --
+//! <words>` (or `--at HH:MM`, daily), `schedule list`, `schedule run` and `schedule remove`. The tool writes the schedule file and the timer; nothing here
+//! does. Two jobs: the sync, named `<bin>-<profile>`, the name mail's existing ones already carry (`mail-gmail`), and
+//! mail's inbox sorting (`mail_inbox.rs`), named `<bin>-inbox-<profile>`.
 
 use crate::catalog::{self, Tool};
 use crate::digest_schedule::{ScheduleRun, daily_time, is_time, run_of};
@@ -35,6 +36,13 @@ pub enum SyncSchedule {
     },
 }
 
+/// What the timer runs: the account's sync, or mail's `inbox` sorting new mail with the AI model.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Job {
+    Sync,
+    Inbox,
+}
+
 /// When a new schedule runs: at one of the catalog's intervals, or daily at a local `HH:MM`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum When<'a> {
@@ -57,16 +65,25 @@ pub struct ScheduleTest {
 const TEST_TIMEOUT: Duration = Duration::from_hours(1);
 const OUTPUT_CHARS: usize = 6000;
 
-fn source(tool: &Tool) -> Result<&ScheduleSource, String> {
-    tool.sync.as_ref().and_then(|s| s.schedule.as_ref()).ok_or_else(|| format!("{} has no sync schedule", tool.name))
+fn source(tool: &Tool, job: Job) -> Result<&ScheduleSource, String> {
+    match job {
+        Job::Sync => tool.sync.as_ref().and_then(|s| s.schedule.as_ref()),
+        Job::Inbox => tool.mail_inbox.as_ref().map(|i| &i.schedule),
+    }
+    .ok_or_else(|| format!("{} has no such schedule", tool.name))
 }
 
-/// `mail-gmail`. A schedule name is lowercase letters, digits and dashes; a profile name may hold more.
-fn name_of(tool: &Tool, profile: &str) -> Result<String, String> {
+/// `mail-gmail`, `mail-inbox-gmail`. A schedule name is lowercase letters, digits and dashes; a profile name may hold
+/// more.
+fn name_of(tool: &Tool, job: Job, profile: &str) -> Result<String, String> {
     catalog::validate_profile(profile)?;
     let clean: String =
         profile.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
-    Ok(format!("{}-{}", tool.bin, clean.trim_matches('-')))
+    let kind = match job {
+        Job::Sync => "",
+        Job::Inbox => "inbox-",
+    };
+    Ok(format!("{}-{kind}{}", tool.bin, clean.trim_matches('-')))
 }
 
 /// memo's `every 5m`, `every 1h`, `every 90m`: which of `choices` it is, if any.
@@ -102,9 +119,9 @@ fn words(list: &[&str]) -> Vec<String> {
     list.iter().map(|w| (*w).to_string()).collect()
 }
 
-pub fn status(tool: &Tool, profile: &str) -> Result<SyncSchedule, String> {
-    let src = source(tool)?;
-    let name = name_of(tool, profile)?;
+pub fn status(tool: &Tool, job: Job, profile: &str) -> Result<SyncSchedule, String> {
+    let src = source(tool, job)?;
+    let name = name_of(tool, job, profile)?;
     let args = [vec![profile.to_string()], words(&["schedule", "list", "--json"])].concat();
     let (out, json) = call(tool, &args, Duration::from_secs(30))?;
     match json {
@@ -113,15 +130,15 @@ pub fn status(tool: &Tool, profile: &str) -> Result<SyncSchedule, String> {
     }
 }
 
-fn on_args(tool: &Tool, profile: &str, when: When) -> Result<Vec<String>, String> {
-    let src = source(tool)?;
+fn on_args(tool: &Tool, job: Job, profile: &str, when: When) -> Result<Vec<String>, String> {
+    let src = source(tool, job)?;
     let timing = match when {
         When::Every(every) if src.choices.iter().any(|c| c == every) => ["--every", every],
         When::Every(every) => return Err(format!("not an interval {} offers: {every}", tool.name)),
         When::At(at) if is_time(at) => ["--at", at],
         When::At(at) => return Err(format!("not a time of day: {at}")),
     };
-    let name = name_of(tool, profile)?;
+    let name = name_of(tool, job, profile)?;
     let mut args = vec![profile.to_string()];
     args.extend(words(&["schedule", "command", &name]));
     args.extend(words(&timing));
@@ -131,25 +148,25 @@ fn on_args(tool: &Tool, profile: &str, when: When) -> Result<Vec<String>, String
 }
 
 /// `Some(when)` makes or replaces the schedule; `None` removes it (its past runs stay).
-pub fn set(tool: &Tool, profile: &str, when: Option<When>) -> Result<SyncSchedule, String> {
+pub fn set(tool: &Tool, job: Job, profile: &str, when: Option<When>) -> Result<SyncSchedule, String> {
     let args = match when {
-        Some(when) => on_args(tool, profile, when)?,
-        None => {
-            [vec![profile.to_string()], words(&["schedule", "remove", &name_of(tool, profile)?, "--json"])].concat()
-        }
+        Some(when) => on_args(tool, job, profile, when)?,
+        None => [vec![profile.to_string()], words(&["schedule", "remove", &name_of(tool, job, profile)?, "--json"])]
+            .concat(),
     };
     let (out, json) = call(tool, &args, Duration::from_mins(1))?;
     let gone = when.is_none() && json.as_ref().and_then(|v| v["error"]["code"].as_str()) == Some("not_found");
     if out.code != Some(0) && !gone {
         return Err(failure(&out, json.as_ref()));
     }
-    status(tool, profile)
+    status(tool, job, profile)
 }
 
 /// Runs the account's schedule once now and waits for it; a failed run is an answer, not an error.
 pub fn test(tool: &Tool, profile: &str) -> Result<ScheduleTest, String> {
-    source(tool)?;
-    let args = [vec![profile.to_string()], words(&["schedule", "run", &name_of(tool, profile)?, "--json"])].concat();
+    source(tool, Job::Sync)?;
+    let args = [vec![profile.to_string()], words(&["schedule", "run", &name_of(tool, Job::Sync, profile)?, "--json"])]
+        .concat();
     let (out, json) = call(tool, &args, TEST_TIMEOUT)?;
     match json.as_ref() {
         Some(v) if v.get("error").is_none() => Ok(test_of(body(v))),
@@ -179,28 +196,29 @@ mod tests {
     #[test]
     fn the_messengers_and_mail_sync_on_a_timer_with_their_own_schedule_command() {
         assert_eq!(
-            on_args(tool("email"), "gmail", When::Every("5m")).unwrap().join(" "),
+            on_args(tool("email"), Job::Sync, "gmail", When::Every("5m")).unwrap().join(" "),
             "gmail schedule command mail-gmail --every 5m --notify-on failures --json -- sync"
         );
         assert_eq!(
-            on_args(tool("tg"), "personal", When::Every("1h")).unwrap().join(" "),
+            on_args(tool("tg"), Job::Sync, "personal", When::Every("1h")).unwrap().join(" "),
             "personal schedule command tg-personal --every 1h --notify-on failures --json -- messages sync --all --timeout 50m"
         );
-        assert!(on_args(tool("tg"), "personal", When::Every("1m")).is_err());
-        assert!(on_args(tool("tg"), "--all", When::Every("1h")).is_err());
-        assert!(source(tool("memo")).is_err());
+        assert!(on_args(tool("tg"), Job::Sync, "personal", When::Every("1m")).is_err());
+        assert!(on_args(tool("tg"), Job::Sync, "--all", When::Every("1h")).is_err());
+        assert!(source(tool("memo"), Job::Sync).is_err());
     }
 
     #[test]
     fn a_nightly_sync_runs_daily_at_a_time_of_day() {
         assert_eq!(
-            on_args(tool("max"), "work", When::At("04:45")).unwrap().join(" "),
+            on_args(tool("max"), Job::Sync, "work", When::At("04:45")).unwrap().join(" "),
             "work schedule command max-work --at 04:45 --notify-on failures --json -- messages sync --all --timeout 50m"
         );
-        assert!(on_args(tool("max"), "work", When::At("4:45")).is_err());
-        assert!(on_args(tool("max"), "work", When::At("24:00")).is_err());
+        assert!(on_args(tool("max"), Job::Sync, "work", When::At("4:45")).is_err());
+        assert!(on_args(tool("max"), Job::Sync, "work", When::At("24:00")).is_err());
         let v = json!({"items": [{"name": "max-work", "kind": "command", "when": "daily at 04:45", "last": null}]});
-        let SyncSchedule::On { every, daily, .. } = read(source(tool("max")).unwrap(), "max-work", &v) else {
+        let SyncSchedule::On { every, daily, .. } = read(source(tool("max"), Job::Sync).unwrap(), "max-work", &v)
+        else {
             panic!()
         };
         assert_eq!((every, daily.as_deref()), (None, Some("04:45")));
@@ -216,13 +234,26 @@ mod tests {
     }
 
     #[test]
+    fn mail_sorts_its_inbox_on_its_own_schedule_and_says_yes_to_the_model() {
+        assert_eq!(
+            on_args(tool("email"), Job::Inbox, "gmail", When::Every("1h")).unwrap().join(" "),
+            "gmail schedule command mail-inbox-gmail --every 1h --notify-on failures --json -- inbox --yes"
+        );
+        assert!(on_args(tool("email"), Job::Inbox, "gmail", When::Every("5m")).is_err());
+        assert!(source(tool("tg"), Job::Inbox).is_err());
+        let v = json!({"items": [{"name": "mail-inbox-gmail", "kind": "command", "when": "every 1h", "last": null}]});
+        let src = source(tool("email"), Job::Inbox).unwrap();
+        assert!(matches!(read(src, "mail-inbox-gmail", &v), SyncSchedule::On { every: Some(e), .. } if e == "1h"));
+    }
+
+    #[test]
     fn a_schedule_name_is_what_the_tool_accepts() {
-        assert_eq!(name_of(tool("email"), "Work_Mail").unwrap(), "mail-work-mail");
+        assert_eq!(name_of(tool("email"), Job::Sync, "Work_Mail").unwrap(), "mail-work-mail");
     }
 
     #[test]
     fn reads_the_profiles_schedule_with_its_latest_run_and_failing_streak() {
-        let src = source(tool("email")).unwrap();
+        let src = source(tool("email"), Job::Sync).unwrap();
         let v = json!({"items": [
             {"name": "mail-gmail-test", "kind": "command", "when": "every 15m", "last": null},
             {"name": "mail-gmail", "kind": "command", "when": "every 5m", "last": {"at": "2026-11-08T22:26:00Z",
