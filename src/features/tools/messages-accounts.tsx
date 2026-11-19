@@ -5,7 +5,7 @@ import type { RemovalHolder, RemovalKind } from "@/platform/bindings"
 
 type Removes = (typeof ACCOUNT_REMOVES)[number]
 type Keeps = (typeof ACCOUNT_KEEPS)[number]
-export type DataWhat = "messages" | "files" | "meetings" | "mail" | "events" | "records"
+export type DataWhat = "messages" | "files" | "meetings" | "mail" | "events" | "records" | "tracker"
 
 const en = {
   row: {
@@ -65,6 +65,7 @@ const en = {
       mail: "mail",
       events: "calendar events",
       records: "CRM records (deals, leads, contacts and companies)",
+      tracker: "issues, projects and comments",
     } satisfies Record<DataWhat, string>,
     noDelete: (tool: string) =>
       `${tool} cannot delete one account's data yet. Clear storage on the Storage tab of Analytics deletes the data of every account.`,
@@ -219,6 +220,7 @@ const ru: AccountsText = {
       mail: "письма",
       events: "события календаря",
       records: "записи CRM (сделки, лиды, контакты и компании)",
+      tracker: "задачи, проекты и комментарии",
     },
     noDelete: (tool) =>
       `${tool} пока не умеет удалять данные одного аккаунта. «Очистить хранилище» на вкладке «Хранилище» в «Аналитике» удаляет данные всех аккаунтов.`,
@@ -371,6 +373,7 @@ const es: AccountsText = {
       mail: "correos",
       events: "eventos del calendario",
       records: "registros del CRM (negocios, prospectos, contactos y empresas)",
+      tracker: "incidencias, proyectos y comentarios",
     },
     noDelete: (tool) =>
       `${tool} aún no puede borrar los datos de una sola cuenta. Vaciar el almacenamiento en la pestaña Almacenamiento de Analítica borra los datos de todas las cuentas.`,

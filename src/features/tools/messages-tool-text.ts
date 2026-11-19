@@ -22,6 +22,7 @@ export const RU_TAGLINE: Record<string, string> = {
   amo: "Сделки, контакты и компании\u00a0· изменения",
   attio: "Сделки, люди и компании\u00a0· история изменений",
   hubspot: "Сделки, контакты и компании\u00a0· изменения",
+  linear: "Задачи, проекты и комментарии",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
 }
 
@@ -46,6 +47,8 @@ export const RU_SUMMARY: Record<string, string> = {
     "Читайте CRM рабочего пространства Attio — сделки с их этапами, людей и компании — со страницы «Клиенты» и через вашего агента.",
   hubspot:
     "Читайте и меняйте CRM аккаунта HubSpot: сделки, контакты и компании, со страницы «Клиенты» и через вашего агента.",
+  linear:
+    "Копируйте задачи, проекты и комментарии рабочего пространства Linear на этот компьютер, чтобы агент читал их и, если вы разрешите, менял.",
   pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
 }
 
@@ -64,6 +67,7 @@ export const ES_TAGLINE: Record<string, string> = {
   amo: "Negociaciones, contactos y empresas\u00a0· cambios",
   attio: "Negociaciones, personas y empresas\u00a0· historial de cambios",
   hubspot: "Negociaciones, contactos y empresas\u00a0· cambios",
+  linear: "Incidencias, proyectos y comentarios",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
 }
 
@@ -89,5 +93,7 @@ export const ES_SUMMARY: Record<string, string> = {
     "Lee el CRM de un espacio de trabajo de Attio —negociaciones con sus etapas, personas y empresas— desde la página Clientes y con tu agente.",
   hubspot:
     "Lee y cambia el CRM de una cuenta de HubSpot: negociaciones, contactos y empresas, desde la página Clientes y con tu agente.",
+  linear:
+    "Copia las incidencias, proyectos y comentarios de un espacio de trabajo de Linear a este equipo, para que tu agente los lea y, si lo permites, los cambie.",
   pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
 }

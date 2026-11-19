@@ -32,6 +32,7 @@ import type { Platform } from "./types"
 // Asterisk (`?signin-plan=pbx:mysql`): the source is saved as settings, then checked; `?signin-fail=pbx:network`.
 // Yandex Disk (`?signin=ydisk`): the pasted token is checked, then saved.
 // Attio (`?signin=attio`): the pasted access token is checked, then saved.
+// Linear (`?signin=linear`): the pasted personal API key is checked, then saved.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -119,6 +120,10 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     return signedIn
   },
   async attio(s) {
+    if (await s.wait(1500)) return STOPPED
+    return signedIn
+  },
+  async linear(s) {
     if (await s.wait(1500)) return STOPPED
     return signedIn
   },

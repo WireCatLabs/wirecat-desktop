@@ -6,6 +6,7 @@ import bitrix24 from "@/assets/logos/bitrix24.svg"
 import calendar from "@/assets/logos/google-calendar.svg"
 import drive from "@/assets/logos/google-drive.svg"
 import hubspot from "@/assets/logos/hubspot.png"
+import linear from "@/assets/logos/linear.png"
 import max from "@/assets/logos/max.png"
 import notion from "@/assets/logos/notion.svg"
 import whatsapp from "@/assets/logos/whatsapp.svg"
@@ -27,6 +28,7 @@ const LOGOS: Record<string, string> = {
   amo: amocrm,
   attio,
   hubspot,
+  linear,
   notion,
   ydisk: yandexDisk,
 }

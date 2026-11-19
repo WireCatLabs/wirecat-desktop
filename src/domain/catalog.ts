@@ -275,7 +275,7 @@ const ToolSchema = v.object({
       run: v.nullable(v.array(v.string())),
       last: v.nullable(v.array(v.string())),
       lastShape: v.picklist(["runs", "driveStatus"]),
-      what: v.picklist(["messages", "files", "meetings", "calls", "notes and mail", "mail", "records"]),
+      what: v.picklist(["messages", "files", "meetings", "calls", "notes and mail", "mail", "records", "tracker"]),
       note: v.nullable(v.string()),
       /** The sync on a timer per account, through the tool's own `schedule command`; Rust holds the words. */
       schedule: v.optional(v.nullable(v.object({ every: v.string(), choices: v.array(v.string()) })), null),
