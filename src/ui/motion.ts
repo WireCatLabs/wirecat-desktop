@@ -28,7 +28,7 @@ export const PANEL_MS = MOTION.slow
 
 export const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
 
-export function scrollerOf(el: Element | null): HTMLElement | null {
+function scrollerOf(el: Element | null): HTMLElement | null {
   for (let node = el?.parentElement ?? null; node; node = node.parentElement) {
     const { overflowY } = getComputedStyle(node)
     if (overflowY === "auto" || overflowY === "scroll") return node
@@ -44,6 +44,15 @@ export function revealIfHidden(el: Element | null, block: ScrollLogicalPosition 
   if (box.top >= view.top && box.bottom <= view.bottom) return
   el.scrollIntoView?.({ block, behavior: reducedMotion() ? "auto" : "smooth" })
 }
+
+/** Brings a list's top into view once its new rows are drawn, only when it is above the view: a page change. */
+export const toListTop = (el: HTMLElement | null) =>
+  requestAnimationFrame(() => {
+    if (!el) return
+    const view = scrollerOf(el)?.getBoundingClientRect().top ?? 0
+    if (el.getBoundingClientRect().top < view)
+      el.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" })
+  })
 
 /** Focus for keyboard and screen readers that never moves the page by itself: `focus()` alone scrolls. */
 export function focusInPlace(el: HTMLElement | null, block: ScrollLogicalPosition = "nearest") {

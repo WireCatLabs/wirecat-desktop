@@ -417,7 +417,8 @@ function createTauri(): Platform {
     driveFoldersChosen: (id, profile) => invoke("drive_folders_chosen", { id, profile }),
     driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
     driveTranscriptsFind: (id, profile) => invoke("drive_transcripts_find", { id, profile }),
-    mailRulesList: (id, profile, page, limit) => invoke("mail_rules_list", { id, profile, page, limit }),
+    mailRulesList: (id, profile, page, limit, query) =>
+      invoke("mail_rules_list", { id, profile, page, limit, query: query ?? null }),
     mailInboxList: (id, profiles, filter, page, limit) =>
       invoke("mail_inbox_list", { id, profiles, filter, page, limit }),
     mailInboxRun: (id, profile, yes) => invoke("mail_inbox_run", { id, profile, yes }),

@@ -75,17 +75,18 @@ pub async fn drive_transcripts_find(id: String, profile: String) -> Result<drive
     .await
 }
 
-/// One page of a mailbox's rules, read only.
+/// One page of a mailbox's rules, read only; `query` keeps the rules that have every word of it.
 #[tauri::command]
 pub async fn mail_rules_list(
     id: String,
     profile: String,
     page: u32,
     limit: u32,
+    query: Option<String>,
 ) -> Result<mail_rules::MailRules, AppError> {
     crate::log::command("mail_rules_list", async move {
         let tool = known_tool(&id)?;
-        attempt(move || mail_rules::list(tool, &profile, page, limit)).await
+        attempt(move || mail_rules::list(tool, &profile, page, limit, query.as_deref().unwrap_or_default())).await
     })
     .await
 }

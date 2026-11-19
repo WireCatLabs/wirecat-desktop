@@ -23,7 +23,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
 import { InfoTip } from "@/ui/InfoTip"
-import { keepRoom, MOTION, reducedMotion, scrollerOf } from "@/ui/motion"
+import { keepRoom, MOTION, reducedMotion, toListTop } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
@@ -190,15 +190,6 @@ export function MemoryPage() {
     </Page>
   )
 }
-
-/** Brings the list's top into view once its new rows are drawn, only when it is above the view. */
-const toListTop = (el: HTMLElement | null) =>
-  requestAnimationFrame(() => {
-    if (!el) return
-    const view = scrollerOf(el)?.getBoundingClientRect().top ?? 0
-    if (el.getBoundingClientRect().top < view)
-      el.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" })
-  })
 
 /**
  * A page change keeps the reader on the list: the page keeps its room so nothing below jumps, the list keeps its

@@ -2,11 +2,11 @@ import type { MailRule, MailRules } from "./bindings"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
-// mail-cli's `rules list` on Email's accounts (`?accounts=email`, then "Mail rules" in an account's menu): a protected
+// mail-cli's `rules list` on Email's accounts (`?accounts=email`, then an account's "Rules" button): a protected
 // sender, Telemost meeting notes (keep and protected, as `rules add --do meeting-notes:telemost` makes them), an
 // envelope rule with what it recorded, a built-in kind and a Gmail filter.
 // `?mail-rules=none` has no rules, `fail` refuses (another sync holds the store), `old` is a mail-cli without
-// `rules list`, `many` has 60 rules, so the list pages.
+// `rules list`, `many` has 60 rules, so the list pages, some with a note (one in Russian) to search for.
 const rule = (over: Partial<MailRule> & Pick<MailRule, "conditions" | "action">): MailRule => ({
   id: null,
   tags: [],
@@ -63,20 +63,39 @@ const RULES: MailRule[] = [
   }),
 ]
 
-const many = (): MailRule[] =>
-  Array.from({ length: 60 }, (_, i) =>
+const NOTES = ["Weekly digest, read on the web", "Рассылка магазина, счета не нужны", "Old project alerts"]
+
+const many = (): MailRule[] => [
+  ...RULES,
+  ...Array.from({ length: 55 }, (_, i) =>
     rule({
       id: 100 + i,
       conditions: [{ key: "domain", value: `news${i + 1}.example.test` }],
       action: i % 3 === 0 ? "skip" : "envelope",
       source: "probe",
+      reason: i % 7 === 3 ? (NOTES[i % NOTES.length] ?? null) : null,
     }),
+  ),
+]
+
+// As Rust finds them (`mail_rules.rs`): every word, in any case, ё typed as е.
+const fold = (text: string) => text.toLowerCase().replaceAll("ё", "е")
+const found = (r: MailRule, query: string) => {
+  const text = fold(
+    [r.action, r.reason, r.meetingNotes, r.source, ...r.tags, ...r.conditions.flatMap((c) => [c.key, c.value])]
+      .filter((part) => part !== null)
+      .join(" "),
   )
+  return fold(query)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((word) => text.includes(word))
+}
 
 export function mailRulesMock(params: URLSearchParams): Pick<Platform, "mailRulesList"> {
   const scenario = params.get("mail-rules")
   return {
-    async mailRulesList(_id, _profile, page, limit): Promise<MailRules> {
+    async mailRulesList(_id, _profile, page, limit, query = ""): Promise<MailRules> {
       await delay(500)
       if (scenario === "old")
         return { result: "failed", code: "needs_update", reason: null, message: "error: unknown command 'rules'" }
@@ -87,7 +106,7 @@ export function mailRulesMock(params: URLSearchParams): Pick<Platform, "mailRule
           reason: "store.locked",
           message: "another mail sync holds the store; try again when it ends",
         }
-      const all = scenario === "none" ? [] : scenario === "many" ? many() : RULES
+      const all = (scenario === "none" ? [] : scenario === "many" ? many() : RULES).filter((r) => found(r, query))
       return { result: "listed", rules: all.slice((page - 1) * limit, page * limit), total: all.length }
     },
   }
