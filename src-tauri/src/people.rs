@@ -91,7 +91,7 @@ fn number(v: &Value) -> Option<String> {
 }
 
 fn strings(v: &Value) -> Vec<String> {
-    v.as_array().map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default()
+    v.as_array().map_or_else(Default::default, |a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
 fn list<T>(v: &Value, key: &str, parse: fn(&Value) -> Option<T>) -> Vec<T> {
@@ -978,7 +978,7 @@ fn one_company_with(call: &Call, id: &str, organization: Option<&str>, name: Opt
     let item = body(&v);
     let organization = text(item, "organization").ok_or("memo named no organization")?;
     let strings = |key: &str| -> Vec<String> {
-        item[key].as_array().map(|a| a.iter().filter_map(id_text).collect()).unwrap_or_default()
+        item[key].as_array().map_or_else(Default::default, |a| a.iter().filter_map(id_text).collect())
     };
     Ok(Resolved::Organized {
         name: organization_name(call, &organization),

@@ -163,7 +163,7 @@ pub fn status() -> Result<DigestSchedules, String> {
 }
 
 pub(crate) fn read(v: &Value, harness: bool) -> DigestSchedules {
-    let items = v["items"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let items = v["items"].as_array().map_or_else(Default::default, Vec::as_slice);
     let digest = items.iter().find(|i| i["name"].as_str() == Some(NAME)).map(|i| {
         Box::new(DigestSchedule {
             when: text(&i["when"]),

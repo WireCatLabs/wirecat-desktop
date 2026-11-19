@@ -344,7 +344,7 @@ mod tests {
         for os in [MANJARO, ALPINE, "", "ID=ubuntu\nUBUNTU_CODENAME=bionic\n", "ID=debian\nVERSION_CODENAME=buster\n"] {
             let l = linux(os);
             assert_eq!(
-                (l.family, l.method, l.commands.clone()),
+                (l.family, l.method, l.commands),
                 (Family::Other, Method::Script, vec![INSTALL_LINE.to_string()]),
                 "{os}"
             );

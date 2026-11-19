@@ -222,24 +222,18 @@ fn task(v: &Value) -> Option<Task> {
         closed_at: text(v, "closed_at"),
         claimed_by: text(v, "claimed_by"),
         claimed_until: text(v, "claimed_until"),
-        assignees: v["assignments"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .filter(|x| x["role"].as_str().is_none_or(|r| r == "assignee"))
-                    .filter_map(|x| text(x, "to"))
-                    .collect()
-            })
-            .unwrap_or_default(),
+        assignees: v["assignments"].as_array().map_or_else(Default::default, |a| {
+            a.iter()
+                .filter(|x| x["role"].as_str().is_none_or(|r| r == "assignee"))
+                .filter_map(|x| text(x, "to"))
+                .collect()
+        }),
         ready: v["ready"].as_bool(),
-        blocked_by: v["blocked_by"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .filter_map(|b| Some(Blocker { key: bare_key(&text(b, "task")?), state: text(b, "state")? }))
-                    .collect()
-            })
-            .unwrap_or_default(),
+        blocked_by: v["blocked_by"].as_array().map_or_else(Default::default, |a| {
+            a.iter()
+                .filter_map(|b| Some(Blocker { key: bare_key(&text(b, "task")?), state: text(b, "state")? }))
+                .collect()
+        }),
         key: text(v, "key")?,
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
@@ -324,7 +318,7 @@ fn list_with(call: &Call, query: &str) -> Result<Read, Failure> {
         }
         Err(f) => return Err(f),
     };
-    let tasks: Vec<Task> = v["items"].as_array().map(|a| a.iter().filter_map(task).collect()).unwrap_or_default();
+    let tasks: Vec<Task> = v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(task).collect());
     let total = v["page"]["total"]["value"].as_u64().unwrap_or(tasks.len() as u64);
     Ok(Read::Ready { more: v["page"]["has_more"].as_bool().unwrap_or(false), total, tasks })
 }
@@ -346,7 +340,7 @@ pub struct ChatTasks {
 
 fn chats_with(call: &Call) -> Result<ChatTasks, Failure> {
     let v = call(&words(&["tasks", "list", "--limit", LIMIT]))?;
-    let tasks = v["items"].as_array().map(|a| a.iter().filter_map(task).collect()).unwrap_or_default();
+    let tasks = v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(task).collect());
     Ok(ChatTasks { tasks, more: v["page"]["has_more"].as_bool().unwrap_or(false) })
 }
 
@@ -381,16 +375,13 @@ pub struct Counts {
 fn counts_of(v: &Value) -> Counts {
     let item = body(v);
     let facet = |k: &str| {
-        item[k]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .filter_map(|c| {
-                        Some(Facet { value: text(c, "value")?, name: text(c, "name"), count: c["count"].as_u64()? })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
+        item[k].as_array().map_or_else(Default::default, |a| {
+            a.iter()
+                .filter_map(|c| {
+                    Some(Facet { value: text(c, "value")?, name: text(c, "name"), count: c["count"].as_u64()? })
+                })
+                .collect()
+        })
     };
     Counts {
         total: item["total"].as_u64().unwrap_or(0),
@@ -426,18 +417,15 @@ fn shown_name(person: &Value) -> Option<String> {
 }
 
 fn read_people(v: &Value) -> Vec<Person> {
-    v["items"]
-        .as_array()
-        .map(|a| {
-            a.iter()
-                .filter_map(|p| {
-                    let reference = text(p, "ref")?;
-                    validate_person(&reference).ok()?;
-                    Some(Person { name: shown_name(p), owner: p["owner"].as_bool().unwrap_or(false), reference })
-                })
-                .collect()
-        })
-        .unwrap_or_default()
+    v["items"].as_array().map_or_else(Default::default, |a| {
+        a.iter()
+            .filter_map(|p| {
+                let reference = text(p, "ref")?;
+                validate_person(&reference).ok()?;
+                Some(Person { name: shown_name(p), owner: p["owner"].as_bool().unwrap_or(false), reference })
+            })
+            .collect()
+    })
 }
 
 const NAMED_MAX: usize = 200;
@@ -524,20 +512,17 @@ pub struct Project {
 /// Inboxes hold tasks made from messages, which the page leaves out.
 fn projects_with(call: &Call) -> Result<Vec<Project>, Failure> {
     let v = call(&with_query(&["projects", "list"], "kind:project"))?;
-    Ok(v["items"]
-        .as_array()
-        .map(|a| {
-            a.iter()
-                .filter_map(|p| {
-                    Some(Project {
-                        reference: text(p, "ref"),
-                        key: text(p, "key")?,
-                        name: text(p, "name").unwrap_or_default(),
-                    })
+    Ok(v["items"].as_array().map_or_else(Default::default, |a| {
+        a.iter()
+            .filter_map(|p| {
+                Some(Project {
+                    reference: text(p, "ref"),
+                    key: text(p, "key")?,
+                    name: text(p, "name").unwrap_or_default(),
                 })
-                .collect()
-        })
-        .unwrap_or_default())
+            })
+            .collect()
+    }))
 }
 
 pub fn projects() -> Result<Vec<Project>, String> {
@@ -577,27 +562,24 @@ fn event(v: &Value) -> Option<Event> {
             name: text(by, "name"),
             owner: by["owner"].as_bool().unwrap_or(false),
         }),
-        changes: v["changes"]
-            .as_object()
-            .map(|o| {
-                o.iter()
-                    .filter_map(|(field, pair)| {
-                        let pair = pair.as_array()?;
-                        Some(Change {
-                            field: field.clone(),
-                            from: pair.first().cloned().unwrap_or(Value::Null),
-                            to: pair.get(1).cloned().unwrap_or(Value::Null),
-                        })
+        changes: v["changes"].as_object().map_or_else(Default::default, |o| {
+            o.iter()
+                .filter_map(|(field, pair)| {
+                    let pair = pair.as_array()?;
+                    Some(Change {
+                        field: field.clone(),
+                        from: pair.first().cloned().unwrap_or(Value::Null),
+                        to: pair.get(1).cloned().unwrap_or(Value::Null),
                     })
-                    .collect()
-            })
-            .unwrap_or_default(),
+                })
+                .collect()
+        }),
     })
 }
 
 fn history_with(call: &Call, key: &str) -> Result<Vec<Event>, Failure> {
     let v = call(&words(&["tasks", "history", key]))?;
-    Ok(v["items"].as_array().map(|a| a.iter().filter_map(event).collect()).unwrap_or_default())
+    Ok(v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(event).collect()))
 }
 
 pub fn history(key: &str) -> Result<Vec<Event>, String> {
@@ -626,7 +608,7 @@ fn comment(v: &Value) -> Option<Comment> {
 /// Oldest first, as memo lists them.
 fn comments_with(call: &Call, key: &str) -> Result<Vec<Comment>, Failure> {
     let v = call(&words(&["tasks", "comments", "list", key]))?;
-    Ok(v["items"].as_array().map(|a| a.iter().filter_map(comment).collect()).unwrap_or_default())
+    Ok(v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(comment).collect()))
 }
 
 pub fn comments(key: &str) -> Result<Vec<Comment>, String> {
@@ -774,8 +756,7 @@ fn saved(v: &Value) -> Result<Write, Failure> {
                 .then(|| LabelChange { from: text(label, "from"), to: text(label, "to") }),
             renumbered: item["renumbered"]
                 .as_array()
-                .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
-                .unwrap_or_default(),
+                .map_or_else(Default::default, |a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()),
             moved: moved_in(&item["moved_subtasks"]),
         });
     }

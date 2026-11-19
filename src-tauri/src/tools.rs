@@ -35,7 +35,8 @@ pub fn detect_all(fresh: bool) -> Vec<ToolState> {
         .iter()
         .map(|t| {
             let owner = catalog::owner(t);
-            let installs = owners.iter().find(|o| o.id == owner.id).map(|o| o.installs.clone()).unwrap_or_default();
+            let installs =
+                owners.iter().find(|o| o.id == owner.id).map_or_else(Default::default, |o| o.installs.clone());
             ToolState { id: t.id.clone(), installs }
         })
         .collect()

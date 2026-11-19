@@ -303,7 +303,7 @@ pub(crate) type Template = fn(&Tool) -> Option<&Vec<String>>;
 
 /// The first installed messenger tool, as long as it has a store; it answers for the whole shared archive.
 pub(crate) fn asked(template: Template) -> Option<&'static Tool> {
-    let ranked = RANKED.lock().map(|r| r.clone()).unwrap_or_default();
+    let ranked = RANKED.lock().map_or_else(|_| Vec::new(), |r| r.clone());
     ranked.iter().map(String::as_str).chain(ASKED_IN_ORDER).find_map(|id| {
         let tool = catalog::tool(id).ok()?;
         template(tool)?;

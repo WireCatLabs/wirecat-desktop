@@ -76,7 +76,7 @@ fn read(item: &Value) -> Option<ZoomAppSetup> {
             Some(ZoomScope {
                 scope: s["scope"].as_str()?.to_string(),
                 required: s["required"].as_bool()?,
-                purpose: s["use"].as_str().map(redact::text).unwrap_or_default(),
+                purpose: s["use"].as_str().map_or_else(Default::default, redact::text),
             })
         })
         .collect::<Option<Vec<_>>>()?;

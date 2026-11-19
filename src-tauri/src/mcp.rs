@@ -126,7 +126,7 @@ fn keys_in(file: &PathBuf, key: &str) -> Result<Vec<String>, String> {
     };
     let v: Value = serde_json::from_str(&text)
         .map_err(|_| format!("{} is not plain JSON, so it could not be read", paths::tilde(&file.to_string_lossy())))?;
-    Ok(v[key].as_object().map(|m| m.keys().cloned().collect()).unwrap_or_default())
+    Ok(v[key].as_object().map_or_else(Default::default, |m| m.keys().cloned().collect()))
 }
 
 /// Only a name a `WireCat` tool registers, built here from the catalog and a validated profile.

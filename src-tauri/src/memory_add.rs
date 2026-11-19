@@ -206,9 +206,9 @@ fn add_args(source: &AddSource, picked: Option<&Path>) -> Result<(Vec<String>, O
 fn added(v: &Value) -> Option<Added> {
     let item = body(v);
     let refs = |v: &Value| -> Vec<String> {
-        v.as_array()
-            .map(|a| a.iter().filter_map(|s| s.as_str().map(str::to_string).or_else(|| text(s, "ref"))).collect())
-            .unwrap_or_default()
+        v.as_array().map_or_else(Default::default, |a| {
+            a.iter().filter_map(|s| s.as_str().map(str::to_string).or_else(|| text(s, "ref"))).collect()
+        })
     };
     Some(Added {
         reference: text(item, "ref")?,
@@ -389,7 +389,7 @@ const BATCH: &str = "batch";
 
 fn readers_with(feed: &Feed) -> Result<Vec<Reader>, String> {
     let v = feed(&words(&READERS), None)?;
-    Ok(v["items"].as_array().map(|a| a.iter().filter_map(reader).collect()).unwrap_or_default())
+    Ok(v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(reader).collect()))
 }
 
 pub fn readers() -> Result<Vec<Reader>, String> {

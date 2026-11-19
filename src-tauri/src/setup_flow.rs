@@ -67,7 +67,7 @@ pub fn show(tool: &Tool, profile: &str) -> Result<Shown, String> {
         return Err(error["message"].as_str().unwrap_or("the tool refused to describe its setup").to_string());
     }
     let document = json.get("item").cloned().ok_or_else(|| format!("{} did not describe its setup.", tool.name))?;
-    let images = package_root(tool, &bin).map(|root| images(&document, &root)).unwrap_or_default();
+    let images = package_root(tool, &bin).map_or_else(Default::default, |root| images(&document, &root));
     Ok(Shown { document, images })
 }
 

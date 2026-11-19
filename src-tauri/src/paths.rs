@@ -185,7 +185,7 @@ fn cached_account_shell() -> Option<PathBuf> {
 /// The shells `/etc/shells` lists that exist on this computer, one per real program (`/bin/bash` and `/usr/bin/bash`
 /// are often the same file), in the file's order.
 pub fn installed_shells() -> Vec<PathBuf> {
-    let listed = std::fs::read_to_string("/etc/shells").map(|c| parse_etc_shells(&c)).unwrap_or_default();
+    let listed = std::fs::read_to_string("/etc/shells").map_or_else(|_| Vec::new(), |c| parse_etc_shells(&c));
     let mut seen = std::collections::HashSet::new();
     listed
         .into_iter()
@@ -390,8 +390,7 @@ pub fn which_in(bin: &str, path: &std::ffi::OsStr) -> Option<PathBuf> {
 /// Every executable with this name, in PATH order; the first one is the one a terminal runs.
 pub fn find_all(bin: &str) -> Vec<PathBuf> {
     let mut found: Vec<PathBuf> = which::which_in_all(bin, Some(absolute(&search_path())), std::env::temp_dir())
-        .map(Iterator::collect)
-        .unwrap_or_default();
+        .map_or_else(|_| Vec::new(), Iterator::collect);
     one_per_folder(&mut found);
     found
 }

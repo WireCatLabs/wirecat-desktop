@@ -102,8 +102,7 @@ pub(crate) fn writes_with(v: &Value) -> Option<CrmWritesWith> {
         profile: text("profile"),
         profiles: w["profiles"]
             .as_array()
-            .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
-            .unwrap_or_default(),
+            .map_or_else(Default::default, |a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()),
         why: text("why"),
     })
 }

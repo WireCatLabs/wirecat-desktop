@@ -535,7 +535,8 @@ pub fn scoped(name: &str) -> Result<(), Problem> {
 
 /// `provenance.rs` asks for a release built by this repository's `release.yml`, so it is the identity checked.
 pub fn repo(url: &str) -> Result<(), Problem> {
-    let parts: Vec<&str> = url.strip_prefix("https://github.com/").map(|r| r.split('/').collect()).unwrap_or_default();
+    let parts: Vec<&str> =
+        url.strip_prefix("https://github.com/").map_or_else(Default::default, |r| r.split('/').collect());
     let ok = parts.len() == 2
         && parts.iter().all(|p| {
             !p.is_empty()

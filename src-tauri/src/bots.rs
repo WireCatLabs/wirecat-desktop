@@ -127,7 +127,7 @@ pub fn field_args(tool: &Tool, profile: &str, values: &BTreeMap<String, String>)
     fields
         .iter()
         .map(|field| {
-            let value = values.get(&field.key).map(|v| v.trim()).unwrap_or_default();
+            let value = values.get(&field.key).map_or_else(Default::default, |v| v.trim());
             validate_field(value).map_err(|e| format!("{}: {e}", field.key))?;
             catalog::with_profile(&field.words, Some(profile)).map(|words| {
                 words.into_iter().map(|w| if w == "{value}" { format!("\"{value}\"") } else { w }).collect()

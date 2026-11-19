@@ -264,7 +264,7 @@ pub fn values(tool: &Tool, profile: Option<&str>, source: &str) -> Result<Vec<Va
     if out.code != Some(0) {
         return Ok(Vec::new());
     }
-    Ok(out.json().map(|body| pick(&body, src)).unwrap_or_default())
+    Ok(out.json().map_or_else(Default::default, |body| pick(&body, src)))
 }
 
 fn text_at(item: &Value, pointer: &str) -> Option<String> {

@@ -119,7 +119,7 @@ fn add_role_with(call: &Call, list: &str, id: &str, label: &str) -> Result<Vec<R
         return Err("A role needs a name.".into());
     }
     let v = call(&decision(&["relationships", "roles", "add", list, id, "--label", &label]))?;
-    Ok(v["items"].as_array().map(|a| a.iter().filter_map(role).collect()).unwrap_or_default())
+    Ok(v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(role).collect()))
 }
 
 pub fn add_role(list: &str, id: &str, label: &str) -> Result<Vec<Role>, String> {

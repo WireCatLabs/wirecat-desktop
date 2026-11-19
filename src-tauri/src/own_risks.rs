@@ -377,7 +377,7 @@ fn moved(gh: &impl GitHub, location: &str) -> Signal {
 /// The shared workflows none of the repository's workflow files call, at the release commit. A repository without a
 /// workflows folder calls none.
 fn standard_checks(gh: &impl GitHub, path: &str, commit: Option<&str>) -> Result<Vec<String>, String> {
-    let at = commit.map(|c| format!("?ref={c}")).unwrap_or_default();
+    let at = commit.map_or_else(Default::default, |c| format!("?ref={c}"));
     let listing = match gh.json(&format!("{API}{path}/contents/.github/workflows{at}")) {
         Ok(listing) => listing,
         Err(e) if e == NOT_FOUND => Value::Array(Vec::new()),
