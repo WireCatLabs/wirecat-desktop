@@ -1663,7 +1663,13 @@
       },
       "mcpServer": null,
       "tasks": null,
-      "sync": null,
+      "sync": {
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "events",
+        "note": null
+      },
       "storeInfo": null,
       "storeTables": null,
       "storeTableSizes": null,

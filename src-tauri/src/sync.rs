@@ -390,7 +390,7 @@ fn counts_of(what: &str, item: &Value) -> Summary {
             }
         }
         "records" => records_summary(item),
-        "tracker" => {
+        "tracker" | "events" => {
             let lists = list(item, "synced");
             Summary {
                 new: lists.iter().map(|l| count(l, "saved")).sum(),
@@ -600,6 +600,19 @@ mod tests {
         assert_eq!(
             summary_of("tracker", &report),
             Summary { new: 15, places: 2, failed: 1, left: 0, complete: false, enrichment: None }
+        );
+    }
+
+    #[test]
+    fn a_calendar_sync_counts_what_each_calendar_saved() {
+        let report = json!({"provider": "google", "account_id": 1, "calendars": 3, "complete": true, "state": "complete",
+            "synced": [
+                {"calendar_id": 1, "round": "changes", "state": "complete", "saved": 4, "removed": 1, "occurrences": 0},
+                {"calendar_id": 2, "round": "changes", "state": "complete", "saved": 0, "removed": 0, "occurrences": 0}],
+            "not_synced": [{"calendar_id": 3}], "progress": {"calendars": 2, "calendars_done": 2, "saved": 4}});
+        assert_eq!(
+            summary_of("events", &report),
+            Summary { new: 4, places: 1, failed: 0, left: 0, complete: true, enrichment: None }
         );
     }
 
