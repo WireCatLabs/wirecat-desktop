@@ -2142,7 +2142,8 @@
         "defaults": true,
         "jsonValues": false,
         "keys": null,
-        "readOnly": []
+        "readOnly": [],
+        "choices": { "sync_since": ["30d", "90d", "1y"] }
       },
       "signIn": {
         "gives": "Lets your agent search and read your mail on this computer. Syncing copies mail here and never changes your mailbox.",

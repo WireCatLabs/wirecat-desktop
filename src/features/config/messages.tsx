@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import type { Messages } from "@/i18n"
+import { type Messages, pluralRu } from "@/i18n"
 
 const en = {
   find: "Find in the JSON",
@@ -80,6 +80,17 @@ const en = {
     addToList: "Add to the list",
     remove: (item: string) => `Remove ${item}`,
     noMatch: "No setting matches.",
+    window: (n: number, unit: "d" | "w" | "y") =>
+      unit === "y"
+        ? n === 1
+          ? "Last year"
+          : `Last ${n} years`
+        : `Last ${n} ${unit === "w" ? (n === 1 ? "week" : "weeks") : n === 1 ? "day" : "days"}`,
+    fromDate: (date: string) => `From ${date}`,
+    other: "Other…",
+    hints: {
+      sync_since: "How far back mail sync reads. A wider window reads older mail on the next sync.",
+    } as Record<string, string>,
   },
   editor: {
     format: "Format",
@@ -239,6 +250,20 @@ const ru: ConfigText = {
     addToList: "Добавить в список",
     remove: (item) => `Удалить ${item}`,
     noMatch: "Ни одна настройка не подходит.",
+    window: (n, unit) =>
+      unit === "y"
+        ? n === 1
+          ? "За последний год"
+          : `За ${pluralRu(n, ["# год", "# года", "# лет"])}`
+        : unit === "w"
+          ? `За ${pluralRu(n, ["# неделю", "# недели", "# недель"])}`
+          : `За ${pluralRu(n, ["# день", "# дня", "# дней"])}`,
+    fromDate: (date) => `С ${date}`,
+    other: "Другое…",
+    hints: {
+      sync_since:
+        "Как далеко назад синхронизация читает почту. Чем шире окно, тем более старые письма прочитает следующая синхронизация.",
+    },
   },
   editor: {
     format: "Форматировать",
@@ -400,6 +425,24 @@ const es: ConfigText = {
     addToList: "Añadir a la lista",
     remove: (item) => `Quitar ${item}`,
     noMatch: "Ningún ajuste coincide.",
+    window: (n, unit) =>
+      unit === "y"
+        ? n === 1
+          ? "Último año"
+          : `Últimos ${n} años`
+        : unit === "w"
+          ? n === 1
+            ? "Última semana"
+            : `Últimas ${n} semanas`
+          : n === 1
+            ? "Último día"
+            : `Últimos ${n} días`,
+    fromDate: (date) => `Desde ${date}`,
+    other: "Otro…",
+    hints: {
+      sync_since:
+        "Hasta dónde lee el correo la sincronización. Con un periodo más amplio, la próxima sincronización lee también el correo más antiguo.",
+    },
   },
   editor: {
     format: "Formatear",

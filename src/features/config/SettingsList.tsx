@@ -8,12 +8,13 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
 import { Pill } from "@/ui/Pill"
+import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
 import { isReadOnly } from "./diff"
 import { configMessages } from "./messages"
 import { reasonText, reportText } from "./reason"
-import { useConfig } from "./store"
+import { sourceOf, useConfig } from "./store"
 
 /** Values someone wrote into a file, as opposed to built-in defaults. */
 const isModified = (r: SettingRow) => r.origin !== "default" && r.origin !== "computed"
@@ -61,6 +62,8 @@ function Row({ row, disabled }: { row: SettingRow; disabled: boolean }) {
   const readOnly = isReadOnly(row)
   const id = `setting-${row.key}`
   const note = row.locked ?? (row.masked ? m.masked : null)
+  const choices = sourceOf(toolId)?.choices?.[row.key]
+  const hint = m.hints[row.key]
 
   return (
     <li className={ROW}>
@@ -88,6 +91,8 @@ function Row({ row, disabled }: { row: SettingRow; disabled: boolean }) {
           >
             {reasonText(all, status.message)}
           </ErrorNotice>
+        ) : !note && hint ? (
+          <p className="mt-1 text-[0.9rem] text-ink-soft">{hint}</p>
         ) : (
           note && (
             <p className="mt-1 flex items-start gap-1.5 text-[0.9rem] text-ink-soft">
@@ -107,7 +112,7 @@ function Row({ row, disabled }: { row: SettingRow; disabled: boolean }) {
             {row.value === null ? m.notSet : shown(row.value)}
           </span>
         ) : (
-          <Control id={id} row={row} disabled={disabled || saving} onCommit={(v) => apply(row, v)} />
+          <Control id={id} row={row} choices={choices} disabled={disabled || saving} onCommit={(v) => apply(row, v)} />
         )}
       </div>
       <ResetCell>
@@ -172,15 +177,19 @@ const field = `h-8 w-full min-w-0 rounded-control border border-line-strong bg-a
 function Control({
   id,
   row,
+  choices,
   disabled,
   onCommit,
 }: {
   id: string
   row: SettingRow
+  choices: readonly string[] | undefined
   disabled: boolean
   onCommit: (value: unknown) => void
 }) {
   const v = row.value
+  if (choices && (typeof v === "string" || v === null))
+    return <ChoiceControl id={id} value={v} choices={choices} disabled={disabled} onCommit={onCommit} />
   if (typeof v === "boolean") {
     return <Switch id={id} checked={v} disabled={disabled} onChange={onCommit} />
   }
@@ -188,8 +197,65 @@ function Control({
   return <TextControl id={id} value={v} disabled={disabled} onCommit={onCommit} />
 }
 
-function TextControl(props: { id: string; value: unknown; disabled: boolean; onCommit: (v: unknown) => void }) {
-  const { id, value, disabled, onCommit } = props
+const OTHER = "\u0000other"
+const WINDOW = /^(\d+)(d|w|y)$/
+
+function choiceText(value: string, m: (typeof configMessages)["en"]["list"]) {
+  const window = WINDOW.exec(value)
+  if (window) return m.window(Number(window[1]), window[2] as "d" | "w" | "y")
+  return /^\d{4}-\d{2}-\d{2}/.test(value) ? m.fromDate(value) : value
+}
+
+/** The values the catalog offers, and Other… to type one in (a date, `2y`); the tool still checks what is typed. */
+function ChoiceControl(props: {
+  id: string
+  value: string | null
+  choices: readonly string[]
+  disabled: boolean
+  onCommit: (v: unknown) => void
+}) {
+  const { id, value, choices, disabled, onCommit } = props
+  const m = useMessages(configMessages).list
+  const [typing, setTyping] = useState(false)
+  if (typing)
+    return (
+      <TextControl
+        id={id}
+        value={value}
+        disabled={disabled}
+        autoFocus
+        onCommit={onCommit}
+        onDone={() => setTyping(false)}
+      />
+    )
+  const current = value ?? ""
+  const listed = current === "" || choices.includes(current) ? choices : [...choices, current]
+  return (
+    <Select
+      id={id}
+      size="sm"
+      className="w-full"
+      value={current}
+      disabled={disabled}
+      placeholder={m.notSet}
+      options={[...listed.map((one) => ({ value: one, label: choiceText(one, m) })), { value: OTHER, label: m.other }]}
+      onChange={(picked) => {
+        if (picked === OTHER) setTyping(true)
+        else if (picked !== current) onCommit(picked)
+      }}
+    />
+  )
+}
+
+function TextControl(props: {
+  id: string
+  value: unknown
+  disabled: boolean
+  onCommit: (v: unknown) => void
+  autoFocus?: boolean
+  onDone?: () => void
+}) {
+  const { id, value, disabled, onCommit, autoFocus, onDone } = props
   const m = useMessages(configMessages).list
   const numeric = typeof value === "number"
   const initial = value === null ? "" : String(value)
@@ -219,9 +285,14 @@ function TextControl(props: { id: string; value: unknown; disabled: boolean; onC
       placeholder={m.notSet}
       disabled={disabled}
       onChange={(e) => setText(e.target.value)}
-      onBlur={commit}
+      onBlur={() => {
+        commit()
+        onDone?.()
+      }}
       onKeyDown={onKeyDown}
       spellCheck={false}
+      // biome-ignore lint/a11y/noAutofocus: the owner just chose Other… to type a value here
+      autoFocus={autoFocus}
       className={cx(field, numeric && "tabular-nums")}
     />
   )

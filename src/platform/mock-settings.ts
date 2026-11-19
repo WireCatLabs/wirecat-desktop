@@ -109,6 +109,52 @@ const drive: { defaults: Layer; profiles: Record<string, Layer> } = {
 }
 const DRIVE_READ_ONLY = new Set(["principal"])
 
+/** mail's own settings beside a few shared ones; `sync_since` is offered as choices (catalog `settings.choices`). */
+const MAIL_BUILT_IN: Layer = { limit: 50, read_attachments: true, max_attachment_mb: 10, sync_since: "30d" }
+const mail: { defaults: Layer; profiles: Record<string, Layer> } = {
+  defaults: {},
+  profiles: { personal: { address: "•••" }, work: { address: "•••", sync_since: "90d" } },
+}
+const MAIL_READ_ONLY = new Set(["address"])
+
+function mailRows(profile: string | null): SettingRow[] {
+  const own = profile ? (mail.profiles[profile] ?? {}) : {}
+  const layer: Origin = profile ? "profile" : "defaults"
+  const keys = [...new Set([...Object.keys(MAIL_BUILT_IN), ...Object.keys(own)])]
+  return keys.map((key) => {
+    const [value, origin]: [Scalar | undefined, Origin] =
+      key in own
+        ? [own[key], "profile"]
+        : key in mail.defaults
+          ? [mail.defaults[key], "defaults"]
+          : [MAIL_BUILT_IN[key], "default"]
+    return row(key, value, origin, {
+      resettable: origin === layer,
+      locked: MAIL_READ_ONLY.has(key) ? "Only session start changes the mailbox." : null,
+    })
+  })
+}
+
+/** As mail's own check: a window back from now, or a date in the past. */
+function mailValue(key: string, value: string): Scalar | Error {
+  if (key === "sync_since") {
+    const window = /^[1-9]\d*[dwy]$/.test(value)
+    const date = /^\d{4}-\d{2}-\d{2}/.test(value) && Date.parse(value.slice(0, 10)) <= Date.now()
+    return window || date
+      ? value
+      : new Error(
+          `sync_since: has to be a window such as 30d, 12w or 1y, or a date in the past such as 2026-01-01, not "${value}"`,
+        )
+  }
+  if (key === "read_attachments")
+    return value === "true" || value === "false" ? value === "true" : new Error(`${key} is true or false`)
+  if (key === "limit" || key === "max_attachment_mb") {
+    const n = Number(value)
+    return Number.isInteger(n) && n >= 1 ? n : new Error(`${key} takes a whole number, not "${value}"`)
+  }
+  return new Error(`unknown setting: ${key}`)
+}
+
 const row = (key: string, value: unknown, origin: Origin, extra: Partial<SettingRow> = {}): SettingRow => ({
   key,
   value,
@@ -209,6 +255,7 @@ export const settingsMock: Pick<Platform, "settingsShow" | "settingsSet" | "sett
       }
     }
     if (id === "drive") return { rows: driveRows(profile), configFile: null, notice: null }
+    if (id === "email") return { rows: mailRows(profile), configFile: "~/.config/mail-cli/config.json", notice: null }
     // As Rust (settings.rs): only a tool the catalog gives no settings command fails.
     if (!findTool(id)?.settings) throw new Error("This tool has no settings command.")
     if (!(id in messengers)) return { rows: [], configFile: null, notice: null }
@@ -227,6 +274,14 @@ export const settingsMock: Pick<Platform, "settingsShow" | "settingsSet" | "sett
     }
     if (id === "pbx") {
       pbx[setting] = value
+      return
+    }
+    if (id === "email") {
+      const parsed = mailValue(setting, value)
+      if (parsed instanceof Error) return reject(parsed.message)
+      if (defaults) mail.defaults[setting] = parsed
+      else if (profile) mail.profiles[profile] = { ...mail.profiles[profile], [setting]: parsed }
+      else return reject("name a profile")
       return
     }
     if (id === "drive") {
@@ -264,6 +319,11 @@ export const settingsMock: Pick<Platform, "settingsShow" | "settingsSet" | "sett
 
   async settingsUnset(id, profile, defaults, setting) {
     await delay(250)
+    if (id === "email") {
+      if (defaults) delete mail.defaults[setting]
+      else if (profile) delete mail.profiles[profile]?.[setting]
+      return
+    }
     const state = messengers[id]
     if (!state) return reject("This tool cannot remove a setting; give it a value instead.")
     if (isShared(setting)) {
