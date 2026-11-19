@@ -303,6 +303,8 @@ const ToolSchema = v.object({
       jsonValues: v.boolean(),
       keys: v.nullable(v.record(v.string(), v.string())),
       readOnly: v.array(v.string()),
+      /** Values a setting offers as a list to pick from; any other value the tool takes is still typed in. */
+      choices: v.optional(v.record(v.string(), v.array(v.string())), {}),
     }),
   ),
   /** Each group is a top-level command word that is also a permission key `config set` accepts. */

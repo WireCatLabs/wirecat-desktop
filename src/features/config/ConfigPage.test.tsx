@@ -97,6 +97,31 @@ describe("Config", () => {
     expect(JSON.parse(editor.value)).toMatchObject({ limit: 25, record: false })
   })
 
+  it("offers mail's sync window as choices, saves one through config set, and takes a typed date", async () => {
+    const user = userEvent.setup()
+    const set = vi.spyOn(platform, "settingsSet")
+    render(<ConfigPage />)
+    await user.click(within(screen.getByRole("group", { name: "Tool" })).getByRole("radio", { name: "Email" }))
+    await user.click(await screen.findByRole("radio", { name: "Defaults (all profiles)" }))
+
+    const window = await screen.findByRole("combobox", { name: "sync_since" })
+    expect(window).toHaveTextContent("Last 30 days")
+    expect(screen.getByText(/A wider window reads older mail on the next sync/)).toBeInTheDocument()
+    await user.click(window)
+    await user.click(screen.getByRole("option", { name: "Last year" }))
+    await waitFor(() => expect(set).toHaveBeenCalledWith("email", null, true, "sync_since", "1y"))
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "sync_since" })).toHaveTextContent("Last year"))
+
+    await user.click(screen.getByRole("combobox", { name: "sync_since" }))
+    await user.click(screen.getByRole("option", { name: "Other…" }))
+    const typed = screen.getByRole("textbox", { name: "sync_since" })
+    expect(typed).toHaveFocus()
+    await user.clear(typed)
+    await user.type(typed, "2025-01-01{Enter}")
+    await waitFor(() => expect(set).toHaveBeenCalledWith("email", null, true, "sync_since", "2025-01-01"))
+    expect(await screen.findByRole("combobox", { name: "sync_since" })).toHaveTextContent("From 2025-01-01")
+  })
+
   it("finds keys and values in the JSON and steps through the matches", async () => {
     const user = userEvent.setup()
     render(<ConfigPage />)
