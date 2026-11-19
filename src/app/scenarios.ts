@@ -129,8 +129,9 @@ export async function runMockScenario() {
     setPassword("y0_sample-token")
     useSignIn.getState().begin()
   }
-  // `?setup=pbx`: pbx describes its own flow (`mock-setup.ts`). `&setup-step=<step>` walks to that step with
-  // `&setup-answers=cdr_source:mysql,phone_region:ES+RU` (`+` makes a list); `check` goes on into the run.
+  // `?setup=pbx` or `?setup=amo`: the tool describes its own flow (`mock-setup.ts`). `&setup-step=<step>` walks to
+  // that step with `&setup-answers=cdr_source:mysql,phone_region:ES+RU` (`+` makes a list); `check` goes on into the
+  // run.
   const setup = params.get("setup")
   if (setup) {
     // No pbx release describes its flow yet, so the catalog names no version; this load stands for the one that does.
