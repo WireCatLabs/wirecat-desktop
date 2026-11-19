@@ -22,7 +22,7 @@ import { FilterMenu } from "@/ui/FilterMenu"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
 import { EMAIL, useInboxPage } from "./api"
-import { InboxGroups } from "./InboxGroups"
+import { InboxGroups, InboxGroupsLoading } from "./InboxGroups"
 import { inboxMessages } from "./messages"
 import { SortRuns } from "./SortRuns"
 import { useInbox } from "./store"
@@ -51,6 +51,8 @@ export function InboxPage() {
   const names = (profiles.data ?? []).map((p) => p.name)
   const model = useModel()
   const sorting = useInbox((s) => s.sorting)
+  // The no-model notice goes above the list: the body waits for memo's answer, so it never pushes the list down.
+  const known = model.chosen !== undefined || model.error !== null
   const status = sorting ? m.sorting : model.chosen ? m.sortHint(model.chosen) : null
   return (
     <Page>
@@ -79,6 +81,12 @@ export function InboxPage() {
         <ToolNeeded gap={gap} />
       ) : (
         <div className="flex flex-col gap-[1.5rem]">
+          {!known && (
+            <div className="flex flex-col gap-[1rem]">
+              <Skeleton className="h-[2.8rem] w-full" />
+              <InboxGroupsLoading label={m.reading} />
+            </div>
+          )}
           {model.chosen === null && <NoModel />}
           {model.error !== null && model.chosen === undefined && (
             <ErrorNotice
@@ -92,8 +100,8 @@ export function InboxPage() {
               {m.modelFailed}
             </ErrorNotice>
           )}
-          <SortRuns />
-          <Sorted profiles={profiles.data === undefined ? undefined : names} />
+          {known && <SortRuns />}
+          {known && <Sorted profiles={profiles.data === undefined ? undefined : names} />}
         </div>
       )}
     </Page>
@@ -161,7 +169,7 @@ function Sorted({ profiles }: { profiles: string[] | undefined }) {
       {answer.error ? (
         <ErrorNotice raw={errorText(answer.error)}>{m.listFailed}</ErrorNotice>
       ) : !data ? (
-        <Skeleton className="h-[20rem] w-full" label={m.reading} />
+        <InboxGroupsLoading label={m.reading} />
       ) : data.total === 0 ? (
         query ? (
           <EmptyState

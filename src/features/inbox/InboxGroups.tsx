@@ -8,6 +8,7 @@ import { ago } from "@/i18n/ago"
 import type { InboxPage, InboxThread } from "@/platform/bindings"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { SectionTitle } from "@/ui/SectionTitle"
+import { Skeleton } from "@/ui/Skeleton"
 import { inboxMessages } from "./messages"
 
 /** Opens the thread on the conversation page, as a chat link from anywhere else in the app does. */
@@ -16,12 +17,10 @@ function open(t: InboxThread) {
   if (target && isConversation(target)) openConversation(target)
 }
 
-/** One page of sorted threads, under the group each is in; a group's heading counts all of it, on every page. */
-export function InboxGroups(props: { page: InboxPage; busy: boolean; title: (profile: string) => string }) {
-  const { page, busy, title } = props
+function useColumns(title: (profile: string) => string): Column<InboxThread>[] {
   const m = useMessages(inboxMessages)
   const lang = useLang()
-  const columns: Column<InboxThread>[] = [
+  return [
     {
       id: "subject",
       head: m.col.subject,
@@ -62,6 +61,16 @@ export function InboxGroups(props: { page: InboxPage; busy: boolean; title: (pro
       ),
     },
   ]
+}
+
+const TABLE = { density: "roomy", minWidth: "44rem", leadWidth: "minmax(16rem,1fr)" } as const
+
+/** One page of sorted threads, under the group each is in; a group's heading counts all of it, on every page. */
+export function InboxGroups(props: { page: InboxPage; busy: boolean; title: (profile: string) => string }) {
+  const { page, busy, title } = props
+  const m = useMessages(inboxMessages)
+  const lang = useLang()
+  const columns = useColumns(title)
   return (
     <div className="flex flex-col gap-[1.5rem]">
       {groupsOf(page).map((g) => (
@@ -72,9 +81,7 @@ export function InboxGroups(props: { page: InboxPage; busy: boolean; title: (pro
               rows={g.threads}
               rowKey={(t) => `${t.profile}|${t.ref}`}
               columns={columns}
-              density="roomy"
-              minWidth="44rem"
-              leadWidth="minmax(16rem,1fr)"
+              {...TABLE}
               onRowClick={open}
               busy={busy}
             />
@@ -94,6 +101,25 @@ function Group(props: { name: string; count: string; children: (label: string) =
         <span className="text-ink-dim tabular-nums">{props.count}</span>
       </SectionTitle>
       {props.children(props.name)}
+    </section>
+  )
+}
+
+/** The first group while the accounts are read: its heading and rows at their loaded heights. */
+export function InboxGroupsLoading({ label }: { label: string }) {
+  const columns = useColumns((p) => p)
+  return (
+    <section className="flex flex-col gap-[0.5rem]">
+      <Skeleton className="h-[1.3rem] w-[10rem]" />
+      <DataTable
+        label={label}
+        rows={[]}
+        rowKey={() => ""}
+        columns={columns}
+        {...TABLE}
+        placeholders={8}
+        loading={label}
+      />
     </section>
   )
 }

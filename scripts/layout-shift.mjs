@@ -3,7 +3,7 @@
 //   node scripts/layout-shift.mjs [page…] --port 1478 [--lang en|ru|es] [--slow 1] [--width 1536] [--height 1024]
 //                                 [--dark]
 //                                 [--sources 5] [--shots ms,ms,…] [--out dir] [--budget 0.01] [--grow 8]
-// Pages: tools tools-manage tools-accounts agents agents-revisit storage clients logs digests settings settings-telegram onboarding-<step> report
+// Pages: tools tools-manage tools-accounts agents agents-revisit storage clients logs digests inbox inbox-nomodel settings settings-telegram onboarding-<step> report
 // (default: all).
 // Needs a local Chrome.
 // Prints the Cumulative Layout Shift (CLS: the sum of every shift's score, 0 = nothing moved) per page, and the
@@ -60,6 +60,8 @@ const PAGES = {
   analytics: { query: "?onboarding=off&section=analytics" },
   logs: { query: "?onboarding=off&section=logs" },
   digests: { query: "?onboarding=off&section=digests" },
+  inbox: { query: "?onboarding=off&section=inbox&inbox=on&ai=anthropic" },
+  "inbox-nomodel": { query: "?onboarding=off&section=inbox&inbox=on" },
   settings: { query: "?onboarding=off&section=tools", clicks: [nav("settings")] },
   "tool-settings": { query: "?onboarding=off&section=tools", clicks: [nav("settings"), tab("tool-settings")] },
   "settings-telegram": {
