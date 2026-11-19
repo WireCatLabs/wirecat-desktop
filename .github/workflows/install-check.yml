@@ -232,7 +232,7 @@ jobs:
             grep -qF "$want" components.xml || { echo "::error::The catalog lacks $want."; exit 1; }
           done
           sudo appstreamcli refresh --force
-          appstreamcli get dev.wirecat.desktop | tee appstream.txt
+          appstreamcli get --details dev.wirecat.desktop | tee appstream.txt
           grep -qx 'Developer: WireCat' appstream.txt || { echo "::error::AppStream shows no developer WireCat."; exit 1; }
 
   fedora:
