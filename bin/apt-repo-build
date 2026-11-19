@@ -196,8 +196,8 @@ class Site
       <h1>WireCat apt repository</h1>
       <p>WireCat Desktop for Ubuntu and Debian (amd64). The <code>.deb</code> from
       <a href="https://wirecat.dev">wirecat.dev</a> adds this repository when you install it. To add it by hand:</p>
-      <pre>sudo curl -fsSLo /usr/share/keyrings/wirecat-archive-keyring.gpg #{URL}/wirecat-archive-keyring.gpg
-      sudo curl -fsSLo /etc/apt/sources.list.d/wirecat.sources #{URL}/wirecat.sources
+      <pre>sudo wget -qO /usr/share/keyrings/wirecat-archive-keyring.gpg #{URL}/wirecat-archive-keyring.gpg
+      sudo wget -qO /etc/apt/sources.list.d/wirecat.sources #{URL}/wirecat.sources
       sudo apt update
       sudo apt install wirecat</pre>
       <p>Updates then come through Software Updater or <code>sudo apt upgrade</code>.

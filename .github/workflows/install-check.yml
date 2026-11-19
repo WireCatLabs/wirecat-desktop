@@ -204,8 +204,8 @@ jobs:
       - run: |
           version="${TAG#v}"
           bash .github/scripts/ubuntu-dns.sh
-          sudo curl -fsSLo /usr/share/keyrings/wirecat-archive-keyring.gpg "$URL/wirecat-archive-keyring.gpg"
-          sudo curl -fsSLo /etc/apt/sources.list.d/wirecat.sources "$URL/wirecat.sources"
+          sudo wget -qO /usr/share/keyrings/wirecat-archive-keyring.gpg "$URL/wirecat-archive-keyring.gpg"
+          sudo wget -qO /etc/apt/sources.list.d/wirecat.sources "$URL/wirecat.sources"
           # Pages caches files for up to 10 minutes, so a release minutes old may need a few tries.
           for i in $(seq 1 20); do
             sudo apt-get -o Acquire::Retries=3 update -q
