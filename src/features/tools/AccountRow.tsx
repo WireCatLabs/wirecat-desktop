@@ -3,7 +3,7 @@ import { useEffect, useId, useState } from "react"
 import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncSchedules, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
 import { openSettingsAt } from "@/features/config"
-import { useMessages } from "@/i18n"
+import { formatNumber, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { ACCOUNT_NAME_MAX, nameOf, useAccountNames } from "@/shared/account-names-store"
@@ -16,7 +16,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { type MenuItem, SplitButton } from "@/ui/SplitButton"
 import { CheckPanel, useCheck } from "./CheckResult"
 import { DriveFoldersSettings } from "./DriveFoldersSettings"
-import { MailRules } from "./MailRules"
+import { MailRules, useMailRulesCount } from "./MailRules"
 import { toolsMessages } from "./messages"
 import { accountsMessages } from "./messages-accounts"
 import { mailRulesMessages } from "./messages-mail-rules"
@@ -71,7 +71,7 @@ export function AccountRow(props: {
   const check = useCheck(tool)
   const [folders, setFolders] = useState(false)
   const [rules, setRules] = useState(false)
-  const rulesWords = useMessages(mailRulesMessages)
+  const hasRules = !!tool.mailRules && p.signedIn !== false
   const [removing, setRemoving] = useState<"remove" | "signOut" | null>(null)
   const [renaming, setRenaming] = useState(false)
   const [changingId, setChangingId] = useState(false)
@@ -85,7 +85,6 @@ export function AccountRow(props: {
       ? [{ label: check.running ? m.checking : m.check, disabled: check.running, onSelect: () => check.run(p.name) }]
       : []),
     ...(tool.folderPicker && p.signedIn === true ? [{ label: m.folders, onSelect: () => setFolders(true) }] : []),
-    ...(tool.mailRules && p.signedIn !== false ? [{ label: rulesWords.menu, onSelect: () => setRules(true) }] : []),
     ...(tool.setup
       ? [
           {
@@ -109,15 +108,19 @@ export function AccountRow(props: {
       aria-label={m.region(tool.name, p.name)}
     >
       <Collapse open={!leaving} className={ROW_BOX}>
-        <RowLine tool={tool} profile={p} syncs={syncs} items={items} onSignIn={signIn} />
+        <RowLine
+          tool={tool}
+          profile={p}
+          syncs={syncs}
+          items={items}
+          onSignIn={signIn}
+          rules={hasRules && <RulesButton tool={tool} profile={p.name} onOpen={() => setRules(true)} />}
+        />
         <Collapse open={check.shown}>
           <CheckPanel tool={tool} c={check} onClose={check.clear} />
         </Collapse>
         <Collapse open={folders}>
           <DriveFoldersSettings tool={tool} profile={p.name} onClose={() => setFolders(false)} />
-        </Collapse>
-        <Collapse open={rules}>
-          {rules && <MailRules tool={tool} profile={p.name} onClose={() => setRules(false)} />}
         </Collapse>
         <Collapse open={renaming}>
           {renaming && <Rename tool={tool.id} profile={p.name} onClose={() => setRenaming(false)} />}
@@ -137,6 +140,7 @@ export function AccountRow(props: {
           )}
         </Collapse>
       </Collapse>
+      {hasRules && <MailRules tool={tool} profile={p.name} open={rules} onClose={() => setRules(false)} />}
       <RemoveAccountDialog
         tool={tool}
         profile={p.name}
@@ -162,14 +166,27 @@ export function AccountRow(props: {
   )
 }
 
+/** "Rules · 42": the mailbox's rules open in a dialog, so a long list never stretches the account list. */
+function RulesButton(props: { tool: CatalogTool; profile: string; onOpen: () => void }) {
+  const { tool, profile, onOpen } = props
+  const m = useMessages(mailRulesMessages)
+  const count = useMailRulesCount(tool, profile)
+  return (
+    <Button size="sm" variant="secondary" onClick={onOpen} title={m.buttonLabel(profile)} data-place="mail-rules">
+      {count === null ? m.button : m.buttonCount(formatNumber(count))}
+    </Button>
+  )
+}
+
 function RowLine(props: {
   tool: CatalogTool
   profile: Profile
   syncs: boolean
   items: MenuItem[]
   onSignIn: () => void
+  rules: React.ReactNode
 }) {
-  const { tool, profile: p, syncs, items, onSignIn } = props
+  const { tool, profile: p, syncs, items, onSignIn, rules } = props
   const m = useMessages(accountsMessages).row
   const health = useMessages(toolsMessages).health
   const menu = <SplitButton compact items={items} menuLabel={m.menu(p.name)} moreLabel={m.more} />
@@ -185,8 +202,21 @@ function RowLine(props: {
     </Button>
   )
   const name = <AccountName tool={tool.id} profile={p.name} />
-  if (!syncs) return <PlainLine name={name} state={state} action={signIn} menu={menu} />
-  return <SyncingLine tool={tool} profile={p.name} name={name} state={state} menu={menu} />
+  if (!syncs)
+    return (
+      <PlainLine
+        name={name}
+        state={state}
+        action={
+          <>
+            {rules}
+            {signIn}
+          </>
+        }
+        menu={menu}
+      />
+    )
+  return <SyncingLine tool={tool} profile={p.name} name={name} state={state} rules={rules} menu={menu} />
 }
 
 /** An account row's line without sync. Its placeholder fills the same slots, so both have one height. `name` is
@@ -218,6 +248,8 @@ function SyncingFrame(props: {
   name: React.ReactNode
   state?: React.ReactNode
   status: React.ReactNode
+  /** Beside Sync: "Rules · 42" on a mailbox. */
+  rules?: React.ReactNode
   button: React.ReactNode
   menu: React.ReactNode
   followUp?: React.ReactNode
@@ -233,6 +265,7 @@ function SyncingFrame(props: {
           </div>
           {props.status}
         </div>
+        {props.rules}
         {props.button}
         {props.menu}
       </div>
@@ -258,6 +291,7 @@ export function AccountRowPlaceholder(props: {
     </span>
   )
   const menu = <Skeleton className="size-8" />
+  const rules = tool.mailRules && <Skeleton className="h-8 w-24" />
   const syncs = sync && syncsHere(tool) && syncNeedsProfile(tool)
   return (
     <li>
@@ -266,12 +300,13 @@ export function AccountRowPlaceholder(props: {
           <SyncingFrame
             name={name}
             status={<SyncStatusLoading />}
+            rules={rules}
             button={<Skeleton className="h-8 w-28" />}
             menu={menu}
             schedule={syncSchedules(tool) && <ScheduleLoading />}
           />
         ) : (
-          <PlainLine name={name} menu={menu} />
+          <PlainLine name={name} action={rules} menu={menu} />
         )}
       </div>
     </li>
@@ -284,9 +319,10 @@ function SyncingLine(props: {
   profile: string
   name: React.ReactNode
   state: React.ReactNode
+  rules: React.ReactNode
   menu: React.ReactNode
 }) {
-  const { tool, profile, name, state, menu } = props
+  const { tool, profile, name, state, rules, menu } = props
   const c = useSyncControl(tool, profile)
   const health = useMessages(toolsMessages).health
   // The row's pill reads a local file, so a sign-in the service just refused would still say "signed in".
@@ -298,6 +334,7 @@ function SyncingLine(props: {
       name={name}
       state={lost ? <Pill tone="warn">{health.notSignedIn}</Pill> : state}
       status={<SyncStatus c={c} />}
+      rules={rules}
       button={<SyncButton c={c} name={`${tool.name} ${profile}`} />}
       menu={menu}
       followUp={<SyncFollowUp c={c} />}

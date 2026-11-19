@@ -45,6 +45,15 @@ export function revealIfHidden(el: Element | null, block: ScrollLogicalPosition 
   el.scrollIntoView?.({ block, behavior: reducedMotion() ? "auto" : "smooth" })
 }
 
+/** Brings a list's top into view once its new rows are drawn, only when it is above the view: a page change. */
+export const toListTop = (el: HTMLElement | null) =>
+  requestAnimationFrame(() => {
+    if (!el) return
+    const view = scrollerOf(el)?.getBoundingClientRect().top ?? 0
+    if (el.getBoundingClientRect().top < view)
+      el.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" })
+  })
+
 /** Focus for keyboard and screen readers that never moves the page by itself: `focus()` alone scrolls. */
 export function focusInPlace(el: HTMLElement | null, block: ScrollLogicalPosition = "nearest") {
   if (!el) return

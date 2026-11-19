@@ -646,8 +646,11 @@ export type Platform = {
   driveFolderRemove(id: string, profile: string, folder: string): Promise<FolderRemoved>
   /** drive's `transcripts list`: how many Docs look like Meet transcripts or Gemini notes, and the newest names. */
   driveTranscriptsFind(id: string, profile: string): Promise<TranscriptsFound>
-  /** One page of a mailbox's rules (catalog `mailRules`), in the CLI's order: protected first. */
-  mailRulesList(id: string, profile: string, page: number, limit: number): Promise<MailRules>
+  /**
+   * One page of a mailbox's rules (catalog `mailRules`), in the CLI's order: protected first. `query` keeps the rules
+   * with every word of it in their note, match, action, tags or maker, in any case; `total` counts those.
+   */
+  mailRulesList(id: string, profile: string, page: number, limit: number, query?: string): Promise<MailRules>
   /**
    * One page of every account's mail sorted by the AI model (catalog `mailInbox`), read with `inbox --offline` and
    * merged: needs an answer first, then the newest. `profiles` is every account; the filter narrows the page.

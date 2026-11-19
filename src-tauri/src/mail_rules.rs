@@ -69,9 +69,9 @@ fn source(tool: &Tool) -> Result<&MailRulesSource, String> {
     tool.mail_rules.as_ref().ok_or_else(|| format!("{} has no mail rules", tool.name))
 }
 
-/// mail-cli answers every rule at once (its `rules list` takes no `--limit` or `--page`), so the page is cut here
-/// and the window still receives one page.
-pub fn list(tool: &Tool, profile: &str, page: u32, limit: u32) -> Result<MailRules, String> {
+/// mail-cli answers every rule at once (its `rules list` takes no `--limit` or `--page`), so the search and the page
+/// are cut here and the window still receives one page; `total` counts the rules the search found.
+pub fn list(tool: &Tool, profile: &str, page: u32, limit: u32, query: &str) -> Result<MailRules, String> {
     let src = source(tool)?;
     if page == 0 || !(1..=MAX_PAGE).contains(&limit) {
         return Err("That page of mail rules does not exist.".into());
@@ -79,25 +79,48 @@ pub fn list(tool: &Tool, profile: &str, page: u32, limit: u32) -> Result<MailRul
     let argv = catalog::with_profile(&src.list, Some(profile))?;
     let (out, json) = skills::call(tool, &argv, LIST)?;
     if let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) {
-        return Ok(read(json, page, limit));
+        return Ok(read(json, page, limit, query));
     }
     let (message, code, reason) = skills::refusal(&out, json.as_ref(), TOO_OLD);
     Ok(MailRules::Failed { message, code, reason })
 }
 
-fn read(json: &Value, page: u32, limit: u32) -> MailRules {
+fn read(json: &Value, page: u32, limit: u32, query: &str) -> MailRules {
     let body = skills::body(json);
+    let words: Vec<String> = query.split_whitespace().map(fold).collect();
     let rules: Vec<MailRule> = json["items"]
         .as_array()
         .or_else(|| body["items"].as_array())
         .into_iter()
         .flatten()
         .filter_map(rule_of)
+        .filter(|rule| found(rule, &words))
         .collect();
     let total = u32::try_from(rules.len()).unwrap_or(u32::MAX);
     let skip = usize::try_from((page - 1).saturating_mul(limit)).unwrap_or(usize::MAX);
     let take = usize::try_from(limit).unwrap_or(usize::MAX);
     MailRules::Listed { rules: rules.into_iter().skip(skip).take(take).collect(), total }
+}
+
+/// As cli-core compares names: any case, and е for ё, which is how Russian is mostly typed.
+fn fold(text: &str) -> String {
+    text.to_lowercase().replace('ё', "е")
+}
+
+/// Every typed word is somewhere in the rule: its note, what it matches (sender, domain, subject…), what it does,
+/// its tags or who made it.
+fn found(rule: &MailRule, words: &[String]) -> bool {
+    if words.is_empty() {
+        return true;
+    }
+    let mut text: Vec<&str> = vec![&rule.action];
+    text.extend(rule.reason.as_deref());
+    text.extend(rule.meeting_notes.as_deref());
+    text.extend(rule.source.as_deref());
+    text.extend(rule.tags.iter().map(String::as_str));
+    text.extend(rule.conditions.iter().flat_map(|c| [c.key.as_str(), c.value.as_str()]));
+    let text = fold(&text.join(" "));
+    words.iter().all(|word| text.contains(word.as_str()))
 }
 
 fn rule_of(v: &Value) -> Option<MailRule> {
@@ -152,7 +175,7 @@ mod tests {
 
     #[test]
     fn reads_every_rule_in_the_cli_order_with_its_conditions_and_flags() {
-        let MailRules::Listed { rules, total } = read(&answer(), 1, 25) else { panic!("not listed") };
+        let MailRules::Listed { rules, total } = read(&answer(), 1, 25, "") else { panic!("not listed") };
         assert_eq!(total, 4, "a rule without an action is left out");
         assert!(rules[0].protected);
         assert_eq!(rules[1].meeting_notes.as_deref(), Some("telemost"));
@@ -175,20 +198,40 @@ mod tests {
 
     #[test]
     fn cuts_one_page_and_counts_them_all() {
-        let MailRules::Listed { rules, total } = read(&answer(), 2, 3) else { panic!("not listed") };
+        let MailRules::Listed { rules, total } = read(&answer(), 2, 3, "") else { panic!("not listed") };
         assert_eq!((rules.len(), total), (1, 4));
         let nested = serde_json::json!({ "item": { "items": [] } });
-        assert_eq!(read(&nested, 1, 25), MailRules::Listed { rules: vec![], total: 0 });
+        assert_eq!(read(&nested, 1, 25, ""), MailRules::Listed { rules: vec![], total: 0 });
+    }
+
+    #[test]
+    fn finds_rules_by_their_note_match_tags_and_maker_in_any_case_and_counts_only_those() {
+        let found = |query: &str| match read(&answer(), 1, 25, query) {
+            MailRules::Listed { rules, total } => (rules.iter().map(|r| r.id).collect::<Vec<_>>(), total),
+            MailRules::Failed { .. } => panic!("not listed"),
+        };
+        assert_eq!(found("NEVER lose"), (vec![Some(3)], 1), "the note, in any case");
+        assert_eq!(found("shop promo"), (vec![Some(2)], 1), "every word, from the match and the tags");
+        assert_eq!(found("telemost"), (vec![Some(1)], 1), "the sender and the meeting notes");
+        assert_eq!(found("preset:social"), (vec![None], 1), "who made it");
+        assert_eq!(found("  "), (vec![Some(3), Some(1), Some(2), None], 4), "blank is everything");
+        assert_eq!(found("nothing-like-this"), (vec![], 0));
+        let ru = serde_json::json!({ "items": [
+            { "id": 9, "match": { "from": "a@example.com" }, "action": "keep", "reason": "Счёт от Ёлки",
+              "decided_at": "2026-11-01T09:00:00.000Z" },
+        ] });
+        let MailRules::Listed { total, .. } = read(&ru, 1, 25, "СЧЕТ ёлки") else { panic!("not listed") };
+        assert_eq!(total, 1, "Russian in any case, ё typed as е");
     }
 
     #[test]
     fn refuses_a_tool_without_rules_a_bad_profile_and_a_page_that_cannot_exist() {
         let email = catalog::tool("email").unwrap();
-        assert!(list(catalog::tool("tg").unwrap(), "personal", 1, 25).is_err());
-        assert!(list(email, "--help", 1, 25).is_err());
-        assert!(list(email, "personal", 0, 25).is_err());
-        assert!(list(email, "personal", 1, 0).is_err());
-        assert!(list(email, "personal", 1, MAX_PAGE + 1).is_err());
+        assert!(list(catalog::tool("tg").unwrap(), "personal", 1, 25, "").is_err());
+        assert!(list(email, "--help", 1, 25, "").is_err());
+        assert!(list(email, "personal", 0, 25, "").is_err());
+        assert!(list(email, "personal", 1, 0, "").is_err());
+        assert!(list(email, "personal", 1, MAX_PAGE + 1, "").is_err());
         assert_eq!(source(email).unwrap().list, ["{profile}", "rules", "list", "--no-record", "--json"]);
     }
 }

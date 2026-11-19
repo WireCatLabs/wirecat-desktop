@@ -14,11 +14,17 @@ const PROVIDERS: Record<string, string> = { telemost: "Telemost" }
 const provider = (id: string) => PROVIDERS[id] ?? id
 
 const en = {
-  menu: "Mail rules",
+  button: "Rules",
+  buttonCount: (n: string) => `Rules · ${n}`,
+  buttonLabel: (profile: string) => `Open the mail rules for ${profile}`,
   title: (profile: string) => `Mail rules for ${profile}`,
   what: "Which mail this mailbox stores whole, keeps as an envelope (sender, date and size, no text) or skips. Each sync follows them.",
-  close: "Close mail rules",
   loading: "Reading mail rules…",
+  search: "Search the mail rules",
+  searchHint: "A note, a sender, a domain or a tag",
+  nothingFound: "Nothing found",
+  nothingFoundText: (query: string) => `No rule has “${query}” in its note, what it matches or its tags.`,
+  clearSearch: "Clear the search",
   addHint:
     "Rules are added and changed in a terminal. For example, this one saves Telemost meeting notes from mail as meetings and keeps those emails whole and protected:",
   addLabel: "Copy the command",
@@ -55,11 +61,17 @@ const en = {
 }
 
 const ru: typeof en = {
-  menu: "Правила почты",
+  button: "Правила",
+  buttonCount: (n) => `Правила · ${n}`,
+  buttonLabel: (profile) => `Открыть правила почты для ${profile}`,
   title: (profile) => `Правила почты для ${profile}`,
   what: "Какие письма этот ящик хранит целиком, какие только конвертом (отправитель, дата и размер, без текста), а какие пропускает. Каждая синхронизация следует им.",
-  close: "Закрыть правила почты",
   loading: "Читаем правила почты…",
+  search: "Поиск по правилам почты",
+  searchHint: "Заметка, отправитель, домен или тег",
+  nothingFound: "Ничего не нашлось",
+  nothingFoundText: (query) => `«${query}» нет ни в заметках, ни в условиях, ни в тегах правил.`,
+  clearSearch: "Сбросить поиск",
   addHint:
     "Правила добавляют и меняют в терминале. Например, это правило сохраняет конспекты встреч Телемоста из почты как встречи, а сами письма хранит целиком и под защитой:",
   addLabel: "Скопировать команду",
@@ -110,11 +122,17 @@ const ru: typeof en = {
 }
 
 const es: typeof en = {
-  menu: "Reglas de correo",
+  button: "Reglas",
+  buttonCount: (n) => `Reglas · ${n}`,
+  buttonLabel: (profile) => `Abrir las reglas de correo de ${profile}`,
   title: (profile) => `Reglas de correo de ${profile}`,
   what: "Qué correo guarda entero este buzón, cuál guarda solo como sobre (remitente, fecha y tamaño, sin texto) y cuál omite. Cada sincronización las sigue.",
-  close: "Cerrar las reglas de correo",
   loading: "Leyendo las reglas de correo…",
+  search: "Buscar en las reglas de correo",
+  searchHint: "Una nota, un remitente, un dominio o una etiqueta",
+  nothingFound: "No se encontró nada",
+  nothingFoundText: (query) => `Ninguna regla tiene «${query}» en su nota, en lo que filtra ni en sus etiquetas.`,
+  clearSearch: "Borrar la búsqueda",
   addHint:
     "Las reglas se añaden y cambian en una terminal. Por ejemplo, esta guarda como reuniones las notas de Telemost que llegan por correo, y conserva esos correos enteros y protegidos:",
   addLabel: "Copiar el comando",

@@ -3,7 +3,7 @@
 //   node scripts/layout-shift.mjs [page…] --port 1478 [--lang en|ru|es] [--slow 1] [--width 1536] [--height 1024]
 //                                 [--dark]
 //                                 [--sources 5] [--shots ms,ms,…] [--out dir] [--budget 0.01] [--grow 8]
-// Pages: tools tools-manage tools-accounts agents agents-revisit storage clients logs digests inbox inbox-nomodel settings settings-telegram onboarding-<step> report
+// Pages: tools tools-manage tools-accounts tools-mail-rules agents agents-revisit storage clients logs digests inbox inbox-nomodel settings settings-telegram onboarding-<step> report
 // (default: all).
 // Needs a local Chrome.
 // Prints the Cumulative Layout Shift (CLS: the sum of every shift's score, 0 = nothing moved) per page, and the
@@ -73,6 +73,12 @@ const PAGES = {
   "onboarding-install": { query: "?onboarding=install" },
   "onboarding-agents": { query: "?onboarding=agents" },
   "onboarding-signin": { query: "?onboarding=signin" },
+  // Email's accounts, then the first one's mail rules in their dialog: 60 rules, so the pager shows.
+  "tools-mail-rules": {
+    query: "?onboarding=off&section=tools&accounts=email&mail-rules=many",
+    clicks: ['[data-place="mail-rules"] >> nth=0'],
+    watch: "dialog[open]",
+  },
   report: {
     query: "?onboarding=off&section=tools",
     clicks: ['[data-tour="report-problem"]'],
