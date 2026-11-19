@@ -423,3 +423,5 @@ jobs:
       pages: write
       id-token: write
     uses: ./.github/workflows/apt-repo.yml
+    secrets:
+      APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}

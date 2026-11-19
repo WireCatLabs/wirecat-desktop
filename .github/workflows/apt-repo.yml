@@ -5,6 +5,10 @@ name: Apt repository
 # `gh workflow run apt-repo.yml --ref v<version>`, because the release environment admits only v* tags.
 on:
   workflow_call:
+    # A called workflow sees an environment secret only when the caller passes it; otherwise it is silently empty.
+    secrets:
+      APT_SIGNING_KEY:
+        required: true
   workflow_dispatch:
 
 permissions:
