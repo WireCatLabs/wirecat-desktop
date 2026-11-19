@@ -45,6 +45,7 @@ mod install_e2e;
 mod local_only;
 mod log;
 mod mail_agent;
+mod mail_inbox;
 mod mail_rules;
 mod mcp;
 mod mcp_server;
@@ -465,6 +466,10 @@ pub fn run() {
             commands::setup_extras::drive_folder_remove,
             commands::setup_extras::drive_transcripts_find,
             commands::setup_extras::mail_rules_list,
+            commands::mail_inbox::mail_inbox_list,
+            commands::mail_inbox::mail_inbox_run,
+            commands::mail_inbox::mail_inbox_schedule_status,
+            commands::mail_inbox::mail_inbox_schedule_set,
             commands::sync::sync_run,
             commands::sync::sync_stop,
             commands::sync::sync_last,

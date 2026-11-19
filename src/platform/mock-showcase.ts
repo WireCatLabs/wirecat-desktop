@@ -33,7 +33,7 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   drive: "0.55.0",
   memo: "0.131.14",
   gcal: "0.23.0",
-  email: "0.24.0",
+  email: "0.35.0",
   bitrix: "0.13.0",
   amo: "0.1.0",
   attio: "0.1.0",

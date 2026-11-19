@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { InboxSchedules } from "@/features/inbox"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestSpec } from "@/platform/bindings"
 import { Page, PageHeader } from "@/shared/Page"
@@ -82,6 +83,7 @@ function Ready(props: { book: ReadyBook; can: Can; harness: boolean; onPick: (t:
           <DigestTable digests={book.digests} harness={harness} />
         </>
       )}
+      <InboxSchedules />
       {book.others.length > 0 && <OtherSchedules others={book.others} />}
     </>
   )

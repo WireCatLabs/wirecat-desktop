@@ -108,6 +108,10 @@ pub struct Tool {
     /// Only email: mail-cli's own `rules list` for one mailbox, shown read only (`mail_rules.rs`).
     #[serde(default)]
     pub mail_rules: Option<crate::mail_rules::MailRulesSource>,
+    /// Only email: mail-cli's own `inbox`, new mail sorted by the AI model, read and run per account and on a timer
+    /// (`mail_inbox.rs`, `sync_schedule.rs`).
+    #[serde(default)]
+    pub mail_inbox: Option<crate::mail_inbox::MailInboxSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
     /// The messengers' `serve` in the background, which keeps the archive current between syncs.

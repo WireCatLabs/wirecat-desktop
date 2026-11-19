@@ -1,12 +1,5 @@
 import { type Messages, pluralRu } from "@/i18n"
 
-const durationEn = (every: string) => {
-  const n = Number.parseInt(every, 10)
-  if (every.endsWith("m")) return `${n} min`
-  if (every.endsWith("h")) return n === 1 ? "hour" : `${n} hours`
-  return every
-}
-
 const en = {
   region: (account: string) => `Sync schedule of ${account}`,
   on: (every: string) => `Syncs on its own every ${every}`,
@@ -19,24 +12,9 @@ const en = {
   noRunYet: "no run yet",
   setUp: "Sync on a schedule",
   change: "Change schedule",
-  every: "How often",
-  duration: durationEn,
-  turnOn: "Turn on",
-  save: "Save",
-  turnOff: "Turn off",
-  cancel: "Cancel",
-  saving: "Saving…",
   hint: (tool: string) =>
     `${tool} writes its own timer for this account. It runs while you are logged in, even when WireCat is closed.`,
   readFailed: "Could not read this account's schedule.",
-  failed: "Could not change the schedule.",
-}
-
-const durationRu = (every: string) => {
-  const n = Number.parseInt(every, 10)
-  if (every.endsWith("m")) return `${n} мин`
-  if (every.endsWith("h")) return n === 1 ? "час" : `${n} ч`
-  return every
 }
 
 const ru: typeof en = {
@@ -51,24 +29,9 @@ const ru: typeof en = {
   noRunYet: "запусков ещё не было",
   setUp: "Синхронизировать по расписанию",
   change: "Изменить расписание",
-  every: "Как часто",
-  duration: durationRu,
-  turnOn: "Включить",
-  save: "Сохранить",
-  turnOff: "Выключить",
-  cancel: "Отмена",
-  saving: "Сохраняю…",
   hint: (tool) =>
     `${tool} сам создаёт таймер для этого аккаунта. Он работает, пока вы вошли в систему, даже когда WireCat закрыт.`,
   readFailed: "Не удалось прочитать расписание этого аккаунта.",
-  failed: "Не удалось изменить расписание.",
-}
-
-const durationEs = (every: string) => {
-  const n = Number.parseInt(every, 10)
-  if (every.endsWith("m")) return `${n} min`
-  if (every.endsWith("h")) return n === 1 ? "hora" : `${n} horas`
-  return every
 }
 
 const es: typeof en = {
@@ -83,17 +46,9 @@ const es: typeof en = {
   noRunYet: "aún sin ejecuciones",
   setUp: "Sincronizar con horario",
   change: "Cambiar horario",
-  every: "Con qué frecuencia",
-  duration: durationEs,
-  turnOn: "Activar",
-  save: "Guardar",
-  turnOff: "Desactivar",
-  cancel: "Cancelar",
-  saving: "Guardando…",
   hint: (tool) =>
     `${tool} crea su propio temporizador para esta cuenta. Funciona mientras tienes la sesión iniciada, aunque WireCat esté cerrado.`,
   readFailed: "No se pudo leer el horario de esta cuenta.",
-  failed: "No se pudo cambiar el horario.",
 }
 
 export type SyncScheduleText = typeof en

@@ -218,6 +218,19 @@ const ToolSchema = v.object({
   /** Only email: mail-cli's own `rules list` for one mailbox, read only, run by `mail_rules_list`. */
   mailRules: v.optional(v.nullable(v.object({})), null),
   /**
+   * Only email: mail-cli's own `inbox`, new mail sorted by the AI model, on the Inbox tab of Digests from `minVersion`
+   * on; Rust reads every account, runs Sort now and the timer (`every` is the interval a new one starts with).
+   */
+  mailInbox: v.optional(
+    v.nullable(
+      v.object({
+        minVersion: v.string(),
+        schedule: v.object({ every: v.string(), choices: v.array(v.string()) }),
+      }),
+    ),
+    null,
+  ),
+  /**
    * Removing one account with the tool's own words. `remove` is cli-core's `account remove`, run by Rust from
    * `minVersion` on (null: not released yet); before it, `signOut` is the fallback, and `removes` and `keeps` say what
    * that sign-out takes away and what stays, read from each CLI's source.

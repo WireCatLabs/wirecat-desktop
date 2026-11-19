@@ -416,6 +416,11 @@ function createTauri(): Platform {
     driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
     driveTranscriptsFind: (id, profile) => invoke("drive_transcripts_find", { id, profile }),
     mailRulesList: (id, profile, page, limit) => invoke("mail_rules_list", { id, profile, page, limit }),
+    mailInboxList: (id, profiles, filter, page, limit) =>
+      invoke("mail_inbox_list", { id, profiles, filter, page, limit }),
+    mailInboxRun: (id, profile, yes) => invoke("mail_inbox_run", { id, profile, yes }),
+    mailInboxScheduleStatus: (id, profile) => invoke("mail_inbox_schedule_status", { id, profile }),
+    mailInboxScheduleSet: (id, profile, every) => invoke("mail_inbox_schedule_set", { id, profile, every }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
     checkBots: (id) => invoke("check_bots", { id }),

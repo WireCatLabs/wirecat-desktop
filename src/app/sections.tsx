@@ -6,6 +6,7 @@ import {
   FileText,
   Handshake,
   HardDrive,
+  Inbox,
   Link2,
   ListTodo,
   MessagesSquare,
@@ -59,6 +60,7 @@ const ConfigPage = lazyPage(() => import("@/features/config/page").then((m) => (
 const AppSettingsPage = lazyPage(() => import("@/features/settings/page").then((m) => ({ default: m.AppSettingsPage })))
 const LinkPage = lazyPage(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazyPage(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
+const InboxPage = lazyPage(() => import("@/features/inbox/page").then((m) => ({ default: m.InboxPage })))
 const DigestSettingsPage = lazyPage(() =>
   import("@/features/digests/page").then((m) => ({ default: m.DigestSettingsPage })),
 )
@@ -80,6 +82,7 @@ export type SectionId =
   | "search"
   | "tasks"
   | "digests"
+  | "inbox"
   | "digest-settings"
   | "clients"
   | "guides"
@@ -117,6 +120,8 @@ export const sections: readonly Section[] = [
   { id: "tasks", icon: ListTodo, page: TasksPage },
   // What each digest wrote, and apart from it their presets, schedules and editors (owner, 2026-11-16).
   { id: "digests", icon: Newspaper, page: DigestsPage },
+  // Mail sorted by the AI model, beside what the digests wrote rather than on each mail account (owner, 2026-11-19).
+  { id: "inbox", icon: Inbox, page: InboxPage, tabOf: "digests" },
   { id: "digest-settings", icon: Settings, page: DigestSettingsPage, tabOf: "digests" },
   { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "people", icon: Users, page: PeoplePage },

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react"
+import { useEffect, useState } from "react"
 import { type CatalogTool, syncSchedules } from "@/domain/catalog"
 import { type AdviceKind, advice } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
@@ -6,12 +6,11 @@ import { ago } from "@/i18n/ago"
 import type { ScheduleRun } from "@/platform/bindings"
 import { errorText } from "@/shared/errors"
 import { useMachineSetup } from "@/shared/machine-setup-store"
+import { scheduleEditorMessages } from "@/shared/messages-schedule-editor"
+import { ScheduleEditor } from "@/shared/ScheduleEditor"
 import { signedInSince, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
-import { Collapse } from "@/ui/Collapse"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
-import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { syncMessages } from "./messages-sync"
 import { type SyncScheduleText, syncScheduleMessages } from "./messages-sync-schedule"
@@ -31,8 +30,11 @@ function lastWords(last: ScheduleRun | null, m: SyncScheduleText, why: Record<Ad
   return m.lastFailed(ago(last.at), kind === "failed" ? null : why[kind])
 }
 
-const timing = (on: { when: string; every: string | null; daily: string | null }, m: SyncScheduleText) =>
-  on.every ? m.on(m.duration(on.every)) : on.daily ? m.daily(on.daily) : m.onWhen(on.when)
+const timing = (
+  on: { when: string; every: string | null; daily: string | null },
+  m: SyncScheduleText,
+  duration: (every: string) => string,
+) => (on.every ? m.on(duration(on.every)) : on.daily ? m.daily(on.daily) : m.onWhen(on.when))
 
 // min-h: the line keeps a button's height when the read failed and only words are left.
 const SCHEDULE_LINE = "flex min-h-8 flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.875rem] text-ink-dim"
@@ -55,8 +57,8 @@ export function ScheduleLoading() {
 export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: string }) {
   const m = useMessages(syncScheduleMessages)
   const why = useMessages(syncMessages).sync.advice
+  const duration = useMessages(scheduleEditorMessages).duration
   const lang = useLang()
-  const selectId = useId()
   const key = syncKey(tool.id, profile)
   const schedule = useSync((s) => s.schedules[key])
   const run = useSync((s) => s.runs[key])
@@ -118,7 +120,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
           <span className="flex min-w-0 items-center gap-2">
             <Lamp tone={failing ? "bad" : last ? "ok" : "idle"} size="sm" />
             <span>
-              {timing(on, m)} · {lastWords(last, m, why)}
+              {timing(on, m, duration)} · {lastWords(last, m, why)}
             </span>
           </span>
         ) : null}
@@ -139,39 +141,19 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
           )}
         </p>
       )}
-      <Collapse open={open}>
-        <div className="flex flex-col gap-2 rounded-pill border border-line bg-app-2 px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <label htmlFor={selectId} className="text-[0.9rem] font-medium">
-              {m.every}
-            </label>
-            <Select
-              id={selectId}
-              size="sm"
-              value={every}
-              onChange={setEvery}
-              options={choices.map((c) => ({ value: c, label: m.duration(c) }))}
-            />
-            <Button size="sm" variant="primary" disabled={saving} onClick={() => change(every)}>
-              {saving ? m.saving : on ? m.save : m.turnOn}
-            </Button>
-            {on && (
-              <Button size="sm" variant="secondary" disabled={saving} onClick={() => change(null)}>
-                {m.turnOff}
-              </Button>
-            )}
-            <Button size="sm" variant="secondary" disabled={saving} onClick={() => setOpen(false)}>
-              {m.cancel}
-            </Button>
-          </div>
-          <p className="text-[0.85rem] text-ink-dim">{m.hint(tool.name)}</p>
-          <Collapse open={error !== null}>
-            <ErrorNotice inline raw={error}>
-              {error && m.failed}
-            </ErrorNotice>
-          </Collapse>
-        </div>
-      </Collapse>
+      <ScheduleEditor
+        open={open}
+        on={on !== null}
+        choices={choices}
+        every={every}
+        onEvery={setEvery}
+        saving={saving}
+        error={error}
+        onSave={() => change(every)}
+        onOff={() => change(null)}
+        onCancel={() => setOpen(false)}
+        hint={m.hint(tool.name)}
+      />
     </section>
   )
 }

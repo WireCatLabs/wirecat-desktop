@@ -114,6 +114,12 @@ export type Brief = { state: "noMemo" } |
 /**  `body` is `None` when the owner wrote none; `history` counts the bodies an undo can put back. */
 { state: "ready"; body: string | null; chars: number; limit: number; updatedAt: string | null; updatedBy: string | null; history: number };
 
+export type BucketCounts = {
+	answer: number,
+	read: number,
+	later: number,
+};
+
 export type BuiltBy = {
 	repo: string,
 	workflow: string,
@@ -785,6 +791,43 @@ export type HarderStatus = {
 	usdPerMillionInput: number | null,
 	usdPerMillionOutput: number | null,
 	key: EnrichmentKey,
+};
+
+export type InboxAccount = 
+/**  `matching`: its threads the words match, whatever account the filter chose, for the account filter's counts. */
+{ result: "listed"; profile: string; matching: number } | { result: "failed"; profile: string; message: string; code: string | null; reason: string | null };
+
+/**  The filter the window chose. `accounts` empty is every account read; `words` must all be in a title or a reason. */
+export type InboxFilter = {
+	accounts: string[],
+	words: string[],
+};
+
+/**  One page of every account's sorted threads that pass the filter, needs an answer first, then the newest. */
+export type InboxPage = {
+	threads: InboxThread[],
+	total: number,
+	buckets: BucketCounts,
+	/**  Each account the window named, in its order, with what its read gave. */
+	accounts: InboxAccount[],
+};
+
+/**  What one Sort now gave: the threads it lists now, and what it left for the next run in the tool's own words. */
+export type InboxRun = { result: "sorted"; listed: number; notes: string[]; complete: boolean } | { result: "failed"; message: string; code: string | null; reason: string | null };
+
+export type InboxThread = {
+	/**  The account it was read from, as the window named it; the ref names the mailbox address instead. */
+	profile: string,
+	/**  `chat:email/<mailbox>/<thread>`, the link the conversation page opens. */
+	ref: string,
+	title: string | null,
+	/**  `answer`, `read` or `later`. */
+	bucket: string,
+	reason: string,
+	lastEmailAt: string,
+	sortedAt: string,
+	/**  The model that sorted it, as `inbox` names it. */
+	by: string,
 };
 
 export type Install = {

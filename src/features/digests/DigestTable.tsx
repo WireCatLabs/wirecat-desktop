@@ -1,9 +1,10 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react"
 import { formatUsd } from "@/domain/mail-agent"
-import { freeWords, setField, valuesOf } from "@/domain/query-terms"
+import { freeWords, valuesOf } from "@/domain/query-terms"
 import { useLang, useMessages } from "@/i18n"
 import { ago } from "@/i18n/ago"
 import type { DigestItem } from "@/platform/bindings"
+import { filterField } from "@/shared/filter-field"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
@@ -53,15 +54,13 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
   const { busy, openDigest, setScheduled, query, page, pageSize, setQuery, setPage, setPageSize } = useDigestBook()
   const rows = digests.filter((d) => digestMatches(d, query, titleOf(d, m)))
   const at = Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize)))
-  const field = (
-    f: string,
-    options: { value: string; label: string }[],
-    has: (d: DigestItem, v: string) => boolean,
-  ) => ({
-    selected: valuesOf(query, f),
-    onChange: (chosen: string[]) => setQuery(setField(query, f, chosen)),
-    options: options.map((o) => ({ ...o, count: digests.filter((d) => has(d, o.value)).length })),
-  })
+  const field = (f: string, options: { value: string; label: string }[], has: (d: DigestItem, v: string) => boolean) =>
+    filterField(
+      query,
+      setQuery,
+      f,
+      options.map((o) => ({ ...o, count: digests.filter((d) => has(d, o.value)).length })),
+    )
   const sources = [...new Set([...digests.flatMap((d) => d.sources), ...valuesOf(query, "source")])]
 
   const columns: Column<DigestItem>[] = [
