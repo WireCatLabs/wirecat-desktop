@@ -1131,6 +1131,27 @@ describe("signing in to Attio", () => {
   })
 })
 
+describe("signing in to Linear", () => {
+  it("shows Linear's steps and help page, then gives the pasted personal API key to the run", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("linear", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Linear" })
+    expect(within(dialog).getByText(/Give it Read access, which is enough to sync/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: /Open Linear settings/ }))
+    expect(open).toHaveBeenLastCalledWith("https://linear.app/settings/account/security")
+    await userEvent.click(within(dialog).getByRole("button", { name: /Linear's help page/ }))
+    expect(open).toHaveBeenLastCalledWith("https://linear.app/docs/api-and-webhooks")
+    await userEvent.type(within(dialog).getByLabelText("Token"), "lin_api_example")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("linear", "token", "work", expect.any(Function), {
+        password: "lin_api_example",
+      }),
+    )
+  })
+})
+
 describe("signing in to an own tool", () => {
   it("says what its manifest asks for, asks for the token in the window and sends it as the run's stdin", async () => {
     addCommunityTools([{ source: "own", entry: OWN }])

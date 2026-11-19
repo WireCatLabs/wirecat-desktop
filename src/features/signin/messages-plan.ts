@@ -20,6 +20,12 @@ import type { Messages } from "@/i18n"
  * scopes" of Attio's OpenAPI text in attio-cli `src/generated/manifest.ts`, not their labels in the Scopes screen,
  * which the help page does not show; attio-cli `docs/commands.md` (`session start` checks the token with Attio and
  * keeps it in the keyring, else a private file).
+ * Linear (2026-11-19): Linear's https://linear.app/docs/api-and-webhooks (admins and permitted members make personal
+ * API keys in Settings → Account → Security & access; an admin can turn members' keys off; full access or Read, Write,
+ * Admin, Create issues, Create comments; limited to some teams) and https://linear.app/developers/graphql (the
+ * Security & access page, where keys are made and managed); linear-cli `docs/commands.md` (`session start` reads the
+ * key from stdin, checks it with Linear and keeps it in the keyring, else a private file). Read is enough for `sync`;
+ * `issues assign` needs Write.
  */
 /**
  * `appKeys`: the steps open with making the owner's own app keys (`messages-telegram.ts`), the first time only.
@@ -47,6 +53,8 @@ const ZOOM_APP_GUIDE = "https://wirecat.dev/en/docs/zm/zoom-app"
 const YDISK_GUIDE = "https://wirecat.dev/en/docs/ydisk"
 const ATTIO_APP = "https://app.attio.com/"
 const ATTIO_GUIDE = "https://attio.com/help/apps/other-apps/generating-an-api-key"
+const LINEAR_SECURITY = "https://linear.app/settings/account/security"
+const LINEAR_GUIDE = "https://linear.app/docs/api-and-webhooks"
 const YANDEX_NEW_APP = "https://oauth.yandex.ru/client/new/"
 const YANDEX_TOKEN = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
 
@@ -224,6 +232,24 @@ const en = {
       kept: [
         "The token can read only what its scopes allow, and it never expires. Delete it on the same Developers page to stop it.",
         "The token is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
+      ],
+    },
+    linear: {
+      steps: [
+        {
+          text: "Open Linear's Security & access settings, signed in to the workspace you want to use.",
+          link: { url: LINEAR_SECURITY, label: "Open Linear settings" },
+        },
+        "Create a personal API key. If Linear does not offer it, an admin has turned off API keys for members: ask them to allow it.",
+        "Give it Read access, which is enough to sync. Add Write if your agent should change issues.",
+        "You can limit the key to some teams. The copy on this computer then holds only those teams.",
+        "Copy the key and paste it into the field below. linear checks it with Linear before it keeps it.",
+      ],
+      guide: { url: LINEAR_GUIDE, label: "Linear's help page" },
+      time: "Allow about two minutes.",
+      kept: [
+        "The key can do only what its permissions and teams allow. To stop it, revoke it in the same Security & access settings.",
+        "The key is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
       ],
     },
     "email:microsoft": {
@@ -460,6 +486,24 @@ const ru: PlanText = {
         "Токен сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
       ],
     },
+    linear: {
+      steps: [
+        {
+          text: "Откройте настройки «Security & access» в Linear, войдя в нужное рабочее пространство.",
+          link: { url: LINEAR_SECURITY, label: "Открыть настройки Linear" },
+        },
+        "Создайте личный API-ключ. Если Linear этого не предлагает, администратор запретил ключи участникам: попросите его разрешить.",
+        "Дайте ключу право «Read» — этого хватает для синхронизации. Добавьте «Write», если агент должен менять задачи.",
+        "Ключ можно ограничить отдельными командами. Тогда на этот компьютер копируются данные только этих команд.",
+        "Скопируйте ключ и вставьте его в поле ниже. linear проверит его в Linear, прежде чем сохранить.",
+      ],
+      guide: { url: LINEAR_GUIDE, label: "Справка Linear" },
+      time: "Около двух минут.",
+      kept: [
+        "Ключ может делать только то, что разрешают его права и команды. Чтобы отключить его, отзовите его в тех же настройках «Security & access».",
+        "Ключ сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
+      ],
+    },
     "email:microsoft": {
       steps: [
         "Введите адрес почты. Сервер найдётся по нему.",
@@ -690,6 +734,24 @@ const es: PlanText = {
       kept: [
         "El token solo puede leer lo que permiten sus permisos y no caduca. Para desactivarlo, bórralo en la misma página Developers.",
         "El token se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
+      ],
+    },
+    linear: {
+      steps: [
+        {
+          text: "Abre los ajustes Security & access de Linear, con la sesión iniciada en el espacio de trabajo que quieres usar.",
+          link: { url: LINEAR_SECURITY, label: "Abrir ajustes de Linear" },
+        },
+        "Crea una clave de API personal. Si Linear no lo ofrece, un administrador desactivó las claves para los miembros: pídele que lo permita.",
+        "Dale acceso Read, que basta para sincronizar. Añade Write si tu agente debe cambiar incidencias.",
+        "Puedes limitar la clave a algunos equipos. Entonces solo se copian los datos de esos equipos.",
+        "Copia la clave y pégala en el campo de abajo. linear la comprueba con Linear antes de guardarla.",
+      ],
+      guide: { url: LINEAR_GUIDE, label: "Ayuda de Linear" },
+      time: "Unos dos minutos.",
+      kept: [
+        "La clave solo puede hacer lo que permiten sus permisos y equipos. Para desactivarla, revócala en los mismos ajustes Security & access.",
+        "La clave se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
       ],
     },
     "email:microsoft": {

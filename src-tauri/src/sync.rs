@@ -390,6 +390,17 @@ fn counts_of(what: &str, item: &Value) -> Summary {
             }
         }
         "records" => records_summary(item),
+        "tracker" => {
+            let lists = list(item, "synced");
+            Summary {
+                new: lists.iter().map(|l| count(l, "saved")).sum(),
+                places: lists.iter().filter(|l| count(l, "saved") > 0).count() as u64,
+                failed: lists.iter().filter(|l| l.get("error").is_some()).count() as u64,
+                left: 0,
+                complete: flag(item, "complete").unwrap_or(true),
+                enrichment: None,
+            }
+        }
         _ => {
             let mail = list(item, "mail");
             let notes = list(item, "notes");
@@ -408,7 +419,8 @@ fn counts_of(what: &str, item: &Value) -> Summary {
     }
 }
 
-/// An own tool's sync answer has no shape `WireCat` defines (`own_tools.rs` names every own sync "records"), so this
+/// An own tool's sync answer has no shape `WireCat` defines (`own_tools.rs` names an own sync "records" unless it is a
+/// known word), so this
 /// reads the two cli-core gives it: a count per kind the CRM port saved (`"deals": 15`), and the records envelope's
 /// receipt (`"invoices": {"created": 8, "updated": 0, "refused": 0}`), each kind one place.
 fn records_summary(item: &Value) -> Summary {
@@ -573,6 +585,21 @@ mod tests {
         assert_eq!(
             summary_of("records", &again),
             Summary { new: 0, places: 0, failed: 2, left: 0, complete: false, enrichment: None }
+        );
+    }
+
+    #[test]
+    fn a_tracker_sync_counts_what_each_list_saved() {
+        let report = json!({"provider": "linear", "account": "u1", "state": "partial", "complete": false,
+            "synced": [
+                {"kind": "issue", "round": "changes", "reset": false, "state": "complete", "saved": 12, "unlisted": 0},
+                {"kind": "comment", "round": "changes", "reset": false, "state": "complete", "saved": 0, "unlisted": 0},
+                {"kind": "project", "round": "full", "reset": false, "state": "partial", "saved": 3, "unlisted": 0,
+                 "error": "rate limited"}],
+            "gaps": [], "progress": {"requests": 4, "saved": 15, "steps": 3}});
+        assert_eq!(
+            summary_of("tracker", &report),
+            Summary { new: 15, places: 2, failed: 1, left: 0, complete: false, enrichment: None }
         );
     }
 

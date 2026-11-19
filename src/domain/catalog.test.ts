@@ -29,6 +29,7 @@ describe("catalog", () => {
       "amo",
       "attio",
       "hubspot",
+      "linear",
       "pbx",
     ])
     const owners = tools.filter((t) => !t.partOf)
