@@ -6049,7 +6049,7 @@ dependencies = [
 
 [[package]]
 name = "wirecat-desktop"
-version = "0.7.3"
+version = "0.7.4"
 dependencies = [
  "aho-corasick",
  "base64 0.23.1",
