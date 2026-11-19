@@ -339,7 +339,7 @@ pub fn shell_files() -> Vec<ShellFiles> {
     if cfg!(windows) {
         return vec![];
     }
-    Env::current().map(|env| env.shell_files(&env.targets(&exists, &read_some))).unwrap_or_default()
+    Env::current().map_or_else(Default::default, |env| env.shell_files(&env.targets(&exists, &read_some)))
 }
 
 /// Writes `edit`'s change into every target file. The terminal's own file must succeed; another shell's file that

@@ -193,7 +193,7 @@ pub fn run(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn 
     let Some(bin) = crate::tools::program(&tool.bin) else {
         return send(failed(format!("{} is not installed.", tool.name), None, None));
     };
-    let what = source(tool).map(|s| s.what.clone()).unwrap_or_default();
+    let what = source(tool).map_or_else(|_| String::new(), |s| s.what.clone());
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(&bin, &refs, Some(&paths::search_path()));
     let mut stdout = String::new();

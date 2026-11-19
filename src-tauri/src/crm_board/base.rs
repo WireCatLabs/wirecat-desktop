@@ -89,7 +89,7 @@ fn column(v: &Value) -> Option<CrmBaseStage> {
 /// (confirmed mappings only), and what no column holds yet.
 pub fn columns(v: &Value) -> (Vec<CrmBaseStage>, CrmUnsorted) {
     let item = body(v);
-    let stages = item["stages"].as_array().map(|a| a.iter().filter_map(column).collect()).unwrap_or_default();
+    let stages = item["stages"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(column).collect());
     let unsorted = &item["unsorted"];
     (stages, CrmUnsorted { open: count(unsorted, "open"), stages: count(unsorted, "stages") })
 }
@@ -109,5 +109,5 @@ fn entry(v: &Value) -> Option<CrmStageMap> {
 
 /// `stages list`: every CRM pipeline's stage with the base stage it points to, `None` while it points to none.
 pub fn mapping(v: &Value) -> Vec<CrmStageMap> {
-    v["items"].as_array().map(|a| a.iter().filter_map(entry).collect()).unwrap_or_default()
+    v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(entry).collect())
 }

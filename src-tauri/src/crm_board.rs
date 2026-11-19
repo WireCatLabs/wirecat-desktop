@@ -322,7 +322,7 @@ fn pipelines_args(kind: CrmKind) -> Vec<String> {
 
 fn pipelines_from(listed: &Value, writers: &Writers) -> Vec<CrmPipeline> {
     let mut pipelines: Vec<CrmPipeline> =
-        listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default();
+        listed["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(pipeline).collect());
     for p in &mut pipelines {
         p.movable = writer::movable(p, writers);
     }

@@ -164,7 +164,7 @@ pub(crate) fn best<'a>(answers: &'a [(&'static Tool, Result<Answer, String>)]) -
 pub fn compat() -> StoreCompat {
     let answers = probe();
     StoreCompat {
-        clients: best(&answers).map(|(_, v)| clients(v)).unwrap_or_default(),
+        clients: best(&answers).map_or_else(Default::default, |(_, v)| clients(v)),
         tools: answers.iter().map(|(tool, answer)| view(&tool.id, answer)).collect(),
     }
 }

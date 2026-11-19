@@ -92,7 +92,7 @@ fn set_args(
         None => vec![],
     };
     let model = model.map(str::trim).filter(|m| on && !m.is_empty()).map(checked_model).transpose()?;
-    let model = model.map(|m| vec!["--model".to_string(), m.to_string()]).unwrap_or_default();
+    let model = model.map_or_else(Default::default, |m| vec!["--model".to_string(), m.to_string()]);
     let mut out = Vec::with_capacity(src.set.len() + 4);
     for w in &src.set {
         match w.as_str() {

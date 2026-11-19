@@ -418,7 +418,7 @@ pub fn create(hostname: &str) -> Result<String, String> {
     write_secret(CREDENTIALS, &credentials)?;
     let old = load();
     stop_running(old.as_ref());
-    let kept = old.filter(|r| r.hostname == host).map(|r| r.routes).unwrap_or_default();
+    let kept = old.filter(|r| r.hostname == host).map_or_else(Default::default, |r| r.routes);
     save(&Record { hostname: host.clone(), tunnel_id: id, routes: kept, pid: None, metrics: None })?;
     forget_secret(CERT)?;
     Ok(host)

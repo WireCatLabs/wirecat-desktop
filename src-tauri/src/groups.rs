@@ -84,7 +84,7 @@ fn words(parts: &[&str]) -> Vec<String> {
 }
 
 fn strings(v: &Value) -> Vec<String> {
-    v.as_array().map(|a| a.iter().filter_map(|s| s.as_str().map(str::to_string)).collect()).unwrap_or_default()
+    v.as_array().map_or_else(Default::default, |a| a.iter().filter_map(|s| s.as_str().map(str::to_string)).collect())
 }
 
 fn member(v: &Value) -> Option<Member> {
@@ -102,21 +102,19 @@ fn member(v: &Value) -> Option<Member> {
 fn group(v: &Value) -> Option<Group> {
     Some(Group {
         name: v["group"].as_str()?.to_string(),
-        members: v["members"].as_array().map(|a| a.iter().filter_map(member).collect()).unwrap_or_default(),
-        suggested: v["suggested"]
-            .as_array()
-            .map(|a| a.iter().filter_map(|s| s["member"].as_str().map(str::to_string)).collect())
-            .unwrap_or_default(),
+        members: v["members"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(member).collect()),
+        suggested: v["suggested"].as_array().map_or_else(Default::default, |a| {
+            a.iter().filter_map(|s| s["member"].as_str().map(str::to_string)).collect()
+        }),
     })
 }
 
 fn ready(v: &Value) -> Read {
     Read::Ready {
-        groups: v["items"].as_array().map(|a| a.iter().filter_map(group).collect()).unwrap_or_default(),
-        unresolved: v["missing"]
-            .as_array()
-            .map(|a| a.iter().filter_map(|m| m["field"].as_str().map(str::to_string)).collect())
-            .unwrap_or_default(),
+        groups: v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(group).collect()),
+        unresolved: v["missing"].as_array().map_or_else(Default::default, |a| {
+            a.iter().filter_map(|m| m["field"].as_str().map(str::to_string)).collect()
+        }),
     }
 }
 

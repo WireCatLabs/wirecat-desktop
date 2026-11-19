@@ -196,7 +196,7 @@ pub(crate) fn id_of(v: &Value) -> Option<String> {
 }
 
 pub(crate) fn strings(v: &Value) -> Vec<String> {
-    v.as_array().map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default()
+    v.as_array().map_or_else(Default::default, |a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
 /// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
@@ -293,30 +293,26 @@ fn findings_of(v: &Value) -> Vec<Finding> {
             .filter_map(Value::as_array)
             .find_map(|items| items.iter().find(|i| i["id"].as_str() == Some(id)))
     };
-    v["payload"]["findings"]
-        .as_array()
-        .map(|all| {
-            all.iter()
-                .filter_map(|f| {
-                    let id = text(f, "id")?;
-                    let decided = item(&id);
-                    Some(Finding {
-                        outcome: decided.and_then(|i| text(i, "status")),
-                        created: decided.and_then(|i| text_field(i, "reference")),
-                        edits: if open && decided.is_none() { edits_of(&batch, f) } else { Vec::new() },
-                        kind: finding_kind(f)?,
-                        text: finding_text(f)?,
-                        reason: text(f, "reason"),
-                        evidence: f["evidence"]
-                            .as_array()
-                            .map(|e| e.iter().filter_map(|x| text(x, "reference")).collect())
-                            .unwrap_or_default(),
-                        id,
-                    })
+    v["payload"]["findings"].as_array().map_or_else(Default::default, |all| {
+        all.iter()
+            .filter_map(|f| {
+                let id = text(f, "id")?;
+                let decided = item(&id);
+                Some(Finding {
+                    outcome: decided.and_then(|i| text(i, "status")),
+                    created: decided.and_then(|i| text_field(i, "reference")),
+                    edits: if open && decided.is_none() { edits_of(&batch, f) } else { Vec::new() },
+                    kind: finding_kind(f)?,
+                    text: finding_text(f)?,
+                    reason: text(f, "reason"),
+                    evidence: f["evidence"]
+                        .as_array()
+                        .map_or_else(Default::default, |e| e.iter().filter_map(|x| text(x, "reference")).collect()),
+                    id,
                 })
-                .collect()
-        })
-        .unwrap_or_default()
+            })
+            .collect()
+    })
 }
 
 /// A finding's one line. Evidence batches hold facts and tasks; a mail batch also invoices, payments, orders, contacts,
@@ -570,10 +566,9 @@ pub struct Role {
 }
 
 pub(crate) fn role(v: &Value) -> Option<Role> {
-    let labels: BTreeMap<String, String> = v["labels"]
-        .as_object()
-        .map(|o| o.iter().filter_map(|(k, l)| Some((k.clone(), l.as_str()?.to_string()))).collect())
-        .unwrap_or_default();
+    let labels: BTreeMap<String, String> = v["labels"].as_object().map_or_else(Default::default, |o| {
+        o.iter().filter_map(|(k, l)| Some((k.clone(), l.as_str()?.to_string()))).collect()
+    });
     Some(Role {
         list: text(v, "list")?,
         id: text(v, "id")?,
@@ -590,7 +585,9 @@ fn unsupported(e: &str) -> bool {
 
 fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String> {
     let v = call(&words(args))?;
-    Ok(v["items"].as_array().map(|a| a.iter().filter_map(|r| relationship(r, pending)).collect()).unwrap_or_default())
+    Ok(v["items"]
+        .as_array()
+        .map_or_else(Default::default, |a| a.iter().filter_map(|r| relationship(r, pending)).collect()))
 }
 
 /// The links the page shows. Sources report tens of thousands and memo lists oldest first, so the owner's are asked for
@@ -624,7 +621,7 @@ fn relationships(call: &Call, pending: bool) -> Result<Vec<Entry>, String> {
 /// The owner's role lists, or none from a Memo before them: the page then shows a role by its id.
 fn roles(call: &Call) -> Result<Vec<Role>, String> {
     match call(&words(&["relationships", "roles", "list"])) {
-        Ok(v) => Ok(v["items"].as_array().map(|a| a.iter().filter_map(role).collect()).unwrap_or_default()),
+        Ok(v) => Ok(v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(role).collect())),
         Err(e) if unsupported(&e) => Ok(Vec::new()),
         Err(e) => Err(e),
     }
@@ -831,7 +828,7 @@ fn list(
         Err(e) if page == 1 && unsupported(&e) => (call(&words(&parts))?, None),
         Err(e) => return Err(e),
     };
-    let items = v["items"].as_array().map(|a| a.iter().filter_map(parse).collect()).unwrap_or_default();
+    let items = v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(parse).collect());
     Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false), page))
 }
 
@@ -901,9 +898,10 @@ fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
     // ISO 8601 in UTC, so the text order is the time order.
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     let (activity, activity_error) = match agents {
-        Ok(v) => {
-            (Some(v["items"].as_array().map(|a| a.iter().filter_map(activity).collect()).unwrap_or_default()), None)
-        }
+        Ok(v) => (
+            Some(v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(activity).collect())),
+            None,
+        ),
         Err(e) => (None, Some(e)),
     };
     Ok(Read::Ready { entries, more, page, activity, activity_error, links_error, revoke, findings_edit: false, roles })
@@ -951,7 +949,7 @@ fn sources_with(call: &Call, r: &Ref) -> Result<Vec<Source>, String> {
     } else {
         call(&words(&[r.noun(), "show", &r.memo(), "--sources"]))?
     };
-    Ok(body(&v)["sources"].as_array().map(|a| a.iter().filter_map(source).collect()).unwrap_or_default())
+    Ok(body(&v)["sources"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(source).collect()))
 }
 
 pub fn sources(reference: &str) -> Result<Vec<Source>, String> {
@@ -1263,10 +1261,9 @@ fn correct_args_with(r: &Ref, old: &Value, text: &str, change: &Change) -> Resul
     }
     args.extend(["--supersedes".into(), r.memo(), FROM_APP.into()]);
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
-    let mut evidence: Vec<String> = item["evidence"]
-        .as_array()
-        .map(|a| a.iter().filter_map(Value::as_str).filter_map(plain).map(str::to_string).collect())
-        .unwrap_or_default();
+    let mut evidence: Vec<String> = item["evidence"].as_array().map_or_else(Default::default, |a| {
+        a.iter().filter_map(Value::as_str).filter_map(plain).map(str::to_string).collect()
+    });
     if evidence.is_empty() {
         evidence.push(r.memo());
     }
@@ -1440,10 +1437,9 @@ fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String>
     let path = text(note, "path").filter(|_| text(note, "source").as_deref() == Some("file"));
     let path = path.ok_or("Memo keeps no file for this note.")?;
     let folders = call(&words(&["folders", "list"]))?;
-    let roots: Vec<std::path::PathBuf> = folders["items"]
-        .as_array()
-        .map(|a| a.iter().filter_map(|f| text(f, "path")).map(std::path::PathBuf::from).collect())
-        .unwrap_or_default();
+    let roots: Vec<std::path::PathBuf> = folders["items"].as_array().map_or_else(Default::default, |a| {
+        a.iter().filter_map(|f| text(f, "path")).map(std::path::PathBuf::from).collect()
+    });
     let folder = text(note, "folder_id").and_then(|id| {
         folders["items"]
             .as_array()?

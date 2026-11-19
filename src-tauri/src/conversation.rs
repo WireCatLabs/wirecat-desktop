@@ -192,7 +192,7 @@ fn message(v: &Value, asked: Option<&str>) -> Option<ChatMessage> {
         at: text(v, "timestamp"),
         subject: text(email, "subject"),
         text: text(v, "text").or_else(|| text(v, "transcript")).map(clipped),
-        files: v["attachments"].as_array().map(|a| files(a)).unwrap_or_default(),
+        files: v["attachments"].as_array().map_or_else(Default::default, |a| files(a)),
         anchor: asked.is_some_and(|a| a == reference),
         reference,
     })
@@ -218,7 +218,7 @@ pub(crate) fn is_picture(f: &Value) -> bool {
 }
 
 fn messages(v: &Value, asked: Option<&str>) -> Vec<ChatMessage> {
-    v["items"].as_array().map(|a| a.iter().filter_map(|m| message(m, asked)).collect()).unwrap_or_default()
+    v["items"].as_array().map_or_else(Default::default, |a| a.iter().filter_map(|m| message(m, asked)).collect())
 }
 
 /// memo's `show` of the chat: its header, and the profile its messenger reads it with.
@@ -230,7 +230,7 @@ pub(crate) struct Shown {
 
 pub(crate) fn shown(v: &Value, email: bool) -> Option<Shown> {
     let item = v["items"].as_array()?.first()?;
-    let profiles = item["open"]["profiles"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let profiles = item["open"]["profiles"].as_array().map_or_else(Default::default, Vec::as_slice);
     Some(Shown {
         chat: ChatHeader {
             title: text(item, "title"),

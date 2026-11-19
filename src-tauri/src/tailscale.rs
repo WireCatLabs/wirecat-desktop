@@ -346,7 +346,7 @@ pub fn status() -> Status {
         match json_of(&out) {
             Some(serve) => {
                 let used = used_ports(&serve);
-                let shared = s.host.as_deref().map(|h| shared_ports(&load(), &serve, h)).unwrap_or_default();
+                let shared = s.host.as_deref().map_or_else(Default::default, |h| shared_ports(&load(), &serve, h));
                 // The port the tools share comes first: it is the one the next tool joins.
                 let mut ports: Vec<u16> =
                     node.ports.into_iter().filter(|p| !used.contains(p) || shared.contains(p)).collect();

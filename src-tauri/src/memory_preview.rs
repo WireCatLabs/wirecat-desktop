@@ -66,8 +66,8 @@ fn head(path: &Path, bytes: u64) -> Result<Vec<u8>, String> {
 
 pub fn file(path: &Path) -> Result<FilePreview, String> {
     let meta = std::fs::metadata(path).map_err(|_| "The file is not there any more.".to_string())?;
-    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let ext = path.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).unwrap_or_default();
+    let name = path.file_name().map_or_else(Default::default, |n| n.to_string_lossy().into_owned());
+    let ext = path.extension().and_then(|e| e.to_str()).map_or_else(Default::default, str::to_ascii_lowercase);
     let mime = mime_of(&ext);
     let bytes = meta.len();
     let image = match mime {

@@ -810,7 +810,7 @@ pub fn scan_tarball(tgz: &[u8], allowed: &[String], bins: &[String]) -> Result<C
         }
         for (path, text) in loaded {
             if !own_scan::is_module(&path) {
-                code.foreign.insert(path.clone());
+                code.foreign.insert(path);
             }
             own_scan::scan(&text, &mut code);
         }
@@ -849,7 +849,7 @@ pub fn parse_manifest(raw: &[u8], package: &str, version: &str) -> Result<Manife
 fn pasted_manifest(text: &str, package: &str, version: &str, view: &Value) -> Result<Manifest, Refusal> {
     let desktop: Value =
         serde_json::from_str(text).map_err(|e| bad("desktop", format!("this is not valid JSON: {e}")))?;
-    let bins: Vec<&String> = view["bin"].as_object().map(|b| b.keys().collect()).unwrap_or_default();
+    let bins: Vec<&String> = view["bin"].as_object().map_or_else(Default::default, |b| b.keys().collect());
     let bin = match (desktop["bin"].as_str(), bins.as_slice()) {
         (Some(bin), _) => bin.to_string(),
         (None, [only]) => (*only).clone(),

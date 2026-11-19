@@ -78,8 +78,7 @@ pub fn choices() -> RouteChoices {
     let bots = catalog::tool("tg")
         .ok()
         .and_then(|tg| bots::list(tg).ok())
-        .map(|list| list.into_iter().map(|b| b.name).collect())
-        .unwrap_or_default();
+        .map_or_else(Default::default, |list| list.into_iter().map(|b| b.name).collect());
     RouteChoices { bots, own_chats: own_chats(&rows("tg")), mailboxes: mailboxes(&rows("email")) }
 }
 

@@ -284,7 +284,7 @@ fn finish(made: Result<(), Stop>, partial: &Path, target: &Path) -> Result<Backu
     let named = made.and_then(|()| {
         fs::rename(partial, target).map_err(|e| Stop::Failed(format!("Could not name the backup: {e}")))?;
         let meta = fs::metadata(target).map_err(|e| Stop::Failed(e.to_string()))?;
-        let name = target.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let name = target.file_name().map_or_else(Default::default, |n| n.to_string_lossy().into_owned());
         Ok(BackupFile { encrypted: name.ends_with(SEALED), name, bytes: meta.len(), modified: millis_of(&meta) })
     });
     let _ = fs::remove_file(partial);
