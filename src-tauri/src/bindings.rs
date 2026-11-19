@@ -71,6 +71,7 @@ fn types() -> Types {
         .register::<crate::mail_inbox::InboxFilter>()
         .register::<crate::account::AccountRemoved>()
         .register::<crate::account::AccountRemoval>()
+        .register::<crate::account::AccountRenamed>()
         .register::<crate::backup::Backups>()
         .register::<crate::backup::BackupEvent>()
         .register::<crate::backup::ResetPreview>()

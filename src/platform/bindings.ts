@@ -11,6 +11,13 @@ export type AccountRemoved =
 /**  `was_signed_in` is false when the tool found no sign-in to end. */
 { result: "signedOut"; wasSignedIn: boolean } | { result: "failed"; message: string };
 
+/**  What cli-core's `account rename` answered. The tool's refusal comes in its own words: a taken name, a profile in use. */
+export type AccountRenamed = { result: "renamed" } | 
+/**  The installed version has no `account rename`, or the tool does not say where its sign-in lives. */
+{ result: "tooOld" } | 
+/**  Agents that start this profile's own server by its name; they would start a profile that no longer exists. */
+{ result: "usedByAgents"; agents: string[] } | { result: "refused"; message: string };
+
 /**  Why an agent refused a run, sorted from its own words; `line` is that sentence, masked. */
 export type AgentTrouble = {
 	agent: string | null,

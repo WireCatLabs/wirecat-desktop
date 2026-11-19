@@ -272,6 +272,8 @@ pub fn run() {
             commands::tools::tool_network,
             commands::tools::account_remove_plan,
             commands::tools::account_remove,
+            commands::tools::account_rename_supported,
+            commands::tools::account_rename,
             commands::tools::open_setup,
             commands::storage::storage_report,
             commands::records::records_types,

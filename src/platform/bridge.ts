@@ -203,6 +203,8 @@ function createTauri(): Platform {
     toolNetwork: (id) => invoke("tool_network", { id }),
     accountRemovePlan: (id, profile, deleteData) => invoke("account_remove_plan", { id, profile, deleteData }),
     accountRemove: (id, profile, deleteData) => invoke("account_remove", { id, profile, deleteData }),
+    accountRenameSupported: (id) => invoke("account_rename_supported", { id }),
+    accountRename: (id, profile, newName) => invoke("account_rename", { id, profile, newName }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
     storePreflight: (id) => invoke("store_preflight", { id }),

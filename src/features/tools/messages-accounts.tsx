@@ -30,6 +30,16 @@ const en = {
     renameReset: "Use the profile's name",
     renameCancel: "Cancel",
     profileId: (profile: string) => `Profile ${profile}`,
+    settings: "Settings",
+    changeId: "Change profile id",
+    changeIdLabel: (profile: string) => `New id for profile ${profile}`,
+    changeIdHint:
+      "Commands and your agent use this id. The account keeps its sign-in, settings and data under the new one.",
+    changeIdSave: "Change id",
+    changeIdSaving: "Changing…",
+    changeIdTooOld: (tool: string) => `The version of ${tool} installed here cannot change profile ids yet.`,
+    changeIdAgents: (agents: string) =>
+      `${agents} start this account by its id. Remove it there, change the id, then connect them again.`,
   },
   remove: {
     title: (profile: string) => `Remove ${profile}?`,
@@ -185,6 +195,15 @@ const ru: AccountsText = {
     renameReset: "Вернуть имя профиля",
     renameCancel: "Отмена",
     profileId: (profile) => `Профиль ${profile}`,
+    settings: "Настройки",
+    changeId: "Изменить id профиля",
+    changeIdLabel: (profile) => `Новый id для профиля ${profile}`,
+    changeIdHint: "Этот id используют команды и ваш агент. Вход, настройки и данные аккаунта переходят к новому id.",
+    changeIdSave: "Изменить id",
+    changeIdSaving: "Меняем…",
+    changeIdTooOld: (tool) => `Установленная версия ${tool} пока не умеет менять id профиля.`,
+    changeIdAgents: (agents) =>
+      `${agents} запускают этот аккаунт по его id. Уберите его там, смените id и подключите их снова.`,
   },
   remove: {
     title: (profile) => `Удалить ${profile}?`,
@@ -338,6 +357,16 @@ const es: AccountsText = {
     renameReset: "Usar el nombre del perfil",
     renameCancel: "Cancelar",
     profileId: (profile) => `Perfil ${profile}`,
+    settings: "Ajustes",
+    changeId: "Cambiar el id del perfil",
+    changeIdLabel: (profile) => `Nuevo id para el perfil ${profile}`,
+    changeIdHint:
+      "Los comandos y tu agente usan este id. La cuenta conserva su inicio de sesión, sus ajustes y sus datos con el nuevo.",
+    changeIdSave: "Cambiar id",
+    changeIdSaving: "Cambiando…",
+    changeIdTooOld: (tool) => `La versión de ${tool} instalada aquí aún no puede cambiar ids de perfil.`,
+    changeIdAgents: (agents) =>
+      `${agents} inician esta cuenta por su id. Quítala allí, cambia el id y vuelve a conectarlos.`,
   },
   remove: {
     title: (profile) => `¿Quitar ${profile}?`,

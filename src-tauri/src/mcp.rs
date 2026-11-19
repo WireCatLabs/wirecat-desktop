@@ -140,6 +140,16 @@ fn server_name(tool: &Tool, profile: Option<&str>) -> Result<String, String> {
     }
 }
 
+/// The agents that list this profile's own server: a new profile name would leave them starting the old one.
+pub fn agents_with(tool: &Tool, profile: &str) -> Vec<String> {
+    let Ok(name) = server_name(tool, Some(profile)) else { return Vec::new() };
+    AGENTS
+        .iter()
+        .filter(|a| registrations(a.id).is_ok_and(|r| r.names.contains(&name)))
+        .map(|a| a.id.to_string())
+        .collect()
+}
+
 fn remove_args(spec: &[&str], name: &str) -> Vec<String> {
     spec.iter().map(|a| if *a == "{name}" { name.to_string() } else { (*a).to_string() }).collect()
 }
