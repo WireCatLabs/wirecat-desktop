@@ -19,6 +19,7 @@ beforeEach(() => {
     at: new Date(Date.now() - 12 * 60_000).toISOString(),
     left: null,
     known: true,
+    live: false,
   })
 })
 
@@ -48,6 +49,25 @@ describe("an account row", () => {
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
     ).toEqual(["Check", "Sign in again", "Settings", "Rename", "Change profile id", "Sign out", "Remove account"])
+  })
+
+  it("shows a WhatsApp account live while its serve is connected, else when its data was fresh, with no Sync", async () => {
+    const at = new Date()
+    at.setHours(9, 5, 0, 0)
+    vi.spyOn(platform, "syncLast").mockImplementation(async (_id, profile) =>
+      profile === "work"
+        ? { at: null, left: null, known: true, live: true }
+        : profile === "personal"
+          ? { at: at.toISOString(), left: null, known: true, live: false }
+          : { at: null, left: null, known: true, live: false },
+    )
+    const profiles = [...signedIn, { name: "new", signedIn: true }]
+    render(<AccountList tool={tool("wa")} profiles={profiles} onReload={() => undefined} />)
+    const row = (name: string) => screen.getByRole("listitem", { name: `WhatsApp account ${name}` })
+    expect(await within(row("work")).findByText("Live")).toBeInTheDocument()
+    expect(await within(row("personal")).findByText("Fresh as of 9:05 AM")).toBeInTheDocument()
+    await waitFor(() => expect(within(row("new")).queryByText(/Fresh as of|Live|Reading/)).toBeNull())
+    expect(screen.queryByRole("button", { name: /^Sync WhatsApp/ })).toBeNull()
   })
 
   it("signs out and removes an account of an own tool whose manifest has accountRemove", async () => {

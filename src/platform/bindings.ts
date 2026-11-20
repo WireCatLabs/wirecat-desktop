@@ -877,6 +877,8 @@ export type LastSync = {
 	left: number | null,
 	/**  False when the tool cannot say (too old for `runs list`, or its answer did not parse). */
 	known: boolean,
+	/**  Its serve is connected now, so new data arrives as it comes: no time to show. */
+	live: boolean,
 };
 
 export type LocalOnly = 

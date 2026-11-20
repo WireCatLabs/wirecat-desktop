@@ -17,6 +17,7 @@ beforeEach(() => {
     at: new Date(Date.now() - 12 * 60_000).toISOString(),
     left: null,
     known: true,
+    live: false,
   })
   vi.spyOn(platform, "syncRun").mockImplementation((_id, _profile, onEvent) => {
     send = (e) => act(() => onEvent(e))

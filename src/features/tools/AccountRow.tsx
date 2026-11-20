@@ -1,6 +1,13 @@
 import { LogIn } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncSchedules, syncsHere } from "@/domain/catalog"
+import {
+  type CatalogTool,
+  doctorNeedsProfile,
+  freshHere,
+  syncNeedsProfile,
+  syncSchedules,
+  syncsHere,
+} from "@/domain/catalog"
 import { advice } from "@/domain/sync"
 import { openSettingsAt } from "@/features/config"
 import { formatNumber, useMessages } from "@/i18n"
@@ -22,7 +29,7 @@ import { accountsMessages } from "./messages-accounts"
 import { mailRulesMessages } from "./messages-mail-rules"
 import { RemoveAccountDialog } from "./RemoveAccount"
 import { reconnect } from "./SignInLost"
-import { SyncButton, SyncFollowUp, SyncStatus, SyncStatusLoading, useSyncControl } from "./Sync"
+import { FreshStatus, SyncButton, SyncFollowUp, SyncStatus, SyncStatusLoading, useSyncControl } from "./Sync"
 import { ScheduleLoading, SyncSchedule } from "./SyncSchedule"
 
 const ROW_BOX = "flex flex-col gap-1.5 px-3 py-2"
@@ -77,6 +84,7 @@ export function AccountRow(props: {
   const [changingId, setChangingId] = useState(false)
   const renamesId = useRenames(tool)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
+  const fresh = (props.sync ?? true) && freshHere(tool) && p.signedIn !== false
 
   const signIn = () => reconnect(tool, p.name, onReload)
 
@@ -112,6 +120,7 @@ export function AccountRow(props: {
           tool={tool}
           profile={p}
           syncs={syncs}
+          fresh={fresh}
           items={items}
           onSignIn={signIn}
           rules={hasRules && <RulesButton tool={tool} profile={p.name} onOpen={() => setRules(true)} />}
@@ -182,11 +191,12 @@ function RowLine(props: {
   tool: CatalogTool
   profile: Profile
   syncs: boolean
+  fresh: boolean
   items: MenuItem[]
   onSignIn: () => void
   rules: React.ReactNode
 }) {
-  const { tool, profile: p, syncs, items, onSignIn, rules } = props
+  const { tool, profile: p, syncs, fresh, items, onSignIn, rules } = props
   const m = useMessages(accountsMessages).row
   const health = useMessages(toolsMessages).health
   const menu = <SplitButton compact items={items} menuLabel={m.menu(p.name)} moreLabel={m.more} />
@@ -202,6 +212,7 @@ function RowLine(props: {
     </Button>
   )
   const name = <AccountName tool={tool.id} profile={p.name} />
+  if (fresh) return <FreshLine tool={tool} profile={p.name} name={name} state={state} menu={menu} />
   if (!syncs)
     return (
       <PlainLine
@@ -339,6 +350,27 @@ function SyncingLine(props: {
       menu={menu}
       followUp={<SyncFollowUp c={c} />}
       schedule={<SyncSchedule tool={tool} profile={profile} />}
+    />
+  )
+}
+
+/** The row of a profile with no sync to start (wa): how fresh its data is under the name, and no Sync. */
+function FreshLine(props: {
+  tool: CatalogTool
+  profile: string
+  name: React.ReactNode
+  state: React.ReactNode
+  menu: React.ReactNode
+}) {
+  const c = useSyncControl(props.tool, props.profile)
+  return (
+    <SyncingFrame
+      name={props.name}
+      state={props.state}
+      status={<FreshStatus c={c} />}
+      button={null}
+      menu={props.menu}
+      schedule={null}
     />
   )
 }

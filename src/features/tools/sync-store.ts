@@ -195,7 +195,7 @@ export const useSync = create<State>()((set, get) => {
         set((s) => ({ last: { ...s.last, [key]: last } }))
         settle(key)
       } catch {
-        set((s) => ({ last: { ...s.last, [key]: { at: null, left: null, known: false } } }))
+        set((s) => ({ last: { ...s.last, [key]: { at: null, left: null, known: false, live: false } } }))
       }
     },
     async loadSchedule(tool, profile) {

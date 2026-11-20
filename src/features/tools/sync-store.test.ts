@@ -22,7 +22,7 @@ it("reads every profile's last sync at once, a few processes at a time", async (
     return new Promise((resolve) =>
       answers.push(() => {
         inFlight--
-        resolve({ at: null, left: null, known: true })
+        resolve({ at: null, left: null, known: true, live: false })
       }),
     )
   })

@@ -192,7 +192,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     },
     async syncLast(id) {
       await delay(200)
-      return { at: ago((SYNCED[id] ?? 10) * MIN), left: null, known: true }
+      return { at: ago((SYNCED[id] ?? 10) * MIN), left: null, known: true, live: false }
     },
     async notifications() {
       await delay(200)

@@ -141,7 +141,7 @@ describe("a failed sync from this window", () => {
 
   it("clears when the tool lists a newer successful sync", async () => {
     failed(Date.now() - 60 * 60_000)
-    vi.spyOn(platform, "syncLast").mockResolvedValue({ at: ago(1), left: null, known: true })
+    vi.spyOn(platform, "syncLast").mockResolvedValue({ at: ago(1), left: null, known: true, live: false })
     await useSync.getState().loadLast("email", "personal")
     await waitFor(() => expect(useSync.getState().runs[syncKey("email", "personal")]).toBeUndefined())
   })

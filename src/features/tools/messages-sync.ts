@@ -179,6 +179,8 @@ const en = {
   sync: {
     lastUnknown: "Last sync unknown: the tool does not say",
     lastSynced: (ago: string) => `Last synced ${ago}`,
+    live: "Live",
+    freshAsOf: (when: string) => `Fresh as of ${when}`,
     left: (what: SyncWhat, n: number) => `${formatNumber(n, "en")} ${EN_WHAT[what].noun} still to come`,
     notFinished: (left: string) => `Not finished: ${left}`,
     noneRecorded: "No sync recorded from this app yet",
@@ -274,6 +276,8 @@ const ru: typeof en = {
   sync: {
     lastUnknown: "Время последней синхронизации неизвестно: инструмент его не сообщает",
     lastSynced: (ago) => `Последняя синхронизация: ${ago}`,
+    live: "В реальном времени",
+    freshAsOf: (when) => `Данные на ${when}`,
     left: (what, n) => `ещё ${ru3(n, RU_WHAT[what].noun)}`,
     notFinished: (left) => `Не закончена: ${left}`,
     noneRecorded: "Из этого приложения синхронизаций ещё не было",
@@ -372,6 +376,8 @@ const es: typeof en = {
   sync: {
     lastUnknown: "Última sincronización desconocida: la herramienta no lo dice",
     lastSynced: (ago) => `Última sincronización: ${ago}`,
+    live: "En vivo",
+    freshAsOf: (when) => `Datos al ${when}`,
     left: (what, n) => `faltan ${esCount(n, ES_WHAT[what].noun)}`,
     notFinished: (left) => `Sin terminar: ${left}`,
     noneRecorded: "Aún no hay sincronizaciones desde esta app",
