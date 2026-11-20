@@ -65,9 +65,11 @@ The sidebar has these pages, top to bottom:
 | --- | --- |
 | Tools | Two tabs. **Tools** shows every WireCat CLI tool, which are installed and in which version, and installs, updates and uninstalls them, runs a tool's own health check and signs in to an account. **Agents** finds the AI agents on this computer and gives them each tool's skill and MCP server, and connects ChatGPT and Claude in the browser through a tool's MCP server. |
 | Tasks | One task list for you and your agents, as a table or a board. Memo keeps it, and agents read and change the same list. |
-| Digests | Two tabs. **Digests** shows what each digest wrote, newest day first; every person, chat, task, meeting, document and deal in it opens here. **Settings** holds the presets to make a digest, every digest's schedule, sources, brief and look. |
+| Digests | Three tabs. **Digests** shows what each digest wrote, newest day first; every person, chat, task, meeting, document and deal in it opens here. **Inbox** shows new mail sorted by your AI model: what needs an answer, what to read and what can wait. **Settings** holds the presets to make a digest, every digest's schedule, sources, brief and look. |
 | Clients | Deals and leads from your CRM and messages, as a table or a board by stage. |
 | Contacts | Who is who across your sources, and the matches to confirm. |
+| Meetings | Meetings, calls and calendar events of every account, by week, by month or as a table. A calendar event and its Zoom or Meet meeting are one row; each opens with its people, transcript and summary. |
+| Documents | Every document WireCat keeps: Google Drive files, your notes folders, files you added and imports. Read the text here, or open the file where it lives. |
 | Memory | What your agents concluded about you and the people you talk to, and what they propose to do. Nothing counts until you approve it. Memo keeps it. |
 | Guides | Ready prompts for your agent, such as a catch-up on what you missed or a brief before a call. Each one says which tools and commands it uses. |
 | Analytics | Two tabs. **Data** counts your messages, chats and projects over time. **Storage** shows the data folders of each tool and the shared archive, makes a backup of the shared archive (with an optional password) and clears it. |
@@ -88,7 +90,7 @@ On each tool you can also:
 
 | | |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tools-dark.webp"><img src="docs/images/tools-light.webp" width="480" alt="The Tools page: Telegram and WhatsApp installed and signed in, with WhatsApp's account, install path and storage check open"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tasks-dark.webp"><img src="docs/images/tasks-light.webp" width="480" alt="Tasks as a board, from Open to Done"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tools-dark.webp"><img src="docs/images/tools-light.webp" width="480" alt="The Tools page: the built-in tools installed, each with its version and a Manage menu"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tasks-dark.webp"><img src="docs/images/tasks-light.webp" width="480" alt="Tasks as a board, from Open to Done"></picture> |
 | **Tools** installed, signed in and synced, each with its accounts and checks. | **Tasks** that you and your agents share. |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/memory-dark.webp"><img src="docs/images/memory-light.webp" width="480" alt="Memory: decisions and preferences waiting for approval"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/connect-dark.webp"><img src="docs/images/connect-light.webp" width="480" alt="The last step of connecting ChatGPT: ChatGPT can now use your Telegram"></picture> |
 | **Memory** that waits for your approval. | **Connect** ChatGPT or Claude in the browser, step by step. |
