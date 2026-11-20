@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 New-Item -ItemType Directory -Force $Out | Out-Null
 $failed = $false
 
-function Invoke-SelfTest([string] $Name, [string] $Source, [string[]] $Extra) {
+function Invoke-SelfTest([string] $Name, [string] $Source, [string[]] $Extra, [hashtable] $Override = @{}) {
   $root = Join-Path $env:RUNNER_TEMP "self-test-$Name"
   $saved = @{}
   # The app reads the profile folders from these; a new set per run keeps the two runs apart.
@@ -23,6 +23,10 @@ function Invoke-SelfTest([string] $Name, [string] $Source, [string[]] $Extra) {
     New-Item -ItemType Directory -Force $folders[$var] | Out-Null
     $saved[$var] = [Environment]::GetEnvironmentVariable($var)
     [Environment]::SetEnvironmentVariable($var, $folders[$var])
+  }
+  foreach ($var in $Override.Keys) {
+    $saved[$var] = [Environment]::GetEnvironmentVariable($var)
+    [Environment]::SetEnvironmentVariable($var, $Override[$var])
   }
   [Environment]::SetEnvironmentVariable("WIRECAT_SELF_TEST", "1")
   $json = Join-Path $Out "$Name.json"
@@ -48,20 +52,34 @@ function Invoke-SelfTest([string] $Name, [string] $Source, [string[]] $Extra) {
   }
 }
 
-$hidden = @()
-$dirs = @($env:Path -split ";") + @(Join-Path $env:ProgramFiles "nodejs") | Where-Object { $_ }
-foreach ($dir in $dirs) {
-  $node = Join-Path $dir "node.exe"
-  if (Test-Path -LiteralPath $node) {
-    Write-Output "Hiding $node"
-    Rename-Item -LiteralPath $node "node.exe.hidden"
-    $hidden += $node
+# The app looks for Node.js on PATH and in %ProgramFiles%\nodejs (src-tauri/src/paths.rs, known_dirs). The own-node
+# run gets a PATH without the folders that hold node.exe. ProgramFiles cannot be overridden for the child (run
+# 44834109407 still found Node there), so that one node.exe is renamed. Something sometimes holds it open for a while.
+$path = ($env:Path -split ";" |
+  Where-Object { $_ -and -not (Test-Path -LiteralPath (Join-Path $_ "node.exe")) }) -join ";"
+$node = Join-Path $env:ProgramFiles "nodejs\node.exe"
+$hidden = $false
+if (Test-Path -LiteralPath $node) {
+  Write-Output "Hiding $node"
+  for ($i = 1; -not $hidden; $i++) {
+    try {
+      Rename-Item -LiteralPath $node "node.exe.hidden"
+      $hidden = $true
+    } catch {
+      $err = $_
+      $holders = Get-Process | Where-Object Path -eq $node | ForEach-Object { "$($_.Id) $($_.ProcessName)" }
+      if ($i -eq 1 -or $i -ge 30) {
+        Write-Output "Attempt ${i}: $($err.Exception.Message) Running: $($holders -join ', ')"
+      }
+      if ($i -ge 30) { throw $err }
+      Start-Sleep -Seconds 2
+    }
   }
 }
 try {
-  Invoke-SelfTest "own-node" "own" @("--own-node")
+  Invoke-SelfTest "own-node" "own" @("--own-node") @{ Path = $path }
 } finally {
-  foreach ($node in $hidden) { Rename-Item -LiteralPath "$node.hidden" "node.exe" }
+  if ($hidden) { Rename-Item -LiteralPath "$node.hidden" "node.exe" }
 }
 if (Get-Command node -ErrorAction SilentlyContinue) {
   Invoke-SelfTest "system-node" "system" @()
