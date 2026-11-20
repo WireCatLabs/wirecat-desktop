@@ -55,7 +55,8 @@ function Invoke-SelfTest([string] $Name, [string] $Source, [string[]] $Extra, [h
 # The app looks for Node.js on PATH and in %ProgramFiles%\nodejs (src-tauri/src/paths.rs, known_dirs). The own-node
 # run gets a PATH without the folders that hold node.exe. ProgramFiles cannot be overridden for the child (run
 # 44834109407 still found Node there), so that one node.exe is renamed. Something sometimes holds it open for a while.
-$path = ($env:Path -split ";" | Where-Object { $_ -and -not (Test-Path -LiteralPath (Join-Path $_ "node.exe")) }) -join ";"
+$path = ($env:Path -split ";" |
+  Where-Object { $_ -and -not (Test-Path -LiteralPath (Join-Path $_ "node.exe")) }) -join ";"
 $node = Join-Path $env:ProgramFiles "nodejs\node.exe"
 $hidden = $false
 if (Test-Path -LiteralPath $node) {
@@ -67,7 +68,9 @@ if (Test-Path -LiteralPath $node) {
     } catch {
       $err = $_
       $holders = Get-Process | Where-Object Path -eq $node | ForEach-Object { "$($_.Id) $($_.ProcessName)" }
-      if ($i -eq 1 -or $i -ge 30) { Write-Output "Attempt ${i}: $($err.Exception.Message) Running: $($holders -join ', ')" }
+      if ($i -eq 1 -or $i -ge 30) {
+        Write-Output "Attempt ${i}: $($err.Exception.Message) Running: $($holders -join ', ')"
+      }
       if ($i -ge 30) { throw $err }
       Start-Sleep -Seconds 2
     }
