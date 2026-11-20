@@ -4,7 +4,7 @@ import { type CatalogTool, ownerId, syncCommand, syncNeedsProfile, syncsHere } f
 import { toolStatus } from "@/domain/status"
 import { type AdviceKind, advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
 import { useLogs } from "@/features/logs"
-import { useMessages } from "@/i18n"
+import { formatDate, type Lang, useLang, useMessages } from "@/i18n"
 import { ago } from "@/i18n/ago"
 import type { LastSync } from "@/platform/sync-schemas"
 import { accountTitle, useAccountNames } from "@/shared/account-names-store"
@@ -37,6 +37,22 @@ function lastLine(last: LastSync, what: SyncWhat, m: Words): string {
   const left = last.left && last.left > 0 ? m.left(what, last.left) : null
   if (last.at) return [m.lastSynced(ago(last.at)), left].filter(Boolean).join(" · ")
   return left ? m.notFinished(left) : m.noneRecorded
+}
+
+/** "9:05 AM" today, else "Nov 17, 9:05 AM", in the reader's language: the time the data was current at. */
+function shortWhen(at: string, lang: Lang): string {
+  const today = new Date(at).toDateString() === new Date().toDateString()
+  const time = { hour: "numeric", minute: "2-digit" } as const
+  return formatDate(at, today ? time : { day: "numeric", month: "short", ...time }, lang)
+}
+
+/** A tool with no sync to start (wa): live while its serve is connected, else when the last serve had it current. */
+export function FreshStatus({ c }: { c: Control }) {
+  const m = useMessages(syncMessages).sync
+  const lang = useLang()
+  if (!c.last) return <SyncStatusLoading />
+  const text = c.last.live ? m.live : c.last.at ? m.freshAsOf(shortWhen(c.last.at, lang)) : null
+  return text ? <p className={LAST_LINE}>{text}</p> : null
 }
 
 /** One profile's sync: what the button, the status line and the follow-up under them share. */

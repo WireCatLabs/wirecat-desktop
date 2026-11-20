@@ -1171,8 +1171,8 @@
       },
       "sync": {
         "run": null,
-        "last": null,
-        "lastShape": "runs",
+        "last": ["{profile}", "server", "status", "--no-record", "--json"],
+        "lastShape": "serverStatus",
         "what": "messages",
         "note": "WhatsApp has no sync to start. New messages arrive while its background service runs: see Background service below."
       },

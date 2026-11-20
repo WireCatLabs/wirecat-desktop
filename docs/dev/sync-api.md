@@ -27,7 +27,10 @@ Change it here first, then on both sides.
 
 - `run`: every sync passes `--record`, so the tool's `runs list` keeps the run. `null` means there is no sync to
   start (wa); `note` then says why.
-- `last`: the words that answer "last synced". `lastShape` says how to read them: `runs` or `driveStatus`.
+- `last`: the words that answer "last synced". `lastShape` says how to read them: `runs`, `driveStatus` or
+  `serverStatus`. `serverStatus` is for a tool with no sync to start (wa): `server status` says the account is live
+  while its serve is connected, and else `current_at`, when the last serve had the store current. The account row
+  then shows "Live" or "Fresh as of …" with no Sync button, and nothing before the first serve.
 - `what`: which summary shape the answer has: `messages`, `files`, `meetings`, `mail`, `notes and mail`, `records`
   (a tool the owner added) or `tracker` (cli-core's tracker sync, Linear).
 - Stop is `SIGTERM` to that process, then a kill of its group after five seconds.

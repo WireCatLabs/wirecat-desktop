@@ -34,6 +34,9 @@ pub enum LastShape {
     Runs,
     /// drive's `status`: `item.last_sync`, set only when nothing is left, and `item.pending`.
     DriveStatus,
+    /// A messenger with no full sync (wa): `server status`. Live while its serve is connected, else `current_at`, when
+    /// the last serve had the store current.
+    ServerStatus,
 }
 
 /// Counts only: titles, chat keys and account names in the tool's answer stay in Rust.
@@ -117,6 +120,8 @@ pub struct LastSync {
     pub left: Option<u64>,
     /// False when the tool cannot say (too old for `runs list`, or its answer did not parse).
     pub known: bool,
+    /// Its serve is connected now, so new data arrives as it comes: no time to show.
+    pub live: bool,
 }
 
 fn source(tool: &Tool) -> Result<&SyncSource, String> {
@@ -443,7 +448,7 @@ fn records_summary(item: &Value) -> Summary {
 /// When the profile last synced, from the tool's own answer: never the database.
 pub fn last(tool: &Tool, profile: Option<&str>) -> Result<LastSync, String> {
     let src = source(tool)?;
-    let unknown = LastSync { at: None, left: None, known: false };
+    let unknown = LastSync { at: None, left: None, known: false, live: false };
     let Some(words) = &src.last else { return Ok(unknown) };
     let args = catalog::with_profile(words, profile)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
@@ -474,11 +479,21 @@ fn read_last(shape: LastShape, v: &Value, profile: Option<&str>, whole: bool) ->
                 !whole || r.get("argv").and_then(Value::as_array).is_none_or(|a| a.iter().any(|w| w == "--all"))
             };
             let at = list(v, "items").iter().filter(mine).find(all).and_then(|r| text(r, "completed_at"));
-            LastSync { at, left: None, known: true }
+            LastSync { at, left: None, known: true, live: false }
         }
         LastShape::DriveStatus => {
             let item = v.get("item").unwrap_or(&Value::Null);
-            LastSync { at: text(item, "last_sync"), left: item.get("pending").and_then(Value::as_u64), known: true }
+            LastSync {
+                at: text(item, "last_sync"),
+                left: item.get("pending").and_then(Value::as_u64),
+                known: true,
+                live: false,
+            }
+        }
+        LastShape::ServerStatus => {
+            let item = v.get("item").unwrap_or(&Value::Null);
+            let on = |k: &str| item.get(k).and_then(Value::as_bool) == Some(true);
+            LastSync { at: text(item, "current_at"), left: None, known: true, live: on("running") && on("connected") }
         }
     }
 }
@@ -701,6 +716,17 @@ mod tests {
         let status = json!({"item": {"last_sync": null, "pending": 4}});
         let last = read_last(LastShape::DriveStatus, &status, Some("p"), false);
         assert_eq!((last.at, last.left), (None, Some(4)));
+    }
+
+    #[test]
+    fn whatsapp_is_live_while_serve_is_connected_and_else_as_fresh_as_its_last_serve() {
+        let read = |item: Value| read_last(LastShape::ServerStatus, &json!({ "item": item }), Some("p"), false);
+        let live = read(json!({"running": true, "connected": true, "current_at": "2026-11-19T08:00:00Z"}));
+        assert!(live.live && live.known);
+        let stopped = read(json!({"running": false, "current_at": "2026-11-19T08:00:00Z"}));
+        assert_eq!((stopped.live, stopped.at.as_deref()), (false, Some("2026-11-19T08:00:00Z")));
+        let connecting = read(json!({"running": true, "connected": false}));
+        assert_eq!((connecting.live, connecting.at), (false, None));
     }
 
     #[test]

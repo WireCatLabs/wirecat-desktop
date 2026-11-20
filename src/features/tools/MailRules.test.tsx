@@ -172,7 +172,7 @@ describe("an Email account's mail rules", () => {
 
 describe("an Email account row", () => {
   it("opens the mail rules in a dialog from a button with their count", async () => {
-    vi.spyOn(platform, "syncLast").mockResolvedValue({ at: null, left: null, known: true })
+    vi.spyOn(platform, "syncLast").mockResolvedValue({ at: null, left: null, known: true, live: false })
     render(<AccountList tool={email} profiles={[{ name: "work", signedIn: true }]} onReload={() => undefined} />)
     const button = await screen.findByRole("button", { name: "Rules · 5" })
     expect(button).toHaveAttribute("title", "Open the mail rules for work")

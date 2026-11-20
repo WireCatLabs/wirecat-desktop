@@ -287,7 +287,7 @@ const ToolSchema = v.object({
     v.object({
       run: v.nullable(v.array(v.string())),
       last: v.nullable(v.array(v.string())),
-      lastShape: v.picklist(["runs", "driveStatus"]),
+      lastShape: v.picklist(["runs", "driveStatus", "serverStatus"]),
       what: v.picklist([
         "messages",
         "files",
@@ -477,6 +477,9 @@ export const signsInHere = (t: CatalogTool) => (t.signIn?.methods?.length ?? 0) 
 
 /** Whether the app can start this tool's sync; a profile is then needed when its words name one. */
 export const syncsHere = (t: CatalogTool) => (t.sync?.run?.length ?? 0) > 0
+/** A tool with no sync to start that still says how fresh an account's data is: wa, through its serve. */
+export const freshHere = (t: CatalogTool) =>
+  !syncsHere(t) && t.sync?.lastShape === "serverStatus" && t.sync.last !== null
 /** Whether an account's sync can run on a timer from here. */
 export const syncSchedules = (t: CatalogTool) => (t.sync?.schedule ?? null) !== null && syncNeedsProfile(t)
 export const syncNeedsProfile = (t: CatalogTool) => t.sync?.run?.includes("{profile}") ?? false

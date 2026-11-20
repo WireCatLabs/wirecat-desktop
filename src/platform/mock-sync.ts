@@ -250,12 +250,13 @@ export function syncMock(): Pick<Platform, "syncRun" | "syncStop" | "syncLast" |
       await delay(300)
       const key = keyOf(id, profile)
       const at = finished[key]
-      if (at) return { at: new Date(at).toISOString(), left: id === "drive" ? 140 : null, known: true }
+      if (at) return { at: new Date(at).toISOString(), left: id === "drive" ? 140 : null, known: true, live: false }
       const last = params.get("sync") === "never" ? undefined : LAST[key]
       return {
         at: last?.ago == null ? null : new Date(Date.now() - last.ago).toISOString(),
         left: last?.left ?? null,
         known: true,
+        live: false,
       }
     },
   }
