@@ -83,7 +83,7 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [target."cfg(target_os = \"linux\")".dependencies]
 # The dock's unread count (dock_badge.rs); zbus 5 is already in the build through the opener and single-instance.
-zbus = "5"
+zbus = "6"
 
 [target."cfg(unix)".dependencies]
 libc = "0.2"
