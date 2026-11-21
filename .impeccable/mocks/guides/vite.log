@@ -1,0 +1,164 @@
+
+  VITE v8.3.5  ready in 242 ms
+
+  ➜  Local:   http://localhost:1441/
+3:58:23 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+3:58:38 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:00:31 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:00:31 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:00:31 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:00:32 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:04:03 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:04:03 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:06:15 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:06:15 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:06:21 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:06:21 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:51:10 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:51:10 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+4:51:10 PM [vite] (client) hmr update /src/styles/index.css, /src/features/onboarding/steps.tsx
+4:51:10 PM [vite] (client) hmr update /src/styles/index.css, /src/features/onboarding/Onboarding.tsx
+5:30:54 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+5:30:54 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+5:30:54 PM [vite] (client) hmr update /.impeccable/mocks/guides/prototype/GuidesPage.tsx, /src/styles/index.css
+5:49:53 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+5:49:53 PM [vite] (client) hmr update /.impeccable/mocks/guides/prototype/GuidesPage.tsx, /src/styles/index.css
+5:49:53 PM [vite] (client) Pre-transform error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+5:49:53 PM [vite] Internal server error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+      at TransformPluginContext._formatLog (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8803:39)
+      at TransformPluginContext.error (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8800:14)
+      at resolveId (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26594:18)
+      at async file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26693:23
+      at async Promise.all (index 11)
+      at async TransformPluginContext.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26666:4)
+      at async EnvironmentPluginContainer.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8582:14)
+      at async loadAndTransform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20155:26)
+5:49:53 PM [vite] (client) [console.error] [vite] TypeError: error loading dynamically imported module: http://localhost:1441/.impeccable/mocks/guides/prototype/GuidesPage.tsx?t=1793551793527
+5:49:53 PM [vite] (client) [console.error] [vite] Failed to reload /.impeccable/mocks/guides/prototype/GuidesPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+5:49:53 PM [vite] (client) Pre-transform error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+5:49:53 PM [vite] Internal server error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+      at TransformPluginContext._formatLog (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8803:39)
+      at TransformPluginContext.error (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8800:14)
+      at resolveId (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26594:18)
+      at async file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26693:23
+      at async Promise.all (index 11)
+      at async TransformPluginContext.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26666:4)
+      at async EnvironmentPluginContainer.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8582:14)
+      at async loadAndTransform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20155:26)
+5:49:53 PM [vite] (client) [console.error] [vite] TypeError: error loading dynamically imported module: http://localhost:1441/.impeccable/mocks/guides/prototype/GuidesPage.tsx?t=1793551793530
+5:49:53 PM [vite] (client) [console.error] [vite] Failed to reload /.impeccable/mocks/guides/prototype/GuidesPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+5:49:53 PM [vite] (client) hmr update /src/app/App.tsx, /src/app/Sidebar.tsx, /src/features/onboarding/Onboarding.tsx
+5:49:53 PM [vite] (client) Pre-transform error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+5:49:53 PM [vite] Internal server error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+      at TransformPluginContext._formatLog (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8803:39)
+      at TransformPluginContext.error (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8800:14)
+      at resolveId (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26594:18)
+      at async file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26693:23
+      at async Promise.all (index 11)
+      at async TransformPluginContext.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26666:4)
+      at async EnvironmentPluginContainer.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8582:14)
+      at async loadAndTransform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20155:26)
+5:49:53 PM [vite] (client) Pre-transform error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+5:49:53 PM [vite] (client) Pre-transform error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+5:49:53 PM [vite] (client) [console.error] [vite] TypeError: error loading dynamically imported module: http://localhost:1441/.impeccable/mocks/guides/prototype/GuidesPage.tsx?t=1793551793860
+5:49:53 PM [vite] (client) [console.error] [vite] Failed to reload /src/features/onboarding/Onboarding.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+5:49:53 PM [vite] (client) [console.error] [vite] TypeError: error loading dynamically imported module: http://localhost:1441/.impeccable/mocks/guides/prototype/GuidesPage.tsx?t=1793551793860
+5:49:53 PM [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+5:49:53 PM [vite] (client) [console.error] [vite] TypeError: error loading dynamically imported module: http://localhost:1441/.impeccable/mocks/guides/prototype/GuidesPage.tsx?t=1793551793860
+5:49:53 PM [vite] (client) [console.error] [vite] Failed to reload /src/app/Sidebar.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+5:49:55 PM [vite] (client) Pre-transform error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+5:49:55 PM [vite] Internal server error: Failed to resolve import "@/ui/ExpandChevron" from ".impeccable/mocks/guides/prototype/GuidesPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/.impeccable/mocks/guides/prototype/GuidesPage.tsx:16:30
+  14 |  import { Crossfade } from "@/ui/Crossfade";
+  15 |  import { cx } from "@/ui/cx";
+  16 |  import { ExpandChevron } from "@/ui/ExpandChevron";
+     |                                 ^
+  17 |  import { Lamp } from "@/ui/Lamp";
+  18 |  import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion";
+      at TransformPluginContext._formatLog (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8803:39)
+      at TransformPluginContext.error (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8800:14)
+      at resolveId (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26594:18)
+      at async file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26693:23
+      at async Promise.all (index 11)
+      at async TransformPluginContext.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26666:4)
+      at async EnvironmentPluginContainer.transform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8582:14)
+      at async loadAndTransform (file:///home/leemour/Projects/AI/visage/.claude/worktrees/guides-plan/node_modules/.pnpm/vite@8.3.5_@types+node@26.6.5_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20155:26)
+5:50:15 PM [vite] (client) hmr update /src/styles/index.css, /src/app/App.tsx, /src/app/Sidebar.tsx, /src/features/onboarding/Onboarding.tsx
+6:09:48 PM [vite] (client) hmr update /src/styles/index.css, /.impeccable/mocks/guides/prototype/GuidesPage.tsx
+6:09:49 PM [vite] (client) hmr invalidate /.impeccable/mocks/guides/prototype/GuidesPage.tsx Could not Fast Refresh ("arriveFromSetup" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+6:09:49 PM [vite] (client) hmr update /src/app/App.tsx, /src/app/Sidebar.tsx, /src/features/onboarding/Onboarding.tsx
+undefined
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command was killed with SIGTERM (Termination): vite --port 1441 --strictPort
