@@ -13,7 +13,7 @@ type Nav = {
 // An in-memory stack, not window.history: the webview may map mouse buttons to its own history, and the mock's
 // `?state=` query must stay as loaded.
 export const useNav = create<Nav>((set) => ({
-  active: "tools",
+  active: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("add") ? "memory" : "tools",
   past: [],
   next: [],
   go: (section) => set((s) => (section === s.active ? s : { active: section, past: [...s.past, s.active], next: [] })),

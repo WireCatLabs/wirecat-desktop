@@ -5,6 +5,7 @@ import { ConfigPage } from "@/features/config/ConfigPage"
 import { LogsPage } from "@/features/logs/LogsPage"
 import { StoragePage } from "@/features/storage/StoragePage"
 import { ToolsPage } from "@/features/tools/ToolsPage"
+import { AddToMemoryPrototype } from "../../.impeccable/mocks/memory/add/prototype/AddToMemory"
 
 export type Section = {
   id: string
@@ -20,7 +21,7 @@ export const sections: readonly Section[] = [
   { id: "tools", icon: Wrench, page: ToolsPage },
   { id: "agents", icon: Bot, page: AgentsPage },
   { id: "accounts", icon: UserRound },
-  { id: "memory", icon: Brain },
+  { id: "memory", icon: Brain, page: AddToMemoryPrototype },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
   { id: "settings", icon: Settings, page: ConfigPage, group: "system" },
