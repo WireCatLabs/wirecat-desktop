@@ -1,4 +1,15 @@
 import type { Bucket, Refusal } from "@/domain/inbox"
+
+/** What `inbox` would send, worded for the owner; `cost` is already formatted, or null when the price is unknown. */
+export type AskText = {
+  emails: number
+  threads: number
+  tokens: string
+  host: string
+  model: string
+  cost: string | null
+}
+
 import { type Messages, pluralRu } from "@/i18n"
 
 const en = {
@@ -7,7 +18,7 @@ const en = {
   intro: "New mail sorted by your AI model: what needs an answer, what to read and what can wait.",
   reading: "Reading the sorted mail",
   groups: { answer: "Needs an answer", read: "To read", later: "Can wait" } as Record<Bucket, string>,
-  col: { subject: "Subject and why", account: "Account", time: "Last email" },
+  col: { subject: "Subject and why", sender: "From", account: "Account", time: "Last email" },
   noSubject: "(no subject)",
   open: (title: string) => `Open ${title}`,
   search: "Search the sorted mail",
@@ -25,6 +36,8 @@ const en = {
   running: "sorting new mail…",
   done: (n: number) => `done, ${n === 1 ? "1 thread" : `${n} threads`} in the list`,
   send: "Send and sort",
+  ask: (a: AskText) =>
+    `${a.model} runs outside this computer, at ${a.host}. Send ${a.emails === 1 ? "1 email" : `${a.emails} emails`} of ${a.threads === 1 ? "1 thread" : `${a.threads} threads`}, about ${a.tokens} tokens${a.cost ? `, about ${a.cost}` : ""}?`,
   details: "What Email said",
   readFailed: (account: string) => `Could not read the sorted mail of ${account}.`,
   refusal: {
@@ -68,7 +81,7 @@ const ru: typeof en = {
   intro: "Новая почта, разобранная вашей моделью ИИ: на что ответить, что прочитать и что может подождать.",
   reading: "Читаю разобранную почту",
   groups: { answer: "Ждет ответа", read: "Прочитать", later: "Может подождать" },
-  col: { subject: "Тема и почему", account: "Аккаунт", time: "Последнее письмо" },
+  col: { subject: "Тема и почему", sender: "От кого", account: "Аккаунт", time: "Последнее письмо" },
   noSubject: "(без темы)",
   open: (title) => `Открыть ${title}`,
   search: "Поиск по разобранной почте",
@@ -86,6 +99,8 @@ const ru: typeof en = {
   running: "разбираю новую почту…",
   done: (n) => `готово, в списке ${pluralRu(n, ["# цепочка", "# цепочки", "# цепочек"])}`,
   send: "Отправить и разобрать",
+  ask: (a) =>
+    `${a.model} работает не на этом компьютере, а на ${a.host}. Отправить ${pluralRu(a.emails, ["# письмо", "# письма", "# писем"])} из ${pluralRu(a.threads, ["# цепочки", "# цепочек", "# цепочек"])}, около ${a.tokens} токенов${a.cost ? `, примерно ${a.cost}` : ""}?`,
   details: "Что ответил Email",
   readFailed: (account) => `Не удалось прочитать разобранную почту ${account}.`,
   refusal: {
@@ -129,7 +144,7 @@ const es: typeof en = {
   intro: "El correo nuevo ordenado por tu modelo de IA: lo que necesita respuesta, lo que leer y lo que puede esperar.",
   reading: "Leyendo el correo ordenado",
   groups: { answer: "Necesita respuesta", read: "Para leer", later: "Puede esperar" },
-  col: { subject: "Asunto y motivo", account: "Cuenta", time: "Último correo" },
+  col: { subject: "Asunto y motivo", sender: "De", account: "Cuenta", time: "Último correo" },
   noSubject: "(sin asunto)",
   open: (title) => `Abrir ${title}`,
   search: "Buscar en el correo ordenado",
@@ -147,6 +162,8 @@ const es: typeof en = {
   running: "ordenando el correo nuevo…",
   done: (n) => `listo, ${n === 1 ? "1 hilo" : `${n} hilos`} en la lista`,
   send: "Enviar y ordenar",
+  ask: (a) =>
+    `${a.model} funciona fuera de este ordenador, en ${a.host}. ¿Envío ${a.emails === 1 ? "1 correo" : `${a.emails} correos`} de ${a.threads === 1 ? "1 hilo" : `${a.threads} hilos`}, unos ${a.tokens} tokens${a.cost ? `, unos ${a.cost}` : ""}?`,
   details: "Lo que dijo Email",
   readFailed: (account) => `No se pudo leer el correo ordenado de ${account}.`,
   refusal: {

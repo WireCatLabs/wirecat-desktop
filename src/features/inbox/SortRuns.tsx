@@ -1,4 +1,5 @@
-import { useMessages } from "@/i18n"
+import { costText } from "@/domain/inbox"
+import { formatNumber, useLang, useMessages } from "@/i18n"
 import { accountTitle, useAccountNames } from "@/shared/account-names-store"
 import { goAiModel } from "@/shared/go-ai-model"
 import { openTool } from "@/shared/go-tool"
@@ -47,14 +48,16 @@ function Fix(props: { state: RunState; profile: string; sorting: boolean; m: Inb
   }
 }
 
-function words(state: RunState, m: InboxText) {
+function words(state: RunState, m: InboxText, lang: string) {
   switch (state.phase) {
     case "waiting":
       return m.waiting
     case "running":
       return m.running
-    case "done":
-      return m.done(state.run.listed)
+    case "done": {
+      const { listed, model, costUsd } = state.run
+      return [m.done(listed), model, costUsd == null ? null : costText(costUsd, lang)].filter(Boolean).join(" · ")
+    }
     case "failed":
       return m.refusal[state.refusal]
   }
@@ -63,6 +66,7 @@ function words(state: RunState, m: InboxText) {
 /** The last Sort now, one line per account: its turn, then what it sorted or why the tool refused, with the fix. */
 export function SortRuns() {
   const m = useMessages(inboxMessages)
+  const lang = useLang()
   const runs = useInbox((s) => s.runs)
   const sorting = useInbox((s) => s.sorting)
   const names = useAccountNames((s) => s.names)
@@ -79,15 +83,24 @@ export function SortRuns() {
                   aria-live="polite"
                   className={asks(state) ? "text-ink" : state.phase === "failed" ? "text-bad" : "text-ink-soft"}
                 >
-                  {words(state, m)}
+                  {words(state, m, lang)}
                 </span>
                 <Fix state={state} profile={profile} sorting={sorting} m={m} />
               </div>
               {state.phase === "failed" && (
                 <div className="pl-5 text-[0.9rem] text-ink-soft">
-                  {/* The tool's own words: for "ask", what it would send, how many emails and tokens, and where. */}
+                  {/* For "ask", what the tool would send and where, in the owner's language when the tool said it in numbers. */}
                   {state.refusal === "ask" ? (
-                    <p className="selectable">{state.message}</p>
+                    <p className="selectable">
+                      {state.ask
+                        ? m.ask({
+                            ...state.ask,
+                            tokens: formatNumber(state.ask.tokens, lang),
+                            cost:
+                              state.ask.estimatedCostUsd == null ? null : costText(state.ask.estimatedCostUsd, lang),
+                          })
+                        : state.message}
+                    </p>
                   ) : (
                     <Disclosure summary={m.details}>
                       <p className="selectable">{state.message}</p>

@@ -1,4 +1,5 @@
 // The Inbox tab of Digests: mail sorted by the AI model (mail-cli's `inbox`), its filter and why a run stopped.
+import { formatUsd } from "./mail-agent"
 import { freeWords, valuesOf } from "./query-terms"
 
 const BUCKETS = ["answer", "read", "later"] as const
@@ -59,3 +60,7 @@ export function refusalOf(failed: { code: string | null; reason: string | null }
   if (failed.code === "store_busy") return "busy"
   return "other"
 }
+
+/** A run's cost to the cent; a sort of a few emails costs less, and $0.00 would read as free. */
+export const costText = (usd: number, lang: string): string =>
+  usd > 0 && usd < 0.01 ? `< ${formatUsd(0.01, lang)}` : formatUsd(usd, lang)

@@ -43,6 +43,27 @@ pub struct InboxThread {
     pub sorted_at: String,
     /// The model that sorted it, as `inbox` names it.
     pub by: String,
+    /// The newest email's sender who is not the owner; `None` from a mail-cli before 0.36.0.
+    pub sender: Option<InboxSender>,
+}
+
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+pub struct InboxSender {
+    pub name: Option<String>,
+    pub address: String,
+}
+
+/// What `inbox` would send before it asks, so the window asks in the owner's language instead of the tool's English.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct InboxAsk {
+    pub emails: u32,
+    pub threads: u32,
+    pub tokens: u32,
+    pub host: String,
+    pub model: String,
+    /// `None` for a model memo has no price for.
+    pub estimated_cost_usd: Option<f64>,
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
@@ -81,7 +102,7 @@ pub struct InboxPage {
 }
 
 /// What one Sort now gave: the threads it lists now, and what it left for the next run in the tool's own words.
-#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase", tag = "result")]
 pub enum InboxRun {
     #[serde(rename_all = "camelCase")]
@@ -89,11 +110,15 @@ pub enum InboxRun {
         listed: u32,
         notes: Vec<String>,
         complete: bool,
+        // `meta.model_run`: the model as `provider/model`, and what the run cost when the model's price is known.
+        model: Option<String>,
+        cost_usd: Option<f64>,
     },
     Failed {
         message: String,
         code: Option<String>,
         reason: Option<String>,
+        ask: Option<InboxAsk>,
     },
 }
 
@@ -171,6 +196,28 @@ fn thread_of(profile: &str, v: &Value) -> Option<InboxThread> {
         last_email_at: text("last_email_at").unwrap_or_default(),
         sorted_at: text("sorted_at").unwrap_or_default(),
         by: text("by").unwrap_or_default(),
+        sender: sender_of(&v["sender"]),
+    })
+}
+
+fn sender_of(v: &Value) -> Option<InboxSender> {
+    let address = v["address"].as_str()?.to_string();
+    Some(InboxSender { name: v["name"].as_str().map(str::to_string), address })
+}
+
+fn ask_of(json: Option<&Value>) -> Option<InboxAsk> {
+    let d = &json?["error"]["details"];
+    if d["reason"].as_str() != Some("chat-sending.ask") {
+        return None;
+    }
+    let count = |k: &str| d[k].as_u64().and_then(|n| u32::try_from(n).ok());
+    Some(InboxAsk {
+        emails: count("emails")?,
+        threads: count("threads")?,
+        tokens: count("tokens")?,
+        host: d["host"].as_str()?.to_string(),
+        model: d["model"].as_str()?.to_string(),
+        estimated_cost_usd: d["estimated_cost_usd"].as_f64(),
     })
 }
 
@@ -234,7 +281,7 @@ pub fn run(tool: &Tool, profile: &str, yes: bool) -> Result<InboxRun, String> {
         Some(v) if skills::ok(&out, v) => Ok(sorted_of(v)),
         j => {
             let (message, code, reason) = skills::refusal(&out, j, TOO_OLD);
-            Ok(InboxRun::Failed { message, code, reason })
+            Ok(InboxRun::Failed { message, code, reason, ask: ask_of(j) })
         }
     }
 }
@@ -249,10 +296,18 @@ fn sorted_of(v: &Value) -> InboxRun {
         .filter_map(|m| m["why"].as_str())
         .map(crate::redact::text)
         .collect();
+    let run = &v["meta"]["model_run"];
+    let model = match (run["provider"].as_str(), run["model"].as_str()) {
+        (Some(p), Some(m)) => Some(format!("{p}/{m}")),
+        (None, Some(m)) => Some(m.to_string()),
+        _ => None,
+    };
     InboxRun::Sorted {
         listed: u32::try_from(listed).unwrap_or(u32::MAX),
         notes,
         complete: v["meta"]["complete"].as_bool().unwrap_or(true),
+        model,
+        cost_usd: run["cost_usd"].as_f64(),
     }
 }
 
@@ -337,8 +392,38 @@ mod tests {
         });
         assert_eq!(
             sorted_of(&v),
-            InboxRun::Sorted { listed: 2, notes: vec!["12 threads wait for the next run".into()], complete: false }
+            InboxRun::Sorted {
+                listed: 2,
+                notes: vec!["12 threads wait for the next run".into()],
+                complete: false,
+                model: None,
+                cost_usd: None
+            }
         );
+    }
+
+    #[test]
+    fn a_run_names_its_model_and_cost_and_a_thread_its_sender() {
+        let v = json!({ "items": [], "meta": { "complete": true, "model_run": {
+            "provider": "anthropic", "model": "claude-haiku-4-5", "sent": 3, "done": 3, "left": 0, "cost_usd": 0.0042 } } });
+        assert!(matches!(sorted_of(&v), InboxRun::Sorted { model: Some(m), cost_usd: Some(c), .. }
+            if m == "anthropic/claude-haiku-4-5" && (c - 0.0042).abs() < 1e-9));
+        let t = thread_of(
+            "work",
+            &json!({ "ref": "chat:email/a/t", "bucket": "answer", "sender": { "name": null, "address": "ana@example.com" } }),
+        );
+        assert_eq!(t.unwrap().sender, Some(InboxSender { name: None, address: "ana@example.com".into() }));
+    }
+
+    #[test]
+    fn an_ask_carries_what_would_be_sent() {
+        let j = json!({ "error": { "code": "confirmation_required", "message": "12 emails ...", "details": {
+            "reason": "chat-sending.ask", "emails": 12, "threads": 5, "tokens": 9000, "host": "api.anthropic.com",
+            "model": "anthropic/claude-haiku-4-5", "estimated_cost_usd": null } } });
+        let ask = ask_of(Some(&j)).unwrap();
+        assert_eq!((ask.emails, ask.threads, ask.tokens, ask.estimated_cost_usd), (12, 5, 9000, None));
+        assert_eq!(ask.host, "api.anthropic.com");
+        assert!(ask_of(Some(&json!({ "error": { "details": { "reason": "chat-sending.denied" } } }))).is_none());
     }
 
     #[test]

@@ -18,7 +18,13 @@ const model = (provider: string | null): AiModel => ({
   key: { stored: provider !== null, source: null },
 })
 
-const thread = (profile: string, bucket: string, title: string, reason: string) => ({
+const thread = (
+  profile: string,
+  bucket: string,
+  title: string,
+  reason: string,
+  sender: { name: string | null; address: string } | null = null,
+) => ({
   profile,
   ref: `chat:email/${profile}%40example.com/${title.replaceAll(" ", "-")}`,
   title,
@@ -27,11 +33,15 @@ const thread = (profile: string, bucket: string, title: string, reason: string) 
   lastEmailAt: "2026-11-19T08:00:00.000Z",
   sortedAt: "2026-11-19T08:30:00.000Z",
   by: "anthropic/claude-haiku-4-5",
+  sender,
 })
 
 const answer = (over: Partial<Answer> = {}): Answer => ({
   threads: [
-    thread("work", "answer", "Contract draft", "Marta asks you to sign by Friday"),
+    thread("work", "answer", "Contract draft", "Marta asks you to sign by Friday", {
+      name: "Marta Silva",
+      address: "marta@acme.example",
+    }),
     thread("personal", "read", "Your flight", "Boarding pass and the gate change"),
     thread("personal", "later", "Invoice 118", "A receipt, already paid"),
   ],
@@ -67,6 +77,7 @@ describe("the Inbox tab", () => {
     const answerGroup = await screen.findByRole("region", { name: /^Needs an answer/ })
     expect(within(answerGroup).getByRole("button", { name: "Open Contract draft" })).toBeInTheDocument()
     expect(within(answerGroup).getByText("Marta asks you to sign by Friday")).toBeInTheDocument()
+    expect(within(answerGroup).getByText("Marta Silva")).toHaveAttribute("title", "marta@acme.example")
     expect(screen.getByRole("region", { name: /^To read/ })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: /^Can wait/ })).toBeInTheDocument()
     expect(list).toHaveBeenCalledWith("email", ["personal", "work"], { accounts: [], words: [] }, 1, 25)
@@ -118,12 +129,20 @@ describe("the Inbox tab", () => {
     const list = vi.spyOn(platform, "mailInboxList").mockResolvedValue(answer())
     const run = vi
       .spyOn(platform, "mailInboxRun")
-      .mockResolvedValueOnce({ result: "sorted", listed: 4, notes: [], complete: true })
+      .mockResolvedValueOnce({
+        result: "sorted",
+        listed: 4,
+        notes: [],
+        complete: true,
+        model: "anthropic/claude-haiku-4-5",
+        costUsd: 0.0031,
+      })
       .mockResolvedValueOnce({
         result: "failed",
         code: "not_found",
         reason: "item.not-found",
         message: "no mail is stored yet; run `mail work sync` first",
+        ask: null,
       })
     const user = userEvent.setup()
     render(<InboxPage />)
@@ -131,7 +150,9 @@ describe("the Inbox tab", () => {
     const reads = list.mock.calls.length
     await user.click(screen.getByRole("button", { name: "Sort now" }))
     const progress = await screen.findByRole("region", { name: "Sorting each account" })
-    expect(await within(progress).findByText("done, 4 threads in the list")).toBeInTheDocument()
+    expect(
+      await within(progress).findByText("done, 4 threads in the list · anthropic/claude-haiku-4-5 · < $0.01"),
+    ).toBeInTheDocument()
     expect(
       await within(progress).findByText("Nothing is synced in this account yet. Sync it on the Tools page first."),
     ).toBeInTheDocument()
@@ -151,15 +172,27 @@ describe("the Inbox tab", () => {
             code: "permission_error",
             reason: "chat-sending.ask",
             message: "8 emails of 5 threads (about 3100 tokens) go to anthropic at api.anthropic.com",
+            ask: {
+              emails: 8,
+              threads: 5,
+              tokens: 3100,
+              host: "api.anthropic.com",
+              model: "anthropic/claude-haiku-4-5",
+              estimatedCostUsd: 0.02,
+            },
           }
-        : { result: "sorted", listed: 2, notes: [], complete: true },
+        : { result: "sorted", listed: 2, notes: [], complete: true, model: null, costUsd: null },
     )
     const user = userEvent.setup()
     render(<InboxPage />)
     await screen.findByRole("region", { name: /^Needs an answer/ })
     await user.click(screen.getByRole("button", { name: "Sort now" }))
     const progress = await screen.findByRole("region", { name: "Sorting each account" })
-    expect(await within(progress).findByText(/8 emails of 5 threads/)).toBeInTheDocument()
+    expect(
+      await within(progress).findByText(
+        "anthropic/claude-haiku-4-5 runs outside this computer, at api.anthropic.com. Send 8 emails of 5 threads, about 3,100 tokens, about $0.02?",
+      ),
+    ).toBeInTheDocument()
     await user.click(within(progress).getByRole("button", { name: "Send and sort" }))
     await waitFor(() => expect(run).toHaveBeenLastCalledWith("email", "work", true))
     expect(run).toHaveBeenCalledTimes(3)

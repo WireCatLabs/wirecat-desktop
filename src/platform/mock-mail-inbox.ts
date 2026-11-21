@@ -24,6 +24,7 @@ const thread = (
   title: string | null,
   reason: string,
   hours: number,
+  sender: InboxThread["sender"] = null,
 ): InboxThread => ({
   profile,
   ref: `chat:email/${MAILBOX[profile] ?? profile}/thread-${n}`,
@@ -33,11 +34,18 @@ const thread = (
   lastEmailAt: ago(hours * HOUR),
   sortedAt: ago(Math.max(0, hours - 0.5) * HOUR),
   by: BY,
+  sender,
 })
 
 const SORTED: InboxThread[] = [
-  thread("work", 1, "answer", "Contract draft for the Lisbon office", "Marta asks you to sign by Friday", 3),
-  thread("personal", 2, "answer", "Dinner on Saturday?", "Your brother asks if 8 pm works", 5),
+  thread("work", 1, "answer", "Contract draft for the Lisbon office", "Marta asks you to sign by Friday", 3, {
+    name: "Marta Silva",
+    address: "marta@acme.example",
+  }),
+  thread("personal", 2, "answer", "Dinner on Saturday?", "Your brother asks if 8 pm works", 5, {
+    name: null,
+    address: "leo@example.com",
+  }),
   thread("work", 3, "answer", "Re: Q4 budget", "Paul waits for your numbers before the board call", 26),
   thread("work", 4, "read", "Release notes 2.14", "What changed in the app your team uses", 7),
   thread("personal", 5, "read", "Your flight to Valencia", "Boarding pass and the gate change", 20),
@@ -115,15 +123,23 @@ export function mailInboxMock(params: URLSearchParams): Pick<Platform, Mocked> {
     async mailInboxRun(_id, profile, yes): Promise<InboxRun> {
       await delay(2500)
       if (scenario === "old")
-        return { result: "failed", code: "needs_update", reason: null, message: "error: unknown command 'inbox'" }
+        return {
+          result: "failed",
+          code: "needs_update",
+          reason: null,
+          message: "error: unknown command 'inbox'",
+          ask: null,
+        }
       const no = refused(profile)
-      if (no?.result === "failed") return { result: "failed", message: no.message, code: no.code, reason: no.reason }
+      if (no?.result === "failed")
+        return { result: "failed", message: no.message, code: no.code, reason: no.reason, ask: null }
       if (runScenario === "fail")
         return {
           result: "failed",
           code: "configuration_error",
           reason: "ai.key-missing",
           message: "no API key is stored for the AI model: store it with `memo models ai set … --secret-stdin`",
+          ask: null,
         }
       if (runScenario === "ask" && !yes)
         return {
@@ -131,6 +147,7 @@ export function mailInboxMock(params: URLSearchParams): Pick<Platform, Mocked> {
           code: "permission_error",
           reason: "chat-sending.ask",
           message: `8 emails of 5 threads (about 3100 tokens) go to ${BY} at api.anthropic.com, and memo models chats asks first`,
+          ask: { emails: 8, threads: 5, tokens: 3100, host: "api.anthropic.com", model: BY, estimatedCostUsd: 0.004 },
         }
       const fresh = profile === "personal" ? FRESH.filter((f) => !threads.some((t) => t.ref === f.ref)) : []
       threads = [...fresh, ...threads]
@@ -143,6 +160,8 @@ export function mailInboxMock(params: URLSearchParams): Pick<Platform, Mocked> {
         listed: threads.filter((t) => t.profile === profile).length,
         notes,
         complete: notes.length === 0,
+        model: BY,
+        costUsd: fresh.length > 0 ? 0.0031 : null,
       }
     },
     async mailInboxScheduleStatus(_id, profile) {
