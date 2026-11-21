@@ -2597,7 +2597,7 @@
       "bin": "amo",
       "package": "@wirecat/amo-cli",
       "summary": "Read and change an amoCRM or Kommo account's CRM: deals, contacts and companies, from the Clients page and your agent.",
-      "docs": "https://github.com/WireCatLabs/amo-cli#readme",
+      "docs": "https://wirecat.dev/en/docs/amo",
       "repo": "https://github.com/WireCatLabs/amo-cli",
       "profiles": {
         "args": ["session", "list", "--no-record", "--json"],
@@ -2689,7 +2689,7 @@
       "bin": "attio",
       "package": "@wirecat/attio-cli",
       "summary": "Read an Attio workspace's CRM: deals with their stages, people and companies, from the Clients page and your agent.",
-      "docs": "https://github.com/WireCatLabs/attio-cli#readme",
+      "docs": "https://wirecat.dev/en/docs/attio",
       "repo": "https://github.com/WireCatLabs/attio-cli",
       "profiles": {
         "args": ["session", "list", "--no-record", "--json"],
@@ -2772,7 +2772,7 @@
       "bin": "hubspot",
       "package": "@wirecat/hubspot-cli",
       "summary": "Read and change a HubSpot account's CRM: deals, contacts and companies, from the Clients page and your agent.",
-      "docs": "https://github.com/WireCatLabs/hubspot-cli#readme",
+      "docs": "https://wirecat.dev/en/docs/hubspot",
       "repo": "https://github.com/WireCatLabs/hubspot-cli",
       "profiles": {
         "args": ["session", "list", "--no-record", "--json"],
