@@ -45,6 +45,18 @@ function useColumns(title: (profile: string) => string): Column<InboxThread>[] {
       ),
     },
     {
+      id: "sender",
+      head: m.col.sender,
+      width: "minmax(8rem,0.45fr)",
+      // The name the sender gave himself is other people's text too: plain text, never markup.
+      cell: (t) =>
+        t.sender ? (
+          <span title={t.sender.address} className="text-ink-soft [overflow-wrap:anywhere]">
+            {t.sender.name ?? t.sender.address}
+          </span>
+        ) : null,
+    },
+    {
       id: "account",
       head: m.col.account,
       width: "minmax(7rem,0.35fr)",
@@ -63,7 +75,7 @@ function useColumns(title: (profile: string) => string): Column<InboxThread>[] {
   ]
 }
 
-const TABLE = { density: "roomy", minWidth: "44rem", leadWidth: "minmax(16rem,1fr)" } as const
+const TABLE = { density: "roomy", minWidth: "52rem", leadWidth: "minmax(16rem,1fr)" } as const
 
 /** One page of sorted threads, under the group each is in; a group's heading counts all of it, on every page. */
 export function InboxGroups(props: { page: InboxPage; busy: boolean; title: (profile: string) => string }) {

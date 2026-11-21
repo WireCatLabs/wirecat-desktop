@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { filterOf, groupsOf, refusalOf } from "./inbox"
+import { costText, filterOf, groupsOf, refusalOf } from "./inbox"
 
 const t = (bucket: string, ref: string) => ({ bucket, ref })
 
@@ -34,5 +34,9 @@ describe("inbox", () => {
     expect(refusalOf({ code: "needs_update", reason: null })).toBe("old")
     expect(refusalOf({ code: "store_busy", reason: null })).toBe("busy")
     expect(refusalOf({ code: "failed", reason: "ai.rate-limited" })).toBe("other")
+  })
+
+  it("shows a cost under a cent as less than a cent, not as free", () => {
+    expect([0.0031, 0, 0.42].map((usd) => costText(usd, "en"))).toEqual(["< $0.01", "$0.00", "$0.42"])
   })
 })

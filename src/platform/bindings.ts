@@ -804,6 +804,17 @@ export type InboxAccount =
 /**  `matching`: its threads the words match, whatever account the filter chose, for the account filter's counts. */
 { result: "listed"; profile: string; matching: number } | { result: "failed"; profile: string; message: string; code: string | null; reason: string | null };
 
+/**  What `inbox` would send before it asks, so the window asks in the owner's language instead of the tool's English. */
+export type InboxAsk = {
+	emails: number,
+	threads: number,
+	tokens: number,
+	host: string,
+	model: string,
+	/**  `None` for a model memo has no price for. */
+	estimatedCostUsd: number | null,
+};
+
 /**  The filter the window chose. `accounts` empty is every account read; `words` must all be in a title or a reason. */
 export type InboxFilter = {
 	accounts: string[],
@@ -820,7 +831,12 @@ export type InboxPage = {
 };
 
 /**  What one Sort now gave: the threads it lists now, and what it left for the next run in the tool's own words. */
-export type InboxRun = { result: "sorted"; listed: number; notes: string[]; complete: boolean } | { result: "failed"; message: string; code: string | null; reason: string | null };
+export type InboxRun = { result: "sorted"; listed: number; notes: string[]; complete: boolean; model: string | null; costUsd: number | null } | { result: "failed"; message: string; code: string | null; reason: string | null; ask: InboxAsk | null };
+
+export type InboxSender = {
+	name: string | null,
+	address: string,
+};
 
 export type InboxThread = {
 	/**  The account it was read from, as the window named it; the ref names the mailbox address instead. */
@@ -835,6 +851,8 @@ export type InboxThread = {
 	sortedAt: string,
 	/**  The model that sorted it, as `inbox` names it. */
 	by: string,
+	/**  The newest email's sender who is not the owner; `None` from a mail-cli before 0.36.0. */
+	sender: InboxSender | null,
 };
 
 export type Install = {

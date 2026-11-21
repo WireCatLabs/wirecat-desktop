@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { type Refusal, refusalOf } from "@/domain/inbox"
-import type { InboxRun } from "@/platform/bindings"
+import type { InboxAsk, InboxRun } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { errorText } from "@/shared/errors"
 import { queryClient } from "@/shared/query"
@@ -13,10 +13,12 @@ export type RunState =
   | { phase: "waiting" }
   | { phase: "running" }
   | { phase: "done"; run: Extract<InboxRun, { result: "sorted" }> }
-  | { phase: "failed"; refusal: Refusal; message: string }
+  | { phase: "failed"; refusal: Refusal; message: string; ask?: InboxAsk | null }
 
 const runStateOf = (run: InboxRun): RunState =>
-  run.result === "sorted" ? { phase: "done", run } : { phase: "failed", refusal: refusalOf(run), message: run.message }
+  run.result === "sorted"
+    ? { phase: "done", run }
+    : { phase: "failed", refusal: refusalOf(run), message: run.message, ask: run.ask }
 
 type InboxState = {
   /** What the search field shows. */
