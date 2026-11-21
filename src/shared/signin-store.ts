@@ -283,12 +283,12 @@ const kept = (
 })
 
 /** A site as cli-core's `--site` takes it, as `signin.rs` checks it: `https://` or none, a host, a port, a path. */
-export const siteShaped = (site: string) =>
+const siteShaped = (site: string) =>
   site.trim().length <= 253 &&
   /^(https:\/\/)?[a-z0-9-]+(\.[a-z0-9-]+)*(:\d{1,5})?(\/[a-z0-9._~%-]+)*\/*$/i.test(site.trim())
 
 /** A user name Basic sign-in can carry: one line, no colon, not a flag. */
-export const loginShaped = (login: string) => {
+const loginShaped = (login: string) => {
   const name = login.trim()
   return name !== "" && name.length <= 100 && !name.startsWith("-") && !name.includes(":") && !/\p{Cc}/u.test(name)
 }
