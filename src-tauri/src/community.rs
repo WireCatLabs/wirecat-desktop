@@ -350,10 +350,12 @@ fn own_storage(tool: &Tool) -> Result<(), Problem> {
 }
 
 /// What a sign-in in the window may take from a tool we did not build: its words, which sign the chosen profile in and
-/// name nothing else the app fills, and whether what the owner types is its whole stdin. `password` names a variable,
-/// `clientId` a setting written before the run, and the other keys flags for what the owner typed: none is reviewed.
+/// name nothing else the app fills, and whether what the owner types is its whole stdin. `site` and `login` are the
+/// flags of cli-core's application password sign-in, `--site` and `--login` only; `signin.rs` checks what the owner
+/// typed for them. `password` names a variable, `clientId` a setting written before the run, and the other
+/// keys flags for what the owner typed: none is reviewed.
 fn sign_in_methods(methods: &Value) -> Result<(), Problem> {
-    const KEYS: [&str; 4] = ["id", "label", "words", "stdin"];
+    const KEYS: [&str; 6] = ["id", "label", "words", "stdin", "site", "login"];
     let bad = |why: String| Err(rule("signIn", why));
     if methods.is_null() {
         return Ok(());
@@ -380,6 +382,17 @@ fn sign_in_methods(methods: &Value) -> Result<(), Problem> {
         }
         if !method["stdin"].is_null() && !method["stdin"].is_boolean() {
             return bad(format!("the sign-in {id}'s stdin is true or false."));
+        }
+        // cli-core's flags only: another flag would hand what the owner typed to a setting it was not typed for.
+        for key in ["site", "login"] {
+            let flag = &method[key];
+            if !flag.is_null() && flag.as_str() != Some(&format!("--{key}")) {
+                return bad(format!("the sign-in {id}'s {key} is the flag --{key}."));
+            }
+        }
+        // The password of a sign-in with a site and a user name is read until stdin closes.
+        if (!method["site"].is_null() || !method["login"].is_null()) && method["stdin"] != true {
+            return bad(format!("the sign-in {id} reads its password on stdin: set stdin to true."));
         }
     }
     Ok(())
@@ -743,6 +756,16 @@ mod tests {
         assert!(bad(json!({ "words": ["{profile}", "sh", "-c", "rm -rf ~"] })).contains("is not allowed"));
         assert!(bad(json!({ "id": "Token!" })).contains("plain lower-case"));
         assert!(bad(json!({ "label": "" })).contains("label"));
+        assert!(bad(json!({ "site": "-c" })).contains("the flag --site"));
+        assert!(bad(json!({ "site": "--config" })).contains("the flag --site"));
+        assert!(bad(json!({ "login": "--user name" })).contains("the flag --login"));
+        assert!(bad(json!({ "site": "--site", "stdin": false })).contains("set stdin to true"));
+        let mut site = sample();
+        site["signIn"]["methods"] = json!([{ "id": "app-password", "label": "Application password",
+            "words": ["{profile}", "session", "start", "--json"], "stdin": true, "site": "--site", "login": "--login" }]);
+        let (tools, _) = parse(&file(&[site]), catalog());
+        let method = &tools[0].sign_in.as_ref().unwrap().methods[0];
+        assert_eq!((method.site.as_deref(), method.login.as_deref()), (Some("--site"), Some("--login")));
         let mut empty = sample();
         empty["signIn"]["methods"] = json!([]);
         assert!(rejected(&empty).contains("signIn.methods"));

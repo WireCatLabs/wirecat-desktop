@@ -30,6 +30,7 @@ describe("catalog", () => {
       "attio",
       "hubspot",
       "linear",
+      "wordpress",
       "pbx",
     ])
     const owners = tools.filter((t) => !t.partOf)

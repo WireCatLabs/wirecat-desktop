@@ -49,6 +49,7 @@ const BY_KIND: Record<string, WizardStep[]> = {
   qr: ["intro", "scan", "done"],
   phone: ["intro", "phone", "code", "done"],
   token: ["intro", "token", "done"],
+  "app-password": ["intro", "appPassword", "done"],
 }
 
 export const wizardPath = (tool: string, method: string | null, route: Route = null): WizardStep[] =>

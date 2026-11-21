@@ -2,6 +2,7 @@
 /** `records` is any own tool's data: its manifest names it in free text, which has no plural forms to count with. */
 /** `tracker` is an issue tracker's copy (Linear): cli-core's tracker sync counts what it saved per list. */
 /** `events` is a calendar's copy (gcal): cli-core's calendar sync counts what it saved per calendar, as a tracker's. */
+/** `content` is a site's posts and pages (WordPress): cli-core's content sync counts what it saved per kind, as a tracker's. */
 export type SyncWhat =
   | "messages"
   | "files"
@@ -12,6 +13,7 @@ export type SyncWhat =
   | "records"
   | "tracker"
   | "events"
+  | "content"
 
 /** What a memo sync sent to the hosted model while search rewriting is on; `reason` is memo's English, masked. */
 export type SyncEnrichment = {

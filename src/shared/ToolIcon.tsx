@@ -10,6 +10,7 @@ import linear from "@/assets/logos/linear.png"
 import max from "@/assets/logos/max.png"
 import notion from "@/assets/logos/notion.svg"
 import whatsapp from "@/assets/logos/whatsapp.svg"
+import wordpress from "@/assets/logos/wordpress.svg"
 import yandexDisk from "@/assets/logos/yandex-disk.png"
 import zoom from "@/assets/logos/zoom.svg"
 import { cx } from "@/ui/cx"
@@ -30,6 +31,7 @@ const LOGOS: Record<string, string> = {
   hubspot,
   linear,
   notion,
+  wordpress,
   ydisk: yandexDisk,
 }
 

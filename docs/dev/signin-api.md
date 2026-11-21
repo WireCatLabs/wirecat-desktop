@@ -25,7 +25,13 @@ its lines) and each tool's `session start` (the CLI: cli-core `src/terminal/sign
 - **Flags:** `--json` always. `--answer-stdin` only on a method that can ask a question; wa's `qr` method leaves it
   out, so an older wa still signs in.
 - **stderr:** one JSON object per line for each step (below), plus lines for people.
-- **stdin:** one line per `needs` step: the answer, then a newline. One line only, no control characters.
+- **stdin:** one line per `needs` step: the answer, then a newline. One line only, no control characters. A method
+  marked `stdin` in the catalog instead reads one secret until stdin closes (b24's webhook, a token, an application
+  password): the app writes it and closes stdin, so it asks nothing after.
+- **What the owner types first:** the catalog names the flag for each value that is not a secret, such as mail's
+  `--address`, or `--site` and `--login` for cli-core's application password sign-in
+  (`<bin> {profile} session start --json --site blog.example.com --login editor`, the password on stdin). Rust checks
+  each value's shape before it becomes an argument (`signin.rs`); a secret is never an argument.
 - **stdout:** the final answer, one JSON envelope. There is no `done` step.
 - **Stop:** `SIGTERM` to the run, then a kill after five seconds.
 

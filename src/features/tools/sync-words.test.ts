@@ -14,6 +14,9 @@ describe("the words a finished sync ends with", () => {
     expect(en.sync.result("tracker", { ...summary, new: 15, places: 2 })).toBe(
       "Synced 15 updated items in 2 kinds of data",
     )
+    expect(en.sync.result("content", { ...summary, new: 42, places: 2 })).toBe(
+      "Synced 42 updated items in 2 kinds of data",
+    )
   })
 
   it("agrees with the count in Russian and Spanish", () => {
@@ -24,6 +27,12 @@ describe("the words a finished sync ends with", () => {
     expect(ru.sync.result("files", { ...summary, new: 3, places: 0 })).toBe("Получено: 3 файла")
     expect(ru.sync.result("tracker", { ...summary, new: 21, places: 2 })).toBe(
       "Получено: 21 обновлённая запись из 2 видов данных",
+    )
+    expect(ru.sync.result("content", { ...summary, new: 22, places: 2 })).toBe(
+      "Получено: 22 обновлённых элемента из 2 видов данных",
+    )
+    expect(es.sync.result("content", { ...summary, new: 1, places: 1 })).toBe(
+      "Sincronizado: 1 elemento actualizado en 1 tipo de datos",
     )
     expect(es.sync.result("messages", { ...summary, new: 1, places: 1 })).toBe(
       "Sincronizado: 1 mensaje nuevo en 1 chat",

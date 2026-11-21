@@ -81,6 +81,9 @@ type SignInState = {
   switchingTo: string | null
   /** Typed in the plan before the run: the mail address, and the name of the owner's own client file, if chosen. */
   address: string
+  /** The site and the user name of an application password sign-in; not secrets. The password stays outside. */
+  site: string
+  login: string
   ownFile: string | null
   /** The owner's own app id (Microsoft's Application ID), saved as the method's `clientId` setting before the run. */
   ownId: string
@@ -89,6 +92,8 @@ type SignInState = {
   /** Start was pressed without what the method needs. */
   planMissing:
     | "address"
+    | "site"
+    | "login"
     | "password"
     | "client"
     | "portal"
@@ -174,6 +179,8 @@ const closed = {
   switchingTo: null as string | null,
   onFinish: null,
   address: "",
+  site: "",
+  login: "",
   ownFile: null,
   ownId: "",
   planError: null,
@@ -261,8 +268,12 @@ export const guidedProvider = (
 const WRONG_PASSWORD = new Set(["mail.app-password-required", "mail.login-refused"])
 
 /** What the plan keeps across a run, a new try and a way back to it. */
-const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "portal" | "appId" | "source">) => ({
+const kept = (
+  s: Pick<SignInState, "address" | "site" | "login" | "ownFile" | "ownId" | "way" | "portal" | "appId" | "source">,
+) => ({
   address: s.address,
+  site: s.site,
+  login: s.login,
   portal: s.portal,
   source: s.source,
   appId: s.appId,
@@ -270,6 +281,17 @@ const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way" | "po
   ownId: s.ownId,
   way: s.way,
 })
+
+/** A site as cli-core's `--site` takes it, as `signin.rs` checks it: `https://` or none, a host, a port, a path. */
+export const siteShaped = (site: string) =>
+  site.trim().length <= 253 &&
+  /^(https:\/\/)?[a-z0-9-]+(\.[a-z0-9-]+)*(:\d{1,5})?(\/[a-z0-9._~%-]+)*\/*$/i.test(site.trim())
+
+/** A user name Basic sign-in can carry: one line, no colon, not a flag. */
+export const loginShaped = (login: string) => {
+  const name = login.trim()
+  return name !== "" && name.length <= 100 && !name.startsWith("-") && !name.includes(":") && !/\p{Cc}/u.test(name)
+}
 
 /** Only what the method takes, and the owner's own app before an app password: with it, Gmail signs in by browser. */
 export const methodOf = (tool: string, method: string | null) => {
@@ -296,7 +318,7 @@ export const methodTooOld = (tool: string | null, method: string | null, install
 function inputsFor(
   tool: string,
   method: string,
-  s: Pick<SignInState, "address" | "way" | "portal" | "appId">,
+  s: Pick<SignInState, "address" | "site" | "login" | "way" | "portal" | "appId">,
 ): SignInInputs {
   const { address, way } = s
   const m = methodOf(tool, method)
@@ -307,6 +329,8 @@ function inputsFor(
     inputs.appId = s.appId.trim()
   }
   if (m.address && address.trim()) inputs.address = address.trim()
+  if (m.site && s.site.trim()) inputs.site = s.site.trim()
+  if (m.login && s.login.trim()) inputs.login = s.login.trim()
   if (m.clientFile && typed.clientFile) inputs.clientFile = typed.clientFile
   else if (m.oauth && way === "browser") inputs.oauth = true
   else if ((m.password || m.stdin) && typed.password) inputs.password = typed.password
@@ -613,8 +637,10 @@ export const useSignIn = create<SignInState>()((set, get) => {
         return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
       if (tool === ASTERISK && sourceProblem(method, get().source)) return set({ planMissing: "source" })
+      if (chosen?.site && !siteShaped(get().site)) return set({ planMissing: "site" })
+      if (chosen?.login && !loginShaped(get().login)) return set({ planMissing: "login" })
       // The tool reads its secret until stdin closes, so the run cannot start without it (`signin.rs` refuses too).
-      if (chosen?.stdin && !typed.password) return set({ planMissing: "password" })
+      if (chosen?.stdin && !typed.password?.trim()) return set({ planMissing: "password" })
       const setting = chosen?.clientId
       const saves: [string, string][] = [
         ...(setting && ownId.trim() ? [[setting, ownId.trim()] as [string, string]] : []),

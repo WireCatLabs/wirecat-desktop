@@ -107,6 +107,9 @@ const ToolSchema = v.object({
             /** The flags for a local application's portal and id (b24's `--portal`, `--client-id`). */
             portal: v.optional(v.string()),
             appId: v.optional(v.string()),
+            /** The flags for the site and user name of an application password sign-in (cli-core's `--site`, `--login`). */
+            site: v.optional(v.string()),
+            login: v.optional(v.string()),
             /** The first release of the tool with this way in; an older one is asked to update before the steps. */
             minVersion: v.optional(v.string()),
           }),
@@ -298,6 +301,7 @@ const ToolSchema = v.object({
         "records",
         "tracker",
         "events",
+        "content",
       ]),
       note: v.nullable(v.string()),
       /** The sync on a timer per account, through the tool's own `schedule command`; Rust holds the words. */

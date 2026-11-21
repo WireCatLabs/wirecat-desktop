@@ -211,6 +211,12 @@ pub struct SignInMethod {
     /// The flag that takes that application's id (b24's `--client-id`); its key goes on stdin, never as a flag.
     #[serde(default)]
     pub app_id: Option<String>,
+    /// The flags for the site and the user name of a sign-in with an application password (cli-core's `app-password`
+    /// preset: `--site`, `--login`); the password itself goes on stdin.
+    #[serde(default)]
+    pub site: Option<String>,
+    #[serde(default)]
+    pub login: Option<String>,
 }
 
 /// `commands` lists every command with its effects and, from cli-core 0.408, whether the profile may run it.
@@ -525,7 +531,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 17);
+        assert_eq!(catalog().tools.len(), 18);
     }
 
     #[test]
