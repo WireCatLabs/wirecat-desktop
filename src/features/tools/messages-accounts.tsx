@@ -5,7 +5,7 @@ import type { RemovalHolder, RemovalKind } from "@/platform/bindings"
 
 type Removes = (typeof ACCOUNT_REMOVES)[number]
 type Keeps = (typeof ACCOUNT_KEEPS)[number]
-export type DataWhat = "messages" | "files" | "meetings" | "mail" | "events" | "records" | "tracker"
+export type DataWhat = "messages" | "files" | "meetings" | "mail" | "events" | "records" | "tracker" | "content"
 
 const en = {
   row: {
@@ -74,6 +74,7 @@ const en = {
       meetings: "meetings and transcripts",
       mail: "mail",
       events: "calendar events",
+      content: "posts and pages, with their tags, categories and authors",
       records: "CRM records (deals, leads, contacts and companies)",
       tracker: "issues, projects and comments",
     } satisfies Record<DataWhat, string>,
@@ -238,6 +239,7 @@ const ru: AccountsText = {
       meetings: "встречи и расшифровки",
       mail: "письма",
       events: "события календаря",
+      content: "записи и страницы с их метками, рубриками и авторами",
       records: "записи CRM (сделки, лиды, контакты и компании)",
       tracker: "задачи, проекты и комментарии",
     },
@@ -401,6 +403,7 @@ const es: AccountsText = {
       meetings: "reuniones y transcripciones",
       mail: "correos",
       events: "eventos del calendario",
+      content: "entradas y páginas, con sus etiquetas, categorías y autores",
       records: "registros del CRM (negocios, prospectos, contactos y empresas)",
       tracker: "incidencias, proyectos y comentarios",
     },

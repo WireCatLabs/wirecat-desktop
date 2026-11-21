@@ -32,7 +32,7 @@ Change it here first, then on both sides.
   while its serve is connected, and else `current_at`, when the last serve had the store current. The account row
   then shows "Live" or "Fresh as of …" with no Sync button, and nothing before the first serve.
 - `what`: which summary shape the answer has: `messages`, `files`, `meetings`, `mail`, `notes and mail`, `records`
-  (a tool the owner added) or `tracker` (cli-core's tracker sync, Linear).
+  (a tool the owner added), `tracker` (cli-core's tracker sync, Linear) or `content` (cli-core's content sync, WordPress).
 - Stop is `SIGTERM` to that process, then a kill of its group after five seconds.
 
 ## Progress on stderr
@@ -66,7 +66,7 @@ is the tool's time limit.
 | `meetings` | `meetings` | — | `warnings[]` length | — | no warnings |
 | `notes and mail` | `mail[].saved` + `notes[].changed` | entries with a count above 0 | `failed[]` length | — | every `mail[].complete` |
 | `records` | each number field, or `created + updated` of each object field | kinds above 0 | `refused` + `issues[]` length | — | `state` is not `partial` |
-| `tracker` | `synced[].saved` | `synced[]` with `saved > 0` | `synced[]` with `error` | — | `complete`, default true |
+| `tracker`, `events`, `content` | `synced[].saved` | `synced[]` with `saved > 0` | `synced[]` with `error` | — | `complete`, default true |
 
 A shape the app does not know gives zeros, not an error.
 

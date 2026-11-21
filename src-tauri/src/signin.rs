@@ -84,6 +84,9 @@ pub struct Inputs {
     /// The portal a local application signs in to; its id and key come with it, the key in `password`.
     pub portal: Option<String>,
     pub app_id: Option<String>,
+    /// The site and the user name an application password belongs to; the password comes in `password`.
+    pub site: Option<String>,
+    pub login: Option<String>,
 }
 
 /// A run ready to start: its words, the variables it reads, and the client file it may name, removed with this.
@@ -122,6 +125,15 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
     let mut unset = Vec::new();
     if let Some(address) = inputs.address {
         args.extend([flag(method.address.as_ref(), "an address")?.clone(), valid_address(&address)?]);
+    }
+    if (method.site.is_some() && inputs.site.is_none()) || (method.login.is_some() && inputs.login.is_none()) {
+        return Err("This sign-in needs the site's address and your user name.".into());
+    }
+    if let Some(site) = inputs.site {
+        args.extend([flag(method.site.as_ref(), "a site")?.clone(), valid_site(&site)?]);
+    }
+    if let Some(login) = inputs.login {
+        args.extend([flag(method.login.as_ref(), "a user name")?.clone(), valid_login(&login)?]);
     }
     let app = method.portal.is_some();
     if app && (inputs.portal.is_none() || inputs.app_id.is_none() || inputs.password.is_none()) {
@@ -255,6 +267,35 @@ fn valid_webhook(address: &Answer) -> Result<Answer, String> {
         return Err(refused());
     }
     Ok(Answer::new(text.to_string()))
+}
+
+/// A site as cli-core's `siteValue` takes it (`service-api-manifest.ts`): `https://` in any case or none, then a host
+/// with an optional port and path. Never `http`, a user, a password, a query or a flag, so nothing but the site's
+/// address reaches `--site`; the tool lower-cases the host and checks what a URL makes of it.
+fn valid_site(site: &str) -> Result<String, String> {
+    static SHAPE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"^(?i:https://)?[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*(:\d{1,5})?(/[A-Za-z0-9._~%-]+)*/*$").unwrap()
+    });
+    let site = site.trim();
+    if site.len() > 253 || site.starts_with('-') || !SHAPE.is_match(site) {
+        return Err("Type the site's address, such as blog.example.com or https://example.com/blog.".into());
+    }
+    Ok(site.to_string())
+}
+
+/// The user name the application password belongs to: one line, never a flag, and no colon, which Basic sign-in would
+/// read as the start of the password.
+fn valid_login(login: &str) -> Result<String, String> {
+    let login = login.trim();
+    if login.is_empty()
+        || login.chars().count() > 100
+        || login.starts_with('-')
+        || login.contains(':')
+        || login.chars().any(char::is_control)
+    {
+        return Err("Type your user name: one line, without a colon.".into());
+    }
+    Ok(login.to_string())
 }
 
 /// A portal's host as b24's `--portal` takes it: no scheme, port or path, so nothing but a name reaches the flag.
@@ -547,6 +588,52 @@ mod tests {
         assert!(
             args(b24, "webhook", "work", Inputs { address: Some("me@x.com".into()), ..Inputs::default() }).is_err()
         );
+    }
+
+    #[test]
+    fn an_application_password_goes_only_to_stdin_with_the_site_and_user_as_flags() {
+        let wordpress = catalog::tool("wordpress").unwrap();
+        let typed = |site: &str, login: &str, password: &str| Inputs {
+            site: Some(site.into()),
+            login: Some(login.into()),
+            password: Some(password.into()),
+            ..Inputs::default()
+        };
+        let prepared =
+            args(wordpress, "app-password", "blog", typed(" blog.example.com ", "editor", "abcd efgh ijkl")).unwrap();
+        assert_eq!(
+            prepared.args,
+            ["blog", "session", "start", "--json", "--site", "blog.example.com", "--login", "editor"]
+        );
+        assert_eq!(prepared.env.len(), 0);
+        assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some("abcd efgh ijkl"));
+        let path = args(wordpress, "app-password", "blog", typed("https://example.com/blog", "Jo Doe", "x")).unwrap();
+        assert_eq!(path.args[5], "https://example.com/blog");
+        for site in ["HTTPS://Blog.Example.com/", "localhost:8443", "blog.example.com/news/"] {
+            assert!(args(wordpress, "app-password", "blog", typed(site, "editor", "x")).is_ok(), "{site}");
+        }
+        for (site, login) in [
+            ("http://blog.example.com", "editor"),
+            ("https://me:pw@blog.example.com", "editor"),
+            ("--help", "editor"),
+            ("-blog.example.com", "editor"),
+            ("blog.example.com/a b", "editor"),
+            ("blog.example.com?x=1", "editor"),
+            ("blog.example.com", "a:b"),
+            ("blog.example.com", "--help"),
+            ("blog.example.com", ""),
+        ] {
+            let error = args(wordpress, "app-password", "blog", typed(site, login, "s3cr3t")).err().unwrap();
+            assert!(!error.contains("s3cr3t"), "{error}");
+        }
+        let no_site = Inputs { login: Some("editor".into()), password: Some("x".into()), ..Inputs::default() };
+        assert!(args(wordpress, "app-password", "blog", no_site).is_err());
+        let no_password =
+            Inputs { site: Some("blog.example.com".into()), login: Some("editor".into()), ..Inputs::default() };
+        assert!(args(wordpress, "app-password", "blog", no_password).is_err(), "wordpress would wait for stdin");
+        let linear = catalog::tool("linear").unwrap();
+        let site = Inputs { site: Some("blog.example.com".into()), password: Some("x".into()), ..Inputs::default() };
+        assert!(args(linear, "token", "work", site).is_err(), "a method without --site takes no site");
     }
 
     #[test]

@@ -23,6 +23,7 @@ export const RU_TAGLINE: Record<string, string> = {
   attio: "Сделки, люди и компании\u00a0· история изменений",
   hubspot: "Сделки, контакты и компании\u00a0· изменения",
   linear: "Задачи, проекты и комментарии",
+  wordpress: "Записи и страницы\u00a0· черновики",
   pbx: "Звонки и записи разговоров\u00a0· расшифровки",
 }
 
@@ -49,6 +50,8 @@ export const RU_SUMMARY: Record<string, string> = {
     "Читайте и меняйте CRM аккаунта HubSpot: сделки, контакты и компании, со страницы «Клиенты» и через вашего агента.",
   linear:
     "Копируйте задачи, проекты и комментарии рабочего пространства Linear на этот компьютер, чтобы агент читал их и, если вы разрешите, менял.",
+  wordpress:
+    "Копируйте записи и страницы сайта WordPress с их метками, рубриками и авторами на этот компьютер, чтобы агент читал их и, если вы разрешите, писал черновики и публиковал.",
   pbx: "Загружайте записи о звонках и записи разговоров вашей АТС Asterisk как встречи, расшифровывайте звонки на этом компьютере и давайте агенту то, что в них сказано.",
 }
 
@@ -68,6 +71,7 @@ export const ES_TAGLINE: Record<string, string> = {
   attio: "Negociaciones, personas y empresas\u00a0· historial de cambios",
   hubspot: "Negociaciones, contactos y empresas\u00a0· cambios",
   linear: "Incidencias, proyectos y comentarios",
+  wordpress: "Entradas y páginas\u00a0· borradores",
   pbx: "Llamadas y grabaciones\u00a0· transcripciones",
 }
 
@@ -95,5 +99,7 @@ export const ES_SUMMARY: Record<string, string> = {
     "Lee y cambia el CRM de una cuenta de HubSpot: negociaciones, contactos y empresas, desde la página Clientes y con tu agente.",
   linear:
     "Copia las incidencias, proyectos y comentarios de un espacio de trabajo de Linear a este equipo, para que tu agente los lea y, si lo permites, los cambie.",
+  wordpress:
+    "Copia las entradas y páginas de un sitio WordPress, con sus etiquetas, categorías y autores, a este equipo, para que tu agente las lea y, si lo permites, escriba borradores y publique.",
   pbx: "Importa los registros de llamadas y las grabaciones de tu centralita Asterisk como reuniones, transcribe las llamadas en este equipo y da a tu agente lo que se dijo.",
 }

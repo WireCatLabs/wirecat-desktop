@@ -39,6 +39,7 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   attio: "0.1.0",
   hubspot: "0.2.0",
   linear: "0.1.0",
+  wordpress: "0.1.2",
   pbx: "0.3.0",
   notion: "0.2.0",
   ydisk: "0.2.0",

@@ -117,9 +117,7 @@ export function Plan() {
             )}
           </section>
         )}
-        {chosen && (chosen.address || chosen.password || chosen.stdin) && (
-          <Typed missing={planMissing === "address" || planMissing === "password" ? planMissing : null} />
-        )}
+        {chosen && (chosen.address || chosen.password || chosen.stdin) && <Typed missing={typedField(planMissing)} />}
         {!gmail && plan?.own && chosen && (chosen.clientFile || chosen.clientId) && (
           <OwnApp own={plan.own} kind={chosen.clientFile ? "file" : "id"} m={m} />
         )}
@@ -238,31 +236,59 @@ function Providers() {
   )
 }
 
-/** The address and app password; the password lives outside the store and is never shown back. */
-function Typed({ missing }: { missing: "address" | "password" | null }) {
-  const { tool, method, address, ownFile } = useSignIn(
-    useShallow((s) => ({ tool: s.tool, method: s.method, address: s.address, ownFile: s.ownFile })),
+type TypedField = "address" | "site" | "login" | "password"
+const typedField = (missing: string | null): TypedField | null =>
+  missing === "address" || missing === "site" || missing === "login" || missing === "password" ? missing : null
+
+/**
+ * The address and app password, or a site, a user name and its application password; the password lives outside the
+ * store and is never shown back.
+ */
+function Typed({ missing }: { missing: TypedField | null }) {
+  const { tool, method, address, site, login, ownFile } = useSignIn(
+    useShallow((s) => ({
+      tool: s.tool,
+      method: s.method,
+      address: s.address,
+      site: s.site,
+      login: s.login,
+      ownFile: s.ownFile,
+    })),
   )
   const m = useMessages(planMessages)
   const id = useId()
   const [password, setTyped] = useState("")
   const chosen = tool ? methodOf(tool, method) : undefined
   const askPassword = Boolean(chosen?.password || chosen?.stdin) && !ownFile
-  // A token read on stdin with no address (notion) is not an app password: the field says what it is.
-  const token = Boolean(chosen?.stdin) && !chosen?.address
+  // A token read on stdin with no address (notion) is not an app password: the field says what it is. With a site and
+  // a user name it is the site's application password.
+  const appPassword = Boolean(chosen?.site || chosen?.login)
+  const token = Boolean(chosen?.stdin) && !chosen?.address && !appPassword
   const addressNeed = useFieldError(`${id}-address`, {
     live: { problem: missing === "address" ? m.needAddress : null },
   })
+  const siteNeed = useFieldError(`${id}-site`, {
+    live: { problem: missing === "site" ? (site.trim() ? m.badSite : m.needSite) : null },
+  })
+  const loginNeed = useFieldError(`${id}-login`, {
+    live: { problem: missing === "login" ? (login.trim() ? m.badLogin : m.needLogin) : null },
+  })
   const passwordNeed = useFieldError(`${id}-password`, {
-    live: { problem: missing === "password" ? (token ? m.needToken : m.needPassword) : null },
+    live: {
+      problem: missing === "password" ? (token ? m.needToken : appPassword ? m.needAppPassword : m.needPassword) : null,
+    },
   })
   const failAddress = addressNeed.fail
+  const failSite = siteNeed.fail
+  const failLogin = loginNeed.fail
   const failPassword = passwordNeed.fail
   // The store says what is missing when Start is pressed; the field shows it, is marked and takes focus.
   useEffect(() => {
     if (missing === "address") failAddress()
+    if (missing === "site") failSite()
+    if (missing === "login") failLogin()
     if (missing === "password") failPassword()
-  }, [missing, failAddress, failPassword])
+  }, [missing, failAddress, failSite, failLogin, failPassword])
   // The field and what the run sends stay the same: a provider switched back starts both empty. Only for a field of
   // its own: the app password step keeps what it was given.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the field appears
@@ -289,10 +315,50 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
           {addressNeed.hint}
         </>
       )}
+      {chosen?.site && (
+        <>
+          <label htmlFor={`${id}-site`} className="text-[0.9rem] font-medium text-ink">
+            {m.site}
+          </label>
+          <input
+            id={`${id}-site`}
+            inputMode="url"
+            autoComplete="url"
+            spellCheck={false}
+            value={site}
+            onChange={(e) => useSignIn.setState({ site: e.target.value, planMissing: null })}
+            {...siteNeed.field}
+            aria-describedby={[`${id}-site-help`, siteNeed.field["aria-describedby"]].filter(Boolean).join(" ")}
+            className={wideFieldClass}
+          />
+          <p id={`${id}-site-help`} className="text-[0.85rem] text-ink-soft">
+            {m.siteHint}
+          </p>
+          {siteNeed.hint}
+        </>
+      )}
+      {chosen?.login && (
+        <>
+          <label htmlFor={`${id}-login`} className="mt-1 text-[0.9rem] font-medium text-ink">
+            {m.login}
+          </label>
+          <input
+            id={`${id}-login`}
+            autoComplete="username"
+            autoCapitalize="off"
+            spellCheck={false}
+            value={login}
+            onChange={(e) => useSignIn.setState({ login: e.target.value, planMissing: null })}
+            {...loginNeed.field}
+            className={wideFieldClass}
+          />
+          {loginNeed.hint}
+        </>
+      )}
       {askPassword && (
         <>
           <label htmlFor={`${id}-password`} className="mt-1 text-[0.9rem] font-medium text-ink">
-            {token ? m.token : m.password}
+            {token ? m.token : appPassword ? m.appPassword : m.password}
           </label>
           <input
             id={`${id}-password`}

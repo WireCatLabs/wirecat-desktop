@@ -33,7 +33,14 @@ type Phase =
 
 const dataWhat = (tool: CatalogTool): DataWhat => {
   const what = tool.sync?.what
-  if (what === "files" || what === "meetings" || what === "mail" || what === "records" || what === "tracker")
+  if (
+    what === "files" ||
+    what === "meetings" ||
+    what === "mail" ||
+    what === "records" ||
+    what === "tracker" ||
+    what === "content"
+  )
     return what
   return tool.id === "gcal" ? "events" : "messages"
 }

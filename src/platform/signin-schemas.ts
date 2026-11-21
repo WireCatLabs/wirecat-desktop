@@ -55,4 +55,7 @@ export type SignInInputs = {
   /** A local application's portal and Application ID; its key goes in `password`, on stdin. */
   portal?: string
   appId?: string
+  /** The site and the user name an application password belongs to; the password goes in `password`, on stdin. */
+  site?: string
+  login?: string
 }

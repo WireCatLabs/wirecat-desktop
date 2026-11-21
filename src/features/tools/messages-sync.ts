@@ -20,6 +20,7 @@ const EN_WHAT: Record<SyncWhat, { one: string; other: string; place: [string, st
   records: { one: "new record", other: "new records", place: ["source", "sources"], noun: "records" },
   tracker: { one: "updated item", other: "updated items", place: ["kind of data", "kinds of data"], noun: "items" },
   events: { one: "updated event", other: "updated events", place: ["calendar", "calendars"], noun: "events" },
+  content: { one: "updated item", other: "updated items", place: ["kind of data", "kinds of data"], noun: "items" },
 }
 const enCount = (n: number, [one, other]: [string, string]) => plural("en", n, { one: `# ${one}`, other: `# ${other}` })
 const enNew = (what: SyncWhat, n: number) => enCount(n, [EN_WHAT[what].one, EN_WHAT[what].other])
@@ -101,6 +102,14 @@ const RU_WHAT: Record<
     none: "обновлений нет",
     failed: "Не удалось прочитать",
   },
+  content: {
+    new: { one: "# обновлённый элемент", few: "# обновлённых элемента", many: "# обновлённых элементов" },
+    place: { one: "# вид данных", few: "# вида данных", many: "# видов данных" },
+    from: ["вида данных", "видов данных"],
+    noun: { one: "# элемент", few: "# элемента", many: "# элементов" },
+    none: "обновлений нет",
+    failed: "Не удалось прочитать",
+  },
 }
 const ruFrom = (n: number, [one, many]: [string, string]) =>
   plural("ru", n, { one: `# ${one}`, few: `# ${many}`, many: `# ${many}`, other: `# ${many}` })
@@ -170,6 +179,13 @@ const ES_WHAT: Record<
     place: ["calendario", "calendarios"],
     noun: ["evento", "eventos"],
     none: "no hay eventos actualizados",
+  },
+  content: {
+    one: "elemento actualizado",
+    other: "elementos actualizados",
+    place: ["tipo de datos", "tipos de datos"],
+    noun: ["elemento", "elementos"],
+    none: "no hay actualizaciones",
   },
 }
 const esCount = (n: number, [one, other]: [string, string]) => plural("es", n, { one: `# ${one}`, other: `# ${other}` })

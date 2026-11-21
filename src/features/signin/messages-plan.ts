@@ -26,6 +26,10 @@ import type { Messages } from "@/i18n"
  * Security & access page, where keys are made and managed); linear-cli `docs/commands.md` (`session start` reads the
  * key from stdin, checks it with Linear and keeps it in the keyring, else a private file). Read is enough for `sync`;
  * `issues assign` needs Write.
+ * WordPress (2026-11-21): the Application Passwords integration guide on make.wordpress.org (since 5.6, made and revoked on
+ * the user's profile, available by default only over https, a site can turn it off); wordpress-cli 0.1.2 `session start
+ * --help` (the password asked hidden or read from stdin, never an argument, checked with WordPress, kept in the
+ * keyring, else a private file) and its `--wcat-describe` (Users → Profile → Application Passwords, WordPress 5.7+).
  */
 /**
  * `appKeys`: the steps open with making the owner's own app keys (`messages-telegram.ts`), the first time only.
@@ -55,6 +59,7 @@ const ATTIO_APP = "https://app.attio.com/"
 const ATTIO_GUIDE = "https://attio.com/help/apps/other-apps/generating-an-api-key"
 const LINEAR_SECURITY = "https://linear.app/settings/account/security"
 const LINEAR_GUIDE = "https://linear.app/docs/api-and-webhooks"
+const WORDPRESS_GUIDE = "https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/"
 const YANDEX_NEW_APP = "https://oauth.yandex.ru/client/new/"
 const YANDEX_TOKEN = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
 
@@ -73,6 +78,15 @@ const en = {
   address: "Mail address",
   password: "App password",
   token: "Token",
+  site: "Site address",
+  siteHint: "Such as blog.example.com or https://example.com/blog.",
+  login: "User name",
+  appPassword: "Application password",
+  needSite: "Type the site's address first.",
+  badSite: "Type the address as https://… or the host alone, without http://, a user name or a question mark.",
+  badLogin: "Type the user name on one line, without a colon.",
+  needLogin: "Type your user name first.",
+  needAppPassword: "Paste the application password first.",
   needAddress: "Type the mail address first.",
   needPassword: "Paste the app password first, or use your own app below.",
   needToken: "Paste the token first.",
@@ -252,6 +266,20 @@ const en = {
         "The key is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
       ],
     },
+    wordpress: {
+      steps: [
+        "Open your site's dashboard, signed in as the user your agent should act as, and go to Users → Profile, or Profile if you are not an administrator.",
+        "Under Application Passwords, type a name such as WireCat and add a new application password.",
+        "Copy the password WordPress shows. It is shown only this once; the spaces in it can stay.",
+        "Type the site's address and your user name below, and paste the password. wordpress checks them with your site before it keeps them.",
+      ],
+      guide: { url: WORDPRESS_GUIDE, label: "WordPress's guide to application passwords" },
+      time: "Allow about two minutes.",
+      kept: [
+        "The password can do what your WordPress user can, no more. To stop it, revoke it in the same Application Passwords list.",
+        "The password is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
+      ],
+    },
     "email:microsoft": {
       steps: [
         "Type your mail address. The server is found from it.",
@@ -343,6 +371,15 @@ const ru: PlanText = {
   address: "Адрес почты",
   password: "Пароль приложения",
   token: "Токен",
+  site: "Адрес сайта",
+  siteHint: "Например, blog.example.com или https://example.com/blog.",
+  login: "Имя пользователя",
+  appPassword: "Пароль приложения",
+  needSite: "Сначала введите адрес сайта.",
+  badSite: "Введите адрес как https://… или только имя сайта, без http://, имени пользователя и вопросительного знака.",
+  badLogin: "Введите имя пользователя одной строкой, без двоеточия.",
+  needLogin: "Сначала введите имя пользователя.",
+  needAppPassword: "Сначала вставьте пароль приложения.",
   needAddress: "Сначала введите адрес почты.",
   needPassword: "Сначала вставьте пароль приложения или выберите своё приложение ниже.",
   needToken: "Сначала вставьте токен.",
@@ -504,6 +541,20 @@ const ru: PlanText = {
         "Ключ сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
       ],
     },
+    wordpress: {
+      steps: [
+        "Откройте консоль сайта под пользователем, от имени которого будет работать агент, и перейдите в «Пользователи → Профиль», а если вы не администратор, в «Профиль».",
+        "В разделе «Пароли приложений» введите название, например WireCat, и добавьте новый пароль приложения.",
+        "Скопируйте пароль, который покажет WordPress. Он показывается только один раз; пробелы в нём можно оставить.",
+        "Введите ниже адрес сайта и имя пользователя и вставьте пароль. wordpress проверит их на вашем сайте, прежде чем сохранить.",
+      ],
+      guide: { url: WORDPRESS_GUIDE, label: "Руководство WordPress по паролям приложений" },
+      time: "Около двух минут.",
+      kept: [
+        "Пароль может делать то же, что ваш пользователь WordPress, и не больше. Чтобы отключить его, отзовите его в том же списке «Пароли приложений».",
+        "Пароль сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
+      ],
+    },
     "email:microsoft": {
       steps: [
         "Введите адрес почты. Сервер найдётся по нему.",
@@ -593,6 +644,16 @@ const es: PlanText = {
   address: "Dirección de correo",
   password: "Contraseña de aplicación",
   token: "Token",
+  site: "Dirección del sitio",
+  siteHint: "Como blog.example.com o https://example.com/blog.",
+  login: "Nombre de usuario",
+  appPassword: "Contraseña de aplicación",
+  needSite: "Escribe primero la dirección del sitio.",
+  badSite:
+    "Escribe la dirección como https://… o solo el nombre del sitio, sin http://, nombre de usuario ni signo de interrogación.",
+  badLogin: "Escribe el nombre de usuario en una línea, sin dos puntos.",
+  needLogin: "Escribe primero tu nombre de usuario.",
+  needAppPassword: "Pega primero la contraseña de aplicación.",
   needAddress: "Escribe primero la dirección de correo.",
   needPassword: "Pega primero la contraseña de aplicación, o usa tu propia app abajo.",
   needToken: "Pega primero el token.",
@@ -752,6 +813,20 @@ const es: PlanText = {
       kept: [
         "La clave solo puede hacer lo que permiten sus permisos y equipos. Para desactivarla, revócala en los mismos ajustes Security & access.",
         "La clave se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
+      ],
+    },
+    wordpress: {
+      steps: [
+        "Abre el escritorio de tu sitio con la sesión del usuario con el que actuará tu agente y ve a Usuarios → Perfil, o a Perfil si no eres administrador.",
+        "En Contraseñas de aplicación, escribe un nombre como WireCat y añade una nueva contraseña de aplicación.",
+        "Copia la contraseña que muestra WordPress. Solo se muestra esta vez; los espacios pueden quedarse.",
+        "Escribe abajo la dirección del sitio y tu nombre de usuario, y pega la contraseña. wordpress los comprueba con tu sitio antes de guardarlos.",
+      ],
+      guide: { url: WORDPRESS_GUIDE, label: "Guía de WordPress sobre contraseñas de aplicación" },
+      time: "Unos dos minutos.",
+      kept: [
+        "La contraseña puede hacer lo mismo que tu usuario de WordPress, nada más. Para desactivarla, revócala en la misma lista de Contraseñas de aplicación.",
+        "La contraseña se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
       ],
     },
     "email:microsoft": {

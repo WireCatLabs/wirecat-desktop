@@ -293,9 +293,11 @@ for listed tools, and nothing the owner adds reaches another computer.
   `ManifestIdentity.meetingsProvider`): `{ provider, show, transcript }`, how a client's call opens from the Clients
   page and Meetings (`calls.rs`, `call_recording.rs`). The provider is a lower-case name no other tool uses, so a
   manifest cannot take over Zoom's or Asterisk's calls, and both commands take the call as `{id}`. `sync.what` is one
-  of `messages`, `files`, `meetings`, `calls`, `notes and mail`, `mail`, `records`, `tracker`; any other text counts as
+  of `messages`, `files`, `meetings`, `calls`, `notes and mail`, `mail`, `records`, `tracker`, `content`; any other text counts as
   `records`. `signIn.methods` (cli-base's `ManifestIdentity.signIn.methods`) lets the tool sign in in the window,
-  under rule 4 above: the window shows the tool's `signIn.asks` and, for a `stdin` method, a token field. The review
+  under rule 4 above: the window shows the tool's `signIn.asks` and, for a `stdin` method, a token field; with
+  `site: "--site"` and `login: "--login"` (cli-core's application password, the only flags taken) it asks the
+  site and the user name too, and the password goes on stdin. The review
   says the tool signs in in the window, and an update that changes the methods lists the sign-in among the changed
   parts. `accountRemove` (cli-base's `desktop.accountRemove`) has the catalog's shape and gives the account menu
   Sign out and Remove account (`account.rs`); a manifest without it gets `null`. An update that adds it or changes

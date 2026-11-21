@@ -1152,6 +1152,40 @@ describe("signing in to Linear", () => {
   })
 })
 
+describe("signing in to WordPress", () => {
+  it("asks the site, the user name and the application password, and sends the password only as the run's stdin", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("wordpress", "blog"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to WordPress" })
+    expect(within(dialog).getByText(/Under Application Passwords/)).toBeInTheDocument()
+    const start = within(dialog).getByRole("button", { name: "Start sign-in" })
+    await userEvent.click(start)
+    expect(within(dialog).getByLabelText("Site address")).toHaveFocus()
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Type the site's address first.")
+    await userEvent.type(within(dialog).getByLabelText("Site address"), "http://blog.example.com")
+    await userEvent.click(start)
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(/without http:\/\//)
+    await userEvent.clear(within(dialog).getByLabelText("Site address"))
+    await userEvent.type(within(dialog).getByLabelText("Site address"), "blog.example.com")
+    await userEvent.click(start)
+    expect(within(dialog).getByLabelText("User name")).toHaveFocus()
+    await userEvent.type(within(dialog).getByLabelText("User name"), "editor")
+    await userEvent.click(start)
+    const password = within(dialog).getByLabelText("Application password")
+    expect(password).toHaveFocus()
+    expect(password).toHaveAttribute("type", "password")
+    await userEvent.type(password, "abcd efgh ijkl mnop")
+    await userEvent.click(start)
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("wordpress", "app-password", "blog", expect.any(Function), {
+        site: "blog.example.com",
+        login: "editor",
+        password: "abcd efgh ijkl mnop",
+      }),
+    )
+  })
+})
+
 describe("signing in to an own tool", () => {
   it("says what its manifest asks for, asks for the token in the window and sends it as the run's stdin", async () => {
     addCommunityTools([{ source: "own", entry: OWN }])

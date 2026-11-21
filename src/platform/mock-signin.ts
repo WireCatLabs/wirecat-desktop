@@ -33,6 +33,7 @@ import type { Platform } from "./types"
 // Yandex Disk (`?signin=ydisk`): the pasted token is checked, then saved.
 // Attio (`?signin=attio`): the pasted access token is checked, then saved.
 // Linear (`?signin=linear`): the pasted personal API key is checked, then saved.
+// WordPress (`?signin=wordpress`): the site, the user name and the pasted application password are checked, then saved.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -124,6 +125,10 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     return signedIn
   },
   async linear(s) {
+    if (await s.wait(1500)) return STOPPED
+    return signedIn
+  },
+  async wordpress(s) {
     if (await s.wait(1500)) return STOPPED
     return signedIn
   },

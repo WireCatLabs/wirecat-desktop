@@ -16,6 +16,8 @@ export const RU_GIVES: Record<string, string> = {
   attio: "Агент сможет читать сделки, людей и компании рабочего пространства с правами токена.",
   hubspot: "Агент сможет читать CRM аккаунта, а менять его, если вы дадите ключу права на запись.",
   linear: "Агент сможет читать ваши задачи, проекты и комментарии в Linear и менять их, когда вы разрешите.",
+  wordpress:
+    "Агент сможет читать записи и страницы вашего WordPress, писать черновики и публиковать, когда вы разрешите.",
   pbx: "Агент сможет находить телефонные звонки вашей компании и читать, что в них было сказано.",
 }
 
@@ -40,6 +42,8 @@ export const RU_ASKS: Record<string, string> = {
     "Сервисный ключ или токен доступа старого приватного приложения из вашего аккаунта HubSpot, с правами на чтение, а для изменений и на запись.",
   linear:
     "Личный API-ключ из настроек Linear «Settings → Account → Security & access». Для синхронизации хватает права «Read»; чтобы агент менял задачи, нужно «Write».",
+  wordpress:
+    "Адрес сайта, имя пользователя и пароль приложения: в WordPress «Пользователи → Профиль → Пароли приложений». WordPress 5.7 или новее, по https.",
   pbx: "Путь к Master.csv или адрес базы CDR и пароль пользователя, который может только читать.",
 }
 
@@ -61,6 +65,8 @@ export const ES_GIVES: Record<string, string> = {
     "Tu agente podrá leer las negociaciones, personas y empresas del espacio de trabajo con los permisos del token.",
   hubspot: "Tu agente podrá leer el CRM de la cuenta, y cambiarlo si le das a la clave los permisos de escritura.",
   linear: "Tu agente podrá leer tus incidencias, proyectos y comentarios de Linear, y cambiarlos cuando lo permitas.",
+  wordpress:
+    "Tu agente podrá leer las entradas y páginas de tu WordPress, escribir borradores y publicar cuando lo permitas.",
   pbx: "Tu agente podrá encontrar las llamadas de tu empresa y leer lo que se dijo en ellas.",
 }
 
@@ -85,5 +91,7 @@ export const ES_ASKS: Record<string, string> = {
     "Una clave de servicio o el token de acceso de una aplicación privada antigua de tu cuenta de HubSpot, con permisos de lectura, y de escritura si quieres cambios.",
   linear:
     "Una clave de API personal, de los ajustes de Linear: Settings → Account → Security & access. Read basta para sincronizar; tu agente necesita Write para cambiar incidencias.",
+  wordpress:
+    "La dirección del sitio, tu nombre de usuario y una contraseña de aplicación: en WordPress, Usuarios → Perfil → Contraseñas de aplicación. WordPress 5.7 o posterior, por https.",
   pbx: "La ruta de Master.csv, o la dirección de la base de datos CDR y la contraseña de un usuario de solo lectura.",
 }

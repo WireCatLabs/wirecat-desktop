@@ -395,7 +395,7 @@ fn counts_of(what: &str, item: &Value) -> Summary {
             }
         }
         "records" => records_summary(item),
-        "tracker" | "events" => {
+        "tracker" | "events" | "content" => {
             let lists = list(item, "synced");
             Summary {
                 new: lists.iter().map(|l| count(l, "saved")).sum(),
@@ -600,6 +600,19 @@ mod tests {
         assert_eq!(
             summary_of("records", &again),
             Summary { new: 0, places: 0, failed: 2, left: 0, complete: false, enrichment: None }
+        );
+    }
+
+    #[test]
+    fn a_content_sync_counts_what_each_kind_saved() {
+        let report = json!({"provider": "wordpress", "account": "blog.example.com:1", "state": "complete",
+            "complete": true, "synced": [
+                {"kind": "author", "state": "complete", "saved": 2, "deleted": 0},
+                {"kind": "term", "state": "complete", "saved": 0, "deleted": 0},
+                {"kind": "post", "state": "complete", "saved": 40, "deleted": 1}]});
+        assert_eq!(
+            summary_of("content", &report),
+            Summary { new: 42, places: 2, failed: 0, left: 0, complete: true, enrichment: None }
         );
     }
 

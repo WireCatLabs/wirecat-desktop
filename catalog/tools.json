@@ -2931,6 +2931,81 @@
       }
     },
     {
+      "id": "wordpress",
+      "name": "WordPress",
+      "tagline": "Posts and pages\u00a0· drafts",
+      "bin": "wordpress",
+      "package": "@wirecat/wordpress-cli",
+      "summary": "Copy a WordPress site's posts and pages, with their tags, categories and authors, to this computer, so your agent can read them and, when you allow it, write drafts and publish.",
+      "docs": "https://github.com/WireCatLabs/wordpress-cli#readme",
+      "repo": "https://github.com/WireCatLabs/wordpress-cli",
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": {
+        "port": 8756,
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+      },
+      "tasks": null,
+      "sync": {
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "content",
+        "note": null
+      },
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "wordpress-cli",
+        "env": "WCWP"
+      },
+      "settings": null,
+      "signIn": {
+        "gives": "Lets your agent read your WordPress posts and pages, write drafts, and publish when you allow it.",
+        "asks": "Your site's address, your user name and an application password: in WordPress, Users → Profile → Application Passwords. WordPress 5.7 or later, over https.",
+        "methods": [
+          {
+            "id": "app-password",
+            "label": "WordPress application password",
+            "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true,
+            "site": "--site",
+            "login": "--login"
+          }
+        ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": null,
+        "removes": ["signIn"],
+        "keeps": ["settings", "data", "listed"]
+      }
+    },
+    {
       "id": "pbx",
       "name": "Asterisk",
       "tagline": "Phone calls and recordings · transcripts",
