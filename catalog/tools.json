@@ -2450,7 +2450,7 @@
       "settings": null,
       "signIn": {
         "gives": "Lets your agent search and read the Yandex Disk folders you choose, and work with your files as far as the token allows.",
-        "asks": "A Yandex OAuth token, from an app you register once at oauth.yandex.com with access to Yandex Disk.",
+        "asks": "A Yandex OAuth token, from an app you register once at oauth.yandex.ru with access to Yandex Disk.",
         "identity": ["{profile}", "session", "status", "--no-record", "--json"],
         "identityCheck": "--check",
         "methods": [
