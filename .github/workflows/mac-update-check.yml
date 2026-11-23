@@ -50,6 +50,8 @@ jobs:
           { echo "OLD=$old"; echo "NEW=$new"; echo "APP=$app"; } >> "$GITHUB_ENV"
 
       - name: Download and check the update as the old copy does
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           brew install minisign >/dev/null
@@ -60,7 +62,8 @@ jobs:
           done
           [ -n "$url" ] || { echo "::error::latest.json has no darwin-aarch64 entry."; exit 1; }
           jq -r --arg k "$key" '.platforms[$k].signature' latest.json | base64 -d > update.sig
-          curl -fsSL -H "Accept: application/octet-stream" "$url" -o update.tar.gz
+          # A copy downloads without a token; runners share IPs that run out of GitHub's unsigned API limit (403).
+          curl -fsSL -H "Accept: application/octet-stream" -H "Authorization: Bearer $GH_TOKEN" "$url" -o update.tar.gz
           minisign -V -p old.pub -x update.sig -m update.tar.gz
 
       - name: Swap the bundle as tauri-plugin-updater does
