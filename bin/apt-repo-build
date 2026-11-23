@@ -100,15 +100,23 @@ class Site
 
   def path(*parts) = File.join(@dir, *parts)
 
-  def tags
-    list = run("gh", "release", "list", "--repo", REPO, "--exclude-drafts", "--exclude-pre-releases",
-               "--limit", RELEASES.to_s, "--json", "tagName")
-    JSON.parse(list).map { |r| r["tagName"] }
+  def releases
+    @releases ||= JSON.parse(run("gh", "release", "list", "--repo", REPO, "--exclude-drafts", "--exclude-pre-releases",
+                                 "--limit", RELEASES.to_s, "--json", "tagName,publishedAt"))
+  end
+
+  # App Center's "Last updated" is the date of the release whose version is installed (deb_details_backend.dart).
+  def releases_xml
+    items = releases.map do |r|
+      date = Time.iso8601(r["publishedAt"]).utc.strftime("%F")
+      %(    <release version="#{r['tagName'].delete_prefix('v')}" date="#{date}"/>\n)
+    end
+    "  <releases>\n#{items.join}  </releases>\n"
   end
 
   def download
     FileUtils.mkdir_p(path(POOL))
-    tags.each do |tag|
+    releases.map { |r| r["tagName"] }.each do |tag|
       run("gh", "release", "download", tag, "--repo", REPO, "--pattern", "wirecat_*_amd64.deb", "--dir", path(POOL))
     end
     debs = Dir.glob(path(POOL, "*.deb")).sort
@@ -140,7 +148,8 @@ class Site
     icons = %(  <icon type="remote" width="128" height="128">#{URL}/#{REMOTE_ICON}</icon>\n) +
             %(  <icon type="cached" width="64" height="64" scale="1">#{ICON_NAME}</icon>\n) +
             %(  <icon type="cached" width="64" height="64" scale="2">#{ICON_NAME}</icon>\n)
-    component = metainfo.sub(/<\?xml.*?\?>\s*/, "").sub("</component>", "  <pkgname>wirecat</pkgname>\n#{icons}</component>")
+    component = metainfo.sub(/<\?xml.*?\?>\s*/, "")
+                        .sub("</component>", "  <pkgname>wirecat</pkgname>\n#{icons}#{releases_xml}</component>")
     Dir.mktmpdir("dep11") do |tmp|
       xml = File.join(tmp, "components.xml")
       yml = File.join(tmp, "components.yml")
