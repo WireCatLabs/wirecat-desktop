@@ -295,7 +295,8 @@ The agent runs the tools. The app only prepares them.
   added it is never deleted.
 - **Updates are checked.** An update is checked against a signature before it installs.
 - **The app connects to** the npm registry (versions and installs), nodejs.org (only if you ask for its own Node.js),
-  GitHub (updates and the cloudflared download) and `api.wirecat.dev` (only when you send a bug report).
+  GitHub (updates and the cloudflared download), `wirecat.dev` (once a day, the signed list of tools, which sends
+  nothing about you) and `api.wirecat.dev` (only when you send a bug report).
 - **A bug report is yours to send.** It becomes a public issue on GitHub. Email addresses, phone numbers and tokens are
   masked before it leaves your computer. Logs go to private storage and are never in the public issue. For a security
   problem, use the repository's [WireCat security policy](https://github.com/WireCatLabs/.github/blob/main/SECURITY.md) instead.
