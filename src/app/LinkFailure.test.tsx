@@ -1,9 +1,12 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform, withOpenFailure } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 describe("a link the system cannot open", () => {
   beforeEach(() => useOnboarding.setState({ status: "done", open: false }))

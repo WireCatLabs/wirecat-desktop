@@ -7,7 +7,10 @@ import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useOwnDialog } from "@/shared/own-dialog-store"
 import { useTools } from "@/shared/tools-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, within } from "@/testing/render"
+
+beforeAll(loadPages)
 
 let App: FC
 

@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { findTool } from "@/domain/catalog"
 import type { InstallSession } from "@/domain/status"
@@ -8,8 +8,11 @@ import { useCompat } from "@/shared/compat-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
 import { answerAtOnce } from "@/testing/mock-speed"
+import { loadPages } from "@/testing/pages"
 import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { ToolRow } from "./ToolRow"
+
+beforeAll(loadPages)
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>
 

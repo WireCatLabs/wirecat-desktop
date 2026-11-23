@@ -1,8 +1,11 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 describe("Clients", () => {
   beforeEach(() => useOnboarding.setState({ status: "done", open: false }))

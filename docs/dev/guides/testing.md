@@ -37,6 +37,9 @@ for Rust.
   ([catalog-commands.test.ts](../../../src/domain/catalog-commands.test.ts)): an option a tool removed fails, and so
   does a `null` gate on a command the tool has released. After a tool release, refresh the list with
   `node scripts/guide-commands.mjs` (it runs only `commands --json` and `--help`, D-Bus off).
+- A test file that renders `<App />` (or `startOnboarding`) starts with `beforeAll(loadPages)`
+  ([pages.ts](../../../src/testing/pages.ts)), so the first render does not load every page chunk inside the test's
+  wait.
 - Write the test name as a sentence about behaviour, without a comment above it.
 - A new rule in `domain/` always gets a unit test. A new screen gets one flow test.
 

@@ -1,8 +1,11 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { loadPages } from "@/testing/pages"
 import { fireEvent, render, renderHook, screen, waitFor } from "@/testing/render"
 import { AppPreferences } from "./AppPreferences"
 import { clampScale, scaleKey, useApplyScale, useScale, useScaleKeys } from "./scale"
+
+beforeAll(loadPages)
 
 const key = (init: KeyboardEventInit) => new KeyboardEvent("keydown", { cancelable: true, ...init })
 const cssScale = () => document.documentElement.style.getPropertyValue("--ui-scale")

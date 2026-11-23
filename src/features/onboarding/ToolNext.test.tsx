@@ -1,10 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { useLogs } from "@/features/logs"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { endInstalls, m, startOnboarding } from "@/testing/onboarding"
+import { loadPages } from "@/testing/pages"
 import { screen, waitFor, within } from "@/testing/render"
 import { nextMessages } from "./messages-next"
+
+beforeAll(loadPages)
 
 afterEach(async () => {
   await endInstalls()
