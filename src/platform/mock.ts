@@ -345,6 +345,8 @@ export function createMock(os: Platform["os"]): Platform {
   const accounts = params.get("accounts")
   if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")
   if (params.has("ydisk-folders")) installed.set("ydisk", LATEST.ydisk ?? "1.0.0")
+  // The own tool `?own=1` lists starts in the website's screenshots, so its row does not read as a fault.
+  if (showcase && params.get("own") === "1") installed.set("acmecrm", "0.3.0")
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
   const agents = agentsMock((id) => installed.get(id), os)

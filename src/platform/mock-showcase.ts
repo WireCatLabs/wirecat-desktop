@@ -43,8 +43,6 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   pbx: "0.3.0",
   notion: "0.2.0",
   ydisk: "0.2.0",
-  // The own tool that `?own=1` lists, so its row starts like the others.
-  acmecrm: "0.3.0",
 }
 
 const MIN = 60_000
