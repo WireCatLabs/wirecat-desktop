@@ -8,7 +8,7 @@ type Count = { allowed: number; total: number }
 const enGroups = (n: number) => plural("en", n, { one: "# group", other: "# groups" })
 const EN_MEANS: Record<Level, string> = {
   allow: "run these commands, including changes, without asking",
-  ask: "run these commands; a change asks for a yes in the terminal, and over MCP the agent's app decides",
+  ask: "read freely, and each change asks for a yes in the terminal. Agents connected over MCP make changes without asking",
   readonly: "read, but not change anything",
   deny: "not run these commands at all",
 }
@@ -41,6 +41,9 @@ const en = {
   permissions: {
     levels: EN_LEVELS,
     levelDefault: (label: string) => `${label} (default)`,
+    // SEC-207: over MCP nobody is at a terminal to say yes, so "ask" lets the change through (owner's ruling NEED-2899 B).
+    mcpAsk: (readonly: string, block: string) =>
+      `Agents connected over MCP make these changes without asking you. To stop them, choose ${readonly} or ${block}.`,
     states: {
       allowed: "Allowed",
       ask: "Asks first",
@@ -140,7 +143,7 @@ const en = {
       `Each group has one level. It applies to your agent and your scripts alike, through ${bin} on the command line or over MCP.`,
     help: {
       allow: "The agent reads and changes without asking. A few changes that cannot be undone still ask first.",
-      ask: "Reading works. Each change asks for a yes in the terminal first. Over MCP nobody is at a terminal, so the change goes ahead unless the agent's app asks you itself.",
+      ask: "Reading works. Each change asks for a yes in the terminal first. Agents connected over MCP make changes without asking you. To stop them, choose Read only or Block.",
       readonly: "Reading works. Every change is refused.",
       deny: "Nothing works, not even reading. The agent still sees the commands, marked as not allowed.",
     } as Record<Level, string>,
@@ -195,6 +198,8 @@ const ru: typeof en = {
   permissions: {
     levels: { allow: "Разрешить", ask: "Спрашивать", readonly: "Только чтение", deny: "Запретить" },
     levelDefault: (label) => `${label} (по умолчанию)`,
+    mcpAsk: (readonly, block) =>
+      `Агенты, подключённые через MCP, вносят эти изменения без вопросов. Чтобы запретить им это, выберите «${readonly}» или «${block}».`,
     states: {
       allowed: "Разрешено",
       ask: "Спрашивает",
@@ -286,7 +291,7 @@ const ru: typeof en = {
         case "allow":
           return `Агенты и скрипты ${who} смогут выполнять эти команды, включая изменения, без вопросов.`
         case "ask":
-          return `Агенты и скрипты ${who} смогут выполнять эти команды; изменение потребует подтверждения в терминале, а через MCP решает приложение агента.`
+          return `Агенты и скрипты ${who} смогут читать, а каждое изменение потребует подтверждения в терминале. Агенты, подключённые через MCP, вносят изменения без вопросов.`
         case "readonly":
           return `Агенты и скрипты ${who} смогут читать, но ничего не смогут менять.`
         case "deny":
@@ -310,7 +315,7 @@ const ru: typeof en = {
       `У каждой группы один уровень. Он действует одинаково для агента и для скриптов — через ${bin} в командной строке или через MCP.`,
     help: {
       allow: "Агент читает и изменяет без вопросов. Несколько необратимых изменений всё равно требуют подтверждения.",
-      ask: "Чтение работает. Каждое изменение сначала требует подтверждения в терминале. Через MCP за терминалом никого нет, поэтому изменение выполняется, если только приложение агента не спросит вас само.",
+      ask: "Чтение работает. Каждое изменение сначала требует подтверждения в терминале. Агенты, подключённые через MCP, вносят изменения без вопросов. Чтобы запретить им это, выберите «Только чтение» или «Запретить».",
       readonly: "Чтение работает. Любое изменение отклоняется.",
       deny: "Ничего не работает, даже чтение. Агент всё равно видит команды, помеченные как запрещённые.",
     },
@@ -368,6 +373,8 @@ const es: typeof en = {
   permissions: {
     levels: { allow: "Permitir", ask: "Preguntar antes", readonly: "Solo lectura", deny: "Bloquear" },
     levelDefault: (label) => `${label} (por defecto)`,
+    mcpAsk: (readonly, block) =>
+      `Los agentes conectados mediante MCP hacen estos cambios sin preguntarte. Para impedirlo, elige «${readonly}» o «${block}».`,
     states: {
       allowed: "Permitido",
       ask: "Pregunta antes",
@@ -454,7 +461,7 @@ const es: typeof en = {
         case "allow":
           return `Los agentes y scripts que usen ${who} podrán ejecutar estos comandos, también los cambios, sin preguntar.`
         case "ask":
-          return `Los agentes y scripts que usen ${who} podrán ejecutar estos comandos; cada cambio pide un sí en el terminal, y mediante MCP decide la app del agente.`
+          return `Los agentes y scripts que usen ${who} podrán leer, y cada cambio pedirá un sí en el terminal. Los agentes conectados mediante MCP hacen cambios sin preguntar.`
         case "readonly":
           return `Los agentes y scripts que usen ${who} podrán leer, pero no cambiar nada.`
         case "deny":
@@ -479,7 +486,7 @@ const es: typeof en = {
     help: {
       allow:
         "El agente lee y cambia sin preguntar. Algunos cambios que no se pueden deshacer siguen preguntando antes.",
-      ask: "La lectura funciona. Cada cambio pide antes un sí en el terminal. Mediante MCP no hay nadie en un terminal, así que el cambio sigue adelante salvo que la app del agente te pregunte a ti.",
+      ask: "La lectura funciona. Cada cambio pide antes un sí en el terminal. Los agentes conectados mediante MCP hacen cambios sin preguntarte. Para impedirlo, elige «Solo lectura» o «Bloquear».",
       readonly: "La lectura funciona. Se rechaza cualquier cambio.",
       deny: "No funciona nada, ni siquiera leer. El agente sigue viendo los comandos, marcados como no permitidos.",
     },

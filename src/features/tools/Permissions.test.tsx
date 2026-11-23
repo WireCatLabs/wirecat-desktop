@@ -65,6 +65,9 @@ describe("Permissions", () => {
     const dialog = await screen.findByRole("dialog", { name: "Ask first: Messages?" })
     expect(within(dialog).getByText("tg personal config set --json permissions.messages ask")).toBeInTheDocument()
     expect(within(dialog).getByText(/These stay as they are/)).toHaveTextContent("messages.send (allow)")
+    const mcp =
+      "Agents connected over MCP make these changes without asking you. To stop them, choose Read only or Block."
+    expect(within(dialog).getByText(mcp)).toBeInTheDocument()
     expect(set).not.toHaveBeenCalled()
 
     await user.click(within(dialog).getByRole("button", { name: "Ask first" }))
@@ -72,6 +75,7 @@ describe("Permissions", () => {
     await waitFor(() =>
       expect(screen.getByRole("combobox", { name: "Messages permission" })).toHaveTextContent("Ask first"),
     )
+    expect(within(row("Messages")).getByText(mcp)).toBeInTheDocument()
   })
 
   it("removes the profile's key when the default level is chosen", async () => {

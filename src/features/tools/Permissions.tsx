@@ -384,6 +384,7 @@ function GroupRow(props: {
         />
       </div>
       <RowStatus row={status} m={m} />
+      {s.level === "ask" && <McpAsk m={m} />}
       {(blocked.length > 0 || separately > 0) && (
         <Disclosure summary={m.disclosure(blocked.length, separately)}>
           <div className="flex flex-col gap-3 pb-1 pl-5">
@@ -445,6 +446,11 @@ function GroupRow(props: {
       )}
     </li>
   )
+}
+
+/** Over MCP nobody is at a terminal to say yes, so "ask" does not stop an agent (SEC-207). */
+function McpAsk({ m }: { m: Words }) {
+  return <p className={cx("text-[0.9rem] text-ink", noticeBox("warn"))}>{m.mcpAsk(m.levels.readonly, m.levels.deny)}</p>
 }
 
 function SubList({ title, children }: { title: string; children: ReactNode }) {
@@ -592,6 +598,11 @@ function ConfirmWiden(props: {
       }
     >
       <p>{next ? m.means(next, profile) : m.fallsBack(profile, change.from ?? "readonly")}</p>
+      {next === "ask" && (
+        <div className="mt-2">
+          <McpAsk m={m} />
+        </div>
+      )}
       {change.overrides.length > 0 && (
         <p className="mt-2">
           {m.overridesStay(
