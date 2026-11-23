@@ -102,6 +102,19 @@ describe("Update all on the Tools page", () => {
     expect(npm.started).toEqual([first, second])
   })
 
+  it("keeps each row's panel shut while it updates", async () => {
+    const user = userEvent.setup()
+    const [first = "", second = ""] = official
+    const npm = fakeInstaller({ [first]: "1.0.0", [second]: "1.0.0" })
+    outdated([first, second])
+    render(<InstallAll />)
+
+    await user.click(screen.getByRole("button", { name: "Update all (2)" }))
+    await npm.whenStarted(first)
+    expect(useTools.getState().sessions[first]?.closed).toEqual([first])
+    expect(useTools.getState().sessions[second]?.closed).toEqual([second])
+  })
+
   it("is not there while npm has not answered, nor when every tool is current", () => {
     outdated([])
     const { unmount } = render(<InstallAll />)
