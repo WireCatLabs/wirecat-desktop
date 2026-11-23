@@ -3,6 +3,7 @@ import { type CatalogTool, tools } from "@/domain/catalog"
 import type { DoctorNote } from "@/domain/doctor"
 import { formatNumber, type Messages, plural } from "@/i18n"
 import { uiMessages } from "@/ui/messages"
+import { ES_SIGNIN, RU_SIGNIN } from "./messages-signin-text"
 import { ES_SUMMARY, ES_TAGLINE, RU_SUMMARY, RU_TAGLINE } from "./messages-tool-text"
 import { syncNote } from "./tool-text"
 
@@ -48,6 +49,8 @@ const en = {
     tagline: byId((t) => t.tagline),
     summary: byId((t) => t.summary),
     syncNote: byId(syncNote),
+    gives: byId((t) => t.signIn?.gives),
+    asks: byId((t) => t.signIn?.asks),
     group: Object.fromEntries(tools.flatMap((t) => t.permissions?.groups ?? []).map((g) => [g.key, g.label])),
   },
   row: {
@@ -388,7 +391,7 @@ const ru: typeof en = {
     choose: "Выбрать инструменты",
     hide: "Скрыть это вступление",
   },
-  tool: { tagline: RU_TAGLINE, summary: RU_SUMMARY, syncNote: RU_NOTE, group: RU_GROUP },
+  tool: { tagline: RU_TAGLINE, summary: RU_SUMMARY, syncNote: RU_NOTE, ...RU_SIGNIN, group: RU_GROUP },
   row: {
     status: {
       checking: "Проверяем",
@@ -743,7 +746,7 @@ const es: typeof en = {
     choose: "Elegir herramientas",
     hide: "Ocultar esta introducción",
   },
-  tool: { tagline: ES_TAGLINE, summary: ES_SUMMARY, syncNote: ES_NOTE, group: ES_GROUP },
+  tool: { tagline: ES_TAGLINE, summary: ES_SUMMARY, syncNote: ES_NOTE, ...ES_SIGNIN, group: ES_GROUP },
   row: {
     status: {
       checking: "Comprobando",

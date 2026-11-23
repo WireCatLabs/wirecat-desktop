@@ -1,16 +1,10 @@
 import type { ReactNode } from "react"
-import { type CatalogTool, tools } from "@/domain/catalog"
 import { type Messages, plural } from "@/i18n"
 import type { StepId } from "@/shared/onboarding-store"
 import { uiMessages } from "@/ui/messages"
-import { ES_ASKS, ES_GIVES, RU_ASKS, RU_GIVES } from "./messages-signin-text"
 
 type Page = { title: string; lead: string }
 type Stop = { title: string; text: string }
-type ById = Record<string, string>
-
-const byId = (pick: (t: CatalogTool) => string | null | undefined) =>
-  Object.fromEntries(tools.flatMap((t) => (pick(t) ? [[t.id, pick(t) as string]] : [])))
 
 const en = {
   steps: {
@@ -201,8 +195,6 @@ const en = {
     add: "Add an account",
     noneNeeded: "No installed tool needs a sign-in yet.",
     noSignIn: (n: number, names: string) => (n === 1 ? `${names} needs no sign-in.` : `${names} need no sign-in.`),
-    gives: byId((t) => t.signIn?.gives) as ById,
-    asks: byId((t) => t.signIn?.asks) as ById,
   },
   done: {
     list: "Your tools",
@@ -533,8 +525,6 @@ const ru: OnboardingText = {
     add: "Добавить аккаунт",
     noneNeeded: "Пока ни одному установленному инструменту не нужен вход.",
     noSignIn: (_n, names) => `Для ${names} вход не нужен.`,
-    gives: RU_GIVES,
-    asks: RU_ASKS,
   },
   done: {
     list: "Ваши инструменты",
@@ -827,8 +817,6 @@ const es: OnboardingText = {
     noneNeeded: "Ninguna herramienta instalada necesita iniciar sesión por ahora.",
     noSignIn: (n, names) =>
       n === 1 ? `${names} no necesita iniciar sesión.` : `${names} no necesitan iniciar sesión.`,
-    gives: ES_GIVES,
-    asks: ES_ASKS,
   },
   done: {
     list: "Tus herramientas",

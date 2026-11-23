@@ -95,3 +95,6 @@ export const ES_ASKS: Record<string, string> = {
     "La dirección del sitio, tu nombre de usuario y una contraseña de aplicación: en WordPress, Usuarios → Perfil → Contraseñas de aplicación. WordPress 5.7 o posterior, por https.",
   pbx: "La ruta de Master.csv, o la dirección de la base de datos CDR y la contraseña de un usuario de solo lectura.",
 }
+
+export const RU_SIGNIN = { gives: RU_GIVES, asks: RU_ASKS }
+export const ES_SIGNIN = { gives: ES_GIVES, asks: ES_ASKS }

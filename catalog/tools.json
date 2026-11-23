@@ -2308,7 +2308,7 @@
       "settings": null,
       "signIn": {
         "gives": "Lets your agent read the Notion pages and databases your token can see.",
-        "asks": "A Notion token. At notion.so/profile/integrations, make an internal connection and copy its token, then share the pages you want with that connection in Notion. A personal access token also works and sees what you see.",
+        "asks": "A Notion personal access token, or the token of an internal connection you made in Notion.",
         "identity": ["{profile}", "session", "status", "--no-record", "--json"],
         "identityCheck": "--check",
         "methods": [

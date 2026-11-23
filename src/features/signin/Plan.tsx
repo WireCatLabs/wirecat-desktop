@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow"
 import { ASTERISK } from "@/domain/asterisk-source"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
+import { toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { OpenLink } from "@/shared/OpenLink"
 import {
@@ -37,6 +38,7 @@ export function Plan() {
   const m = useMessages(planMessages)
   const tm = useMessages(telegramMessages)
   const wm = useMessages(wizardMessages)
+  const toolM = useMessages(toolsMessages)
   const provider = guidedProvider(s)
   const route = routeOf(s)
   const plan = tool ? planFor(m, tool, method, route) : undefined
@@ -44,8 +46,9 @@ export function Plan() {
   // Gmail's two ways say what each needs on their own cards.
   const known = tool && !gmail ? needFor(wm, tool, method) : []
   const entry = tool ? findTool(tool) : undefined
-  // A tool WireCat has no texts for (an own tool) says what it asks for in its own manifest.
-  const need = known.length === 0 && !plan && entry?.signIn ? [entry.signIn.asks] : known
+  // A tool without steps of its own says what it asks for: translated when WireCat has the words, else its manifest's.
+  const asks = entry ? toolText(toolM, entry).asks : null
+  const need = known.length === 0 && !plan && asks ? [asks] : known
   const chosen = tool ? methodOf(tool, method) : undefined
   // A refusal is a new run: the step starts again, its field empty.
   if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
