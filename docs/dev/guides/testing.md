@@ -40,6 +40,8 @@ for Rust.
 - A test file that renders `<App />` (or `startOnboarding`) starts with `beforeAll(loadPages)`
   ([pages.ts](../../../src/testing/pages.ts)), so the first render does not load every page chunk inside the test's
   wait.
+- `user.type` only for what the test is about (an autocomplete, a key). A ready query goes in with `user.paste`: each
+  typed key re-renders the page, and a long query took seconds.
 - Write the test name as a sentence about behaviour, without a comment above it.
 - A new rule in `domain/` always gets a unit test. A new screen gets one flow test.
 

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest"
-import { cleanup, configure } from "@testing-library/react"
+import { cleanup, configure, prettyDOM } from "@testing-library/react"
 import { afterEach, beforeEach, vi } from "vitest"
 import { initPlatform } from "@/platform/bridge"
 import { answerAtOnce, settleMock } from "./mock-speed"
@@ -11,7 +11,24 @@ vi.mock("@/platform/mock-delay", () => import("./mock-speed"))
 await initPlatform()
 
 // Pages are lazy chunks; on a busy CI machine the first one takes longer than the default 1 s to appear.
-configure({ asyncUtilTimeout: 3000 })
+configure({
+  asyncUtilTimeout: 3000,
+  // A findBy query builds this error on every miss while it waits; printing the whole app each time made a flow test
+  // slower than its wait on a busy runner (#465). The page is printed only when the message is read.
+  getElementError: (message, container) => {
+    let text: string | null = null
+    const error = new Error()
+    error.name = "TestingLibraryElementError"
+    Object.defineProperty(error, "message", {
+      configurable: true,
+      get: () => (text ??= [message, prettyDOM(container)].filter(Boolean).join("\n\n")),
+      set: (value: string) => {
+        text = value
+      },
+    })
+    return error
+  },
+})
 
 // Every store the app creates is recorded, so `resetStores` can put each one back without a list to keep in step.
 vi.mock("zustand", async (importOriginal) => {
