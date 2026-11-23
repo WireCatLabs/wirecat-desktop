@@ -1,8 +1,9 @@
-//! The signed list of community tools (docs/dev/cli-registry.md). cli-docs' deploy builds it from its reviewed
-//! `tools.json` and signs it with minisign; the app keeps a copy only when the signature verifies against the key
+//! The signed list of tools (docs/dev/cli-registry.md): community tools in `tools`, `WireCat`'s own in `official`.
+//! cli-docs' deploy builds it from its reviewed files and signs it with minisign; the app keeps a copy only when the signature verifies against the key
 //! compiled in from `registry-key.pub` (never the updater's key), it has not expired, and its version is not lower
 //! than the copy already kept. A list fetched now takes effect at the next start, so no page changes under the owner.
-//! Without a good copy the app has its built-in tools only. A kept copy that expired still lists its tools, so the
+//! It is fetched once a day whatever "Enable community tools" says, for the official tools; that switch decides only
+//! whether its community tools are read. Without a good copy the app has its built-in tools only. A kept copy that expired still lists its tools, so the
 //! installed ones keep running, but none of them can be installed or updated until a fresh list arrives.
 
 use chrono::{DateTime, Utc};
@@ -36,11 +37,13 @@ fn key_from(text: &str) -> Result<PublicKey, String> {
 }
 
 /// A list whose signature verified.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct List {
     pub version: u64,
     pub expires_at: DateTime<Utc>,
     pub tools: Vec<Value>,
+    /// `WireCat`'s own tools (`official.rs`); a list from before them has none.
+    pub official: Vec<Value>,
 }
 
 /// Checks the signature first, so nothing in an unsigned file is even parsed.
@@ -54,7 +57,8 @@ fn open(list: &[u8], sig: &str, key: &PublicKey) -> Result<List, String> {
     let expires_at = v["expires_at"].as_str().and_then(|s| DateTime::parse_from_rfc3339(s).ok());
     match (v["format"].as_u64(), v["version"].as_u64(), expires_at, v["tools"].as_array()) {
         (Some(1), Some(version), Some(expires), Some(tools)) => {
-            Ok(List { version, expires_at: expires.with_timezone(&Utc), tools: tools.clone() })
+            let official = v["official"].as_array().cloned().unwrap_or_default();
+            Ok(List { version, expires_at: expires.with_timezone(&Utc), tools: tools.clone(), official })
         }
         _ => Err("The community list has no format 1, version, expiry date or tools.".into()),
     }
@@ -82,11 +86,11 @@ fn read_cache(dir: &Path, key: &PublicKey) -> Result<List, String> {
     open(&list, &sig, key)
 }
 
-/// The entries of the kept copy, its signature checked again; an expired copy is read too (see the module note).
-pub fn at_start() -> Result<Vec<Value>, String> {
+/// The kept copy, its signature checked again; an expired copy is read too (see the module note).
+pub fn at_start() -> Result<List, String> {
     let key = key()?;
     let dir = dir().ok_or("The app's data folder is unknown.")?;
-    Ok(read_cache(&dir, &key)?.tools)
+    read_cache(&dir, &key)
 }
 
 /// How long the kept copy still lets community tools be installed and updated.
@@ -169,11 +173,8 @@ fn fetch(url: &str, limit: usize) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("Could not fetch the community list: {e}"))
 }
 
-/// Fetches the list once when the owner shows community tools and a day has passed since the last check.
+/// Fetches the list once a day has passed since the last check.
 pub fn check_now() -> Result<Option<u64>, String> {
-    if !shown() {
-        return Ok(None);
-    }
     let key = key()?;
     let dir = dir().ok_or("The app's data folder is unknown.")?;
     let now = Utc::now();
@@ -291,6 +292,19 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("wirecat-registry-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         dir
+    }
+
+    #[test]
+    fn the_official_tools_are_read_beside_the_community_ones() {
+        let s = Signer::new();
+        let body = json!({ "format": 1, "version": 4, "generated_at": "2026-11-05T00:00:00Z",
+            "expires_at": "2026-12-05T00:00:00Z", "tools": [], "official": [{ "id": "beeline" }] })
+        .to_string()
+        .into_bytes();
+        let read = open(&body, &s.sign(&body), &s.key()).unwrap();
+        assert_eq!((read.tools.len(), read.official[0]["id"].as_str()), (0, Some("beeline")));
+        let old = list(1, "2026-12-05T00:00:00Z");
+        assert!(open(&old, &s.sign(&old), &s.key()).unwrap().official.is_empty(), "a list from before them");
     }
 
     #[test]

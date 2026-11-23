@@ -10,7 +10,7 @@ import {
   webhookParts,
   webhookProblem,
 } from "@/domain/bitrix-signin"
-import { findTool, signInMethods } from "@/domain/catalog"
+import { findTool, screenOf, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
 import { type Gap, gapOf } from "@/domain/needs"
 import type { FailedAt } from "@/domain/signin-failure"
@@ -204,7 +204,7 @@ export type PlanStep = "choose" | "password" | "webhook" | "paste" | "app"
 export const BITRIX = "bitrix"
 /** Bitrix24's local application: its id and key are typed in the window, then b24 signs in in the browser. */
 export const BITRIX_APP = "app"
-const isBitrixApp = (s: Pick<SignInState, "tool" | "method">) => s.tool === BITRIX && s.method === BITRIX_APP
+const isBitrixApp = (s: Pick<SignInState, "tool" | "method">) => screenOf(s.tool) === BITRIX && s.method === BITRIX_APP
 
 /** The first https link in a tool's hint, without the sentence's closing punctuation. */
 export const linkIn = (hint: string | null | undefined) =>
@@ -453,7 +453,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
             planStep: "app",
             appProblem: app,
           })
-        const refusal = s.tool === BITRIX && !isBitrixApp(s) && !s.setup ? webhookProblem(e) : null
+        const refusal = screenOf(s.tool) === BITRIX && !isBitrixApp(s) && !s.setup ? webhookProblem(e) : null
         if (refusal)
           return set({
             ...closed,
@@ -619,8 +619,8 @@ export const useSignIn = create<SignInState>()((set, get) => {
     begin() {
       const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
-      if (tool === BITRIX && planStep !== "paste" && planStep !== "app") return bitrixNext()
-      if (tool === BITRIX && planStep === "app") {
+      if (screenOf(tool) === BITRIX && planStep !== "paste" && planStep !== "app") return bitrixNext()
+      if (screenOf(tool) === BITRIX && planStep === "app") {
         if (!appIdShaped(get().appId)) return set({ planMissing: "appId", appProblem: null })
         if (!typed.password?.trim()) return set({ planMissing: "appKey", appProblem: null })
         set({ planMissing: null, appProblem: null })
@@ -636,7 +636,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (chosen?.oauth && get().way === "browser" && !ownFile && oauthTooOld(tool, method))
         return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
-      if (tool === ASTERISK && sourceProblem(method, get().source)) return set({ planMissing: "source" })
+      if (screenOf(tool) === ASTERISK && sourceProblem(method, get().source)) return set({ planMissing: "source" })
       if (chosen?.site && !siteShaped(get().site)) return set({ planMissing: "site" })
       if (chosen?.login && !loginShaped(get().login)) return set({ planMissing: "login" })
       // The tool reads its secret until stdin closes, so the run cannot start without it (`signin.rs` refuses too).
@@ -644,7 +644,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const setting = chosen?.clientId
       const saves: [string, string][] = [
         ...(setting && ownId.trim() ? [[setting, ownId.trim()] as [string, string]] : []),
-        ...(tool === ASTERISK ? sourceSettings(method, get().source, localCountry(navigator.languages)) : []),
+        ...(screenOf(tool) === ASTERISK ? sourceSettings(method, get().source, localCountry(navigator.languages)) : []),
       ]
       const asked = get().run
       // The saves take seconds: a second press, or a Cancel that forgot the password, must not start a run after them.
@@ -662,7 +662,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
           )
           .then(run, (e) => set({ planError: errorText(e) }))
       }
-      const launch = tool === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go
+      const launch = screenOf(tool) === BITRIX && planStep === "paste" ? () => void compareThenRun(go) : go
       if (!useSandbox.getState().name) return launch()
       void useSandbox
         .getState()

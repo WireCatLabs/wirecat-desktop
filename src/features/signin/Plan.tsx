@@ -2,7 +2,7 @@ import { CircleCheck, Clock, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { ASTERISK } from "@/domain/asterisk-source"
-import { findTool, signInMethods } from "@/domain/catalog"
+import { findTool, screenOf, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
 import { toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -41,10 +41,10 @@ export function Plan() {
   const toolM = useMessages(toolsMessages)
   const provider = guidedProvider(s)
   const route = routeOf(s)
-  const plan = tool ? planFor(m, tool, method, route) : undefined
+  const plan = tool ? planFor(m, screenOf(tool) ?? tool, method, route) : undefined
   const gmail = tool === "email" && method === "gmail"
   // Gmail's two ways say what each needs on their own cards.
-  const known = tool && !gmail ? needFor(wm, tool, method) : []
+  const known = tool && !gmail ? needFor(wm, screenOf(tool) ?? tool, method) : []
   const entry = tool ? findTool(tool) : undefined
   // A tool without steps of its own says what it asks for: translated when WireCat has the words, else its manifest's.
   const asks = entry ? toolText(toolM, entry).asks : null
@@ -52,8 +52,8 @@ export function Plan() {
   const chosen = tool ? methodOf(tool, method) : undefined
   // A refusal is a new run: the step starts again, its field empty.
   if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
-  if (tool === BITRIX) return <BitrixSteps />
-  if (tool === ASTERISK) return <AsteriskSource />
+  if (screenOf(tool) === BITRIX) return <BitrixSteps />
+  if (screenOf(tool) === ASTERISK) return <AsteriskSource />
   const steps: { text: string; once: boolean; link?: StepLinkProps }[] = [
     ...(plan?.appKeys ? tm.appSteps.map((text) => ({ text, once: true })) : []),
     ...(plan?.steps ?? []).map((step) =>

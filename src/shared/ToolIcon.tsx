@@ -13,6 +13,7 @@ import whatsapp from "@/assets/logos/whatsapp.svg"
 import wordpress from "@/assets/logos/wordpress.svg"
 import yandexDisk from "@/assets/logos/yandex-disk.png"
 import zoom from "@/assets/logos/zoom.svg"
+import { findTool } from "@/domain/catalog"
 import { cx } from "@/ui/cx"
 
 /**
@@ -53,12 +54,20 @@ function TelegramBadge({ className }: { className?: string | undefined }) {
 
 /**
  * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk and the Tailscale helper keep
- * a line icon. A community tool ships no icon in the app's code, so every one shows the same package.
+ * a line icon. An official tool from the signed list may bring one SVG path, drawn in the text colour; a tool
+ * without either shows the same package.
  */
 export function ToolIcon({ id, className }: { id: string; className?: string | undefined }) {
   if (id === "tg") return <TelegramBadge className={className} />
   const logo = LOGOS[id]
   if (logo) return <img src={logo} alt="" draggable={false} className={cx("object-contain", className)} />
+  const listed = icons[id] ? undefined : findTool(id)?.icon
+  if (listed)
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+        <path d={listed} />
+      </svg>
+    )
   const Icon = icons[id] ?? Package
   return <Icon className={className} strokeWidth={1.75} aria-hidden />
 }

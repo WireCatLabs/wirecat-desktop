@@ -62,6 +62,7 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+mod official;
 mod organization_card;
 mod own_risks;
 mod own_scan;

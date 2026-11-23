@@ -873,8 +873,11 @@ fn pasted_manifest(text: &str, package: &str, version: &str, view: &Value) -> Re
 
 /// The catalog entry: the `desktop` keys, then what the manifest and npm say, which the `desktop` object cannot
 /// override. The id is the letters of the manifest's name ("acme-crm" → "acmecrm"), the only rule that needs no guess.
-fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Refusal> {
-    let desktop = m.desktop.as_object().ok_or_else(|| bad("desktop", "the desktop object is missing."))?;
+/// The catalog keys of a manifest's `desktop` object, where an own tool's entry and an official tool's from the signed
+/// list (`official.rs`) start. Fails with the key and the rule.
+pub fn desktop_entry(desktop: &Value) -> Result<serde_json::Map<String, Value>, (String, String)> {
+    let fail = |key: &str, rule: &str| Err((key.to_string(), rule.to_string()));
+    let Some(desktop) = desktop.as_object() else { return fail("desktop", "the desktop object is missing.") };
     let mut entry = serde_json::Map::new();
     for key in KEYS {
         entry.insert(key.into(), Value::Null);
@@ -883,11 +886,11 @@ fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Ref
         // Keys only WireCat's tools set are passed on, so `community.rs` refuses them with its own sentence.
         let read = KEYS.contains(&key.as_str()) || ["name", "bin"].contains(&key.as_str());
         if !read && !community::FORBIDDEN.contains(&key.as_str()) {
-            return Err(bad(key, "WireCat does not read this key."));
+            return fail(key, "WireCat does not read this key.");
         }
         entry.insert(key.clone(), value.clone());
     }
-    // The manifest names what a sync copies in free text; Desktop counts with plural forms of a closed list, so an own
+    // The manifest names what a sync copies in free text; Desktop counts with plural forms of a closed list, so such a
     // tool's sync counts "records" rather than a noun guessed from that text.
     if let Some(sync) = entry.get_mut("sync").and_then(Value::as_object_mut)
         && !sync.get("what").and_then(Value::as_str).is_some_and(|w| SYNC_WHAT.contains(&w))
@@ -896,21 +899,27 @@ fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Ref
     }
     let tagline = entry["tagline"].as_str().unwrap_or_default();
     if tagline.is_empty() || tagline.chars().count() > 55 {
-        return Err(bad("tagline", "a tagline of 1 to 55 characters is needed."));
+        return fail("tagline", "a tagline of 1 to 55 characters is needed.");
     }
     if !entry["doctor"].is_array() {
-        return Err(bad("doctor", "the doctor command words are missing."));
+        return fail("doctor", "the doctor command words are missing.");
     }
     if !entry["storage"].is_object() {
-        return Err(bad("storage", "the data folder name and variable prefix are missing."));
+        return fail("storage", "the data folder name and variable prefix are missing.");
     }
+    Ok(entry)
+}
+
+fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Refusal> {
+    let mut entry = desktop_entry(&m.desktop).map_err(|(key, rule)| bad(&key, rule))?;
+    let tagline = entry["tagline"].as_str().unwrap_or_default().to_string();
     let id: String = m.name.chars().filter(char::is_ascii_alphabetic).map(|c| c.to_ascii_lowercase()).collect();
     if !(2..=16).contains(&id.len()) {
         return Err(bad("name", format!("the name {:?} gives no id of 2 to 16 letters.", m.name)));
     }
     let docs = m.docs_url.as_deref().or_else(|| view["homepage"].as_str()).or(repo);
     let Some(docs) = docs else { return Err(bad("docs_url", "a page about the tool is needed.")) };
-    let summary = if m.description.is_empty() { tagline.to_string() } else { m.description.clone() };
+    let summary = if m.description.is_empty() { tagline } else { m.description.clone() };
     let name = entry.get("name").and_then(Value::as_str).map_or_else(|| m.name.clone(), str::to_string);
     let fixed = json!({
         "id": id,
@@ -1763,6 +1772,7 @@ mod tests {
         .unwrap();
         acme.name = "Acme Listed".into();
         acme.source = Source::Community;
+        acme.listed = true;
         listed.tools.push(acme);
         let r = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), &listed, "");
         assert_eq!(r.err(), Some(Refusal::Collision { with: "Acme Listed".into(), listed: true }));

@@ -1,6 +1,6 @@
 import { CheckCircle2, LoaderCircle } from "lucide-react"
 import type { ReactNode } from "react"
-import { findTool } from "@/domain/catalog"
+import { findTool, screenOf } from "@/domain/catalog"
 import { MAIL_PROVIDERS_LIST, readMailNotes } from "@/domain/mail-signin"
 import { checkPhone, formatPhone, phoneTyped } from "@/domain/phone"
 import { qrModules, qrPath } from "@/domain/qr"
@@ -79,7 +79,7 @@ export const isKeys = (s: SignInView) =>
  * goes on to the browser instead.
  */
 export const checksInPlan = (s: Pick<SignInView, "tool" | "method" | "phase">) =>
-  s.tool === BITRIX && s.method !== BITRIX_APP && running(s.phase)
+  screenOf(s.tool) === BITRIX && s.method !== BITRIX_APP && running(s.phase)
 
 export function stageKey(s: SignInView) {
   if (s.phase === "plan" || checksInPlan(s)) return `plan:${s.method}:${checksInPlan(s) ? "paste" : s.planStep}`

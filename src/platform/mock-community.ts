@@ -92,6 +92,23 @@ export const OWN_WIRECAT = {
   },
 }
 
+/**
+ * WireCat's own tool from the signed list's `official` key, as Rust hands it over after `official.rs`: `?official=1`
+ * lists it with its icon and Russian and Spanish texts, and gives the built-in Linear the list's Russian tagline.
+ */
+const { community: _community, ...wirecat } = OWN_WIRECAT
+export const OFFICIAL = {
+  ...wirecat,
+  docs: "https://wirecat.dev/en/docs/beeline",
+  summaries: { ru: "Записи звонков Билайна как встречи: синхронизация, расшифровка на этом компьютере и поиск." },
+  icon: "M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.6 1 1 0 0 1-.25 1z",
+  i18n: {
+    ru: { tagline: "Звонки Билайна, расшифрованные на вашем компьютере" },
+    es: { tagline: "Llamadas de Beeline, transcritas en tu ordenador" },
+  },
+}
+const OFFICIAL_LINEAR = { id: "linear", i18n: { ru: { tagline: "Задачи и проекты Linear из реестра" } } }
+
 /** A list kept 24 days more; `?registry=expiring` leaves it three days, `expired` ran out two days ago. */
 function registryMock(params: URLSearchParams): Pick<CommunityStatus, "state" | "expiresAt"> {
   const registry = params.get("registry")
@@ -119,8 +136,10 @@ export function extraToolsMock(params: URLSearchParams): ExtraTools {
         : []
   const rejected: ExtraTools["rejected"] =
     community === "bad" ? [{ source: "community", text: 'shady: the command word "setup;rm" is not allowed.' }] : []
+  const official = params.get("official") === "1" ? [OFFICIAL, OFFICIAL_LINEAR] : []
   return {
     tools: [
+      ...official.map((entry) => ({ source: "official" as const, entry })),
       ...listed.map((entry) => ({ source: "community" as const, entry })),
       ...own.map((entry) => ({ source: "own" as const, entry })),
     ],

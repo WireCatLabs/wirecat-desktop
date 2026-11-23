@@ -15,6 +15,18 @@ export const ACCOUNT_KEEPS = [
   "providerAccess",
 ] as const
 
+/** The texts an official tool's list entry may give in one language. */
+const ListedTexts = v.partial(
+  v.object({
+    name: v.string(),
+    tagline: v.pipe(v.string(), v.maxLength(55)),
+    summary: v.string(),
+    gives: v.string(),
+    asks: v.string(),
+    syncNote: v.string(),
+  }),
+)
+
 const ToolSchema = v.object({
   id: v.pipe(v.string(), v.regex(/^[a-z]+$/)),
   name: v.string(),
@@ -341,12 +353,23 @@ const ToolSchema = v.object({
       groups: v.array(v.object({ key: v.pipe(v.string(), v.regex(/^[a-z][a-z-]*$/)), label: v.string() })),
     }),
   ),
+  /** The signed list's texts by language (`official.rs`); they come before the app's own translations. */
+  i18n: v.optional(v.partial(v.object({ en: ListedTexts, ru: ListedTexts, es: ListedTexts }))),
+  /** The site's summaries by language, for an official tool from the list that the app has no words for. */
+  summaries: v.optional(v.record(v.string(), v.string())),
+  /** One SVG path on a 24 x 24 box from the signed list, drawn in the app's colour; checked again in Rust. */
+  icon: v.optional(v.pipe(v.string(), v.maxLength(2048), v.regex(/^[MmLlHhVvCcSsQqTtAaZz0-9 ,.eE-]+$/))),
+  /** The tool whose own sign-in screens this one uses (`screenOf`). */
+  screen: v.optional(v.pipe(v.string(), v.regex(/^[a-z]+$/))),
 })
 
 const BuiltInSchema = v.pipe(
   ToolSchema,
   v.check((t) => !t.community && t.package.startsWith("@wirecat/"), "a built-in tool is a @wirecat package"),
 )
+
+/** One of WireCat's own tools that this release does not have, from the signed list (`official.rs`). */
+const OfficialSchema = BuiltInSchema
 
 /** Rust already refused anything unsafe (`community.rs`); this only keeps the interface's own types honest. */
 const OwnSchema = v.pipe(
@@ -391,6 +414,11 @@ type Rejection = { source: ToolSource; text: string }
 export function addCommunityTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
   const rejected: Rejection[] = []
   for (const { source, entry } of entries) {
+    if (source === "official") {
+      const why = addOfficial(entry)
+      if (why) rejected.push({ source, text: `${describe(entry)}: ${why}` })
+      continue
+    }
     const parsed = v.safeParse(source === "own" ? OwnSchema : CommunitySchema, entry)
     if (!parsed.success) {
       rejected.push({ source, text: `${describe(entry)}: ${v.summarize(parsed.issues)}` })
@@ -411,6 +439,38 @@ export function replaceAddedTools(entries: readonly { source: ToolSource; entry:
   for (let i = all.length - 1; i >= 0; i--) if (isCommunity(all[i] as CatalogTool)) all.splice(i, 1)
   return addCommunityTools(entries)
 }
+
+/** Keys the interface needs on every entry, `null` when unused: Rust leaves out what a manifest does not have. */
+const NULLS = Object.fromEntries(
+  Object.entries(ToolSchema.entries).flatMap(([key, schema]) => (schema.type === "nullable" ? [[key, null]] : [])),
+)
+
+/**
+ * An official tool from the signed list. A built-in one arrives as its presentation only (no `doctor`): the list's
+ * texts, icon and sign-in screen replace the compiled ones. A new one arrives whole and is added, or replaced when the
+ * catalog is read again. Returns why it was left out.
+ */
+function addOfficial(entry: unknown): string | null {
+  if (typeof entry !== "object" || entry === null || !("id" in entry)) return "not an entry"
+  const at = all.findIndex((t) => t.id === entry.id)
+  if (!("doctor" in entry)) {
+    const shown = v.safeParse(v.pick(ToolSchema, ["i18n", "icon", "screen"]), entry)
+    if (!shown.success) return v.summarize(shown.issues)
+    if (at < 0) return "the app has no such tool"
+    all[at] = { ...(all[at] as CatalogTool), ...shown.output }
+    return null
+  }
+  const parsed = v.safeParse(OfficialSchema, { ...NULLS, ...entry })
+  if (!parsed.success) return v.summarize(parsed.issues)
+  const tool: CatalogTool = { ...parsed.output, source: "official" }
+  if (at < 0) all.push(tool)
+  else if (all[at]?.source === "official") all[at] = tool
+  else return "the id is taken"
+  return null
+}
+
+/** The tool whose sign-in screens a tool uses: its own, or a built-in one's the signed list points it at. */
+export const screenOf = (id: string | null): string | null => (id ? (findTool(id)?.screen ?? id) : null)
 
 /** The interface's own check of an entry Rust built for review, so a tool it would not show is never added. */
 export function entryProblem(entry: unknown): string | null {

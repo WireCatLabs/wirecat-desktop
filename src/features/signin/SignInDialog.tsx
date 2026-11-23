@@ -1,7 +1,7 @@
 import { Bot, Terminal } from "lucide-react"
 import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
-import { findTool, signInMethods } from "@/domain/catalog"
+import { findTool, screenOf, signInMethods } from "@/domain/catalog"
 import { readMailNotes } from "@/domain/mail-signin"
 import { keyringFallback } from "@/domain/signin-notes"
 import { isNewer } from "@/domain/status"
@@ -201,7 +201,7 @@ function Actions() {
   const entry = tool ? findTool(tool) : undefined
   // A provider is chosen in the plan itself, never switched to in the middle of a sign-in.
   const others = entry && !entry.signIn?.pick ? signInMethods(entry).filter((m) => m.id !== method) : []
-  if (phase === "plan" && tool === BITRIX) return <BitrixActions />
+  if (phase === "plan" && screenOf(tool) === BITRIX) return <BitrixActions />
   if (phase === "plan") {
     const guided = guidedProvider(s) !== null
     if (guided && s.planStep === "password")
