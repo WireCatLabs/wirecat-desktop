@@ -78,6 +78,17 @@ describe("Permissions", () => {
     expect(within(row("Messages")).getByText(mcp)).toBeInTheDocument()
   })
 
+  it("warns under a key set separately to Ask first, since agents over MCP are not asked", async () => {
+    const user = userEvent.setup()
+    show()
+    await screen.findByRole("combobox", { name: "Chats and groups permission" })
+    await user.click(within(row("Chats and groups")).getByText(/1 set separately/))
+    expect(within(row("Chats and groups")).getByText("chats.leave")).toBeInTheDocument()
+    expect(
+      within(row("Chats and groups")).getByText(/Agents connected over MCP make these changes/),
+    ).toBeInTheDocument()
+  })
+
   it("removes the profile's key when the default level is chosen", async () => {
     const user = userEvent.setup()
     const unset = vi.spyOn(platform, "settingsUnset")

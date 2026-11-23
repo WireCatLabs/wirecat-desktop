@@ -518,6 +518,7 @@ function Override(props: {
         />
       </div>
       <RowStatus row={row} m={m} />
+      {level.level === "ask" && <McpAsk m={m} />}
     </li>
   )
 }
