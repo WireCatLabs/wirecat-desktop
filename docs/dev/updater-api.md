@@ -65,6 +65,10 @@ A copy looks up `<os>-<arch>-<bundle>` first, then `<os>-<arch>`. So a `.deb` co
 | `apt` | A `.deb` copy with `/etc/apt/sources.list.d/wirecat.sources` | Nothing: the dialog sends the owner to Software Updater and shows `sudo apt update && sudo apt install wirecat`. |
 | `other` | A Linux build with no bundle type (`pnpm app`) | Nothing: the app cannot tell which file replaces it. |
 
+After each release, [`mac-update-check.yml`](../../.github/workflows/mac-update-check.yml) installs the release
+before it on a macOS runner and takes the update the way a `self` copy does: signature against the old copy's key,
+then the bundle swap. The updated app must pass Gatekeeper, carry the new version and start.
+
 A package copy never gets administrator rights from the app. `update_download_package` downloads the package of the
 version the dialog named, which the updater plugin checks against the key. It saves it to Downloads as
 `wirecat_<version>_<arch>.deb` or `wirecat-<version>-1.<arch>.rpm`. The owner then runs the `sudo` line the app shows,

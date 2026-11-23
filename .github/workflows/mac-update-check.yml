@@ -1,0 +1,91 @@
+name: Mac update check
+
+# Updates the release before the latest one to the latest one on a clean macOS runner, the way an installed copy does
+# it: it reads latest.json from the updater endpoint, checks the archive's signature against the public key the old
+# copy was built with, and swaps the app bundle the way tauri-plugin-updater does on macOS (install_inner in its
+# updater.rs). Then the updated app must pass Gatekeeper, carry the new version and start. Nobody here has a Mac, so
+# this is the only check that a published update works there (docs/dev/updater-api.md).
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+  pull_request:
+    paths: [.github/workflows/mac-update-check.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    # A dispatched Release run is a dry run on a branch and publishes nothing.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: macos-latest
+    timeout-minutes: 20
+    env:
+      ENDPOINT: https://github.com/WireCatLabs/wirecat-desktop/releases/latest/download/latest.json
+    steps:
+      - name: Install the release before the latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL "$ENDPOINT" -o latest.json
+          new="$(jq -r .version latest.json)"
+          old="$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 20 \
+            --json tagName --jq "[.[].tagName | ltrimstr(\"v\")] | map(select(. != \"$new\")) | .[0]")"
+          echo "Updating $old to $new"
+          gh release download "v$old" --repo "$GITHUB_REPOSITORY" --pattern "*.dmg" --dir dl
+          mount="$(hdiutil attach -nobrowse -noverify -noautoopen dl/*.dmg | awk -F'\t' '/\/Volumes\// {print $NF}')"
+          mkdir -p ~/Applications
+          cp -R "$mount"/*.app ~/Applications/
+          hdiutil detach "$mount"
+          app="$(ls -d ~/Applications/*.app | head -1)"
+          installed="$(defaults read "$app/Contents/Info" CFBundleShortVersionString)"
+          [ "$installed" = "$old" ] || { echo "::error::Installed $installed, expected $old."; exit 1; }
+          gh api -H "Accept: application/vnd.github.raw" "repos/$GITHUB_REPOSITORY/contents/src-tauri/tauri.conf.json?ref=v$old" |
+            jq -r .plugins.updater.pubkey | base64 -d > old.pub
+          { echo "OLD=$old"; echo "NEW=$new"; echo "APP=$app"; } >> "$GITHUB_ENV"
+
+      - name: Download and check the update as the old copy does
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          brew install minisign >/dev/null
+          # A copy looks up <os>-<arch>-<bundle> first, then <os>-<arch>; the runner is Apple silicon.
+          for key in darwin-aarch64-app darwin-aarch64; do
+            url="$(jq -r --arg k "$key" '.platforms[$k].url // empty' latest.json)"
+            [ -n "$url" ] && break
+          done
+          [ -n "$url" ] || { echo "::error::latest.json has no darwin-aarch64 entry."; exit 1; }
+          jq -r --arg k "$key" '.platforms[$k].signature' latest.json | base64 -d > update.sig
+          # A copy downloads without a token; runners share IPs that run out of GitHub's unsigned API limit (403).
+          curl -fsSL -H "Accept: application/octet-stream" -H "Authorization: Bearer $GH_TOKEN" "$url" -o update.tar.gz
+          minisign -V -p old.pub -x update.sig -m update.tar.gz
+
+      - name: Swap the bundle as tauri-plugin-updater does
+        run: |
+          set -euo pipefail
+          mkdir new
+          tar -xzf update.tar.gz -C new
+          bundle="$(ls -d new/*.app)"
+          mv "$APP" "$RUNNER_TEMP/current_app"
+          mv "$bundle" "$APP"
+          xattr -l "$APP"
+
+      - name: The updated app passes Gatekeeper, has the new version and starts
+        run: |
+          set -euo pipefail
+          updated="$(defaults read "$APP/Contents/Info" CFBundleShortVersionString)"
+          [ "$updated" = "$NEW" ] || { echo "::error::After the update the app is $updated, expected $NEW."; exit 1; }
+          codesign --verify --deep --strict "$APP"
+          spctl --assess --type execute -vv "$APP"
+          "$APP"/Contents/MacOS/* &
+          pid=$!
+          sleep 20
+          kill -0 "$pid" || { echo "::error::The updated app quit within 20 s."; exit 1; }
+          kill "$pid"
+          echo "Updated $OLD to $NEW."
