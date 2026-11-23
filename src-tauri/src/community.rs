@@ -1,5 +1,6 @@
-//! Community tools: CLIs made outside `WireCatLabs`, added to the compiled catalog at start. Two sources, read in
-//! this order: the signed list (`registry.rs`) while "Enable community tools" is on, then the owner's own tools in
+//! Community tools: CLIs made outside `WireCatLabs`, added to the compiled catalog at start. Three sources, read in
+//! this order: `WireCat`'s own tools from the signed list's `official` key (`official.rs`) whenever this build has the
+//! list's key, its community tools (`registry.rs`) while "Enable community tools" is on, then the owner's own tools in
 //! `<app data>/extra-tools.json` while the own-tools switch is on (`own_tools.rs`), or for development
 //! while `WIRECAT_EXTRA_TOOLS=1` is set. An entry passes only when every command word is plain (no shell syntax), its
 //! package and repository are outside `@wirecat` and `WireCatLabs` (an own tool may be an uncatalogued `@wirecat`
@@ -119,18 +120,20 @@ impl fmt::Display for Problem {
     }
 }
 
-fn rule(key: &str, rule: String) -> Problem {
+pub(crate) fn rule(key: &str, rule: String) -> Problem {
     Problem::Rule { key: key.into(), rule }
 }
 
 /// The community tools to add at start, `None` when neither source is on.
 pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
     // The signed list read at start stays until the next start, so a reload for an own tool never changes it.
-    static LISTED: std::sync::OnceLock<Option<Result<Vec<Value>, String>>> = std::sync::OnceLock::new();
+    static LISTED: std::sync::OnceLock<Option<Result<crate::registry::List, String>>> = std::sync::OnceLock::new();
     // A unit test must not read the owner's own tools from the real app data; own_tool_e2e moves it first and says so.
     #[cfg(test)]
     std::env::var_os(TEST_APP_DATA)?;
-    let listed = LISTED.get_or_init(|| crate::registry::shown().then(crate::registry::at_start)).clone();
+    // Fetched whatever the switch says, for the official tools; a build without the list's key reads none.
+    let listed = LISTED.get_or_init(|| crate::registry::key().is_ok().then(crate::registry::at_start)).clone();
+    let shown = crate::registry::shown();
     // Off, the switch still lets `@wirecat` tools through: only WireCat publishes under that scope.
     let all_own = std::env::var(FLAG).ok().as_deref() == Some("1") || crate::own_tools::allowed();
     let own = crate::node::app_data().and_then(|d| std::fs::read_to_string(d.join(FILE)).ok());
@@ -139,9 +142,14 @@ pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
     }
     let mut out = Accepted::new(builtin);
     match listed {
-        Some(Ok(entries)) => out.entries(Source::Community, "The community list", entries),
-        Some(Err(why)) => out.extra.reject(Source::Community, why),
-        None => {}
+        Some(Ok(list)) => {
+            out.official(builtin, list.official);
+            if shown {
+                out.entries(Source::Community, "The community list", list.tools);
+            }
+        }
+        Some(Err(why)) if shown => out.extra.reject(Source::Community, why),
+        _ => {}
     }
     if let Some(text) = own {
         out.file(&text, all_own);
@@ -195,6 +203,34 @@ impl Accepted {
         }
     }
 
+    /// `WireCat`'s own tools from the list: a compiled-in one hands the interface its presentation, a new one is added.
+    fn official(&mut self, builtin: &Catalog, entries: Vec<Value>) {
+        for (i, entry) in entries.into_iter().enumerate() {
+            if i == crate::official::MAX_TOOLS {
+                let max = crate::official::MAX_TOOLS;
+                self.extra.reject(Source::Official, format!("The official list: only the first {max} tools are read."));
+                break;
+            }
+            let name = entry["id"].as_str().map_or_else(|| format!("entry {}", i + 1), str::to_string);
+            let read = crate::official::read(&entry, builtin);
+            let added = read.and_then(|r| match r {
+                crate::official::Read::BuiltIn(shown) => Ok((None, shown)),
+                crate::official::Read::New(e) => check(&e, &self.taken, Source::Official).map(|t| (Some(t), e)),
+            });
+            match added {
+                Ok((tool, entry)) => {
+                    if let Some(mut tool) = tool {
+                        tool.listed = true;
+                        self.taken.add(&tool);
+                        self.tools.push(tool);
+                    }
+                    self.extra.tools.push(ExtraTool { source: Source::Official, entry });
+                }
+                Err(why) => self.extra.reject(Source::Official, format!("{name}: {why}")),
+            }
+        }
+    }
+
     fn entries(&mut self, source: Source, label: &str, entries: Vec<Value>) {
         for (i, entry) in entries.into_iter().enumerate() {
             if self.extra.count(source) == MAX_TOOLS {
@@ -203,7 +239,8 @@ impl Accepted {
             }
             let name = entry["id"].as_str().map_or_else(|| format!("entry {}", i + 1), str::to_string);
             match check(&entry, &self.taken, source) {
-                Ok(tool) => {
+                Ok(mut tool) => {
+                    tool.listed = source == Source::Community;
                     self.taken.add(&tool);
                     self.tools.push(tool);
                     self.extra.tools.push(ExtraTool { source, entry });
@@ -253,7 +290,7 @@ impl Taken {
     }
 
     pub fn add(&mut self, tool: &Tool) {
-        let owner = || Owner { name: tool.name.clone(), listed: tool.source == Source::Community };
+        let owner = || Owner { name: tool.name.clone(), listed: tool.listed };
         self.ids.insert(tool.id.clone(), owner());
         self.bins.insert(tool.bin.clone(), owner());
         self.packages.insert(tool.package.clone(), owner());
@@ -281,7 +318,11 @@ impl Taken {
 /// Every rule an entry of `source` must pass. An own tool's repository may be missing, since a private or non-GitHub
 /// repository can still be added on the owner's own computer; then no provenance can be checked.
 pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Problem> {
-    if entry["community"] != true {
+    let official = source == Source::Official;
+    if official && !entry["community"].is_null() {
+        return Err(rule("community", "an official tool is not a community tool.".into()));
+    }
+    if !official && entry["community"] != true {
         return Err(rule("community", "\"community\": true is missing.".into()));
     }
     if let Some(field) = FORBIDDEN.iter().find(|f| !entry[**f].is_null()) {
@@ -305,19 +346,26 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
         return Err(rule("bin", format!("the program name {:?} is not allowed.", tool.bin)));
     }
     Taken::free(&taken.bins, "program", &tool.bin, &tool.bin)?;
-    // Only WireCat publishes under `@wirecat`, so the owner may add one we have not built in; the signed list may not.
-    let wirecat = source == Source::Own && tool.package.starts_with("@wirecat/");
+    // Only WireCat publishes under `@wirecat`, so the owner may add one we have not built in; the signed list's
+    // community tools may not, and its official tools must.
+    let wirecat = (source == Source::Own || official) && tool.package.starts_with("@wirecat/");
+    if official && !wirecat {
+        return Err(rule("package", "an official tool is a @wirecat package.".into()));
+    }
     if wirecat { scoped(&tool.package) } else { package(&tool.package) }?;
     Taken::free(&taken.packages, "package", &tool.package, &tool.package)?;
     if !(source == Source::Own && entry["repo"].is_null()) {
         match repo(&tool.repo) {
             Err(Problem::Ours { .. }) if wirecat => {}
+            Ok(()) if official => {
+                return Err(rule("repo", "an official tool is built in a `WireCatLabs` repository.".into()));
+            }
             other => other?,
         }
     }
     // `<scope>-<name>` of an own tool's package is often longer than a listed tool's folder.
     storage(&tool, taken, if source == Source::Own { 64 } else { 32 })?;
-    if source == Source::Own {
+    if source == Source::Own || official {
         own_storage(&tool)?;
     }
     if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
@@ -964,5 +1012,55 @@ mod tests {
     fn the_built_in_catalog_is_the_fallback_without_the_flag_or_the_setting() {
         assert!(std::env::var(FLAG).is_err());
         assert!(catalog().extra.tools.is_empty(), "community tools read while off");
+    }
+
+    fn official(entries: Vec<Value>) -> Accepted {
+        let mut out = Accepted::new(catalog());
+        out.official(catalog(), entries);
+        out
+    }
+
+    #[test]
+    fn an_official_tool_new_to_the_app_is_added_and_a_built_in_one_only_shows_the_lists_texts() {
+        let mut bitrix = crate::official::tests::beeline();
+        bitrix["id"] = json!("bitrix");
+        bitrix["package"] = json!("@wirecat/bitrix24-cli");
+        let out = official(vec![crate::official::tests::beeline(), bitrix]);
+        assert!(out.extra.rejected.is_empty(), "{:?}", out.extra.rejected);
+        assert_eq!(out.tools.len(), 1, "the built-in bitrix is not added again");
+        let tool = &out.tools[0];
+        assert_eq!((tool.id.as_str(), tool.source, tool.listed), ("beeline", Source::Official, true));
+        assert_eq!(tool.mcp_server.as_ref().and_then(|m| m.port), Some(8740));
+        assert_eq!(out.extra.count(Source::Official), 2);
+        assert_eq!(out.extra.tools[1].entry["id"], "bitrix");
+        assert!(out.extra.tools[1].entry.get("doctor").is_none(), "a built-in tool's commands stay compiled");
+    }
+
+    #[test]
+    fn an_official_tool_is_ours_and_keeps_to_its_own_names() {
+        let refused = |key: &str, value: Value| {
+            let mut e = crate::official::tests::beeline();
+            if key == "storage" {
+                e["desktop"]["storage"] = value;
+            } else {
+                e[key] = value;
+            }
+            texts(&official(vec![e]).extra)
+        };
+        assert!(refused("package", json!("@example/beeline-cli")).contains("@wirecat package"));
+        assert!(refused("repo", json!("https://github.com/example/beeline-cli")).contains("WireCatLabs"));
+        assert!(refused("storage", json!({ "app": "other-cli", "env": "WCBEELINE" })).contains("must be beeline-cli"));
+        assert!(refused("bin", json!("tg")).contains("taken"));
+        assert!(refused("mcpPort", json!(8765)).contains("taken"), "tg's port");
+    }
+
+    #[test]
+    fn an_own_entry_of_a_tool_now_listed_as_official_is_told_so() {
+        let mut out = official(vec![crate::official::tests::beeline()]);
+        let mut own = sample();
+        own["package"] = json!("@wirecat/beeline-cli");
+        own["repo"] = json!("https://github.com/WireCatLabs/beeline-cli");
+        out.file(&file(&[own]), true);
+        assert!(texts(&out.extra).contains("This tool is now listed"), "{}", texts(&out.extra));
     }
 }

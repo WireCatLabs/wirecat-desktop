@@ -126,8 +126,8 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
    environment that holds only the signing key, and serves the signature beside it as `desktop-tools.json.minisig`.
    The file is `{ "format": 1, "version": <build time in seconds>, "generated_at", "expires_at": <30 days on>,
    "tools": [...] }`. The daily deploy keeps it fresh; a deploy that stops lets it expire.
-3. **The app.** `registry.rs` fetches the fixed URL at start and then at most once a day, only while the switch is on
-   and the build has a real key (HTTPS only, no redirects, 512 KB cap). It keeps the new copy only when the signature
+3. **The app.** `registry.rs` fetches the fixed URL at start and then at most once a day while the build has a real
+   key (since 2026-11-23 whatever the switch says, for the [official tools](#official-tools)) (HTTPS only, no redirects, 512 KB cap). It keeps the new copy only when the signature
    verifies against `registry-key.pub` (a key of its own, never the updater's), the version is not lower than the
    copy kept (no rollback to an older list, even after that copy expired) and it has not expired. A copy that fails
    leaves the kept one; no good copy leaves the built-in catalog. The same `community.rs` rules then apply to every
@@ -140,6 +140,79 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
 5. **Icons.** No code from the registry. Either the generic package icon (today), or an optional `icon` holding one
    SVG path (`d`), checked in Rust to contain only path commands and numbers, at most 2 KB, drawn in the app's own
    colour on a 24 x 24 box.
+
+## Official tools
+
+Status: **built** (2026-11-23). Owner's decision NEED-2897, both A and B: WireCat's own tools come from the signed
+list, the compiled catalog stays as the fallback, and a check fails when either drifts from the CLIs. The goal is that
+a new official CLI appears in Desktop, translated and with its icon, without a Desktop release.
+
+**Where each fact lives.** Facts about the CLI come from the CLI's own manifest, `contracts/wirecat.json` in its npm
+package. It is the same `desktop` object the CLI's `--wcat-describe` prints. Presentation, and what only Desktop
+assigns, comes from cli-docs `registry/official.json`: Desktop's id when it differs from the site's name (`b24` is
+`bitrix`), the name, the texts in `en`, `ru` and `es` (`name`, `tagline`, `summary`, `gives`, `asks`, `syncNote`), an
+icon, an MCP port and a sign-in screen. Nothing new was needed in cli-base's manifest for this.
+
+**How the list is built.** In cli-docs, `pnpm registry:official` reads each of our tools' latest npm package, checks
+the file against npm's integrity, and writes `registry/official-manifests.json`. That file is committed, so the
+deploy job that signs the list still reads only reviewed files and fetches nothing. `scripts/desktop-registry.ts`
+writes one entry per tool into a new top-level key, `official`, beside `tools`:
+
+```json
+{ "id": "attio", "name": "Attio", "package": "@wirecat/attio-cli",
+  "repo": "https://github.com/WireCatLabs/attio-cli", "docs": "https://wirecat.dev/en/docs/attio",
+  "summary": "…", "summaries": { "en": "…", "ru": "…", "es": "…" },
+  "bin": "wcat-attio", "version": "0.2.2", "manifestSha256": "…", "desktop": { "…": "the manifest's object" },
+  "mcpPort": 8740, "icon": "M2 2h20v20H2z", "screen": "pbx", "i18n": { "ru": { "tagline": "…" } } }
+```
+
+The list keeps `"format": 1`, so a Desktop that predates the key ignores it and still reads its community tools. It is
+published with the site, as before: every deploy, and daily.
+
+**How the app reads it.** `registry.rs` now fetches the list once a day whenever the build has the list's key, not
+only while "Enable community tools" is on. The switch decides only whether `tools` is read. `community.rs` reads the
+sources in this order: `official`, then community tools, then own tools, so an official tool's names win.
+`official.rs` checks each official entry:
+
+- **A tool this app has compiled in** takes only its presentation: `i18n`, `icon` (only when the app has no logo of
+  its own for it) and `screen`. Its commands stay the ones its catalog entry was tested with. The package must be the
+  compiled one, or the entry is refused. The texts come before the app's own translations (`toolText`).
+- **A tool this app does not have** becomes a catalog entry the way an own tool does (`own_tools::desktop_entry`),
+  with the list's id, name, texts and port. It must be a `@wirecat` package built in a `WireCatLabs` repository, and
+  every rule of a listed tool applies: plain words, no key in `FORBIDDEN`, its data folder named after its package,
+  no name, program, package, folder, port or call provider of another tool. Its install still needs npm provenance
+  from that repository's `release.yml`, like every built-in tool. It shows no badge. An MCP server without a port in
+  the list is refused.
+- **Signatures.** Only a list whose minisign signature matches `registry-key.pub` is kept, exactly as before. Official
+  and community entries share the key; the array marks which is which, and the rules above stop a community entry
+  from claiming to be ours and an official entry from pointing outside `@wirecat`.
+- **The icon** is one SVG path on a 24 by 24 box, path commands and numbers only, at most 2 KB, drawn in the text
+  colour. It is checked in Rust and again in the interface. It can never load anything.
+- **The sign-in screen.** `screen` names a built-in tool whose own screens the tool uses (`screenOf` in
+  `src/domain/catalog.ts`): Bitrix24's webhook and application steps and Asterisk's source form. The bots' screens
+  (`tg`, `max`, `wa`) need the catalog's `bot` block, which only a compiled-in tool may have, so they are refused.
+- **An expired list.** The official tools of an expired copy stay, and their installs are not blocked: only WireCat
+  publishes under `@wirecat`, and provenance still ties each release to our repository.
+- A list fetched now takes effect at the next start, as before.
+
+**Why built-in tools keep their compiled commands.** On 2026-11-23 the manifests of all 17 built-in tools differed
+from the catalog in 60 places, some of them in what Desktop runs: drive's `doctor` and `profiles.shape`, the `doctor`
+of gcal, mail and zoom, zoom's `setup` and sync without a profile, the `setup` of Bitrix24 and Asterisk. Which side is
+right is not checked (it needs a run of each CLI). Switching a built-in tool's commands to the list waits until its
+drift is zero (NEED-2604).
+
+**The drift check (A).** cli-docs `pnpm registry:drift`, and its Registry drift workflow (daily, and on pull requests
+that touch the registry), fails when the committed manifests are behind npm, or when this repository's
+`catalog/tools.json` on `main` says something else than a manifest, comparing only what the manifest states. The
+catalog's `bin` must be one of the package's programs (the manifest names the `wcat-` one). Each known difference is a
+line in cli-docs `registry/drift-allow.json` with why, and a line that no longer differs fails too. A CLI release that
+changes its manifest turns the check red until someone runs `pnpm registry:official` and commits the result.
+
+**What a new official CLI needs now.** In cli-docs: an entry in `tools.json` (which also lists it on the site), an
+entry in `registry/official.json` with the Russian and Spanish texts, an icon and an `mcpPort` when it has an MCP
+server, then `pnpm registry:official` and a merge. Each Desktop with this change shows it at its next start after the
+daily fetch. A Desktop release is still needed for anything the manifest cannot say yet: search fields, a CRM board,
+a folder picker, a bot, a sign-in screen of its own.
 
 ## When the list expires
 
@@ -328,7 +401,7 @@ WireCatLabs repository on a package outside `@wirecat`), `collision { with, list
 - Whether a signed list needs a second maintainer's approval (today: the pull request review and the `production`
   environment's rules).
 - Whether community tools may use the store commands (backup, reset), `bot` or the Memory and Tasks pages later.
-- Registry removal (point 4) and icons (point 5) are not built yet.
+- Registry removal (point 4) is not built yet. Icons (point 5) are built for official tools only.
 - **More tools.** The block for WireCat's own extras (CRM, telephony) needs no switch, since those are reviewed
   first-party tools.
 - **Who may publish.** Listing is for approved publishers only, by application or invitation. The admission rule

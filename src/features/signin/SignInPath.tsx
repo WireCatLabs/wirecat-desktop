@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react"
 import { ASTERISK } from "@/domain/asterisk-source"
-import { findTool, signInMethods } from "@/domain/catalog"
+import { findTool, screenOf, signInMethods } from "@/domain/catalog"
 import { zoomNeedsClientId } from "@/domain/signin-failure"
 import { useToolName } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -17,11 +17,11 @@ const BITRIX_STEPS: Record<string, PlanStep[]> = { webhook: ["choose", "webhook"
 
 /** The step the window shows; null while the tool says nothing that places it (starting, checking an answer). */
 function stepOf(s: SignInView, path: WizardStep[]): WizardStep | null {
-  if (s.tool === BITRIX && s.method === BITRIX_APP && s.phase === "plan")
+  if (screenOf(s.tool) === BITRIX && s.method === BITRIX_APP && s.phase === "plan")
     return s.planStep === "app" ? "localApp" : "portal"
-  if (s.tool === BITRIX && s.method !== BITRIX_APP && s.phase !== "done")
+  if (screenOf(s.tool) === BITRIX && s.method !== BITRIX_APP && s.phase !== "done")
     return s.phase === "plan" && s.planStep !== "paste" ? (s.planStep === "webhook" ? "webhook" : "portal") : "paste"
-  if (s.tool === ASTERISK && (s.phase === "plan" || s.phase === "starting"))
+  if (screenOf(s.tool) === ASTERISK && (s.phase === "plan" || s.phase === "starting"))
     return s.phase === "plan" || !path.includes("check") ? "source" : "check"
   if (s.phase === "plan") return s.planStep === "password" && path.includes("appPassword") ? "appPassword" : "intro"
   if (isKeys(s)) return "keys"
@@ -86,7 +86,7 @@ function Path({ s }: { s: SignInView }) {
   const select = (i: number) => {
     if (i >= at || s.phase === "done") return undefined
     // Bitrix24's steps are all the window's own until the check runs: each one before is a click away.
-    if (s.tool === BITRIX && s.phase === "plan") {
+    if (screenOf(s.tool) === BITRIX && s.phase === "plan") {
       const planStep = BITRIX_STEPS[s.method ?? ""]?.[i]
       return planStep
         ? () => useSignIn.setState({ planStep, planMissing: null, webhookProblem: null, appProblem: null })

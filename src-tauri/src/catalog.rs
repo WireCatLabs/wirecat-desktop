@@ -29,6 +29,9 @@ pub struct Tool {
     /// Compiled in, the signed list, or the owner's own file; set by `community.rs`, never read from an entry.
     #[serde(skip)]
     pub source: crate::community::Source,
+    /// Added from the signed list, official or community: an own entry that takes its name is told it is now listed.
+    #[serde(skip)]
+    pub listed: bool,
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
