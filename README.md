@@ -254,7 +254,7 @@ the same name again.
 
 | | |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-refused-dark.webp"><img src="docs/images/own-refused-light.webp" width="480" alt="A refusal: Tool not found, npm has no package named @leemour/acme-crm-clis"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-tools-list-dark.webp"><img src="docs/images/own-tools-list-light.webp" width="480" alt="The Tools page with Acme CRM, added by you, marked Not verified"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-refused-dark.webp"><img src="docs/images/own-refused-light.webp" width="480" alt="A refusal: Tool not found, npm has no package named @leemour/acme-crm-clis"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-tools-list-dark.webp"><img src="docs/images/own-tools-list-light.webp" width="480" alt="The Tools page: Acme CRM under Tools WireCat has not checked, marked Not verified"></picture> |
 | **A refusal** names the reason and what to do. | **An added tool** on the Tools page, marked **Not verified**. |
 
 The full guide is on [wirecat.dev](https://wirecat.dev/en/docs/desktop#add-your-own-tool).
