@@ -197,7 +197,7 @@ sources in this order: `official`, then community tools, then own tools, so an o
 
 **Why built-in tools keep their compiled commands.** On 2026-11-23 the manifests of all 17 built-in tools differed
 from the catalog in 60 places, some of them in what Desktop runs: drive's `doctor` and `profiles.shape`, the `doctor`
-of gcal, mail and zoom, zoom's `setup` and sync without a profile, the `setup` of bitrix and asterisk. Which side is
+of gcal, mail and zoom, zoom's `setup` and sync without a profile, the `setup` of Bitrix24 and Asterisk. Which side is
 right is not checked (it needs a run of each CLI). Switching a built-in tool's commands to the list waits until its
 drift is zero (NEED-2604).
 
