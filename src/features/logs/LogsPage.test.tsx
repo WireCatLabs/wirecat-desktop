@@ -248,10 +248,9 @@ describe("Logs", () => {
     const user = userEvent.setup()
     render(<LogsPage />)
     await loaded()
-    await user.type(
-      screen.getByRole("combobox", { name: "Search runs" }),
-      ' cli_command:"tg messages read" via:mcp-stdio',
-    )
+    await user.click(screen.getByRole("combobox", { name: "Search runs" }))
+    await user.keyboard("{End}")
+    await user.paste(' cli_command:"tg messages read" via:mcp-stdio')
     await user.click(await screen.findByRole("button", { name: /^Show run tg messages read / }))
 
     const steps = screen.getByRole("region", { name: "Steps" })
@@ -272,10 +271,9 @@ describe("Logs", () => {
     const user = userEvent.setup()
     render(<LogsPage />)
     await loaded()
-    await user.type(
-      screen.getByRole("combobox", { name: "Search runs" }),
-      ' cli_command:"tg messages read" via:mcp-stdio',
-    )
+    await user.click(screen.getByRole("combobox", { name: "Search runs" }))
+    await user.keyboard("{End}")
+    await user.paste(' cli_command:"tg messages read" via:mcp-stdio')
     await user.click(await screen.findByRole("button", { name: /^Show run tg messages read / }))
     const search = screen.getByRole("combobox", { name: "Search runs" }) as HTMLInputElement
     const before = search.value
@@ -297,10 +295,9 @@ describe("Logs", () => {
     const user = userEvent.setup()
     render(<LogsPage />)
     await loaded()
-    await user.type(
-      screen.getByRole("combobox", { name: "Search runs" }),
-      ' cli_command:"tg messages search" status:success via:cli',
-    )
+    await user.click(screen.getByRole("combobox", { name: "Search runs" }))
+    await user.keyboard("{End}")
+    await user.paste(' cli_command:"tg messages search" status:success via:cli')
     await user.click(await screen.findByRole("button", { name: /^Show run tg messages search / }))
     expect(await screen.findByText(/keeps only this summary, not its steps/)).toBeInTheDocument()
   })
