@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { editorMessages } from "@/features/digests/messages-editors"
 import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -7,8 +7,11 @@ import { agentsFixture } from "@/platform/mock-background-agent"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { loadPages } from "@/testing/pages"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })

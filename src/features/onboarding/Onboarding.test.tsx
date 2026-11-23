@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -7,7 +7,10 @@ import type { InstallEvent } from "@/platform/schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
+import { loadPages } from "@/testing/pages"
 import { act, render, screen, waitFor, within } from "@/testing/render"
+
+beforeAll(loadPages)
 
 const absent = { path: null, version: null, ok: false, problem: "not found" }
 const noNode = {

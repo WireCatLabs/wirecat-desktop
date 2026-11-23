@@ -8,7 +8,10 @@ import type { CommunityStatus } from "@/platform/community-schemas"
 import { ACME } from "@/platform/mock-community"
 import { useNotices } from "@/shared/notices-store"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { act, render, screen, waitFor, within } from "@/testing/render"
+
+beforeAll(loadPages)
 
 let App: FC
 

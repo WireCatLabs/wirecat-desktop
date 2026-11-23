@@ -1,11 +1,14 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { loadPages } from "@/testing/pages"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 // Kept apart from Onboarding.test.tsx: a file gets its own platform mock, so no answer an earlier test is still
 // waiting for can land here and replace the tools and agents these tests set up.

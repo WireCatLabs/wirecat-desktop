@@ -1,8 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, waitFor } from "@/testing/render"
 import { HOME_SECTION, useNav } from "./nav"
+
+beforeAll(loadPages)
 
 afterEach(() => {
   localStorage.clear()

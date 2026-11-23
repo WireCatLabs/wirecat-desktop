@@ -1,11 +1,14 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
 import { answerAtOnce } from "@/testing/mock-speed"
+import { loadPages } from "@/testing/pages"
 import { fireEvent, render, screen, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 // The browser mock stands in for Rust: Drive is the one tool not installed.
 describe("WireCat Desktop", () => {

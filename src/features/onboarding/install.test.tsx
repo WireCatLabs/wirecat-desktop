@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useTools } from "@/shared/tools-store"
 import {
@@ -16,11 +16,14 @@ import {
   rowBar,
   startOnboarding,
 } from "@/testing/onboarding"
+import { loadPages } from "@/testing/pages"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { failureWordsEn } from "../tools/failure-words"
 import { preflightMessages } from "../tools/messages-preflight"
 import { InstallTips } from "./InstallWait"
+
+beforeAll(loadPages)
 
 afterEach(async () => {
   vi.useRealTimers()

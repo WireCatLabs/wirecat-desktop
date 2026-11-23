@@ -1,12 +1,15 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { AboutDialog } from "@/features/about/AboutDialog"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 describe("About WireCat", () => {
   beforeEach(() => useOnboarding.setState({ status: "done", open: false }))

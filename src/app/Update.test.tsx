@@ -1,12 +1,15 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 const offer = { version: "0.2.0", notes: "Faster Storage page.", kind: "self" as const }
 
@@ -29,10 +32,12 @@ describe("App update", () => {
 
   it("offers nothing when this is the newest release or the check fails", async () => {
     const check = vi.spyOn(platform, "checkUpdate").mockRejectedValue(new Error("offline"))
+    const user = userEvent.setup()
     render(<App />)
     await waitFor(() => expect(useSystem.getState().readiness).not.toBeNull())
     expect(check).toHaveBeenCalled()
-    expect(screen.queryByRole("button", { name: /Update to/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Help" }))
+    expect(screen.getByRole("menuitem", { name: /Check for updates/ })).toBeInTheDocument()
   })
 
   it("installs only after the user confirms, shows the download, then restarts", async () => {

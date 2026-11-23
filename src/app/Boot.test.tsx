@@ -1,11 +1,14 @@
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
 import { m, readyComputer, startOnboarding } from "@/testing/onboarding"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor } from "@/testing/render"
 import { App } from "./App"
 import { BOOT_CAP_MS } from "./boot"
+
+beforeAll(loadPages)
 
 afterEach(() => {
   vi.restoreAllMocks()

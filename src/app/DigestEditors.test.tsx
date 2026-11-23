@@ -1,10 +1,13 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { editorMessages } from "@/features/digests/messages-editors"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })

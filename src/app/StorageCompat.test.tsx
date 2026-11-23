@@ -1,9 +1,12 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 // The mock's store is at schema 33 and needs 32: WhatsApp 0.6 reads up to 29, Memo 0.93 is recorded at 31, Zoom
 // predates `store info`. WhatsApp 0.7 moves the store to 34, which Telegram and MAX 0.74 do not read.

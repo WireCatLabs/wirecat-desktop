@@ -1,11 +1,14 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { useNotifications } from "@/features/notifications"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { safeStorage } from "@/shared/safe-storage"
+import { loadPages } from "@/testing/pages"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 const today = () => {
   const d = new Date()

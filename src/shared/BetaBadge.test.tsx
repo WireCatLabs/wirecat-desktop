@@ -1,10 +1,13 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { App } from "@/app/App"
 import { sections } from "@/app/sections"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, within } from "@/testing/render"
 import { BETA } from "./beta"
+
+beforeAll(loadPages)
 
 const LABEL = "Beta: this section is new and lightly tested"
 

@@ -1,10 +1,13 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 describe("Storage", () => {
   beforeEach(() => useOnboarding.setState({ status: "done", open: false }))
@@ -16,7 +19,8 @@ describe("Storage", () => {
     await user.click(screen.getByRole("tab", { name: /^Storage/ }))
 
     const archive = await screen.findByRole("region", { name: "In storage" })
-    expect(await within(archive).findByText("15,594")).toBeInTheDocument()
+    const messages = (await within(archive).findByText("Messages")).parentElement as HTMLElement
+    expect(within(messages).getByText("15,594")).toBeInTheDocument()
     expect(within(archive).getByText("tg store info")).toBeInTheDocument()
     expect(within(archive).getByRole("table", { name: "By source" })).toHaveTextContent("via tg")
     expect(within(archive).getByRole("table", { name: "By source" })).toHaveTextContent("WhatsApp")

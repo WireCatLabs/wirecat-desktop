@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { useMemory } from "@/features/memory/store"
 import { useTour } from "@/features/onboarding/Tour"
 import { useSearch } from "@/features/search/store"
@@ -7,8 +7,11 @@ import { useTasks } from "@/features/tasks/store"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { hideRowSync } from "@/testing/onboarding"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 const MEMORY_EXAMPLE = "Ana Ruiz promised to send the signed contract by Thursday."
 const TASK_EXAMPLE = "Check the signed contract from Ana"

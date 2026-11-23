@@ -1,9 +1,12 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest"
 import { useTour } from "@/features/onboarding/Tour"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { loadPages } from "@/testing/pages"
 import { render, screen, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 // Its own file: the sync store reads each row's profiles once per module, so another test's reads would hide the button.
 beforeEach(() => {

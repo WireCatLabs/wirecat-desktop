@@ -1,11 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { appMessages } from "@/app/messages"
 import { HOME_SECTION } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
 import { agent, currentStep, endInstalls, installRow, m, rowBar, skillIn, startOnboarding } from "@/testing/onboarding"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor, within } from "@/testing/render"
+
+beforeAll(loadPages)
 
 afterEach(async () => {
   await endInstalls()

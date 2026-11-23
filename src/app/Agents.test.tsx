@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { useAgentChoice } from "@/features/agents/AgentList"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -7,8 +7,11 @@ import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
 import { reduceMotion } from "@/testing/motion"
+import { loadPages } from "@/testing/pages"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
+
+beforeAll(loadPages)
 
 async function openAgents() {
   const user = userEvent.setup()
