@@ -15,6 +15,11 @@ import type { Messages } from "@/i18n"
  * Yandex Disk (2026-11-18): ydisk-cli PR #7 `docs/installation.md` and cli-docs `content/docs/ydisk*.mdx`, checked
  * against Yandex's register-api and Disk API quickstart (the app type, the Disk rights by Yandex's own labels, the
  * token page; the token checked before it is kept in the keyring, else a private file).
+ * Notion (2026-11-23): Notion's https://developers.notion.com/guides/connections-and-tokens/personal-access-tokens
+ * (New token and Create token on the developer portal's token page, the Notion API capability, a chosen expiry of up to
+ * a year, shown once, revoked on the portal; on Free and Business only owners make one by default) and its internal
+ * connections page (owners only, sees only the pages shared with it); notion-cli `docs/commands.md` (`session start`
+ * reads the token from stdin, checks it with Notion and keeps it in the keyring, else a private file).
  * Attio (2026-11-18): Attio's help page https://attio.com/help/apps/other-apps/generating-an-api-key (admins only,
  * the menu labels, tokens that never expire and are deleted on the same page); the scope ids from the "Required
  * scopes" of Attio's OpenAPI text in attio-cli `src/generated/manifest.ts`, not their labels in the Scopes screen,
@@ -55,6 +60,8 @@ const MICROSOFT_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-microsoft"
 const GOOGLE_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-google"
 const ZOOM_APP_GUIDE = "https://wirecat.dev/en/docs/zm/zoom-app"
 const YDISK_GUIDE = "https://wirecat.dev/en/docs/ydisk"
+const NOTION_TOKENS = "https://www.notion.so/developers/tokens"
+const NOTION_GUIDE = "https://developers.notion.com/guides/connections-and-tokens/personal-access-tokens"
 const ATTIO_APP = "https://app.attio.com/"
 const ATTIO_GUIDE = "https://attio.com/help/apps/other-apps/generating-an-api-key"
 const LINEAR_SECURITY = "https://linear.app/settings/account/security"
@@ -226,6 +233,24 @@ const en = {
       kept: [
         "Your Yandex password is typed only on Yandex's own page.",
         "The token can do only what you allowed when you registered the app.",
+        "The token is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
+      ],
+    },
+    notion: {
+      steps: [
+        {
+          text: "Open Notion's token page, signed in to the workspace you want to use.",
+          link: { url: NOTION_TOKENS, label: "Open Notion's token page" },
+        },
+        "Click New token. If there is no such button, your plan lets only workspace owners make tokens: ask an owner. An internal connection's token works too and sees only the pages shared with it.",
+        "Give the token any name, tick Notion API and choose how long it lasts. When it expires, sign in again with a new one.",
+        "Click Create token and copy it. Notion shows it only this once.",
+        "Paste the token into the field below. notion checks it with Notion before it keeps it.",
+      ],
+      guide: { url: NOTION_GUIDE, label: "Notion's help page" },
+      time: "Allow about two minutes.",
+      kept: [
+        "The token acts as you and sees the pages you can see. To stop it, revoke it in Notion's developer portal.",
         "The token is saved in your system's password store, or in a private file in the tool's own folder when there is none.",
       ],
     },
@@ -504,6 +529,24 @@ const ru: PlanText = {
         "Токен сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
       ],
     },
+    notion: {
+      steps: [
+        {
+          text: "Откройте страницу токенов Notion, войдя в нужное рабочее пространство.",
+          link: { url: NOTION_TOKENS, label: "Открыть страницу токенов Notion" },
+        },
+        "Нажмите «New token». Если такой кнопки нет, на вашем тарифе токены создают только владельцы пространства: попросите владельца. Токен внутреннего подключения тоже подходит и видит только страницы, к которым подключение добавили.",
+        "Дайте токену любое имя, отметьте «Notion API» и выберите срок действия. Когда срок выйдет, войдите снова с новым токеном.",
+        "Нажмите «Create token» и скопируйте его. Notion показывает его только один раз.",
+        "Вставьте токен в поле ниже. notion проверит его в Notion, прежде чем сохранить.",
+      ],
+      guide: { url: NOTION_GUIDE, label: "Справка Notion" },
+      time: "Около двух минут.",
+      kept: [
+        "Токен действует от вашего имени и видит те же страницы, что и вы. Чтобы отключить его, отзовите его в портале разработчика Notion.",
+        "Токен сохраняется в системном хранилище паролей, а если его нет, в закрытом файле в папке инструмента.",
+      ],
+    },
     attio: {
       steps: [
         {
@@ -775,6 +818,24 @@ const es: PlanText = {
       kept: [
         "Tu contraseña de Yandex se escribe solo en la página de Yandex.",
         "El token solo puede lo que permitiste al registrar la aplicación.",
+        "El token se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
+      ],
+    },
+    notion: {
+      steps: [
+        {
+          text: "Abre la página de tokens de Notion, con la sesión iniciada en el espacio de trabajo que quieres usar.",
+          link: { url: NOTION_TOKENS, label: "Abrir la página de tokens de Notion" },
+        },
+        "Pulsa New token. Si no aparece, en tu plan solo los propietarios del espacio crean tokens: pídeselo a uno. El token de una conexión interna también sirve y solo ve las páginas compartidas con ella.",
+        "Ponle al token cualquier nombre, marca Notion API y elige cuánto dura. Cuando caduque, inicia sesión de nuevo con otro.",
+        "Pulsa Create token y cópialo. Notion lo muestra solo esta vez.",
+        "Pega el token en el campo de abajo. notion lo comprueba con Notion antes de guardarlo.",
+      ],
+      guide: { url: NOTION_GUIDE, label: "Ayuda de Notion" },
+      time: "Unos dos minutos.",
+      kept: [
+        "El token actúa en tu nombre y ve las páginas que tú ves. Para desactivarlo, revócalo en el portal de desarrolladores de Notion.",
         "El token se guarda en el almacén de contraseñas del sistema o, si no lo hay, en un archivo privado en la carpeta de la herramienta.",
       ],
     },

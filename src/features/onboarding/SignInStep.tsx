@@ -10,6 +10,7 @@ import {
   NewProfile,
   TerminalStatus,
   toolsMessages,
+  toolText,
   useProfiles,
 } from "@/features/tools"
 import { formatList, useMessages } from "@/i18n"
@@ -37,15 +38,13 @@ const signInBlock = "flex flex-col gap-[0.9rem] border-line border-b px-[1.3rem]
 const accountsArea = "flex flex-col gap-[0.9rem] sm:pl-[2.4rem]"
 
 function SignInHeader({ tool }: { tool: CatalogTool }) {
-  const m = useMessages(onboardingMessages).signIn
+  const tm = useMessages(toolsMessages)
   return (
     <div className="flex items-start gap-[0.9rem]">
       <ToolIcon id={tool.id} className="mt-[0.05rem] size-[1.5rem] shrink-0 text-ink" />
       <div className="min-w-0">
         <h3 className="text-[1.08rem] font-semibold leading-tight">{tool.name}</h3>
-        {tool.signIn && (
-          <p className="mt-1 text-body leading-relaxed text-ink-soft">{m.gives[tool.id] ?? tool.signIn.gives}</p>
-        )}
+        {tool.signIn && <p className="mt-1 text-body leading-relaxed text-ink-soft">{toolText(tm, tool).gives}</p>}
       </div>
     </div>
   )
@@ -119,6 +118,7 @@ function SignInRow({
   const { profiles, error, loading, reload } = useProfiles(tool.id)
   const [adding, setAdding] = useState(startAdding)
   const m = useMessages(onboardingMessages).signIn
+  const tm = useMessages(toolsMessages)
   const bm = useMessages(botMessages)
   const manual = !tool.setup
   const count = profiles?.length ?? 0
@@ -167,7 +167,7 @@ function SignInRow({
                 {tool.signIn && (
                   <p className="max-w-[65ch] text-body leading-relaxed text-ink-soft">
                     <span className="font-medium text-ink">{manual ? m.needs : m.willAsk}</span>
-                    {m.asks[tool.id] ?? tool.signIn.asks}
+                    {toolText(tm, tool).asks}
                     {tool.signIn.guide && !manual && (
                       <>
                         {" "}

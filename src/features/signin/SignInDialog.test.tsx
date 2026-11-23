@@ -1052,6 +1052,30 @@ describe("signing in to Notion", () => {
   })
 })
 
+describe("signing in to Notion", () => {
+  it("opens Notion's token page and help page from its steps", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("notion", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Notion" })
+    expect(within(dialog).getByText(/internal connection's token works too/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: /Open Notion's token page/ }))
+    expect(open).toHaveBeenLastCalledWith("https://www.notion.so/developers/tokens")
+    await userEvent.click(within(dialog).getByRole("button", { name: /Notion's help page/ }))
+    expect(open).toHaveBeenLastCalledWith(expect.stringContaining("developers.notion.com/"))
+  })
+
+  it.each([
+    ["ru", "Вход в Notion", /Откройте страницу токенов Notion/],
+    ["es", "Iniciar sesión en Notion", /Abre la página de tokens de Notion/],
+  ] as const)("in %s, says its steps in that language", (lang, title, step) => {
+    useLanguage.setState({ choice: lang })
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("notion", "work"))
+    expect(within(screen.getByRole("dialog", { name: title })).getByText(step)).toBeInTheDocument()
+  })
+})
+
 describe("signing in to Yandex Disk", () => {
   const CLIENT_ID = "0123456789abcdef0123456789ABCDEF"
 

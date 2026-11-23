@@ -10,6 +10,8 @@ export const toolText = (m: ToolsText, t: CatalogTool) => ({
   tagline: m.tool.tagline[t.id] ?? t.tagline,
   summary: m.tool.summary[t.id] ?? t.summary,
   syncNote: m.tool.syncNote[t.id] ?? syncNote(t),
+  gives: t.signIn ? (m.tool.gives[t.id] ?? t.signIn.gives) : null,
+  asks: t.signIn ? (m.tool.asks[t.id] ?? t.signIn.asks) : null,
 })
 
 export const groupLabel = (m: ToolsText, key: string, label: string) => m.tool.group[key] ?? label
