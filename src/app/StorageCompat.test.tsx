@@ -42,13 +42,7 @@ describe("Tools and the shared storage", () => {
 
     await user.click(await within(await row(/WhatsApp/)).findByRole("button", { name: "Update to 0.7.0" }))
 
-    // The mock install alone waits about 2 s before the check that opens the dialog; a busy CI runner needs more than
-    // the default 3 s for it.
-    const dialog = await screen.findByRole(
-      "dialog",
-      { name: "WhatsApp 0.7.0 will move storage to schema 34" },
-      { timeout: 10_000 },
-    )
+    const dialog = await screen.findByRole("dialog", { name: "WhatsApp 0.7.0 will move storage to schema 34" })
     expect(within(dialog).getByText(/Telegram and MAX can't read schema 34/)).toBeInTheDocument()
     expect(within(dialog).getByText(/No newer Telegram is out yet/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Update MAX too" }))
