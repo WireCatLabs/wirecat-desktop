@@ -81,7 +81,7 @@ export const ES_ASKS: Record<string, string> = {
     "Tu dirección de correo, y después el inicio de sesión de Microsoft en el navegador o una contraseña de aplicación: una contraseña solo para este programa.",
   notion: "Un token de acceso personal de Notion, o el token de una conexión interna que creaste en Notion.",
   ydisk:
-    "Un token OAuth de Yandex, de una aplicación que registras una vez en oauth.yandex.com con acceso a Yandex Disk.",
+    "Un token OAuth de Yandex, de una aplicación que registras una vez en oauth.yandex.ru con acceso a Yandex Disk.",
   bitrix:
     "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
   amo: "La dirección de la cuenta y un token de larga duración, de una integración privada que un administrador crea en amoCRM o Kommo.",
