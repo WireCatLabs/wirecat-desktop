@@ -22,3 +22,9 @@ official file, unchanged, except where noted. The full record of where each came
 Telegram has no file here: its API terms (https://core.telegram.org/api/terms, 2.4) do not let another app use its
 official logo. `ToolIcon` draws Lucide's `send` icon (https://lucide.dev/icons/send, ISC licence, already a dependency
 as `lucide-react`) in white on a blue disc instead.
+
+Slack has no file here either: Slack's brand terms (https://slack.com/terms-of-service/slack-brand, retrieved
+2026-11-24) say "Don't use the Slack logo (with or without your company logo)", and the right to say an app is
+integrated with Slack comes with an app in the Slack Marketplace, which slk is not. `ToolIcon` draws Lucide's
+`messages-square` icon (https://lucide.dev/icons/messages-square, ISC licence) instead; not the `#` mark, which would
+be "similar imagery".

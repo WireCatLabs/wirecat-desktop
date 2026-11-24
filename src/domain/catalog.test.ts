@@ -18,6 +18,7 @@ describe("catalog", () => {
       "tg",
       "max",
       "wa",
+      "slk",
       "zm",
       "drive",
       "gcal",

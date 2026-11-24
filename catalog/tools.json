@@ -1296,6 +1296,81 @@
       }
     },
     {
+      "id": "slk",
+      "name": "Slack",
+      "tagline": "Read and search your Slack channels, DMs and threads",
+      "bin": "slk",
+      "package": "@wirecat/slack-cli",
+      "summary": "Read and search your Slack channels, direct messages and threads with your agent, and send messages as you when you allow it.",
+      "docs": "https://github.com/WireCatLabs/slack-cli#readme",
+      "repo": "https://github.com/WireCatLabs/slack-cli",
+      "profiles": {
+        "args": ["account", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "setup": ["{profile}", "setup"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": {
+        "port": 8755,
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+      },
+      "tasks": null,
+      "sync": null,
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "slack-cli",
+        "env": "SLACK"
+      },
+      "settings": null,
+      "signIn": {
+        "gives": "Lets your agent read and write your Slack workspace as you.",
+        "asks": "The User OAuth Token (xoxp-) of a Slack app you make in your workspace from the manifest slk gives.",
+        "setupFrom": "0.1.0",
+        "links": ["slack.com"],
+        "methods": [
+          {
+            "id": "token",
+            "label": "User OAuth Token",
+            "words": ["{profile}", "session", "start", "--json"],
+            "stdin": true
+          }
+        ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": "0.1.0",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn"],
+        "keeps": ["settings", "data", "listed"]
+      }
+    },
+    {
       "id": "zm",
       "name": "Zoom",
       "tagline": "Meeting recordings and transcripts\u00a0· search",

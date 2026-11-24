@@ -1,4 +1,4 @@
-import { Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
+import { Globe, Mail, MessagesSquare, NotebookText, Package, Phone, Send } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import amocrm from "@/assets/logos/amocrm.png"
 import attio from "@/assets/logos/attio.png"
@@ -41,6 +41,7 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   email: Mail,
   funnel: Globe,
   pbx: Phone,
+  slk: MessagesSquare,
 }
 
 /** Telegram's terms forbid its official logo in another app (API terms 2.4): a plain paper plane on a blue disc. */
@@ -53,9 +54,9 @@ function TelegramBadge({ className }: { className?: string | undefined }) {
 }
 
 /**
- * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk and the Tailscale helper keep
- * a line icon. An official tool from the signed list may bring one SVG path, drawn in the text colour; a tool
- * without either shows the same package.
+ * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk, the Tailscale helper and Slack
+ * (whose brand terms keep its logo out) keep a line icon. An official tool from the signed list may bring one SVG
+ * path, drawn in the text colour; a tool without either shows the same package.
  */
 export function ToolIcon({ id, className }: { id: string; className?: string | undefined }) {
   if (id === "tg") return <TelegramBadge className={className} />

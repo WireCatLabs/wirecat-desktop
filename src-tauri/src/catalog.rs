@@ -534,7 +534,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 18);
+        assert_eq!(catalog().tools.len(), 19);
     }
 
     #[test]
