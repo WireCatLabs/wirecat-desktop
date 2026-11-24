@@ -42,6 +42,10 @@ pub struct Digest {
     pub document: Option<Value>,
     /// The run's plain text, for a run without a document.
     pub text: Option<String>,
+    /// The text is a `wirecat.report/1` document that memo's check refused, not an older run's text.
+    pub refused: bool,
+    /// The field memo's check stopped at, `sections[0].items[7].since`; `last.json` keeps only the newest run's.
+    pub invalid: Option<String>,
 }
 
 /// A digest's runs are its schedule's: `schedules/<name>/runs`.
@@ -88,6 +92,23 @@ fn text(dir: &Path, stamp: &str) -> Option<String> {
     read_small(&dir.join(format!("{stamp}.md"))).filter(|t| !t.trim().is_empty())
 }
 
+/// The answer as cli-core reads it: the bare object or the only fenced `json` block.
+fn refused_document(text: &str) -> Option<Value> {
+    let text = text.trim();
+    let json = text.strip_prefix("```json").and_then(|t| t.strip_suffix("```")).unwrap_or(text);
+    let value: Value = serde_json::from_str(json.trim()).ok()?;
+    (value.get("format").and_then(Value::as_str) == Some("wirecat.report/1")).then_some(value)
+}
+
+fn invalid_field(dir: &Path, stamp: &str) -> Option<String> {
+    let last: Value = serde_json::from_str(&read_small(&dir.parent()?.join("last.json"))?).ok()?;
+    let output = last.get("output").and_then(Value::as_str)?;
+    if !output.ends_with(&format!("{stamp}.md")) {
+        return None;
+    }
+    last.pointer("/report/invalid").and_then(Value::as_str).map(str::to_string)
+}
+
 /// The list shows text, not Markdown: an agent's `**Сегодня**` or `[a](b)` would show its marks.
 fn plain(line: &str) -> String {
     static LINK: std::sync::LazyLock<regex::Regex> =
@@ -116,9 +137,21 @@ fn day_of(dir: &Path, stamp: &str) -> Option<Day> {
         return Some(Day { date, stamp: stamp.to_string(), summary, report: true, backfill });
     }
     let text = text(dir, stamp)?;
-    // An old run's text has no summary field; its first line is the nearest thing (cli-core's notice does the same).
-    let summary = text.lines().find(|l| !l.trim().is_empty()).map(short);
-    Some(Day { date: local_day(stamp)?, stamp: stamp.to_string(), summary, report: false, backfill: false })
+    let refused = refused_document(&text);
+    let date =
+        refused.as_ref().and_then(|d| d.get("date")?.as_str().filter(|d| deep_link::is_date(d)).map(str::to_string));
+    let summary = match refused.as_ref().and_then(|d| d.get("summary")?.as_str()) {
+        Some(summary) => Some(short(summary)),
+        // An old run's text has no summary field; its first line is the nearest thing (cli-core's notice does the same).
+        None => text.lines().find(|l| !l.trim().is_empty()).map(short),
+    };
+    Some(Day {
+        date: date.or_else(|| local_day(stamp))?,
+        stamp: stamp.to_string(),
+        summary,
+        report: false,
+        backfill: false,
+    })
 }
 
 /// The modification times of a run's two files: a run whose files did not change is not parsed again.
@@ -175,7 +208,9 @@ fn show_in(dir: &Path, date: &str) -> Result<Digest, String> {
     let day = days_in(dir).into_iter().find(|d| d.date == date).ok_or_else(|| format!("no digest for {date}"))?;
     let document = if day.report { document(dir, &day.stamp) } else { None };
     let text = if document.is_none() { text(dir, &day.stamp) } else { None };
-    Ok(Digest { date: day.date, stamp: day.stamp, document, text })
+    let refused = text.as_deref().and_then(refused_document).is_some();
+    let invalid = if refused { invalid_field(dir, &day.stamp) } else { None };
+    Ok(Digest { date: day.date, stamp: day.stamp, document, text, refused, invalid })
 }
 
 pub fn show(name: Option<&str>, date: &str) -> Result<Digest, String> {
@@ -389,8 +424,35 @@ mod tests {
         assert_eq!(days[0].summary.as_deref(), Some("Morning digest"));
         let digest = show_in(&dir, &days[0].date).unwrap();
         assert!(digest.document.is_none());
+        assert!(!digest.refused);
         assert!(digest.text.unwrap().contains("reply to Anna"));
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_document_memo_refused_is_told_apart_from_an_older_runs_text() {
+        let root = std::env::temp_dir().join(format!("wirecat-digests-refused-{}", std::process::id()));
+        let dir = root.join("runs");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&dir).unwrap();
+        let answer = format!("```json\n{}\n```\n", report("2026-11-24", "Nine people wait."));
+        write(&dir, "2026-11-23T08-48-44Z.md", &answer.replace("2026-11-24", "2026-11-23"));
+        write(&dir, "2026-11-24T08-07-40Z.md", &answer);
+        let last = format!(
+            r#"{{"output":"{}","report":{{"invalid":"sections[0].items[7].since"}}}}"#,
+            dir.join("2026-11-24T08-07-40Z.md").display()
+        );
+        write(&root, "last.json", &last);
+
+        let days = days_in(&dir);
+        assert_eq!(days[0].summary.as_deref(), Some("Nine people wait."));
+        let newest = show_in(&dir, "2026-11-24").unwrap();
+        assert!(newest.refused);
+        assert_eq!(newest.invalid.as_deref(), Some("sections[0].items[7].since"));
+        let older = show_in(&dir, "2026-11-23").unwrap();
+        assert!(older.refused);
+        assert!(older.invalid.is_none());
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]

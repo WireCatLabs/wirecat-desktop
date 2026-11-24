@@ -162,6 +162,8 @@ describe("a digest whose last run failed", () => {
       stamp: "2026-11-14T06-30-00Z",
       document: null,
       text: "memo review agenda failed: command.crashed",
+      refused: false,
+      invalid: null,
     })
     const user = await openReports(ready([weekly, failed]))
     const failures = await screen.findByRole("region", { name: "Digests whose last run failed" })

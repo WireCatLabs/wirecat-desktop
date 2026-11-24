@@ -7,7 +7,7 @@ import { errorText } from "@/shared/errors"
 export type Shown =
   | { state: "loading" }
   | { state: "report"; report: Report }
-  | { state: "text"; text: string }
+  | { state: "text"; text: string; refused: boolean; field: string | null }
   | { state: "failed"; error: string }
 
 type DigestsState = {
@@ -63,7 +63,14 @@ export const useDigests = create<DigestsState>((set, get) => ({
       const report = digest.document === null ? null : v.safeParse(ReportSchema, digest.document)
       shown = report?.success
         ? { state: "report", report: report.output }
-        : { state: "text", text: digest.text ?? JSON.stringify(digest.document, null, 2) }
+        : report
+          ? {
+              state: "text",
+              text: digest.text ?? JSON.stringify(digest.document, null, 2),
+              refused: true,
+              field: v.getDotPath(report.issues[0]),
+            }
+          : { state: "text", text: digest.text ?? "", refused: digest.refused, field: digest.invalid }
     } catch (e) {
       shown = { state: "failed", error: errorText(e) }
     }

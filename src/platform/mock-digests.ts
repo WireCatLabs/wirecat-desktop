@@ -384,7 +384,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
     ]
     const shown: { day: DigestDay; digest: Digest }[] = list.map(({ date, hour, doc }) => ({
       day: { date, stamp: stampOf(date, hour), summary: doc.summary, report: true, backfill: false },
-      digest: { date, stamp: stampOf(date, hour), document: doc as unknown, text: null },
+      digest: { date, stamp: stampOf(date, hour), document: doc as unknown, text: null, refused: false, invalid: null },
     }))
     const later = iso(dayFrom(-2))
     const laterDoc = { ...full(later, "Built later: two replies waited, the rent was due."), backfill: true }
@@ -396,13 +396,27 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
         report: true,
         backfill: true,
       },
-      digest: { date: later, stamp: stampOf(iso(dayFrom(0)), "06"), document: laterDoc, text: null },
+      digest: {
+        date: later,
+        stamp: stampOf(iso(dayFrom(0)), "06"),
+        document: laterDoc,
+        text: null,
+        refused: false,
+        invalid: null,
+      },
     })
     for (const date of built) {
       const doc = { ...full(date, "Built later for a past day."), backfill: true }
       shown.push({
         day: { date, stamp: stampOf(iso(dayFrom(0)), "09"), summary: doc.summary, report: true, backfill: true },
-        digest: { date, stamp: stampOf(iso(dayFrom(0)), "09"), document: doc, text: null },
+        digest: {
+          date,
+          stamp: stampOf(iso(dayFrom(0)), "09"),
+          document: doc,
+          text: null,
+          refused: false,
+          invalid: null,
+        },
       })
     }
     shown.sort((a, b) => b.day.date.localeCompare(a.day.date))
@@ -414,6 +428,8 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
         stamp: stampOf(old, "07"),
         document: null,
         text: "Morning digest\n\n- Reply to Anna Kotova about the warehouse lease\n- Pay November rent to Vector LLC\n",
+        refused: false,
+        invalid: null,
       },
     })
     if (mode === "new" && Date.now() - started > 3000) {
@@ -421,7 +437,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       const doc = full(next, "A new digest arrived while WireCat was open.")
       shown.unshift({
         day: { date: next, stamp: stampOf(next, "07"), summary: doc.summary, report: true, backfill: false },
-        digest: { date: next, stamp: stampOf(next, "07"), document: doc, text: null },
+        digest: { date: next, stamp: stampOf(next, "07"), document: doc, text: null, refused: false, invalid: null },
       })
     }
     return shown

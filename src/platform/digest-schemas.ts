@@ -98,6 +98,10 @@ export const DigestSchema = v.object({
   stamp: v.string(),
   document: v.nullable(v.unknown()),
   text: v.nullable(v.string()),
+  /** The text is a document memo's check refused, not an older run's text. */
+  refused: v.optional(v.boolean(), false),
+  /** The field that check stopped at, when memo still keeps it. */
+  invalid: v.nullish(v.string(), null),
 })
 
 export type DigestDay = v.InferOutput<typeof DigestDaySchema>
