@@ -29,6 +29,7 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   tg: "0.112.0",
   max: "0.95.0",
   wa: "0.23.0",
+  slk: "0.1.0",
   zm: "0.64.0",
   drive: "0.55.0",
   memo: "0.131.14",

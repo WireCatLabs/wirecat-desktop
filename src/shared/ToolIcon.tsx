@@ -9,6 +9,7 @@ import hubspot from "@/assets/logos/hubspot.png"
 import linear from "@/assets/logos/linear.png"
 import max from "@/assets/logos/max.png"
 import notion from "@/assets/logos/notion.svg"
+import slack from "@/assets/logos/slack.svg"
 import whatsapp from "@/assets/logos/whatsapp.svg"
 import wordpress from "@/assets/logos/wordpress.svg"
 import yandexDisk from "@/assets/logos/yandex-disk.png"
@@ -32,6 +33,7 @@ const LOGOS: Record<string, string> = {
   hubspot,
   linear,
   notion,
+  slk: slack,
   wordpress,
   ydisk: yandexDisk,
 }
@@ -53,9 +55,9 @@ function TelegramBadge({ className }: { className?: string | undefined }) {
 }
 
 /**
- * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk and the Tailscale helper keep
- * a line icon. An official tool from the signed list may bring one SVG path, drawn in the text colour; a tool
- * without either shows the same package.
+ * A tool's logo; WireCat's own tools, Email (one tool for every mail provider), Asterisk and the Tailscale helper keep a
+ * line icon. An official tool from the signed list may bring one SVG
+ * path, drawn in the text colour; a tool without either shows the same package.
  */
 export function ToolIcon({ id, className }: { id: string; className?: string | undefined }) {
   if (id === "tg") return <TelegramBadge className={className} />

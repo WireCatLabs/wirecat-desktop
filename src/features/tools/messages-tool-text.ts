@@ -11,6 +11,7 @@ export const RU_TAGLINE: Record<string, string> = {
   tg: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
   max: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
   wa: "Чаты и боты\u00a0· поиск по смыслу\u00a0· аналитика",
+  slk: "Каналы, личные сообщения и треды Slack\u00a0· чтение и поиск",
   zm: "Записи и расшифровки встреч\u00a0· поиск",
   drive: "Папки и документы\u00a0· поиск\u00a0· редактирование",
   gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
@@ -31,6 +32,7 @@ export const RU_SUMMARY: Record<string, string> = {
   tg: "Клиент Telegram для терминала и ИИ-агентов, на вашем собственном аккаунте.",
   max: "MAX Messenger из терминала: боты через официальный Bot API и ваш личный аккаунт.",
   wa: "Ваш аккаунт WhatsApp из терминала, как связанное устройство, для агентов и скриптов.",
+  slk: "Читайте каналы, личные сообщения и треды Slack и ищите в них вместе с агентом, а когда вы разрешите, отправляйте сообщения от своего имени.",
   zm: "Сохраняйте расшифровки и записи Zoom, ищите в них нужное и давайте агенту контекст к следующему звонку.",
   drive:
     "Импортируйте выбранные папки Google, ищите по документам локально и храните теги, заметки и воспоминания со ссылкой на источник.",
@@ -59,6 +61,7 @@ export const ES_TAGLINE: Record<string, string> = {
   tg: "Chats y bots\u00a0· búsqueda por significado\u00a0· analítica",
   max: "Chats y bots\u00a0· búsqueda por significado\u00a0· analítica",
   wa: "Chats y bots\u00a0· búsqueda por significado\u00a0· analítica",
+  slk: "Canales, mensajes directos e hilos de Slack\u00a0· lectura y búsqueda",
   zm: "Grabaciones y transcripciones\u00a0· búsqueda",
   drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
@@ -79,6 +82,7 @@ export const ES_SUMMARY: Record<string, string> = {
   tg: "Un cliente de Telegram para el terminal y para agentes de IA, con tu propia cuenta.",
   max: "MAX Messenger desde el terminal: bots mediante la Bot API oficial y tu cuenta personal.",
   wa: "Tu cuenta de WhatsApp desde el terminal, como dispositivo vinculado, para agentes y scripts.",
+  slk: "Lee y busca en tus canales, mensajes directos e hilos de Slack con tu agente, y envía mensajes en tu nombre cuando lo permitas.",
   zm: "Guarda transcripciones y grabaciones de Zoom, busca en lo que se dijo en las reuniones y da contexto a tu agente para la próxima llamada.",
   drive:
     "Importa carpetas de Google seleccionadas, busca en los documentos en local y guarda etiquetas, notas y memorias con su fuente.",
