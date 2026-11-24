@@ -215,7 +215,10 @@ impl Accepted {
             let read = crate::official::read(&entry, builtin);
             let added = read.and_then(|r| match r {
                 crate::official::Read::BuiltIn(shown) => Ok((None, shown)),
-                crate::official::Read::New(e) => check(&e, &self.taken, Source::Official).map(|t| (Some(t), e)),
+                crate::official::Read::New(e) => {
+                    let e = crate::described::apply_listed(e);
+                    check(&e, &self.taken, Source::Official).map(|t| (Some(t), e))
+                }
             });
             match added {
                 Ok((tool, entry)) => {
@@ -448,7 +451,7 @@ fn sign_in_methods(methods: &Value) -> Result<(), Problem> {
 
 /// `account.rs` appends `dryRun` to the plan and `confirm` to the real run, so a tool that swapped them would delete on
 /// the preview: both are cli-core's own flags, nothing else. The word lists sign out or remove the chosen profile only.
-fn account_remove(src: &Value) -> Result<(), Problem> {
+pub(crate) fn account_remove(src: &Value) -> Result<(), Problem> {
     let bad = |why: String| Err(rule("accountRemove", why));
     if src.is_null() {
         return Ok(());
@@ -487,7 +490,7 @@ fn meetings(m: &crate::catalog::MeetingsSource) -> Result<(), Problem> {
 ///
 /// One exception: `sync.last` may hold cli-core's `runs list` filter for the sync's own command path, quoted because the
 /// path has more than one word (`command:"meetings sync" status:success`). It is one argument, never a shell line.
-fn words(v: &Value) -> Result<(), Problem> {
+pub(crate) fn words(v: &Value) -> Result<(), Problem> {
     let Some(query) = last_sync_query(v) else { return words_in("entry", v) };
     let mut checked = v.clone();
     for word in checked["sync"]["last"].as_array_mut().into_iter().flatten() {

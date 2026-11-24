@@ -49,7 +49,11 @@ pub async fn install_tool(
         let tool = catalog::owner(known_tool(&id)?);
         not_own(tool)?;
         let running = Arc::clone(&running);
-        let done = blocking(move || install::install(tool, &running, &on_event)).await;
+        let done = blocking(move || {
+            install::install(tool, &running, &on_event);
+            crate::described::after_change(tool);
+        })
+        .await;
         compat::forget();
         done
     })
@@ -76,7 +80,11 @@ pub async fn uninstall_tool(
     crate::log::command("uninstall_tool", async move {
         let tool = catalog::owner(known_tool(&id)?);
         let running = Arc::clone(&running);
-        let done = blocking(move || install::uninstall(tool, &running, &on_event)).await;
+        let done = blocking(move || {
+            install::uninstall(tool, &running, &on_event);
+            crate::described::after_change(tool);
+        })
+        .await;
         compat::forget();
         done
     })

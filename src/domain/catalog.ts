@@ -414,6 +414,11 @@ type Rejection = { source: ToolSource; text: string }
 export function addCommunityTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
   const rejected: Rejection[] = []
   for (const { source, entry } of entries) {
+    if (source === "official" && typeof entry === "object" && entry !== null && "described" in entry) {
+      const why = addDescribed(entry)
+      if (why) rejected.push({ source, text: `${describe(entry)}: ${why}` })
+      continue
+    }
     if (source === "official") {
       const why = addOfficial(entry)
       if (why) rejected.push({ source, text: `${describe(entry)}: ${why}` })
@@ -437,7 +442,42 @@ export function addCommunityTools(entries: readonly { source: ToolSource; entry:
  */
 export function replaceAddedTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
   for (let i = all.length - 1; i >= 0; i--) if (isCommunity(all[i] as CatalogTool)) all.splice(i, 1)
+  for (const [i, tool] of all.entries()) {
+    const commands = compiledCommands.get(tool.id)
+    if (commands && tool.source === undefined) all[i] = { ...tool, ...commands }
+  }
   return addCommunityTools(entries)
+}
+
+/**
+ * The keys that hold a built-in tool's commands. Rust takes the installed CLI's own commands from its
+ * `--wcat-describe` (`described.rs`) and hands the interface the result, so both run and show the same words.
+ */
+const COMMAND_KEYS = [
+  "profiles",
+  "doctor",
+  "runs",
+  "setup",
+  "skill",
+  "mcpServer",
+  "accountRemove",
+  "sync",
+  "signIn",
+] as const
+const Described = v.object({ id: v.string(), described: v.partial(v.pick(ToolSchema, COMMAND_KEYS)) })
+const pickCommands = (t: CatalogTool) => Object.fromEntries(COMMAND_KEYS.map((k) => [k, t[k]]))
+/** As compiled, so a tool removed or back on its old version returns to these on the next read. */
+const compiledCommands = new Map(all.map((t) => [t.id, pickCommands(t)]))
+
+function addDescribed(entry: object): string | null {
+  const parsed = v.safeParse(Described, entry)
+  if (!parsed.success) return v.summarize(parsed.issues)
+  const at = all.findIndex((t) => t.id === parsed.output.id && t.source === undefined)
+  if (at < 0) return "the app has no such tool"
+  // JSON has no `undefined`: a key the answer left out is absent, not undefined.
+  const described = parsed.output.described as Partial<Pick<CatalogTool, (typeof COMMAND_KEYS)[number]>>
+  all[at] = { ...(all[at] as CatalogTool), ...described }
+  return null
 }
 
 /** Keys the interface needs on every entry, `null` when unused: Rust leaves out what a manifest does not have. */

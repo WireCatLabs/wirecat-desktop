@@ -2,8 +2,8 @@
 //! builds each entry from the CLI's manifest on npm and its `registry/official.json`.
 //!
 //! A tool this app has compiled in takes only its presentation from the list: texts in English, Russian and Spanish,
-//! an icon and the sign-in screen it uses. Its commands stay the ones its catalog entry was tested with, because the
-//! manifests of older CLIs still differ from it (cli-docs `registry/drift-allow.json`). A tool the app does not have
+//! an icon and the sign-in screen it uses. Its commands never come from the list: once installed, they come from the
+//! CLI's own `--wcat-describe` (`described.rs`), else from the compiled catalog. A tool the app does not have
 //! yet becomes a catalog entry the way an own tool does (`own_tools::desktop_entry`), and passes every rule a listed
 //! tool passes, except that it must be a `@wirecat` package built in a `WireCatLabs` repository.
 

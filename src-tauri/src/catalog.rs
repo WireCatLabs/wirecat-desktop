@@ -32,6 +32,9 @@ pub struct Tool {
     /// Added from the signed list, official or community: an own entry that takes its name is told it is now listed.
     #[serde(skip)]
     pub listed: bool,
+    /// Installed by a feature and never listed: `WireCat`'s own Tailscale connection.
+    #[serde(default)]
+    pub helper: bool,
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
@@ -475,11 +478,15 @@ fn null_as_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Er
 static CATALOG: OnceLock<RwLock<&'static Catalog>> = OnceLock::new();
 
 fn load() -> &'static Catalog {
-    let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
+    let mut raw: serde_json::Value = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
+    let described = raw["tools"].as_array_mut().map_or_else(Vec::new, |t| crate::described::apply_kept(t));
+    let mut catalog: Catalog = serde_json::from_value(raw).expect("catalog/tools.json is valid");
     if let Some((tools, extra)) = crate::community::load(&catalog) {
         catalog.tools.extend(tools);
         catalog.extra = extra;
     }
+    let source = crate::community::Source::Official;
+    catalog.extra.tools.extend(described.into_iter().map(|entry| crate::community::ExtraTool { source, entry }));
     Box::leak(Box::new(catalog))
 }
 
@@ -487,7 +494,8 @@ pub fn catalog() -> &'static Catalog {
     *CATALOG.get_or_init(|| RwLock::new(load())).read().unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// Reads the community and own tools again, so a tool the owner added or removed is there without a restart.
+/// Reads the community and own tools and the official tools' own descriptions again, so a tool the owner added,
+/// removed or updated is there without a restart.
 /// The write lock is taken before the files are read, so two reloads cannot finish in the wrong order.
 pub fn reload() {
     let lock = CATALOG.get_or_init(|| RwLock::new(load()));

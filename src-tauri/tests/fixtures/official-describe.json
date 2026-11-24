@@ -1,0 +1,1043 @@
+{
+  "amo": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "The account's address and a long-lived token from a private integration's Keys and scopes tab, or that integration's ID and secret key.",
+        "gives": "Lets your agent read and change the account's CRM with the rights of the administrator who made the token, or of the user who signed in through your own integration."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "amo-cli",
+        "env": "AMO"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "your deals, contacts and companies"
+      },
+      "tagline": "amoCRM and Kommo CRM: deals, contacts and companies",
+      "tasks": null
+    },
+    "version": "0.3.0"
+  },
+  "attio": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "An access token: in Attio, Workspace settings \u2192 Developers \u2192 New access token, with read access to records, object configuration and user management. Only a workspace admin can make one.",
+        "gives": "Lets your agent read your Attio deals, people and companies and call the Attio API.",
+        "methods": [
+          {
+            "id": "token",
+            "label": "Attio access token",
+            "stdin": true,
+            "words": ["{profile}", "session", "start", "--json"]
+          }
+        ]
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "attio-cli",
+        "env": "WCATTIO"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "your deals and their clients"
+      },
+      "tagline": "Attio deals, people and companies for your agent",
+      "tasks": null
+    },
+    "version": "0.3.1"
+  },
+  "bitrix": {
+    "desktop": {
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "An inbound webhook address, from Developer resources \u2192 Common use cases \u2192 Other \u2192 Inbound webhook, with the crm, user_basic and department scopes, task for tasks, telephony for calls, disk and documentgenerator for files; or a local application's code and key.",
+        "gives": "Lets your agent read and change the portal's CRM with the rights of the employee who made the webhook, or who signed in through a local application."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "bitrix24-cli",
+        "env": "B24"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "deals, leads, contacts and companies"
+      },
+      "tagline": "Bitrix24 CRM: deals, leads, contacts and companies",
+      "tasks": null
+    },
+    "version": "0.26.0"
+  },
+  "drive": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "Your browser opens Google: choose the account and allow read-only access to Drive.",
+        "gives": "Lets your agent find and read your Google Drive files. It cannot change them."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "drive-cli",
+        "env": "DRIVE"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "Drive files and Google Docs"
+      },
+      "tagline": "Your Google Drive files and Docs, searchable offline",
+      "tasks": null
+    },
+    "version": "0.72.1"
+  },
+  "email": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "Your mail address and an app password, or a Microsoft or Google sign-in in the browser.",
+        "gives": "Lets your agent read and search your mail, and sort and send it as far as your settings allow. A Microsoft sign-in may not grant sending."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "mail-cli",
+        "env": "MAIL"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "mail"
+      },
+      "tagline": "Your mailbox over IMAP, searchable on your computer",
+      "tasks": null
+    },
+    "version": "0.36.0"
+  },
+  "gcal": {
+    "desktop": {
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "Google asks you to sign in and allow read-only access to your calendars.",
+        "gives": "Lets your agent read your Google calendars, and change events when you allow it."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "gcal-cli",
+        "env": "GCAL"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "calendar events and Google Meet calls"
+      },
+      "tagline": "Google Calendar events, searchable on your computer",
+      "tasks": null
+    },
+    "version": "0.35.0"
+  },
+  "hubspot": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "A service key or a legacy private app's access token from your HubSpot account, with read scopes, and write scopes if you want changes.",
+        "gives": "Lets your agent read the account's CRM, and change it if you give the key the write scopes."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "hubspot-cli",
+        "env": "WCHUBSPOT"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "your deals, contacts and companies"
+      },
+      "tagline": "HubSpot CRM: deals, contacts and companies",
+      "tasks": null
+    },
+    "version": "0.6.0"
+  },
+  "linear": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": null,
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "A personal API key from Linear's Settings \u2192 Account \u2192 Security & access.",
+        "gives": "Lets your agent read your Linear issues, projects and comments, and change them when you allow it."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "linear-cli",
+        "env": "WCLINEAR"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "your issues, projects and comments"
+      },
+      "tagline": "Linear issues and projects in your local WireCat store",
+      "tasks": null
+    },
+    "version": "0.2.0"
+  },
+  "max": {
+    "desktop": {
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["account", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "Your phone: scan a QR code in the MAX app, or sign in by SMS on web.max.ru.",
+        "gives": "Lets your agent read your MAX chats, and send messages when you allow it."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "max-cli",
+        "env": "MAX"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": null,
+      "tagline": "Your MAX account, searchable on your computer",
+      "tasks": null
+    },
+    "version": "0.118.0"
+  },
+  "memo": {
+    "desktop": {
+      "doctor": ["doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": null,
+        "revoke": ["mcp", "revoke", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
+        "status": ["mcp", "server", "status", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--json"]
+      },
+      "profiles": null,
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": null,
+      "signIn": null,
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "cli-memo",
+        "env": "MEMO"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["sync", "--record", "--json"],
+        "what": "notes and mail"
+      },
+      "tagline": "Notes, people and memories in one place for your agent",
+      "tasks": null
+    },
+    "version": "0.150.0"
+  },
+  "notion": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "A Notion personal access token, or the token of an internal connection you made in Notion.",
+        "gives": "Lets your agent read the Notion pages and databases your token can see."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "notion-cli",
+        "env": "WCNOTION"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "Notion pages and database rows"
+      },
+      "tagline": "Notion pages and databases, searchable on your computer",
+      "tasks": null
+    },
+    "version": "0.7.0"
+  },
+  "pbx": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "The path of Master.csv, or the CDR database's address and a read-only user's password.",
+        "gives": "Lets your agent find your company's phone calls and read what was said in them."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "asterisk-cli",
+        "env": "PBX"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:\"meetings sync\" status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "meetings", "sync", "--record", "--json"],
+        "what": "call records and their recordings"
+      },
+      "tagline": "Asterisk calls and recordings, searchable",
+      "tasks": null
+    },
+    "version": "0.9.0"
+  },
+  "tg": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["account", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "Your phone number and the code Telegram sends, and an app ID from my.telegram.org.",
+        "gives": "Lets your agent read your Telegram chats, and send messages when you allow it."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "tg-cli",
+        "env": "TG"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": null,
+      "tagline": "Your Telegram account, searchable on your computer",
+      "tasks": null
+    },
+    "version": "0.135.0"
+  },
+  "wa": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["account", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "Your phone: scan a QR code, or type a pairing code in WhatsApp's Linked devices.",
+        "gives": "Lets your agent read your WhatsApp chats, and send messages when you allow it."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "whatsapp-cli",
+        "env": "WA"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": null,
+      "tagline": "Your WhatsApp account, searchable on your computer",
+      "tasks": null
+    },
+    "version": "0.46.0"
+  },
+  "wordpress": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": null,
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "Your site's address, your user name and an application password: in WordPress, Users \u2192 Profile \u2192 Application Passwords. WordPress 5.7 or later, over https.",
+        "gives": "Lets your agent read your WordPress posts and pages, write drafts, and publish when you allow it.",
+        "methods": [
+          {
+            "id": "app-password",
+            "label": "WordPress application password",
+            "login": "--login",
+            "site": "--site",
+            "stdin": true,
+            "words": ["{profile}", "session", "start", "--json"]
+          }
+        ]
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "wordpress-cli",
+        "env": "WCWP"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "your posts, pages and tags"
+      },
+      "tagline": "Your WordPress posts and pages for your agent",
+      "tasks": null
+    },
+    "version": "0.3.0"
+  },
+  "ydisk": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "session", "start"],
+      "signIn": {
+        "asks": "A Yandex OAuth token with Disk access, pasted once and kept in the system keyring.",
+        "gives": "Lets your agent read, search and change the files on your Yandex Disk through ydisk."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "yandex-disk-cli",
+        "env": "YDISK"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "note": null,
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "what": "files in the Disk folders you choose"
+      },
+      "tagline": "Search your Yandex Disk folders and work with the files",
+      "tasks": null
+    },
+    "version": "0.5.0"
+  },
+  "zm": {
+    "desktop": {
+      "doctor": ["doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": null,
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["session", "start"],
+      "signIn": {
+        "asks": "Your browser opens Zoom to approve access. Zoom first needs an app of your own, made once in the Zoom App Marketplace.",
+        "gives": "Lets your agent find your Zoom meetings and read their transcripts and summaries."
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "zoom-cli",
+        "env": "ZM"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "last": null,
+        "lastShape": "runs",
+        "note": null,
+        "run": ["meetings", "sync", "--record", "--json"],
+        "what": "meetings and transcripts"
+      },
+      "tagline": "Zoom transcripts and recordings, searchable",
+      "tasks": null
+    },
+    "version": "0.80.0"
+  }
+}

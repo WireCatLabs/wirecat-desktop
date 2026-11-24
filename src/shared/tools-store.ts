@@ -5,6 +5,7 @@ import { applyInstallEvent } from "@/domain/install-progress"
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
 import { platform } from "@/platform/bridge"
 import type { ToolState } from "@/platform/schemas"
+import { reloadAddedTools } from "@/shared/added-tools"
 import { useAgents } from "@/shared/agents-store"
 import { installedOf, useCompat } from "@/shared/compat-store"
 import { useNav } from "@/shared/nav"
@@ -91,6 +92,8 @@ export const useTools = create<ToolsState>((set, get) => {
     }
     patchSession(id, (s) => ((s.alongside || s.shut) && s.outcome?.event === "failed" ? { ...s, closed: [] } : s))
     await redetect(true).catch(() => undefined)
+    // Rust read the commands of the version now installed, or went back to the catalog's after a removal.
+    if (get().sessions[id]?.outcome?.event !== "failed") await reloadAddedTools()
     if (operation === "uninstall") await deleteData(id)
     if (operation === "install" && get().sessions[id]?.outcome?.event === "done") {
       void useAgents.getState().recheck(id)

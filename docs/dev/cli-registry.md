@@ -174,9 +174,10 @@ only while "Enable community tools" is on. The switch decides only whether `tool
 sources in this order: `official`, then community tools, then own tools, so an official tool's names win.
 `official.rs` checks each official entry:
 
-- **A tool this app has compiled in** takes only its presentation: `i18n`, `icon` (only when the app has no logo of
-  its own for it) and `screen`. Its commands stay the ones its catalog entry was tested with. The package must be the
-  compiled one, or the entry is refused. The texts come before the app's own translations (`toolText`).
+- **A tool this app has compiled in** takes only its presentation from the list: `i18n`, `icon` (only when the app
+  has no logo of its own for it) and `screen`. Its commands come from the installed CLI itself
+  ([below](#commands-from-the-installed-cli)), never from the list. The package must be the compiled one, or the entry
+  is refused. The texts come before the app's own translations (`toolText`).
 - **A tool this app does not have** becomes a catalog entry the way an own tool does (`own_tools::desktop_entry`),
   with the list's id, name, texts and port. It must be a `@wirecat` package built in a `WireCatLabs` repository, and
   every rule of a listed tool applies: plain words, no key in `FORBIDDEN`, its data folder named after its package,
@@ -195,11 +196,37 @@ sources in this order: `official`, then community tools, then own tools, so an o
   publishes under `@wirecat`, and provenance still ties each release to our repository.
 - A list fetched now takes effect at the next start, as before.
 
-**Why built-in tools keep their compiled commands.** On 2026-11-23 the manifests of all 17 built-in tools differed
-from the catalog in 60 places, some of them in what Desktop runs: drive's `doctor` and `profiles.shape`, the `doctor`
-of gcal, mail and zoom, zoom's `setup` and sync without a profile, the `setup` of Bitrix24 and Asterisk. Which side is
-right is not checked (it needs a run of each CLI). Switching a built-in tool's commands to the list waits until its
-drift is zero (NEED-2604).
+### Commands from the installed CLI
+
+Status: **built** (2026-11-24). Owner's decision NEED-2912 A: an installed official tool's commands come from the CLI
+itself, through its `--wcat-describe` answer, not from the compiled catalog and never from the signed list.
+`described.rs` does it.
+
+- **What is taken.** The `desktop` object of the answer, overlaid on the compiled entry with the drift check's rules:
+  only the keys that hold commands (`profiles`, `doctor`, `runs`, `setup`, `skill`, `mcpServer`, `accountRemove`,
+  `meetings`, `sync.run`, `sync.last` with its `sync.lastShape`, `signIn.methods`, `signIn.setupFrom`); a `null` or
+  missing key says nothing; an object is merged key by key; a word list replaces the catalog's whole.
+- **What stays the catalog's.** The texts (`tagline`, `signIn.gives` and `asks`, `sync.what` and `note`; translations
+  come from the catalog and the signed list), the MCP port, what a sign-out keeps and removes, and every key only
+  Desktop has (`bot`, `search`, `crm`, `folderPicker`…). A tool the catalog lists without an MCP server gets none from
+  its answer, since it has no port (gcal, email and zm, owner's call 2026-11-24).
+- **Checks.** The answer is refused, with a line in the log, and the catalog's commands stay, when the program does not
+  answer within 15 s, answers more than 64 KB, exits with an error, is not `wcat_describe: 2`, is for another version
+  than the program's `--version`, or its `desktop` object fails the rules of an own tool's manifest
+  (`own_tools::desktop_entry`), sets a key only the catalog may set (`community::FORBIDDEN`), names another data
+  folder, has a command word that is not plain, swaps `accountRemove`'s `--dry-run` and `--yes`, or no longer parses
+  as a catalog entry. The answer comes from the package whose code the app runs anyway, so trusting it adds no trust;
+  the checks keep a broken answer from breaking the app.
+- **When it is read.** Answers are kept in `<app data>/described.json` by tool, with the program file and its stamp
+  (`cache::Stamp`). At start the catalog applies each kept answer whose program is unchanged, without starting a
+  process. After the window opens, `refresh_all` asks every installed official tool whose program changed, four at a
+  time, and reloads the catalog once if anything changed; the interface waits for it through `described_tools` and
+  reads `extra_tools` again. An install, update or removal asks that tool again before it answers. A program that gave
+  no usable answer is not asked again until it changes.
+- **Not installed.** The compiled catalog, and the signed list for a tool this app does not have, are what the Tools
+  page shows and installs.
+- **The interface** gets the same commands: each changed tool is an `official` entry `{ id, described }` in
+  `extra_tools`, whose keys replace the compiled ones (`addDescribed` in `src/domain/catalog.ts`).
 
 **The drift check (A).** cli-docs `pnpm registry:drift`, and its Registry drift workflow (daily, and on pull requests
 that touch the registry), fails when the committed manifests are behind npm, or when this repository's
