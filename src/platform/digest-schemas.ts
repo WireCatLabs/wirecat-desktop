@@ -91,6 +91,8 @@ export const ReportSchema = v.object({
     }),
     null,
   ),
+  /** The parts memo's check left out, as field paths. */
+  dropped: v.nullish(v.array(v.string()), []),
 })
 
 export const DigestSchema = v.object({
