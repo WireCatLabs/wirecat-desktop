@@ -8,6 +8,13 @@ pub fn extra_tools() -> community::Extra {
     catalog::catalog().extra.clone()
 }
 
+/// Whether the official tools' own descriptions, read after start, changed the catalog; the interface then reads
+/// `extra_tools` again.
+#[tauri::command]
+pub async fn described_tools() -> Result<bool, AppError> {
+    crate::log::command("described_tools", async move { blocking(crate::described::wait_start).await }).await
+}
+
 // Async: the status reads the saved list and checks its signature.
 #[tauri::command]
 pub async fn community_status() -> Result<registry::Status, AppError> {

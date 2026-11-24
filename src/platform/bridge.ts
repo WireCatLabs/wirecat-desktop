@@ -168,6 +168,7 @@ function createTauri(): Platform {
     readiness: () => invoke("readiness"),
     sandbox: () => invoke("sandbox"),
     extraTools: () => invoke("extra_tools"),
+    describedTools: () => invoke("described_tools"),
     communityStatus: () => invoke("community_status"),
     setCommunityShown: (show) => invoke("set_community_shown", { show }),
     ownToolsStatus: () => invoke("own_tools_status"),

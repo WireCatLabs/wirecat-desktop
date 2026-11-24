@@ -72,6 +72,10 @@ src-tauri/src/
   official.rs   WireCat's own tools from that list's `official` key, read before the community tools: a compiled-in
                 tool takes only its texts, icon and sign-in screen; a new one becomes a catalog entry from its
                 manifest. See [cli-registry.md](cli-registry.md#official-tools).
+  described.rs  an installed official tool's commands from its own `--wcat-describe`, kept in
+                `<app data>/described.json` with the program's stamp and applied when the catalog is read; asked again
+                after start (`described_tools`) and after an install, update or removal. See
+                [cli-registry.md](cli-registry.md#commands-from-the-installed-cli).
   own_tools.rs  "Add your own tool": reads npm and the tarball's manifest without running anything, builds the review,
                 installs after two confirmations, saves the entry and reloads the catalog (`catalog::reload`), so the
                 interface lists the tool at once (`src/shared/added-tools.ts`).

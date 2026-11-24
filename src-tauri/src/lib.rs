@@ -25,6 +25,7 @@ mod config_repair;
 mod conversation;
 mod crm_board;
 mod deep_link;
+mod described;
 mod digest_book;
 mod digest_editors;
 mod digest_routes;
@@ -155,6 +156,8 @@ pub fn run() {
         cloudflare::remove_left_scratch();
     });
     std::thread::spawn(registry::keep_fresh);
+    // The official tools' own descriptions, read after the window opens; the catalog uses the kept ones meanwhile.
+    std::thread::spawn(described::refresh_all);
     tauri::Builder::default()
         // First, as the plugin asks: a second launch for a wirecat:// link reaches this window through it.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| deep_link::show_window(app)))
@@ -193,6 +196,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::community::extra_tools,
+            commands::community::described_tools,
             commands::community::community_status,
             commands::community::set_community_shown,
             commands::own_tools::own_tools_status,

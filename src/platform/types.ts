@@ -199,6 +199,11 @@ export type Platform = {
    * `WIRECAT_EXTRA_TOOLS=1` is set.
    */
   extraTools(): Promise<ExtraTools>
+  /**
+   * Waits for Rust's read of the official tools' own `--wcat-describe` after start; true when it changed their
+   * commands, so `extraTools` is read again.
+   */
+  describedTools(): Promise<boolean>
   communityStatus(): Promise<CommunityStatus>
   /** Takes effect at the next start; turning it on fetches the list in the background. */
   setCommunityShown(show: boolean): Promise<void>

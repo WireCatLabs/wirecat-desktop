@@ -64,4 +64,27 @@ describe("community tools", () => {
     expect(findTool("acmecrm")).toBeUndefined()
     expect(tools).toHaveLength(builtIn)
   })
+
+  it("takes a built-in tool's commands from its own description and returns to the catalog's without one", () => {
+    const zm = findTool("zm")
+    const doctor = zm?.doctor
+    const sync = zm?.sync
+    const described = { doctor: ["doctor", "--record", "--json"], sync: { ...sync, run: ["meetings", "sync"] } }
+    expect(addCommunityTools([{ source: "official", entry: { id: "zm", described } }])).toEqual([])
+    expect(findTool("zm")?.doctor).toEqual(["doctor", "--record", "--json"])
+    expect(findTool("zm")?.sync?.run).toEqual(["meetings", "sync"])
+    expect(findTool("zm")?.tagline).toBe(zm?.tagline)
+    expect(replaceAddedTools([])).toEqual([])
+    expect(findTool("zm")?.doctor).toEqual(doctor)
+    expect(findTool("zm")?.sync).toEqual(sync)
+  })
+
+  it("refuses a description of a tool it does not have or of the wrong shape", () => {
+    const rejected = addCommunityTools([
+      { source: "official", entry: { id: "nosuch", described: {} } },
+      { source: "official", entry: { id: "zm", described: { doctor: "doctor" } } },
+    ])
+    expect(rejected.map((r) => r.text)).toEqual(["nosuch: the app has no such tool", expect.stringMatching(/^zm: /)])
+    replaceAddedTools([])
+  })
 })

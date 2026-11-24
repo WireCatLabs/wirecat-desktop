@@ -395,6 +395,9 @@ export function createMock(os: Platform["os"]): Platform {
     async extraTools() {
       return extraToolsMock(params)
     },
+    async describedTools() {
+      return false
+    },
     ...communityMock(params),
     ...ownToolsMock(params),
     async sandbox() {

@@ -8,7 +8,7 @@ use std::time::SystemTime;
 
 /// Which program file a path runs, and that file's size and change time. npm replaces the package files on an
 /// install or update and pnpm rewrites its launcher, so a new version always gives a new stamp.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Stamp {
     target: PathBuf,
     modified: Option<SystemTime>,
