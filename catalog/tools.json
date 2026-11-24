@@ -2505,7 +2505,7 @@
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": null,
-      "setup": ["{profile}", "session", "start"],
+      "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
@@ -3024,7 +3024,7 @@
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": null,
-      "setup": ["{profile}", "session", "start"],
+      "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
@@ -3093,7 +3093,7 @@
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": {
-          "minVersion": null,
+          "minVersion": "0.9.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
           "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
           "dryRun": "--dry-run",
