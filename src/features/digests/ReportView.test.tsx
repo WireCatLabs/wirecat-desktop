@@ -92,8 +92,33 @@ describe("a digest with a section this app does not know", () => {
       stamp: "s",
       document,
       text: "Invoices: 2 due",
+      refused: false,
+      invalid: null,
     })
     await useDigests.getState().show("2026-11-16")
-    expect(useDigests.getState().shown["2026-11-16"]).toEqual({ state: "text", text: "Invoices: 2 due" })
+    expect(useDigests.getState().shown["2026-11-16"]).toMatchObject({
+      state: "text",
+      refused: true,
+      field: "sections.0.kind",
+    })
+  })
+})
+
+describe("a digest memo's check refused", () => {
+  it("is told apart from an older run's text, with the field that failed", async () => {
+    vi.spyOn(platform, "digestShow").mockResolvedValue({
+      date: "2026-11-24",
+      stamp: "s",
+      document: null,
+      text: '```json\n{ "format": "wirecat.report/1" }\n```',
+      refused: true,
+      invalid: "sections[0].items[7].since",
+    })
+    await useDigests.getState().show("2026-11-24")
+    expect(useDigests.getState().shown["2026-11-24"]).toMatchObject({
+      state: "text",
+      refused: true,
+      field: "sections[0].items[7].since",
+    })
   })
 })

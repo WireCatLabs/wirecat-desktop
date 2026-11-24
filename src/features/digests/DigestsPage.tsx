@@ -270,7 +270,7 @@ function Day({ date, failed }: { date: string; failed: boolean }) {
       ) : (
         <>
           <p className={cx("text-[0.88rem]", failed ? "font-medium text-bad" : "text-ink-dim")}>
-            {failed ? m.failedRun : m.textRun}
+            {failed ? m.failedRun : shown.refused ? m.refusedRun(shown.field) : m.textRun}
           </p>
           <pre className="mt-3 font-sans text-[0.95rem] whitespace-pre-wrap text-ink-soft">{shown.text}</pre>
         </>

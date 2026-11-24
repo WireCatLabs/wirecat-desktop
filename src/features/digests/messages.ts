@@ -31,6 +31,8 @@ const en = {
   failedRun:
     "This run failed: instead of a digest, the agent wrote what went wrong. Get now in its settings runs it again once the cause is fixed.",
   textRun: "This digest was written before WireCat could lay digests out as a page, so here is its text as it was.",
+  refusedRun: (field: string | null) =>
+    `The agent wrote this digest with a format error${field ? ` in the field ${field}` : ""}, so it cannot be shown as a page. Here is its text as it was.`,
   quiet: "A quiet morning: nothing urgent.",
   quietStale: "Nothing new, but sync needs attention.",
   sections: {
@@ -136,6 +138,8 @@ const ru: typeof en = {
     "Этот запуск не удался: вместо сводки агент написал, что пошло не так. «Получить сейчас» в её настройках запустит её снова, когда причина будет устранена.",
   textRun:
     "Эта сводка написана до того, как WireCat научился показывать сводки страницей, поэтому здесь её текст как есть.",
+  refusedRun: (field) =>
+    `Агент записал эту сводку с ошибкой формата${field ? ` в поле ${field}` : ""}, поэтому страницей её не показать. Здесь её текст как есть.`,
   quiet: "Тихое утро: ничего срочного.",
   quietStale: "Новых дел нет, но синхронизация требует внимания.",
   sections: {
@@ -241,6 +245,8 @@ const es: typeof en = {
     "Esta ejecución falló: en lugar de un resumen, el agente escribió qué salió mal. «Obtener ahora» en sus ajustes la ejecuta de nuevo cuando se corrija la causa.",
   textRun:
     "Este resumen se escribió antes de que WireCat pudiera mostrar los resúmenes como una página, así que aquí está su texto tal cual.",
+  refusedRun: (field) =>
+    `El agente escribió este resumen con un error de formato${field ? ` en el campo ${field}` : ""}, así que no se puede mostrar como una página. Aquí está su texto tal cual.`,
   quiet: "Mañana tranquila: nada urgente.",
   quietStale: "Nada nuevo, pero la sincronización necesita atención.",
   sections: {
