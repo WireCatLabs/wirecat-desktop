@@ -78,6 +78,8 @@ const en = {
   fix: "Fix",
   openWhat: (what: string) => `Open: ${what}`,
   viewed: (window: string) => `Viewed over ${window}`,
+  dropped: (n: number) => `Left out for a format error: ${n}.`,
+  droppedWhich: "Which fields",
   sourceAccounts: (channel: Channel, n: number) =>
     channel === "mail"
       ? plural("en", n, { one: "# inbox", other: "# inboxes" })
@@ -185,6 +187,8 @@ const ru: typeof en = {
   fix: "Исправить",
   openWhat: (what) => `Открыть: ${what}`,
   viewed: (window) => `Просмотрено за ${window}`,
+  dropped: (n) => `Не показано из-за ошибки формата: ${n}.`,
+  droppedWhich: "Какие поля",
   sourceAccounts: (channel, n) =>
     channel === "mail"
       ? plural("ru", n, { one: "# ящик", few: "# ящика", many: "# ящиков", other: "# ящика" })
@@ -292,6 +296,8 @@ const es: typeof en = {
   fix: "Arreglar",
   openWhat: (what) => `Abrir: ${what}`,
   viewed: (window) => `Revisado en ${window}`,
+  dropped: (n) => `Omitido por un error de formato: ${n}.`,
+  droppedWhich: "Qué campos",
   sourceAccounts: (channel, n) =>
     channel === "mail"
       ? plural("es", n, { one: "# buzón", other: "# buzones" })

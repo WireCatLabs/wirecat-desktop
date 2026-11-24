@@ -122,3 +122,16 @@ describe("a digest memo's check refused", () => {
     })
   })
 })
+
+describe("a digest memo left parts out of", () => {
+  it("says how many and which fields, and says nothing when it left nothing out", () => {
+    const document = documentOf(crmSection(now))
+    const { unmount } = render(<ReportView report={v.parse(ReportSchema, document)} now={now} />)
+    expect(screen.queryByText(/Left out for a format error/)).toBeNull()
+    unmount()
+    const dropped = ["sections[0].items[0].since", "health[1]"]
+    render(<ReportView report={v.parse(ReportSchema, { ...document, dropped })} now={now} />)
+    expect(screen.getByText("Left out for a format error: 2.")).toBeTruthy()
+    expect(screen.getByText("sections[0].items[0].since")).toBeTruthy()
+  })
+})

@@ -398,6 +398,21 @@ export function ReportView({ report, now }: { report: Report; now: number }) {
               .join(", ")}`}
         </p>
       )}
+      {report.dropped.length > 0 && (
+        <div className="text-[0.88rem] text-ink-dim">
+          <p>
+            <span aria-hidden>⚠️</span> {m.dropped(report.dropped.length)}
+          </p>
+          <details>
+            <summary className="cursor-pointer">{m.droppedWhich}</summary>
+            <ul className="font-mono text-[0.8rem]">
+              {report.dropped.map((path) => (
+                <li key={path}>{path}</li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      )}
     </article>
   )
 }
