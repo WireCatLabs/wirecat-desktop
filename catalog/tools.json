@@ -1459,7 +1459,7 @@
         "transcript": ["{profile}", "meetings", "transcript", "{id}", "--no-record", "--json"]
       },
       "accountRemove": {
-        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "signOut": null,
         "remove": {
           "minVersion": "0.70.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
