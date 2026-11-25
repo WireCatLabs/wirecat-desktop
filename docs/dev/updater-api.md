@@ -62,14 +62,24 @@ A copy looks up `<os>-<arch>-<bundle>` first, then `<os>-<arch>`. So a `.deb` co
 | --- | --- | --- |
 | `self` | Windows, macOS, AppImage | The updater plugin replaces the app. Windows uses `installMode: passive`. |
 | `deb`, `rpm` | Linux package | Downloads the package and hands it to the system (below). |
-| `apt` | A `.deb` copy with `/etc/apt/sources.list.d/wirecat.sources` | Nothing: the dialog sends the owner to Software Updater and shows `sudo apt update && sudo apt install wirecat`. |
+| `apt` | A `.deb` copy with `/etc/apt/sources.list.d/wirecat.sources` | PackageKit installs the named version from apt.wirecat.dev, then the app restarts (below). The dialog also shows `sudo apt update && sudo apt install wirecat`. |
 | `other` | A Linux build with no bundle type (`pnpm app`) | Nothing: the app cannot tell which file replaces it. |
 
 After each release, [`mac-update-check.yml`](../../.github/workflows/mac-update-check.yml) installs the release
 before it on a macOS runner and takes the update the way a `self` copy does: signature against the old copy's key,
 then the bundle swap. The updated app must pass Gatekeeper, carry the new version and start.
 
-A package copy never gets administrator rights from the app. `update_download_package` downloads the package of the
+An `apt` copy asks PackageKit, the system service App Center and GNOME Software use, over the system D-Bus
+(`update_apt`, [`apt_update.rs`](../../src-tauri/src/apt_update.rs)): `RefreshCache`, `GetUpdates`, then
+`UpdatePackages` with `ONLY_TRUSTED` for the `wirecat` id at the version the dialog named. A later version in the
+repository is `newer`; an older one is `notYet` (the repository is rebuilt after `publish`), unless that version is
+already installed, which only needs the restart. The app stays an ordinary user process and never sees a password:
+polkit decides (`org.freedesktop.packagekit.system-update`, `auth_admin_keep`; Ubuntu's
+`org.freedesktop.packagekit.rules` lets a member of `sudo` through without a prompt). The restart then starts the new
+`/usr/bin/wirecat-desktop`: Tauri keeps the path it started from, not the replaced file. Without PackageKit the dialog
+says so and the command stays the way.
+
+A `deb` or `rpm` copy never gets administrator rights from the app. `update_download_package` downloads the package of the
 version the dialog named, which the updater plugin checks against the key. It saves it to Downloads as
 `wirecat_<version>_<arch>.deb` or `wirecat-<version>-1.<arch>.rpm`. The owner then runs the `sudo` line the app shows,
 in their own terminal.

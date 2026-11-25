@@ -10,6 +10,7 @@
     "mbox",
     "Kommo",
     "DBUS",
+    "polkit",
     "Asturio",
     "Attio",
     "brakeman",

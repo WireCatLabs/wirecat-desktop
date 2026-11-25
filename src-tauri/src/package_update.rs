@@ -16,8 +16,7 @@ pub enum Kind {
     #[serde(rename = "self")]
     SelfUpdate,
     Deb,
-    /// A .deb copy whose apt source is set up: Software Updater or `apt upgrade` installs the update, so the app
-    /// downloads nothing.
+    /// A .deb copy whose apt source is set up: `PackageKit` installs the update from the repository (`apt_update.rs`).
     Apt,
     Rpm,
     /// A Linux build the bundler did not mark (`pnpm app`): which file would replace it is unknown.
@@ -91,6 +90,22 @@ pub enum Failure {
     },
     Newer {
         version: String,
+    },
+    /// The apt repository is rebuilt after each release and does not have this version yet.
+    NotYet {
+        version: String,
+    },
+    /// The password window was closed, or the system refused the install.
+    Refused {
+        detail: String,
+    },
+    /// Another program is installing packages and holds apt's lock.
+    Busy {
+        detail: String,
+    },
+    /// No `PackageKit` on the system bus: the terminal command is the way left.
+    Unavailable {
+        detail: String,
     },
     Other {
         detail: String,

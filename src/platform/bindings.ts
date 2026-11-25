@@ -25,6 +25,17 @@ export type AgentTrouble = {
 	line: string,
 };
 
+export type AptProgress = {
+	stage: AptStage,
+	percent: number | null,
+};
+
+export type AptStage = "checking" | 
+/**  polkit's window is open. */
+"password" | 
+/**  Another install, often unattended-upgrades, holds apt's lock. */
+"waiting" | "downloading" | "installing";
+
 export type Area = {
 	/**  A tool id, or `shared` for the archive every tool reads. */
 	id: string,
@@ -1825,7 +1836,15 @@ export type Update = {
  */
 export type UpdateFailure = { reason: "offline"; detail: string } | 
 /**  GitHub keeps the releases: a rate limit or a server error there, not on this computer. */
-{ reason: "server"; detail: string } | { reason: "diskFull"; folder: string; detail: string } | { reason: "notWritable"; folder: string; detail: string } | { reason: "newer"; version: string } | { reason: "other"; detail: string };
+{ reason: "server"; detail: string } | { reason: "diskFull"; folder: string; detail: string } | { reason: "notWritable"; folder: string; detail: string } | { reason: "newer"; version: string } | 
+/**  The apt repository is rebuilt after each release and does not have this version yet. */
+{ reason: "notYet"; version: string } | 
+/**  The password window was closed, or the system refused the install. */
+{ reason: "refused"; detail: string } | 
+/**  Another program is installing packages and holds apt's lock. */
+{ reason: "busy"; detail: string } | 
+/**  No `PackageKit` on the system bus: the terminal command is the way left. */
+{ reason: "unavailable"; detail: string } | { reason: "other"; detail: string };
 
 /**
  *  How this copy takes an update. A .deb or .rpm copy can only be replaced with administrator rights, which the app
@@ -1833,10 +1852,7 @@ export type UpdateFailure = { reason: "offline"; detail: string } |
  *  password itself. The updater plugin's own `install` would run `pkexec` or pipe a password to `sudo -S`.
  */
 export type UpdateKind = "self" | "deb" | 
-/**
- *  A .deb copy whose apt source is set up: Software Updater or `apt upgrade` installs the update, so the app
- *  downloads nothing.
- */
+/**  A .deb copy whose apt source is set up: `PackageKit` installs the update from the repository (`apt_update.rs`). */
 "apt" | "rpm" | 
 /**  A Linux build the bundler did not mark (`pnpm app`): which file would replace it is unknown. */
 "other";

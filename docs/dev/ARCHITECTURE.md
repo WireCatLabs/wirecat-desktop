@@ -142,6 +142,8 @@ src-tauri/src/
                 default handler is a known one (otherwise shown in the file manager), with the `apt`/`dnf`/`zypper` line
                 to copy or to open in the user's terminal (`terminal::open_line`), where they type the password.
                 Never the plugin's own install, which asks for the password itself (rule 6).
+  apt_update.rs an `apt` copy's update: PackageKit over the system D-Bus refreshes the lists and updates the `wirecat`
+                package at the version the dialog named; polkit asks for the password, never the app (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
   memory.rs     the Memory page: memo's memories, facts, proposed actions, relationships and agents' calls; confirm, discard,
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").

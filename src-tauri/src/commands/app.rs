@@ -63,6 +63,14 @@ pub async fn update_download_package(
     .await
 }
 
+#[tauri::command]
+pub async fn update_apt(
+    version: String,
+    on_event: Channel<crate::apt_update::Progress>,
+) -> Result<(), package_update::Failure> {
+    crate::log::command("update_apt", crate::apt_update::install(version, on_event)).await
+}
+
 /// Opens the user's terminal with the install line for the package `update_download_package` saved; the user types
 /// their password there (rule 6).
 #[tauri::command]
