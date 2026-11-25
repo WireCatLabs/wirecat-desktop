@@ -108,7 +108,7 @@ import {
 } from "./task-schemas"
 import type { Platform } from "./types"
 import { plainNotes } from "./update-notes"
-import type { UpdateKind, UpdateProgress } from "./update-schemas"
+import type { AptProgress, UpdateKind, UpdateProgress } from "./update-schemas"
 
 /** A page event that does not parse is dropped: the browser has the page open anyway. */
 function pages(onPage: (url: string) => void) {
@@ -520,6 +520,11 @@ function createTauri(): Platform {
       const channel = new Channel<UpdateProgress>()
       channel.onmessage = onProgress
       return invoke("update_download_package", { version, onEvent: channel })
+    },
+    installAptUpdate: (version, onProgress) => {
+      const channel = new Channel<AptProgress>()
+      channel.onmessage = onProgress
+      return invoke("update_apt", { version, onEvent: channel })
     },
     openPackageTerminal: () => call(TerminalRunSchema, "update_package_terminal"),
     restart: () => relaunch(),

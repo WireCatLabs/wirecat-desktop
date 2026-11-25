@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import type { Lang } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { AppUpdate, PackageOutcome, UpdateFailure, UpdateProgress } from "@/platform/types"
+import type { AppUpdate, AptProgress, PackageOutcome, UpdateFailure, UpdateProgress } from "@/platform/types"
 import { failureOf } from "./failure"
 
 export const downloadPage = (lang: Lang) => `https://wirecat.dev/${lang}/download`
@@ -24,6 +24,7 @@ type UpdateState = {
   open: boolean
   phase: Phase
   progress: UpdateProgress | null
+  aptProgress: AptProgress | null
   saved: Saved | null
   failure: UpdateFailure | null
   terminal: Terminal
@@ -44,6 +45,7 @@ export const useUpdate = create<UpdateState>((set, get) => ({
   open: false,
   phase: "available",
   progress: null,
+  aptProgress: null,
   saved: null,
   failure: null,
   terminal: "idle",
@@ -82,17 +84,10 @@ export const useUpdate = create<UpdateState>((set, get) => ({
 
   async install() {
     const { update, phase } = get()
-    if (
-      !update ||
-      update.kind === "other" ||
-      update.kind === "apt" ||
-      phase === "downloading" ||
-      phase === "restarting"
-    )
-      return
-    set({ phase: "downloading", progress: null, failure: null, terminal: "idle" })
+    if (!update || update.kind === "other" || phase === "downloading" || phase === "restarting") return
+    set({ phase: "downloading", progress: null, aptProgress: null, failure: null, terminal: "idle" })
     const onProgress = (progress: UpdateProgress) => set({ progress })
-    if (update.kind !== "self") {
+    if (update.kind === "deb" || update.kind === "rpm") {
       try {
         const outcome = await platform.downloadPackageUpdate(update.version, onProgress)
         set(outcome.result === "saved" ? { phase: "saved", saved: outcome } : { phase: "rejected" })
@@ -102,7 +97,8 @@ export const useUpdate = create<UpdateState>((set, get) => ({
       return
     }
     try {
-      await platform.installUpdate(onProgress)
+      if (update.kind === "apt") await platform.installAptUpdate(update.version, (aptProgress) => set({ aptProgress }))
+      else await platform.installUpdate(onProgress)
     } catch (e) {
       set({ phase: "failed", failure: failureOf(e) })
       return

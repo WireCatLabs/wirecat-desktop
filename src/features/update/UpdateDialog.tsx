@@ -37,6 +37,25 @@ export function UpdateButton() {
   )
 }
 
+function AptSteps() {
+  const m = useMessages(updateMessages)
+  const progress = useUpdate((s) => s.aptProgress)
+  const stage = progress?.stage ?? "checking"
+  return (
+    <div className="flex flex-col gap-2">
+      <ProgressBar
+        label={m.updating}
+        value={progress?.percent ?? null}
+        size="line"
+        pace="slow"
+        minShare={4}
+        className="w-full"
+      />
+      <p className="text-[0.9rem] text-ink-soft">{m.aptStage[stage]}</p>
+    </div>
+  )
+}
+
 function Progress() {
   const m = useMessages(updateMessages)
   const progress = useUpdate((s) => s.progress)
@@ -110,6 +129,14 @@ function explain(
       return { message: m.notWritable(f.folder), next: m.notWritableNext, detail: f.detail }
     case "newer":
       return { message: m.newer(f.version), next: m.newerNext }
+    case "notYet":
+      return { message: m.notYet(f.version), next: m.notYetNext }
+    case "refused":
+      return { message: m.refused, next: m.refusedNext, detail: f.detail }
+    case "busy":
+      return { message: m.busy, next: m.busyNext, detail: f.detail }
+    case "unavailable":
+      return { message: m.unavailable, next: m.unavailableNext, detail: f.detail }
     default:
       return { message: fallback, next: m.failedDetail, detail: f?.detail }
   }
@@ -226,13 +253,7 @@ export function UpdateDialog() {
           : m.package[update.kind]
 
   let actions: ReactNode
-  if (update.kind === "apt") {
-    actions = (
-      <Button variant="primary" data-autofocus data-update-next onClick={close}>
-        {m.close}
-      </Button>
-    )
-  } else if (update.kind === "other") {
+  if (update.kind === "other") {
     actions = (
       <>
         <Button variant="secondary" onClick={close}>
@@ -255,7 +276,7 @@ export function UpdateDialog() {
       </Button>
     )
   } else {
-    const label = update.kind === "self" ? m.install : m.downloadAndInstall
+    const label = update.kind === "self" || update.kind === "apt" ? m.install : m.downloadAndInstall
     actions = (
       <>
         <Button variant="secondary" onClick={close}>
@@ -300,7 +321,7 @@ export function UpdateDialog() {
           )}
           <AutoHeight swap={phase}>
             <div key={phase} className={phase === "available" ? undefined : "step-in"}>
-              {phase === "downloading" && <Progress />}
+              {phase === "downloading" && (update.kind === "apt" ? <AptSteps /> : <Progress />)}
               {phase === "restarting" && <p className="text-[0.9rem] text-ink-soft">{m.restarting}</p>}
               {phase === "saved" && <Saved />}
               {phase === "rejected" && (

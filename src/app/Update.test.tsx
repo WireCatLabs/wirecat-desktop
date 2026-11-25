@@ -21,6 +21,7 @@ describe("App update", () => {
       open: false,
       phase: "available",
       progress: null,
+      aptProgress: null,
       saved: null,
       failure: null,
       terminal: "idle",
@@ -91,21 +92,57 @@ describe("App update", () => {
     expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/download")
   })
 
-  it("sends a copy with the apt source to Software Updater and downloads nothing", async () => {
+  it("installs a copy with the apt source through the system, then restarts", async () => {
     vi.spyOn(platform, "checkUpdate").mockResolvedValue({ ...offer, kind: "apt" })
     const download = vi.spyOn(platform, "downloadPackageUpdate")
-    const install = vi.spyOn(platform, "installUpdate")
+    const selfInstall = vi.spyOn(platform, "installUpdate")
+    let finish = () => {}
+    const install = vi.spyOn(platform, "installAptUpdate").mockImplementation(async (_version, onProgress) => {
+      onProgress({ stage: "password", percent: null })
+      await new Promise<void>((resolve) => {
+        finish = resolve
+      })
+    })
+    const restart = vi.spyOn(platform, "restart").mockResolvedValue()
     const user = userEvent.setup()
     render(<App />)
 
     await user.click(await screen.findByRole("button", { name: "Update to 0.2.0" }))
     const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
-    expect(within(dialog).getByText(/Open Software Updater to install the new version/)).toBeVisible()
+    expect(within(dialog).getByText(/The system may ask for your password/)).toBeVisible()
     expect(within(dialog).getByText("sudo apt update && sudo apt install wirecat")).toBeVisible()
-    expect(within(dialog).queryByRole("button", { name: "Download and install" })).toBeNull()
-    await user.click(within(dialog).getAllByRole("button", { name: "Close" })[0] as HTMLElement)
+    await user.click(within(dialog).getByRole("button", { name: "Install and restart" }))
+
+    expect(install).toHaveBeenCalledWith("0.2.0", expect.any(Function))
+    expect(await within(dialog).findByText("Enter your password in the system window.")).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Install and restart" })).toBeDisabled()
+    finish()
+    expect(await within(dialog).findByText("Installed. WireCat is restarting…")).toBeInTheDocument()
+    expect(restart).toHaveBeenCalledOnce()
     expect(download).not.toHaveBeenCalled()
-    expect(install).not.toHaveBeenCalled()
+    expect(selfInstall).not.toHaveBeenCalled()
+  })
+
+  it("says why an apt install stopped and keeps the terminal command", async () => {
+    vi.spyOn(platform, "checkUpdate").mockResolvedValue({ ...offer, kind: "apt" })
+    vi.spyOn(platform, "installAptUpdate")
+      .mockRejectedValueOnce({ reason: "refused", detail: "Not authorized" })
+      .mockRejectedValueOnce({ reason: "notYet", version: "0.2.0" })
+    const restart = vi.spyOn(platform, "restart").mockResolvedValue()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole("button", { name: "Update to 0.2.0" }))
+    const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
+    await user.click(within(dialog).getByRole("button", { name: "Install and restart" }))
+    const alert = await within(dialog).findByRole("alert")
+    expect(alert).toHaveTextContent("the password window was closed or the system refused it")
+    expect(alert).toHaveTextContent("Details: Not authorized")
+    expect(within(dialog).getByText("sudo apt update && sudo apt install wirecat")).toBeVisible()
+
+    await user.click(within(dialog).getByRole("button", { name: "Try again" }))
+    expect(await within(dialog).findByText("WireCat 0.2.0 is not in the apt repository yet.")).toBeVisible()
+    expect(restart).not.toHaveBeenCalled()
   })
 
   it("hands a .deb to the system's installer and says what to do next", async () => {

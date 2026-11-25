@@ -6,6 +6,7 @@ import type { Platform, UpdateFailure, UpdateKind } from "./types"
 // the file manager instead (no known installer opens it); `signature` is a .deb whose download fails the signature
 // check; `other` is a Linux build that does not know how it was installed. No parameter: no update.
 // `?update-fail=offline|server|disk|readonly|newer` (with `deb` or `rpm`): the package download fails for that reason.
+// `apt` installs through PackageKit; `?update-fail=refused|busy|unavailable|notyet|offline` stops it for that reason.
 // `?update-terminal=none` (with `deb` or `rpm`): no terminal opens for the install command.
 // `?update-check=offline|server|hold`: every check fails for that reason, or never answers. Help, "Check for updates"
 // shows it; without `?update` that check says WireCat is up to date.
@@ -22,6 +23,13 @@ const failures: Record<string, UpdateFailure> = {
   disk: { reason: "diskFull", folder: "~/Downloads", detail: "No space left on device (os error 28)" },
   readonly: { reason: "notWritable", folder: "~/Downloads", detail: "Permission denied (os error 13)" },
   newer: { reason: "newer", version: "0.2.1" },
+  refused: { reason: "refused", detail: "Not authorized" },
+  busy: { reason: "busy", detail: "Cannot get lock" },
+  unavailable: {
+    reason: "unavailable",
+    detail: "The name org.freedesktop.PackageKit was not provided by any .service files",
+  },
+  notyet: { reason: "notYet", version: "0.2.0" },
 }
 const failure = failures[params.get("update-fail") ?? ""]
 const checkMode = params.get("update-check")
@@ -57,7 +65,7 @@ async function download(onProgress: (p: { downloaded: number; total: number | nu
 
 export const updateMock: Pick<
   Platform,
-  "checkUpdate" | "installUpdate" | "downloadPackageUpdate" | "openPackageTerminal" | "restart"
+  "checkUpdate" | "installUpdate" | "installAptUpdate" | "downloadPackageUpdate" | "openPackageTerminal" | "restart"
 > = {
   async checkUpdate() {
     await delay(400)
@@ -74,6 +82,17 @@ export const updateMock: Pick<
   async installUpdate(onProgress) {
     await download(onProgress)
     await delay(600)
+  },
+  async installAptUpdate(_version, onProgress) {
+    onProgress({ stage: "checking", percent: null })
+    await delay(600)
+    if (failure) throw failure
+    onProgress({ stage: "password", percent: null })
+    await delay(800)
+    for (let percent = 0; percent <= 100; percent += 20) {
+      onProgress({ stage: percent < 60 ? "downloading" : "installing", percent })
+      await delay(250)
+    }
   },
   async downloadPackageUpdate(version, onProgress) {
     if (failure?.reason === "newer") throw failure

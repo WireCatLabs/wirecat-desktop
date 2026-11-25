@@ -172,13 +172,13 @@ import type {
   TaskRead,
   TaskWrite,
 } from "./task-schemas"
-import type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress } from "./update-schemas"
+import type { AptProgress, AptStage, PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress } from "./update-schemas"
 
 export type WindowAction = "minimize" | "toggleMaximize" | "close"
 
 /** A newer WireCat release, and how this copy takes it. */
 export type AppUpdate = { version: string; notes: string | null; kind: UpdateKind }
-export type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress }
+export type { AptProgress, AptStage, PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress }
 
 /** Everything the interface may ask of the machine. Each call names a known operation, never a command line. */
 /** The provider, model and address the owner picks for search harder; a null model is memo's default. */
@@ -842,6 +842,8 @@ export type Platform = {
   installUpdate(onProgress: (p: UpdateProgress) => void): Promise<void>
   /** A .deb or .rpm copy: downloads that version's package, signature checked, into Downloads and opens it. */
   downloadPackageUpdate(version: string, onProgress: (p: UpdateProgress) => void): Promise<PackageOutcome>
+  /** An `apt` copy: PackageKit installs that version from the repository; the app keeps running until `restart`. */
+  installAptUpdate(version: string, onProgress: (p: AptProgress) => void): Promise<void>
   /** Opens the user's terminal with the install command for the package just saved; they type their password there. */
   openPackageTerminal(): Promise<TerminalRun>
   restart(): Promise<void>

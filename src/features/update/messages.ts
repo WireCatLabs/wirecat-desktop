@@ -1,4 +1,5 @@
 import type { Messages } from "@/i18n"
+import type { AptStage } from "@/platform/types"
 import { uiMessages } from "@/ui/messages"
 
 type Package = "deb" | "rpm"
@@ -28,7 +29,14 @@ const en = {
     deb: "This copy was installed from a .deb package (Ubuntu, Debian, Linux Mint). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
     rpm: "This copy was installed from an .rpm package (Fedora, openSUSE). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
   } satisfies Record<Package, string>,
-  apt: "This copy gets its updates from WireCat's apt repository. Open Software Updater to install the new version, or run the command below. Your accounts and data will not be deleted.",
+  apt: "This copy gets its updates from WireCat's apt repository. WireCat installs the new version through the system's package service and opens again. The system may ask for your password. Your accounts and data will not be deleted.",
+  aptStage: {
+    checking: "Checking WireCat's apt repository…",
+    password: "Enter your password in the system window.",
+    waiting: "Another program is installing updates. WireCat waits for it to finish…",
+    downloading: "Downloading the update…",
+    installing: "Installing the update…",
+  } satisfies Record<AptStage, string>,
   other:
     "WireCat cannot tell how this copy was installed, so it cannot update it. Get the new version from the download page and install it the way you installed this one. Your accounts and data will not be deleted.",
   howUpdates: "How updates work",
@@ -59,6 +67,14 @@ const en = {
   notWritableNext: "Make sure the folder exists and you can save files in it, then try again.",
   newer: (version: string) => `WireCat ${version} is out now.`,
   newerNext: "Close this window and open the update again.",
+  notYet: (version: string) => `WireCat ${version} is not in the apt repository yet.`,
+  notYetNext: "The repository is updated shortly after each release. Try again later.",
+  refused: "The update was not installed: the password window was closed or the system refused it.",
+  refusedNext: "Try again, or install from a terminal with the command above.",
+  busy: "Another program is installing updates right now.",
+  busyNext: "Wait until it finishes, then try again.",
+  unavailable: "This system has no PackageKit, so WireCat cannot install the update itself.",
+  unavailableNext: "Install it from a terminal with the command above.",
   details: (text: string) => `Details: ${text}`,
 }
 
@@ -87,7 +103,14 @@ const ru: typeof en = {
     deb: "WireCat установлен из пакета .deb (Ubuntu, Debian, Linux Mint). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
     rpm: "WireCat установлен из пакета .rpm (Fedora, openSUSE). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
   },
-  apt: "Эта копия получает обновления из apt-репозитория WireCat. Откройте «Обновление приложений», чтобы установить новую версию, или выполните команду ниже. Ваши аккаунты и данные не удалятся.",
+  apt: "Эта копия получает обновления из apt-репозитория WireCat. WireCat установит новую версию через системную службу пакетов и откроется снова. Система может спросить пароль. Ваши аккаунты и данные не удалятся.",
+  aptStage: {
+    checking: "Проверяем apt-репозиторий WireCat…",
+    password: "Введите пароль в системном окне.",
+    waiting: "Сейчас обновления ставит другая программа. WireCat ждёт, пока она закончит…",
+    downloading: "Загружается обновление…",
+    installing: "Устанавливается обновление…",
+  },
   other:
     "WireCat не знает, как была установлена эта копия, поэтому не может её обновить. Скачайте новую версию на странице загрузки и установите её так же, как эту. Ваши аккаунты и данные не удалятся.",
   howUpdates: "Как устроены обновления",
@@ -118,6 +141,14 @@ const ru: typeof en = {
   notWritableNext: "Проверьте, что папка существует и вы можете сохранять в неё файлы, и попробуйте снова.",
   newer: (version) => `Уже вышел WireCat ${version}.`,
   newerNext: "Закройте это окно и откройте обновление снова.",
+  notYet: (version) => `WireCat ${version} ещё нет в apt-репозитории.`,
+  notYetNext: "Репозиторий обновляется вскоре после выпуска. Попробуйте позже.",
+  refused: "Обновление не установлено: окно пароля закрыто или система отказала.",
+  refusedNext: "Попробуйте снова или установите из терминала командой выше.",
+  busy: "Сейчас обновления ставит другая программа.",
+  busyNext: "Дождитесь, пока она закончит, и попробуйте снова.",
+  unavailable: "В системе нет PackageKit, поэтому WireCat не может сам установить обновление.",
+  unavailableNext: "Установите его из терминала командой выше.",
   details: (text) => `Подробности: ${text}`,
 }
 
@@ -146,7 +177,14 @@ const es: typeof en = {
     deb: "Esta copia se instaló con un paquete .deb (Ubuntu, Debian, Linux Mint). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
     rpm: "Esta copia se instaló con un paquete .rpm (Fedora, openSUSE). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
   },
-  apt: "Esta copia recibe las actualizaciones del repositorio apt de WireCat. Abre el Actualizador de software para instalar la versión nueva, o ejecuta el comando de abajo. Tus cuentas y tus datos no se borran.",
+  apt: "Esta copia recibe las actualizaciones del repositorio apt de WireCat. WireCat instala la versión nueva con el servicio de paquetes del sistema y se vuelve a abrir. Puede que el sistema te pida la contraseña. Tus cuentas y tus datos no se borran.",
+  aptStage: {
+    checking: "Comprobando el repositorio apt de WireCat…",
+    password: "Escribe tu contraseña en la ventana del sistema.",
+    waiting: "Otro programa está instalando actualizaciones. WireCat espera a que termine…",
+    downloading: "Descargando la actualización…",
+    installing: "Instalando la actualización…",
+  },
   other:
     "WireCat no sabe cómo se instaló esta copia, así que no puede actualizarla. Descarga la versión nueva en la página de descargas e instálala como instalaste esta. Tus cuentas y tus datos no se borran.",
   howUpdates: "Cómo funcionan las actualizaciones",
@@ -177,6 +215,14 @@ const es: typeof en = {
   notWritableNext: "Comprueba que la carpeta existe y que puedes guardar archivos en ella, y vuelve a intentarlo.",
   newer: (version) => `Ya ha salido WireCat ${version}.`,
   newerNext: "Cierra esta ventana y vuelve a abrir la actualización.",
+  notYet: (version) => `WireCat ${version} todavía no está en el repositorio apt.`,
+  notYetNext: "El repositorio se actualiza poco después de cada versión. Vuelve a intentarlo más tarde.",
+  refused: "La actualización no se ha instalado: se cerró la ventana de la contraseña o el sistema la rechazó.",
+  refusedNext: "Vuelve a intentarlo o instálala desde una terminal con el comando de arriba.",
+  busy: "Otro programa está instalando actualizaciones ahora mismo.",
+  busyNext: "Espera a que termine y vuelve a intentarlo.",
+  unavailable: "Este sistema no tiene PackageKit, así que WireCat no puede instalar la actualización por sí mismo.",
+  unavailableNext: "Instálala desde una terminal con el comando de arriba.",
   details: (text) => `Detalles: ${text}`,
 }
 

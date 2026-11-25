@@ -30,6 +30,7 @@ fn types() -> Types {
         .register::<crate::package_update::Progress>()
         .register::<crate::package_update::Outcome>()
         .register::<crate::package_update::Failure>()
+        .register::<crate::apt_update::Progress>()
         .register::<crate::cloudflare::Status>()
         .register::<crate::cloudflare::RouteState>()
         .register::<crate::mcp_server::ServerStatus>()

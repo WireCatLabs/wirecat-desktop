@@ -2,6 +2,7 @@ mod account;
 mod agent_run;
 mod ai_model;
 mod analytics;
+mod apt_update;
 mod archive;
 mod attachments;
 mod background;
@@ -235,6 +236,7 @@ pub fn run() {
             commands::app::update_kind,
             commands::app::update_download_package,
             commands::app::update_package_terminal,
+            commands::app::update_apt,
             commands::node::node_offer,
             commands::node::setup_node,
             commands::node::cancel_node_setup,
