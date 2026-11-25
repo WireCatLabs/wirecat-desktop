@@ -92,6 +92,8 @@ describe("People", () => {
     await table()
     const tabs = screen.getByRole("tablist", { name: "Which contacts" })
     await user.click(await within(tabs).findByRole("tab", { name: /^Bots\s*72$/ }))
+    const bots = within(tabs).getByRole("tab", { name: /^Bots/ })
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", bots.id)
     const shop = await within(await table()).findByRole("button", { name: /Harbour Shop/ })
     expect(within(await table()).getByText("noreply@shop.example")).toBeVisible()
     expect(screen.queryByRole("combobox", { name: "Order" })).not.toBeInTheDocument()

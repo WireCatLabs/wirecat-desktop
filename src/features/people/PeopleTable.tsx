@@ -220,7 +220,7 @@ function ContactTabs(props: {
           </LineTab>
         ))}
       </TabList>
-      <TabPanel id={props.tab} className="tab-in flex flex-col gap-[0.8rem]">
+      <TabPanel key={props.tab} id={props.tab} className="tab-in flex flex-col gap-[0.8rem]">
         {props.children}
       </TabPanel>
     </Tabs>

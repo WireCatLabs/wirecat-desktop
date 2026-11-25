@@ -1945,7 +1945,7 @@
         "companyMailbox": { "minVersion": "0.131.86" },
         "oneCompany": { "minVersion": "0.131.87" },
         "agentMerges": { "minVersion": "0.141.0" },
-        "senderBots": { "minVersion": null }
+        "senderBots": { "minVersion": "0.154.0" }
       },
       "digests": {
         "minVersion": "0.131.75",
