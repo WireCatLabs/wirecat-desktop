@@ -112,6 +112,23 @@ export type Backups = {
 	files: BackupFile[],
 };
 
+export type BotIdentity = {
+	identity: string,
+	name: string | null,
+	username: string | null,
+};
+
+/**  One move of an account between a person and a bot; `from` and `to` are `None` for nobody. */
+export type BotMove = {
+	identity: string,
+	from: string | null,
+	to: string | null,
+	/**  `rules` or `owner`. */
+	author: string,
+	reason: string | null,
+	at: string,
+};
+
 export type BotProfile = {
 	name: string,
 	/**  Where the token comes from: `keyring`, `file` or `env`. */
@@ -1672,6 +1689,24 @@ export type SearchHarder =
 
 /**  Where a run made now goes: everywhere the schedule sends it, only into the app, or to some of its routes. */
 export type SendTo = { kind: "all" } | { kind: "here" } | { kind: "only"; routes: string[] };
+
+export type SenderBot = {
+	ref: string,
+	name: string | null,
+	displayName: string | null,
+	organization: string | null,
+	/**  `owner` when the owner said it is a program: no rule gives it back to a person. */
+	author: string,
+	/**  The signals that sorted it, or the owner's words. */
+	reason: string | null,
+	identities: BotIdentity[],
+	messagesFrom: number | null,
+	lastContact: string | null,
+	/**  `direct`, `group` or `broadcast`: how its messages reached the owner. */
+	reach: string | null,
+	signals: string[],
+	moves: BotMove[],
+};
 
 export type ShellReach = {
 	name: string,

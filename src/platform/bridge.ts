@@ -313,6 +313,8 @@ function createTauri(): Platform {
     peopleKinds: () => call(KindCountsSchema, "people_kinds"),
     peoplePage: ({ kind, page, size, query, sort }) =>
       call(PeoplePageSchema, "people_page", { kind, page, size, query, sort }),
+    senderBotsPage: ({ page, size, query }) => call(PeoplePageSchema, "sender_bots_page", { page, size, query }),
+    senderBotShow: (ref) => invoke("sender_bot_show", { reference: ref }),
     peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),

@@ -14,6 +14,7 @@ import { Matches, MatchesWaiting } from "./Matches"
 import { peopleMessages } from "./messages"
 import { PeopleTable } from "./PeopleTable"
 import { PersonDialog } from "./PersonDialog"
+import { SenderBotDialog } from "./SenderBotDialog"
 import { SplitDialog } from "./SplitDialog"
 import { usePeople } from "./store"
 import { UndoMergeDialog } from "./UndoMergeDialog"
@@ -83,6 +84,7 @@ export function PeoplePage() {
         </Crossfade>
       )}
       <PersonDialog />
+      <SenderBotDialog />
       <MatchDialog />
       <SplitDialog />
       <UndoMergeDialog />

@@ -142,6 +142,8 @@ export const PeopleReadSchema = v.variant("kind", [
     oneCompany: v.optional(v.boolean()),
     agentMerges: v.optional(v.array(AgentMergeSchema)),
     agentMergesMore: v.optional(v.boolean()),
+    /** This memo lists bots apart from people (`bots list`): the Bots tab reads them, not `kind:automated`. */
+    senderBots: v.optional(v.boolean(), false),
   }),
 ])
 

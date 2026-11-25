@@ -40,6 +40,7 @@ import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { searchHarderMock } from "./mock-search-harder"
+import { senderBotsMock } from "./mock-sender-bots"
 import { settingsMock } from "./mock-settings"
 import { setupMock } from "./mock-setup"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
@@ -726,6 +727,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...groupsMock(),
     ...memoryMock(),
     ...peopleMock(),
+    ...senderBotsMock(),
     ...peopleProfileMock(),
     ...tasksMock(),
     ...clientsMock(),

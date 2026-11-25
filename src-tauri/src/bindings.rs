@@ -42,6 +42,7 @@ fn types() -> Types {
         .register::<crate::background::BackgroundAction>()
         .register::<crate::background::BackgroundOutcome>()
         .register::<crate::mail_agent::MailAgent>()
+        .register::<crate::sender_bots::SenderBot>()
         .register::<crate::notes_setup::NotesSetup>()
         .register::<crate::notes_setup::NotesFolderAdded>()
         .register::<crate::notes_setup::NotesFolderRemoved>()

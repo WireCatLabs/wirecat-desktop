@@ -178,6 +178,8 @@ src-tauri/src/
                 older `meetings list` refuses it and reads as the update. Unmasked, never logged, as documents.rs.
   people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge|links resolve` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
+  sender_bots.rs the Contacts page's Bots tab: memo's `bots list` and `bots show` (cli-core #3356), gated by the catalog's
+                `people.senderBots`; a memo without them keeps bots as people of kind `automated`.
   person_profile.rs what a match's details and a person's card show about one person: memo's `context <ref> --limit
                 10 --trimmed` and the person's row from `people check -- <name words>`, slimmed to contacts, companies,
                 counts, the latest messages and their calls (see "The Contacts page").
@@ -626,8 +628,15 @@ whole list: `people_page(kind, page, size, query, sort)` reads one page, `people
 typing a name (after 300 ms) reads that page alone. `people_read(kind)` reads `people review --limit 500` for the
 matches beside a one-row `people list kind:<kind> --limit 1` that tells a memo with kinds from one without, and runs
 at the same time as the first page. A row's contact shows the phone and the email one under the other, else the
-messenger handle (memo 0.131.76 does not say which messenger), else a dash. The kinds are tabs: people, companies,
-newsletters and notifications, strangers (a real name, no tie with the owner), unsorted; `people_kinds` counts them
+messenger handle (memo 0.131.76 does not say which messenger), else a dash. Three tabs, each sender on one
+(owner, 2026-11-25; `src/domain/contact-tabs.ts`): **People** with the filters Known (`kind:person`), Not known
+(`kind:stranger`), Look automated (`kind:automated`, only once bots are apart) and Incomplete (`kind:unsorted`, left
+out of the tab's count); **Bots**, from `sender_bots_page` (`bots list [name:"…"] --limit --page`, no order) and
+`sender_bot_show` (`bots show sender-bot:<id>`), or `kind:automated` from a memo without `bots list` (the catalog's
+`people.senderBots`); **Organizations** (`kind:organization`). A bot's ref is `SENDER_BOT_PREFIX` in that file and in
+`sender_bots.rs`, so the planned `bot:<id>` is one change. `people_kinds` adds the bots' count as `bot`. Not built:
+the Bots filters by what they send (memo's `bots list` has no type term) and the Subscriptions view (no CLI lists
+senders by reach or keeps List-Unsubscribe's address). `people_kinds` counts the kinds
 with one `kind:<k> --limit 1` read each, two at a time, never holding the table back; a count memo gives only as a
 floor reads «N+». A memo older than kinds refuses the kind word (`query.unknown-field`) or `--sort` (`input.invalid`);
 Rust then reads the plain `people list --limit 5000`, the page shows no tabs, hides people with no name by default and

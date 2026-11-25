@@ -65,6 +65,7 @@ describe("the People store after a write", () => {
       matchesMore: true,
       splits: [],
       kinded: false,
+      senderBots: false,
     })
     await usePeople.getState().decide("person:9", "1", "confirm")
     const s = usePeople.getState()
@@ -85,6 +86,7 @@ describe("the People store after a write", () => {
       matchesMore: false,
       splits: [],
       kinded: true,
+      senderBots: false,
     }))
     await usePeople.getState().load()
     usePeople.getState().setKind("organization")

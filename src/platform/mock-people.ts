@@ -4,6 +4,7 @@ import { mockCalls } from "./mock-calls"
 import { delay } from "./mock-delay"
 import { memoDefault } from "./mock-memo"
 import { agentMergesOf, NORA_MERGE, WEAK, withSides } from "./mock-review"
+import { senderBotCounts, senderBotsOpen } from "./mock-sender-bots"
 import {
   type Doubt,
   type Identity,
@@ -597,6 +598,7 @@ export function peopleMock(): Pick<
         oneCompany,
         agentMerges: scenario === "none" ? [] : agentMergesOf(people),
         agentMergesMore: false,
+        senderBots: kinded && senderBotsOpen,
       }
     },
     async peoplePage({ kind, page, size, query, sort }) {
@@ -621,12 +623,13 @@ export function peopleMock(): Pick<
     async peopleKinds() {
       await delay(900)
       if (scenario === "nokinds") return {}
-      return Object.fromEntries(
-        PERSON_KINDS.map((k) => [
+      return Object.fromEntries([
+        ...PERSON_KINDS.map((k) => [
           k,
           { value: ofKind(k).length + (k === "unsorted" ? 5_000 : 0), more: k === "unsorted" },
         ]),
-      )
+        ...senderBotCounts(),
+      ])
     },
     async peopleShow(ref) {
       await delay(350)
