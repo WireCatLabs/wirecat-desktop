@@ -41,8 +41,19 @@ export function portalProblem(typed: string): PortalProblem | null {
  */
 export const webhookPage = (host: string) => `https://${host}/devops/`
 
-/** The rights b24 needs, by the code Bitrix24 shows beside each. `user_basic` is what `user.current` asks. */
-export const WEBHOOK_SCOPES = ["crm", "user_basic", "department"] as const
+/**
+ * The rights b24 asks for, by the code Bitrix24 shows beside each, in the order of bitrix24-cli `src/setup/flow.ts`
+ * `SCOPES`. `user_basic` is what `user.current` asks. Without `telephony` the portal's calls do not sync.
+ */
+export const WEBHOOK_SCOPES = [
+  "crm",
+  "user_basic",
+  "department",
+  "task",
+  "telephony",
+  "disk",
+  "documentgenerator",
+] as const
 export type WebhookScope = (typeof WEBHOOK_SCOPES)[number]
 
 const PATH = /^\/rest\/(?:api\/)?(\d+)\/[A-Za-z0-9_-]+(?:\/.*)?$/

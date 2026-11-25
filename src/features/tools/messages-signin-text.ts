@@ -36,7 +36,7 @@ export const RU_ASKS: Record<string, string> = {
   ydisk:
     "OAuth-токен Яндекса от приложения, которое вы один раз регистрируете на oauth.yandex.ru с доступом к Яндекс Диску.",
   bitrix:
-    "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов. Или ID и ключ локального приложения, вход в браузере.",
+    "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm, user_basic и department, task для задач, telephony для звонков, disk и documentgenerator для файлов. Или ID и ключ локального приложения, вход в браузере.",
   amo: "Адрес аккаунта и долгосрочный токен закрытой интеграции, которую администратор создаёт в amoCRM или Kommo.",
   attio:
     "Токен доступа: в Attio «Workspace settings → Developers → New access token», с правом чтения записей, настроек объектов и пользователей. Создать его может только администратор рабочего пространства.",
@@ -87,7 +87,7 @@ export const ES_ASKS: Record<string, string> = {
   ydisk:
     "Un token OAuth de Yandex, de una aplicación que registras una vez en oauth.yandex.ru con acceso a Yandex Disk.",
   bitrix:
-    "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
+    "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm, user_basic y department, task para las tareas, telephony para las llamadas, y disk y documentgenerator para los archivos. O el ID y la clave de una aplicación local, con inicio de sesión en el navegador.",
   amo: "La dirección de la cuenta y un token de larga duración, de una integración privada que un administrador crea en amoCRM o Kommo.",
   attio:
     "Un token de acceso: en Attio, Workspace settings → Developers → New access token, con lectura de registros, configuración de objetos y gestión de usuarios. Solo un administrador del espacio de trabajo puede crearlo.",
