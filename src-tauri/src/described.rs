@@ -329,7 +329,8 @@ mod tests {
         described()[id]["desktop"].clone()
     }
 
-    /// Every official CLI's manifest as cli-docs read it from npm on 2026-11-24 (cli-docs b0d04c2e): the changes are
+    /// Every official CLI's manifest as cli-docs read it from npm on 2026-11-24 (cli-docs b0d04c2e), and slack-cli
+    /// 0.3.0's, read on 2026-11-25 (its `signIn.setupFrom` replaces the catalog's): the changes are
     /// the command differences cli-docs `registry/drift-allow.json` lists (drive's `sync.lastShape` goes with its
     /// `sync.last`), except the MCP servers the catalog gives no port and what a sign-out keeps or removes, which stay
     /// Desktop's words.
@@ -344,13 +345,12 @@ mod tests {
         }
         let expected: BTreeMap<String, String> = [
             ("attio", "accountRemove.remove"),
-            ("bitrix", "setup"),
             ("drive", "profiles.shape doctor mcpServer.config sync.last sync.lastShape"),
             ("email", "doctor sync.last"),
             ("gcal", "doctor"),
             ("memo", "skill.install skill.show sync.last"),
             ("notion", "sync.last"),
-            ("pbx", "setup"),
+            ("slk", "signIn.setupFrom"),
             ("zm", "doctor setup sync.run"),
         ]
         .into_iter()

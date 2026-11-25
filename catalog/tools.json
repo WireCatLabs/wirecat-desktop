@@ -322,7 +322,7 @@
         }
       },
       "imagesRead": {
-        "minVersion": null,
+        "minVersion": "0.124.0",
         "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
       },
       "names": [
@@ -750,7 +750,7 @@
         }
       },
       "imagesRead": {
-        "minVersion": null,
+        "minVersion": "0.112.0",
         "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
       },
       "names": [
@@ -1177,7 +1177,7 @@
         "note": "WhatsApp has no sync to start. New messages arrive while its background service runs: see Background service below."
       },
       "imagesRead": {
-        "minVersion": null,
+        "minVersion": "0.39.0",
         "read": ["{profile}", "images", "read", "{ref}", "--attachment", "{attachment}", "--record", "--json"]
       },
       "names": [
@@ -2410,7 +2410,7 @@
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": {
-          "minVersion": null,
+          "minVersion": "0.6.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
           "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
           "dryRun": "--dry-run",

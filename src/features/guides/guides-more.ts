@@ -578,7 +578,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Показывает встречу, не создавая её",
           es: "Muestra la reunión sin crearla",
         },
-        run: 'zm <profile> remote-meetings create --title "Harbour planning" --start-time … --duration-minutes 30 --dry-run',
+        run: 'zm <profile> meetings create --title "Harbour planning" --start-time … --duration-minutes 30 --dry-run',
       },
       {
         text: {
@@ -586,7 +586,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Создаёт её после вашего согласия",
           es: "La crea cuando estás de acuerdo",
         },
-        run: 'zm <profile> remote-meetings create --title "Harbour planning" --start-time … --duration-minutes 30 --yes',
+        run: 'zm <profile> meetings create --title "Harbour planning" --start-time … --duration-minutes 30 --yes',
       },
       {
         text: {
@@ -594,7 +594,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Читает текст приглашения",
           es: "Lee el texto de la invitación",
         },
-        run: "zm <profile> remote-meetings invitation <meeting>",
+        run: "zm <profile> meetings invitation <meeting>",
       },
     ],
     result: {

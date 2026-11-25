@@ -35,8 +35,11 @@ for Rust.
 - Every command line in `catalog/tools.json` is checked against the tools' own command lists in
   [commands.fixture.json](../../../src/features/guides/commands.fixture.json)
   ([catalog-commands.test.ts](../../../src/domain/catalog-commands.test.ts)): an option a tool removed fails, and so
-  does a `null` gate on a command the tool has released. After a tool release, refresh the list with
-  `node scripts/guide-commands.mjs` (it runs only `commands --json` and `--help`, D-Bus off).
+  does a `null` gate on a command the tool has released. A catalog tool with no list there fails too (a helper such
+  as the funnel has none). After a tool release, refresh the list with `node scripts/guide-commands.mjs`: it runs
+  each tool's latest npm release through npx in a throwaway home, only `commands --json` and `--help`, D-Bus off.
+  `node scripts/guide-commands.mjs pbx@0.9.0` writes one tool at the version it names. Then run
+  `pnpm exec biome format --write src/features/guides/commands.fixture.json`.
 - A test file that renders `<App />` (or `startOnboarding`) starts with `beforeAll(loadPages)`
   ([pages.ts](../../../src/testing/pages.ts)), so the first render does not load every page chunk inside the test's
   wait.
