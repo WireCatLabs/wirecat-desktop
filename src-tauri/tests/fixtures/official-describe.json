@@ -733,6 +733,67 @@
     },
     "version": "0.9.0"
   },
+  "slk": {
+    "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "mcpServer": {
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
+      },
+      "profiles": {
+        "args": ["account", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "settings": null,
+      "setup": ["{profile}", "setup"],
+      "signIn": {
+        "asks": "The User OAuth Token (xoxp-) of a Slack app you make in your workspace from the manifest slk gives.",
+        "gives": "Lets your agent read and write your Slack workspace as you.",
+        "setupFrom": "0.0.0"
+      },
+      "skill": {
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "slack-cli",
+        "env": "SLACK"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": null,
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": null,
+      "tagline": "Read and search your Slack channels, DMs and threads",
+      "tasks": null
+    },
+    "version": "0.3.0"
+  },
   "tg": {
     "desktop": {
       "accountRemove": {
