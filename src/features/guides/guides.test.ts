@@ -6,13 +6,14 @@ import { docsOf, fill, GUIDES, variesByMessenger } from "./guides"
 
 const MESSENGERS = ["tg", "max", "wa"]
 
-type Program = { profile: boolean; commands: { path: string; options: Set<string> }[] }
+type Program = { profile: boolean; global: Set<string>; commands: { path: string; options: Set<string> }[] }
 
 const programs = new Map<string, Program>(
   Object.entries(fixture).map(([bin, t]) => [
     bin,
     {
       profile: t.profile,
+      global: new Set(t.global),
       commands: t.commands.map((line) => {
         const words = line.split(" ")
         const flags = words.findIndex((w) => w.startsWith("--"))
@@ -40,7 +41,7 @@ function problemOf(run: string): string | null {
     .filter((c) => line.startsWith(` ${c.path} `))
     .sort((a, b) => b.path.length - a.path.length)[0]
   if (!command) return `${bin} has no command ${args.slice(0, 3).join(" ")}`
-  const unknown = args.filter((w) => w.startsWith("--") && !command.options.has(w))
+  const unknown = args.filter((w) => w.startsWith("--") && !command.options.has(w) && !program.global.has(w))
   return unknown.length ? `${bin} ${command.path} has no ${unknown.join(", ")}` : null
 }
 

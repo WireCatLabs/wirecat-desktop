@@ -28,7 +28,7 @@ const WORDED: [&str; 6] = [
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImagesReadSource {
-    /// The first version with `images read` (cli-core 0.643.0); `None` until one is released, which counts as too old.
+    /// The first version with `images read` (cli-core 0.648.0 in the messengers); `None` counts as too old.
     pub min_version: Option<String>,
     /// `{profile}`, `{ref}` and `{attachment}` filled here.
     pub read: Vec<String>,
@@ -217,11 +217,10 @@ mod tests {
     }
 
     #[test]
-    fn runs_each_messengers_own_images_read_and_none_is_released_yet() {
-        for id in ["tg", "max", "wa"] {
+    fn runs_each_messengers_own_images_read_from_its_first_release_with_it() {
+        for (id, first) in [("tg", "0.124.0"), ("max", "0.112.0"), ("wa", "0.39.0")] {
             let src = crate::catalog::tool(id).unwrap().images_read.as_ref().unwrap();
-            // No messenger on npm has cli-core 0.643.0's `images read` yet; its first version becomes the gate here.
-            assert_eq!(src.min_version, None);
+            assert_eq!(src.min_version.as_deref(), Some(first));
             assert_eq!(
                 read_args(src, "personal", REF, 2).join(" "),
                 "personal images read msg:telegram/1001/-2002/77 --attachment 2 --record --json"

@@ -19,10 +19,18 @@ function usesOf(v: unknown, where: string, bin: string, gate: Use["gate"]): Use[
   if (isArgv(v)) return [{ where, bin, gate, words: v }]
   if (!v || typeof v !== "object") return []
   const own = Object.hasOwn(v, "minVersion") ? (v as { minVersion: string | null }).minVersion : gate
-  return Object.entries(v).flatMap(([k, x]) => usesOf(x, `${where}.${k}`, bin, own))
+  const words = (v as { words?: unknown }).words
+  return Object.entries(v).flatMap(([k, x]) =>
+    // A sign-in method's flags (`oauth: ["--method", "oauth"]`) go after its words, from `<key>MinVersion` on.
+    isArgv(words) && Array.isArray(x) && String(x[0]).startsWith("--")
+      ? usesOf([...words, ...x], `${where}.${k}`, bin, (v as Record<string, string>)[`${k}MinVersion`] ?? own)
+      : usesOf(x, `${where}.${k}`, bin, own),
+  )
 }
 
-const uses = raw.tools.flatMap((t) => (programs[t.bin] ? usesOf(t, t.id, t.bin, undefined) : []))
+// A helper (WireCat's Tailscale connection) has no `commands --json`, and the catalog runs none of its commands.
+const tools = raw.tools.filter((t) => !("helper" in t && t.helper))
+const uses = tools.flatMap((t) => (programs[t.bin] ? usesOf(t, t.id, t.bin, undefined) : []))
 
 const parsed = (line: string) => {
   const words = line.split(" ")
@@ -53,6 +61,10 @@ function check(use: Use) {
 const released = (use: Use) => !use.gate || !isNewer(use.gate, programs[use.bin]?.version ?? "0")
 
 describe("catalog commands against the tools' own command lists", () => {
+  it("has the command list of every tool in the catalog", () => {
+    expect(tools.map((t) => t.bin).filter((bin) => !programs[bin])).toEqual([])
+  })
+
   it("reads enough of the catalog to mean something", () => {
     expect(uses.length).toBeGreaterThan(200)
   })
