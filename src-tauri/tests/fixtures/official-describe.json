@@ -817,7 +817,7 @@
         "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
       },
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "runs": {
@@ -852,7 +852,7 @@
       "tagline": "Your Telegram account, searchable on your computer",
       "tasks": null
     },
-    "version": "0.135.0"
+    "version": "0.137.0"
   },
   "wa": {
     "desktop": {
@@ -877,7 +877,7 @@
         "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
       },
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "runs": {
@@ -912,7 +912,7 @@
       "tagline": "Your WhatsApp account, searchable on your computer",
       "tasks": null
     },
-    "version": "0.46.0"
+    "version": "0.48.0"
   },
   "wordpress": {
     "desktop": {

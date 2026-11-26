@@ -1,6 +1,6 @@
 {
   "tg": {
-    "version": "0.136.0",
+    "version": "0.137.0",
     "profile": true,
     "global": [
       "--brief",
@@ -25,7 +25,6 @@
     ],
     "commands": [
       "account",
-      "account list",
       "account remove --delete-data --dry-run --keep-data",
       "account sessions",
       "account sessions end --others",
@@ -551,7 +550,9 @@
       "server uninstall",
       "session",
       "session end",
+      "session list",
       "session start --answer-stdin --app --sms",
+      "session status --check",
       "setup --agent --app --method",
       "skill",
       "skill install --for",
@@ -1154,7 +1155,7 @@
     ]
   },
   "wa": {
-    "version": "0.47.0",
+    "version": "0.48.0",
     "profile": true,
     "global": [
       "--brief",
@@ -1179,7 +1180,6 @@
     ],
     "commands": [
       "account",
-      "account list",
       "account privacy",
       "account privacy set --about-text --calls --chat-invites --hide-online --last-seen --profile-photo --read-receipts",
       "account privacy show",
@@ -1546,7 +1546,9 @@
       "server uninstall",
       "session",
       "session end",
+      "session list",
       "session start --answer-stdin",
+      "session status --check",
       "setup --agent --method",
       "skill",
       "skill install --for",

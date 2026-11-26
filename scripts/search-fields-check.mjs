@@ -38,7 +38,7 @@ function batch(requests) {
     .map((l) => JSON.parse(l))
 }
 
-// Profiles from each tool's own refusal to run without one, or its read-only account list: never a sign-in.
+// Profiles from each tool's own refusal to run without one, or its read-only session list: never a sign-in.
 function profilesOf(tool) {
   if (!tool.search.args.some((a) => a.includes("{profile}"))) return [null]
   const run = (words) => {
@@ -57,7 +57,7 @@ function profilesOf(tool) {
     )
     return (doctor.item?.mail?.accounts ?? []).map((a) => a.name)
   }
-  const text = run(["account", "list", "--offline", "--no-record", "--json"])
+  const text = run(["session", "list", "--offline", "--no-record", "--json"])
   for (const line of text.split("\n").filter((l) => l.startsWith("{"))) {
     const body = JSON.parse(line)
     if (Array.isArray(body.items)) return body.items.map((i) => i.profile).filter(Boolean)
