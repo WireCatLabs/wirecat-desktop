@@ -5,6 +5,7 @@ use std::path::PathBuf;
 const HEADER: &str =
     "// Generated from the Rust types by `cargo test bindings` (src-tauri/src/bindings.rs). Do not edit.";
 
+#[expect(clippy::too_many_lines, reason = "the list registers every type the interface reads, one per line")]
 fn types() -> Types {
     Types::default()
         .register::<crate::system::Readiness>()
@@ -42,6 +43,7 @@ fn types() -> Types {
         .register::<crate::background::BackgroundAction>()
         .register::<crate::background::BackgroundOutcome>()
         .register::<crate::mail_agent::MailAgent>()
+        .register::<crate::sender_bots::SenderBot>()
         .register::<crate::notes_setup::NotesSetup>()
         .register::<crate::notes_setup::NotesFolderAdded>()
         .register::<crate::notes_setup::NotesFolderRemoved>()

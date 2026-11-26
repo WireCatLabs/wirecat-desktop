@@ -349,6 +349,9 @@ pub struct PeopleSource {
     /// Agents merge on strong evidence: `people review --brief` carries each match's strength, `--kind merged` lists them.
     #[serde(default)]
     pub agent_merges: Option<crate::enrichment::Gate>,
+    /// `bots list` and `bots show`: bots apart from people (cli-core #3356, cli-memo #899).
+    #[serde(default)]
+    pub sender_bots: Option<crate::enrichment::Gate>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

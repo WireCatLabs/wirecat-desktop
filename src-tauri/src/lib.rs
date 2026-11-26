@@ -95,6 +95,7 @@ mod runs;
 mod search;
 mod search_harder;
 mod self_test;
+mod sender_bots;
 mod settings;
 mod setup_flow;
 mod signin;
@@ -405,6 +406,8 @@ pub fn run() {
             commands::people::people_test_people,
             commands::people::people_contact,
             commands::people::people_kinds,
+            commands::people::sender_bots_page,
+            commands::people::sender_bot_show,
             commands::people::people_page,
             commands::people::people_show,
             commands::people::people_decide,

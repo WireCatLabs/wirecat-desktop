@@ -1,7 +1,9 @@
 import { create } from "zustand"
+import { type ContactTab, isSenderBot, kindOfTab, type ListKind } from "@/domain/contact-tabs"
 import { looksLikeAccount, touched } from "@/domain/people"
 import { without } from "@/domain/record"
 import { tasksQuery } from "@/domain/tasks"
+import type { SenderBot } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type {
   AgentMerge,
@@ -13,7 +15,6 @@ import type {
   PeopleRead,
   PeopleSort,
   PersonDetail,
-  PersonKind,
   Resolved,
   Split,
   TestPeople,
@@ -28,6 +29,7 @@ export type Detail =
   | { state: "loading" }
   | { state: "ready"; person: PersonDetail }
   | { state: "failed"; error: string }
+export type BotDetail = { state: "loading" } | { state: "ready"; bot: SenderBot } | { state: "failed"; error: string }
 export type Op = MatchAnswer | "unlink" | "unmerge" | "keep" | "test"
 /** What the owner just did on a person, said where it happened until the page is read again (rule 9). */
 export type Done =
@@ -73,8 +75,10 @@ type PeopleState = {
   total: KindCount | null
   /** The order memo cuts the pages in. */
   sort: PeopleSort
-  /** The kind of people the table lists; memo lists one kind at a time. */
-  kind: PersonKind
+  /** What the table lists: one kind of people, as memo lists one at a time, or the bots. */
+  kind: ListKind
+  /** This memo lists bots apart from people (`bots list`). */
+  senderBots: boolean
   /** memo knows kinds; false for an older memo, whose one list is everyone. */
   kinded: boolean
   /** This memo gives a company one of the two people's addresses on a match by name. */
@@ -82,7 +86,7 @@ type PeopleState = {
   /** This memo makes the people of a match one company's own mailboxes. */
   oneCompany: boolean
   /** People of each kind, for the tabs; read apart from the list and empty until it comes. */
-  kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
+  kinds: Partial<Record<ListKind, { value: number; more: boolean }>>
   /** Whether each person read so far is the owner, and their tasks: a match may name someone from another tab. */
   seen: Record<string, { owner: boolean; tasks: number }>
   /** The open matches, with any the owner decided since the last full read kept in place. */
@@ -115,6 +119,9 @@ type PeopleState = {
   found: Found | null
   /** The person whose dialog is open. */
   open: string | null
+  /** The bot whose dialog is open, and each bot read so far. */
+  botOpen: string | null
+  bots: Record<string, BotDetail>
   /** The match, or the group of matches (its key from `groupMatches`), whose Details dialog is open. */
   matchOpen: string | null
   joinedGroup: Record<string, GroupDone>
@@ -135,7 +142,9 @@ type PeopleState = {
   /** The page opened: a read unless the last one is under a minute old; what it shows stays while it runs. */
   visit(): void
   setView(view: View): void
-  setKind(kind: PersonKind): void
+  setKind(kind: ListKind): void
+  setTab(tab: ContactTab): void
+  loadBot(ref: string): Promise<void>
   setQuery(query: string): void
   setFilter(filter: { withTasks?: boolean; named?: boolean }): void
   setPage(page: number): void
@@ -193,6 +202,9 @@ type PeopleState = {
   askSplit(ref: string | null, preset?: string[]): void
   askUndo(undo: { ref: string; merge: string } | null): void
 }
+
+/** memo's `people` commands know no bots: a read for the Bots tab asks for people as the first tab does. */
+const peopleKind = (kind: ListKind) => (kind === "bot" ? "person" : kind)
 
 /** memo's command server keeps two processes; more calls at once would each start memo anew. */
 const AT_ONCE = 2
@@ -264,7 +276,7 @@ export const usePeople = create<PeopleState>((set, get) => {
   const relist = async (keep: readonly string[] = []): Promise<Set<string> | null> => {
     const kind = get().kind
     try {
-      const read = await platform.peopleRead(kind)
+      const read = await platform.peopleRead(peopleKind(kind))
       if (read.kind !== "ready") return null
       // The owner may have switched tabs meanwhile: that tab's own read owns the list.
       if (read.kinded) void get().readPage()
@@ -309,6 +321,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     total: null,
     sort: "interactions",
     kind: "person",
+    senderBots: false,
     kinded: false,
     companyMailbox: false,
     oneCompany: false,
@@ -337,6 +350,8 @@ export const usePeople = create<PeopleState>((set, get) => {
     matchPage: 1,
     found: null,
     open: null,
+    botOpen: null,
+    bots: {},
     matchOpen: null,
     joinedGroup: {},
     company: {},
@@ -367,7 +382,7 @@ export const usePeople = create<PeopleState>((set, get) => {
       // The page is read beside the matches, not after them: the rows paint as soon as memo cuts them.
       const paged = older ? null : get().readPage()
       try {
-        const read = await platform.peopleRead(get().kind)
+        const read = await platform.peopleRead(peopleKind(get().kind))
         // After the read, not beside it: memo's command server runs two calls at once and starts anew for a third.
         if (counts)
           void get()
@@ -391,6 +406,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           splits: ready?.splits ?? [],
           splitDecided: {},
           kinded,
+          senderBots: ready?.senderBots ?? false,
           companyMailbox: ready?.companyMailbox ?? false,
           oneCompany: ready?.oneCompany ?? false,
           decided: {},
@@ -414,6 +430,9 @@ export const usePeople = create<PeopleState>((set, get) => {
       if (!fresh(get().readAt)) void get().load()
     },
     setView: (view) => set({ view }),
+    setTab(tab) {
+      get().setKind(kindOfTab(tab, get().senderBots))
+    },
     setKind(kind) {
       clearTimeout(typing)
       set({ kind, page: 1, query: "", found: null })
@@ -448,7 +467,10 @@ export const usePeople = create<PeopleState>((set, get) => {
       const { kind, page, pageSize, query, sort } = get()
       set({ reading: true })
       try {
-        const got = await platform.peoplePage({ kind, page, size: pageSize, query: query.trim(), sort })
+        const got =
+          kind === "bot"
+            ? await platform.senderBotsPage({ page, size: pageSize, query: query.trim() })
+            : await platform.peoplePage({ kind, page, size: pageSize, query: query.trim(), sort })
         if (asked !== pageSeq) return
         // A merge or a decision can shrink the kind under the page the owner is on: go to its new last page.
         const last = got.total ? Math.max(1, Math.ceil(got.total.value / pageSize)) : page
@@ -489,12 +511,27 @@ export const usePeople = create<PeopleState>((set, get) => {
       }
     },
     reveal(ref) {
-      set({ open: ref })
+      if (isSenderBot(ref)) {
+        set({ botOpen: ref })
+        void get().loadBot(ref as string)
+        return
+      }
+      set({ open: ref, ...(ref ? {} : { botOpen: null }) })
       if (ref) void get().loadDetail(ref)
+    },
+    async loadBot(ref) {
+      if (get().bots[ref]?.state === "ready") return
+      set((s) => ({ bots: { ...s.bots, [ref]: { state: "loading" } } }))
+      try {
+        const bot = await platform.senderBotShow(ref)
+        set((s) => ({ bots: { ...s.bots, [ref]: { state: "ready", bot } } }))
+      } catch (e) {
+        set((s) => ({ bots: { ...s.bots, [ref]: { state: "failed", error: errorText(e) } } }))
+      }
     },
     openMatch: (matchOpen) => set({ matchOpen }),
     want(refs) {
-      wanted = [...refs]
+      wanted = refs.filter((r) => !isSenderBot(r))
       pump()
     },
     need(ref) {

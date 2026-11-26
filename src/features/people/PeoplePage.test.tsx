@@ -72,15 +72,57 @@ describe("People", () => {
     expect(lena).toHaveTextContent("lena@example.org")
     expect(lena).toHaveTextContent("993")
     expect(lena).not.toHaveTextContent("account")
-    const kinds = screen.getByRole("group", { name: "Which people" })
-    await user.click(await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }))
-    expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
-    expect(within(kinds).getByRole("radio", { name: "Unsorted 5,002+" })).toBeInTheDocument()
+    const filters = screen.getByRole("group", { name: "Which people" })
+    await user.click(await within(filters).findByRole("radio", { name: "Look automated 2" }))
+    expect(screen.getByText(/not yet sorted as bots/)).toBeInTheDocument()
+    expect(within(filters).getByRole("radio", { name: "Incomplete 5,002+" })).toBeInTheDocument()
     await waitFor(async () =>
       expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
     )
-    await user.click(within(kinds).getByRole("radio", { name: /^Companies/ }))
+    const tabs = screen.getByRole("tablist", { name: "Which contacts" })
+    await user.click(within(tabs).getByRole("tab", { name: /^Organizations/ }))
     expect(await within(await table()).findByRole("button", { name: "CZECH AIRLINES" })).toBeVisible()
+    expect(screen.queryByRole("group", { name: "Which people" })).not.toBeInTheDocument()
+  })
+
+  it("lists bots apart from people, from memo's bots list, each opening its own card", async () => {
+    const user = userEvent.setup()
+    const people = vi.spyOn(platform, "peopleShow")
+    render(<PeoplePage />)
+    await table()
+    const tabs = screen.getByRole("tablist", { name: "Which contacts" })
+    await user.click(await within(tabs).findByRole("tab", { name: /^Bots\s*72$/ }))
+    const bots = within(tabs).getByRole("tab", { name: /^Bots/ })
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", bots.id)
+    const shop = await within(await table()).findByRole("button", { name: /Harbour Shop/ })
+    expect(within(await table()).getByText("noreply@shop.example")).toBeVisible()
+    expect(screen.queryByRole("combobox", { name: "Order" })).not.toBeInTheDocument()
+    await user.click(shop)
+    const dialog = await screen.findByRole("dialog", { name: "Harbour Shop" })
+    expect(await within(dialog).findByText("organization:3")).toBeVisible()
+    expect(within(dialog).getByText("To many readers: a newsletter or a channel")).toBeVisible()
+    expect(people).not.toHaveBeenCalledWith(expect.stringMatching(/^sender-bot:/))
+  })
+
+  it("on a memo without bots list, the Bots tab lists the people memo marks automated", async () => {
+    const user = userEvent.setup()
+    const read = platform.peopleRead.bind(platform)
+    vi.spyOn(platform, "peopleRead").mockImplementation(async (kind) => {
+      const got = await read(kind)
+      return got.kind === "ready" ? { ...got, senderBots: false } : got
+    })
+    const bots = vi.spyOn(platform, "senderBotsPage")
+    render(<PeoplePage />)
+    await table()
+    const filters = screen.getByRole("group", { name: "Which people" })
+    expect(within(filters).queryByRole("radio", { name: /Look automated/ })).not.toBeInTheDocument()
+    await user.click(
+      within(screen.getByRole("tablist", { name: "Which contacts" })).getByRole("tab", { name: /^Bots/ }),
+    )
+    await waitFor(async () =>
+      expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
+    )
+    expect(bots).not.toHaveBeenCalled()
   })
 
   it("on a memo older than kinds, lists everyone named, with a contact read from their accounts", async () => {
@@ -556,6 +598,7 @@ describe("People", () => {
       matchesMore: false,
       splits: [],
       kinded: false,
+      senderBots: false,
     })
     render(<PeoplePage />)
     expect(await screen.findByText(/There are more people than this page read/)).toBeInTheDocument()

@@ -1,9 +1,18 @@
 import { AtSign, Bot, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef } from "react"
+import {
+  CONTACT_TABS,
+  type ContactTab,
+  isSenderBot,
+  type ListKind,
+  peopleFilters,
+  tabCount,
+  tabOf,
+} from "@/domain/contact-tabs"
 import { allBots, cleanName, contactOf, filterPeople, isFragment, looksLikeAccount } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
-import { formatNumber, useLang, useMessages } from "@/i18n"
-import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
+import { formatNumber, type Lang, useLang, useMessages } from "@/i18n"
+import { type Listed, PEOPLE_SORTS } from "@/platform/people-schemas"
 import { SourceIcon, sourceOf } from "@/shared/SourceIcon"
 import { Button } from "@/ui/Button"
 import { type Column, DataTable } from "@/ui/DataTable"
@@ -14,21 +23,25 @@ import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { LineTab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { TipPanel, useTip } from "@/ui/Tooltip"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
+import { tabMessages } from "./messages-tabs"
 import { usePeople } from "./store"
 
-const KIND_ICONS: Record<PersonKind, ReactNode> = {
+const KIND_ICONS: Record<ListKind, ReactNode> = {
   person: <Users className="size-4" aria-hidden />,
   organization: <Building2 className="size-4" aria-hidden />,
   automated: <Megaphone className="size-4" aria-hidden />,
   stranger: <UserX className="size-4" aria-hidden />,
   unsorted: <Inbox className="size-4" aria-hidden />,
+  bot: <Bot className="size-4" aria-hidden />,
 }
 
 export function PeopleTable() {
   const m = useMessages(peopleMessages)
+  const t = useMessages(tabMessages)
   const people = usePeople((s) => s.people)
   const more = usePeople((s) => s.peopleMore)
   const query = usePeople((s) => s.query)
@@ -39,12 +52,13 @@ export function PeopleTable() {
   const kinded = usePeople((s) => s.kinded)
   const kind = usePeople((s) => s.kind)
   const kinds = usePeople((s) => s.kinds)
+  const senderBots = usePeople((s) => s.senderBots)
   const reading = usePeople((s) => s.reading)
   const total = usePeople((s) => s.total)
   const sort = usePeople((s) => s.sort)
-  const { setQuery, setFilter, setPage, setPageSize, setKind, setSort, findAccount, reveal, want } =
+  const { setQuery, setFilter, setPage, setPageSize, setKind, setTab, setSort, findAccount, reveal, want } =
     usePeople.getState()
-  const columns = useColumns(kinded)
+  const columns = useColumns(kinded).filter((c) => kind !== "bot" || c.id !== "tasks")
   const account = looksLikeAccount(query)
 
   // memo cuts, sorts and searches the pages; only an older memo, which lists everyone at once, is cut here.
@@ -72,16 +86,19 @@ export function PeopleTable() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: a read drops the details, and `people` is new after it
   useEffect(() => want(onScreen ? onScreen.split(" ") : []), [onScreen, people, want])
 
+  const tab = tabOf(kind, senderBots)
   const tabs = kinded && (
-    <div className="flex flex-col gap-[0.5rem]">
-      <KindTabs kind={kind} kinds={kinds} onKind={setKind} />
-      <p className="text-[0.9rem] text-ink-soft">{m.kindHelp[kind]}</p>
+    <div className="flex flex-col gap-[0.6rem]">
+      {tab === "people" && <PeopleFilters kind={kind} kinds={kinds} senderBots={senderBots} onKind={setKind} />}
+      <p className="text-[0.9rem] text-ink-soft">
+        {kind === "bot" ? t.botHelp : kind === "automated" && senderBots ? t.automatedPeopleHelp : m.kindHelp[kind]}
+      </p>
     </div>
   )
 
   if (people.length === 0 && !kinded) return <EmptyState title={m.emptyTitle}>{m.emptyBody}</EmptyState>
-  return (
-    <section aria-label={m.rows} className="flex flex-col gap-[0.8rem]">
+  const body = (
+    <>
       {tabs}
       <form
         onSubmit={(e) => {
@@ -90,7 +107,7 @@ export function PeopleTable() {
         }}
       >
         <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
-          {kinded ? (
+          {kind === "bot" ? null : kinded ? (
             <Select
               size="sm"
               aria-label={m.sortLabel}
@@ -115,7 +132,7 @@ export function PeopleTable() {
           )}
           {(!kinded || total) && (
             <span className="ml-auto font-mono text-[0.85rem] text-ink-dim tabular-nums">
-              {m.everyone(count)}
+              {kind === "bot" ? t.bots(count) : m.everyone(count)}
               {kinded && total?.more ? "+" : ""}
             </span>
           )}
@@ -152,33 +169,87 @@ export function PeopleTable() {
         />
       )}
       {more && !kinded && <p className="text-[0.9rem] text-ink-dim">{m.peopleMore}</p>}
+    </>
+  )
+  return (
+    <section aria-label={m.rows} className="flex flex-col gap-[0.8rem]">
+      {kinded ? (
+        <ContactTabs tab={tab} kinds={kinds} senderBots={senderBots} onTab={setTab}>
+          {body}
+        </ContactTabs>
+      ) : (
+        body
+      )}
     </section>
   )
 }
 
-/** The kinds of people, each with its count, as the one switch every page uses. */
-function KindTabs(props: {
-  kind: PersonKind
-  kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
-  onKind: (kind: PersonKind) => void
+const countText = (count: { value: number; more: boolean } | null | undefined, lang: Lang) =>
+  count ? `${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : "—"
+
+/** Contacts' three tabs, each with its count; each sender is on one of them. The table below is the selected tab's. */
+function ContactTabs(props: {
+  tab: ContactTab
+  kinds: Partial<Record<ListKind, { value: number; more: boolean }>>
+  senderBots: boolean
+  onTab: (tab: ContactTab) => void
+  children: ReactNode
 }) {
-  const m = useMessages(peopleMessages)
+  const t = useMessages(tabMessages)
   const lang = useLang()
   return (
-    <Segmented<PersonKind>
-      size="md"
+    <Tabs
+      selectedKey={props.tab}
+      onSelectionChange={(key) => props.onTab(String(key) as ContactTab)}
+      className="flex flex-col gap-[0.8rem]"
+    >
+      <TabList aria-label={t.tabsLabel} className="flex gap-[1.8rem] border-line border-b">
+        {CONTACT_TABS.map((id) => (
+          <LineTab
+            key={id}
+            id={id}
+            size="lg"
+            extra={
+              <span className="ml-[0.5rem] font-mono font-normal text-[0.85rem] text-ink-dim tabular-nums">
+                {" "}
+                {countText(tabCount(id, props.kinds, props.senderBots), lang)}
+              </span>
+            }
+          >
+            {t.tabs[id]}
+          </LineTab>
+        ))}
+      </TabList>
+      <TabPanel key={props.tab} id={props.tab} className="tab-in flex flex-col gap-[0.8rem]">
+        {props.children}
+      </TabPanel>
+    </Tabs>
+  )
+}
+
+/** Inside People: whom the owner knows, whom not, and the rows memo could not name yet. */
+function PeopleFilters(props: {
+  kind: ListKind
+  kinds: Partial<Record<ListKind, { value: number; more: boolean }>>
+  senderBots: boolean
+  onKind: (kind: ListKind) => void
+}) {
+  const m = useMessages(peopleMessages)
+  const t = useMessages(tabMessages)
+  const lang = useLang()
+  return (
+    <Segmented<ListKind>
+      size="sm"
+      labelClass=""
       label={m.kindsLabel}
       value={props.kind}
       onChange={props.onKind}
-      options={PERSON_KINDS.map((k) => {
-        const count = props.kinds[k]
-        return {
-          value: k,
-          label: m.kinds[k] ?? k,
-          icon: KIND_ICONS[k],
-          count: count ? `${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : "—",
-        }
-      })}
+      options={peopleFilters(props.senderBots).map((k) => ({
+        value: k,
+        label: t.peopleFilter[k] ?? k,
+        icon: KIND_ICONS[k],
+        count: countText(props.kinds[k], lang),
+      }))}
     />
   )
 }
@@ -237,7 +308,7 @@ function Name({ person: p }: { person: Listed }) {
   const shown = name(p.ref, p.displayName ?? p.name)
   const raw = p.name?.trim()
   const detail = usePeople((s) => s.details[p.ref])
-  const bot = detail?.state === "ready" && allBots(detail.person.identities)
+  const bot = p.kind === "bot" || (detail?.state === "ready" && allBots(detail.person.identities))
   return (
     <button
       type="button"
@@ -304,6 +375,12 @@ function Contact({ person: p }: { person: Listed }) {
             value: `@${handle}`,
           }
         : { icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) },
+    )
+  if (lines.length === 0 && isSenderBot(p.ref))
+    return (
+      <span className={TWO_LINES}>
+        <span className="selectable truncate font-mono text-[0.88rem]">{p.contact ?? "—"}</span>
+      </span>
     )
   if (lines.length === 0) return <ContactFromAccounts reference={p.ref} />
   return (

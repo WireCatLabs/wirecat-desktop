@@ -162,3 +162,18 @@ pub async fn people_contact(reference: String, organization: String) -> Result<(
 pub async fn people_doubts(page: u32, size: u32) -> Result<people::Doubts, AppError> {
     crate::log::command("people_doubts", async move { attempt(move || people::doubts(page, size)).await }).await
 }
+
+/// One page of the bots, by name; `query` looks for a name, an address or a handle.
+#[tauri::command]
+pub async fn sender_bots_page(page: u32, size: u32, query: String) -> Result<people::Page, AppError> {
+    crate::log::command("sender_bots_page", async move {
+        attempt(move || crate::sender_bots::page(page, size, &query)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn sender_bot_show(reference: String) -> Result<crate::sender_bots::SenderBot, AppError> {
+    crate::log::command("sender_bot_show", async move { attempt(move || crate::sender_bots::show(&reference)).await })
+        .await
+}

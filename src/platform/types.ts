@@ -81,6 +81,7 @@ import type {
   RouteChoices,
   ScheduleTest,
   SearchHarder,
+  SenderBot,
   SendTo,
   Shown as SetupShown,
   Signed,
@@ -486,6 +487,10 @@ export type Platform = {
     query: string
     sort: PeopleSort
   }): Promise<PeoplePage>
+  /** One page of the bots, by name, as rows of the people table; `query` looks for a name or an address. */
+  senderBotsPage(ask: { page: number; size: number; query: string }): Promise<PeoplePage>
+  /** One bot: its accounts, organization, how it was sorted and every move between it and a person. */
+  senderBotShow(ref: string): Promise<SenderBot>
   /** One person: identities by source with the accounts that saw each, merges and open matches. */
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */

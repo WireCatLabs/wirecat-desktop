@@ -116,7 +116,7 @@ fn person_of(v: &Value) -> Option<String> {
 
 /// An identity goes back into a command line only as one word that cannot read as an option: a provider that starts
 /// with a letter, then an id with no space or control character. Others are shown, never sent.
-fn sendable(s: &str) -> Option<&str> {
+pub(crate) fn sendable(s: &str) -> Option<&str> {
     let (provider, id) = s.split_once(':')?;
     let named = provider.starts_with(|c: char| c.is_ascii_lowercase())
         && provider.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
@@ -387,6 +387,8 @@ pub enum Read {
         /// What agents merged on strong evidence, still one; empty from a memo before agents merged.
         agent_merges: Vec<AgentMerge>,
         agent_merges_more: bool,
+        /// This memo lists bots apart from people (`bots list`): the Bots tab reads them, not `kind:automated`.
+        sender_bots: bool,
     },
 }
 
@@ -459,6 +461,7 @@ fn read_with(call: &Call, kind: &str, agent: bool) -> Result<Read, String> {
         one_company: false,
         agent_merges: list(&merged, "items", agent_merge),
         agent_merges_more: more(&merged),
+        sender_bots: false,
     })
 }
 
@@ -525,8 +528,16 @@ pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result
 }
 
 /// How many people memo holds of each kind, for the list's tabs; read apart from the list so it never waits on them.
+/// With `bots list`, the bots' count is `bot`: a bot is not a person, so no kind of people counts it.
 pub fn kinds() -> Result<BTreeMap<String, KindCount>, String> {
-    with_memo(|call| Ok(counts_with(call)))
+    let bots = crate::sender_bots::open();
+    with_memo(|call| {
+        let mut counts = counts_with(call);
+        if let Some(n) = bots.then(|| crate::sender_bots::count_with(call)).flatten() {
+            counts.insert("bot".into(), n);
+        }
+        Ok(counts)
+    })
 }
 
 pub fn read(kind: &str) -> Result<Read, String> {
@@ -539,9 +550,10 @@ pub fn read(kind: &str) -> Result<Read, String> {
     }
     let agent = agent_merges_open(tool, first.version.as_deref());
     let mut read = with_memo(|call| read_with(call, kind, agent))?;
-    if let Read::Ready { company_mailbox, one_company, .. } = &mut read {
+    if let Read::Ready { company_mailbox, one_company, sender_bots, .. } = &mut read {
         *company_mailbox = company_mailbox_open(tool, first.version.as_deref());
         *one_company = one_company_open(tool, first.version.as_deref());
+        *sender_bots = crate::sender_bots::open();
     }
     Ok(read)
 }
