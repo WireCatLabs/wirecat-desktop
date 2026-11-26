@@ -632,7 +632,7 @@ messenger handle (memo 0.131.76 does not say which messenger), else a dash. Thre
 (owner, 2026-11-25; `src/domain/contact-tabs.ts`): **People** with the filters Known (`kind:person`), Not known
 (`kind:stranger`), Look automated (`kind:automated`, only once bots are apart) and Incomplete (`kind:unsorted`, left
 out of the tab's count); **Bots**, from `sender_bots_page` (`bots list [name:"…"] --limit --page`, no order) and
-`sender_bot_show` (`bots show sender-bot:<id>`), or `kind:automated` from a memo without `bots list` (the catalog's
+`sender_bot_show` (`bots show bot:<id>`; `sender-bot:<id>` from a memo before cli-core 2.0), or `kind:automated` from a memo without `bots list` (the catalog's
 `people.senderBots`, memo 0.154.0); **Organizations** (`kind:organization`). A bot's ref is `SENDER_BOT_PREFIX` in that file and in
 `sender_bots.rs`, so the planned `bot:<id>` is one change. `people_kinds` adds the bots' count as `bot`. Not built:
 the Bots filters by what they send (memo's `bots list` has no type term) and the Subscriptions view (no CLI lists
