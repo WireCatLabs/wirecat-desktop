@@ -343,7 +343,7 @@ const es: BitrixText = {
       department: "Estructura de la empresa",
       task: "Tareas",
       telephony: "Telefonía",
-      disk: "Drive",
+      disk: "Disco",
       documentgenerator: "Generador de documentos",
     },
     copyCode: (code) => `Copiar ${code}`,
@@ -380,7 +380,7 @@ const es: BitrixText = {
     scope: {
       title: "El webhook no puede leer quién lo creó.",
       cause:
-        "En Bitrix24, abre el webhook y comprueba que están elegidos todos estos permisos: Usuarios (básico) user_basic, CRM crm, Estructura de la empresa department, Tareas task, Telefonía telephony, Drive disk y Generador de documentos documentgenerator. Guarda. La dirección no cambia: pulsa Comprobar de nuevo.",
+        "En Bitrix24, abre el webhook y comprueba que están elegidos todos estos permisos: Usuarios (básico) user_basic, CRM crm, Estructura de la empresa department, Tareas task, Telefonía telephony, Disco disk y Generador de documentos documentgenerator. Guarda. La dirección no cambia: pulsa Comprobar de nuevo.",
     },
     refused: {
       title: "Bitrix24 rechazó este webhook.",
@@ -441,7 +441,7 @@ const es: BitrixText = {
       scope: {
         title: "La aplicación no puede leer quién inició sesión.",
         cause:
-          "En Bitrix24, abre la aplicación y comprueba que están elegidos todos estos permisos: Usuarios (básico) user_basic, CRM crm, Estructura de la empresa department, Tareas task, Telefonía telephony, Drive disk y Generador de documentos documentgenerator. Guarda e inicia sesión de nuevo.",
+          "En Bitrix24, abre la aplicación y comprueba que están elegidos todos estos permisos: Usuarios (básico) user_basic, CRM crm, Estructura de la empresa department, Tareas task, Telefonía telephony, Disco disk y Generador de documentos documentgenerator. Guarda e inicia sesión de nuevo.",
       },
       invalid: {
         title: "La herramienta de Bitrix24 rechazó lo escrito.",
