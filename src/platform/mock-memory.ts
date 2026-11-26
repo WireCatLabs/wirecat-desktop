@@ -87,7 +87,7 @@ const REVIEWS: Record<string, SourceReview> = {
 
 const [PRICING_TASK = "", CLINICS_TASK = ""] = Object.keys(TASK_IDS).map((id) => `task:${id}`)
 
-const agent = (name: string) => ({ type: "bot", name })
+const agent = (name: string) => ({ type: "agent", name })
 const OWNER = { type: "person", name: null }
 
 const NBB = { project: "project:4", projectName: "Northbridge Bench" } as const

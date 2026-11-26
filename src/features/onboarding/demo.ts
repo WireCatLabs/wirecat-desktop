@@ -69,7 +69,7 @@ const NAMES: Record<Lang, { kai: string; ana: string }> = {
   es: { kai: "Kai Moreno", ana: "Ana Ruiz" },
 }
 
-const bot = (name: string) => ({ type: "bot", name })
+const bot = (name: string) => ({ type: "agent", name })
 
 function demoMemory(lang: Lang): MemoryEntry[] {
   const t = MEMORY_TEXT[lang]
@@ -350,7 +350,7 @@ function demoTasks(lang: Lang): Task[] {
       priorityLabel: "high",
       assignees: [OWNER],
       dueAt: inDays(2),
-      createdBy: { type: "bot", name: "hermes", owner: false },
+      createdBy: { type: "agent", name: "hermes", owner: false },
     },
     {
       ...base,
@@ -374,7 +374,7 @@ function demoTasks(lang: Lang): Task[] {
       priorityLabel: "medium",
       assignees: [],
       dueAt: inDays(3),
-      createdBy: { type: "bot", name: "hermes", owner: false },
+      createdBy: { type: "agent", name: "hermes", owner: false },
     },
     {
       ...base,

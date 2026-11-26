@@ -45,7 +45,7 @@ const PROJECTS: Project[] = [
   { ref: "project:3", key: "HOME", name: "Home" },
 ]
 const OWNER: Creator = { type: "person", name: null, owner: true }
-const HERMES: Creator = { type: "bot", name: "hermes", owner: false }
+const HERMES: Creator = { type: "agent", name: "hermes", owner: false }
 const PEOPLE: Person[] = [
   { ref: "person:1", name: null, owner: true },
   { ref: "person:2", name: "Ana Ruiz", owner: false },
@@ -509,7 +509,7 @@ export function tasksMock(): TaskApi {
     const t = find(key)
     if (conflictLeft && key === "HRB-12") {
       conflictLeft = false
-      const hermes = { ref: "bot:4", name: "hermes", owner: false }
+      const hermes = { ref: "agent:4", name: "hermes", owner: false }
       const current = put({ ...t, state: "todo", revision: t.revision + 1, updatedAt: new Date().toISOString() })
       record(key, [{ field: "status", from: t.state, to: "todo" }], "status", hermes)
       return { kind: "stale", current, last: history.get(key)?.at(-1) ?? null }
@@ -615,7 +615,7 @@ export function tasksMock(): TaskApi {
     async taskHistory(key) {
       await delay(300)
       const t = find(key)
-      const by = t.createdBy?.owner === false ? { ref: "bot:4", name: t.createdBy.name, owner: false } : you
+      const by = t.createdBy?.owner === false ? { ref: "agent:4", name: t.createdBy.name, owner: false } : you
       const made: TaskEvent = { at: t.createdAt, kind: "created", by, changes: [] }
       const claim: TaskEvent[] =
         t.claimedBy && claimActive(t.claimedUntil)
@@ -623,7 +623,7 @@ export function tasksMock(): TaskApi {
               {
                 at: ago(20),
                 kind: "agent",
-                by: { ref: "bot:4", name: t.claimedBy, owner: false },
+                by: { ref: "agent:4", name: t.claimedBy, owner: false },
                 changes: [{ field: "agent", from: null, to: t.claimedBy }],
               },
             ]

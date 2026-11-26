@@ -1004,7 +1004,7 @@ mod tests {
     fn listed() -> Value {
         json!({"ref":"task:HRB-1","id":"HRB-1","key":"HRB-1","title":"Draft the budget","description":null,
             "kind":"feature","state":"open","project":"project:1","project_key":"HRB","project_name":"Harbour",
-            "created_by":{"type":"bot","id":"4","name":"hermes","owner":false},"source_message":null,"priority":0.734_375,
+            "created_by":{"type":"agent","id":"4","name":"hermes","owner":false},"source_message":null,"priority":0.734_375,
             "priority_label":"high","agent":"hermes","revision":5,"parent":null,"due_at":"2026-11-04T23:00:00.000Z",
             "closed_at":null,"reason":null,"category":null,"claimed_by":"hermes",
             "claimed_until":"2026-11-01T00:52:52.096Z","assignments":[{"to":"person:2","role":"assignee"},
@@ -1028,7 +1028,7 @@ mod tests {
             {"at":"2026-11-01T00:22:37.486Z","kind":"created","by":{"ref":"person:1","name":"Slava","owner":true},"changes":null},
             {"at":"2026-11-01T00:22:46.062Z","kind":"due","by":{"ref":"person:1","name":"Slava","owner":true},
              "changes":{"due_at":[null,1_793_833_200_000_u64]}},
-            {"at":"2026-11-01T00:23:01.000Z","kind":"status","by":{"ref":"bot:4","name":"hermes","owner":false},
+            {"at":"2026-11-01T00:23:01.000Z","kind":"status","by":{"ref":"agent:4","name":"hermes","owner":false},
              "changes":{"status":["open","in_progress"]}}]})
     }
 
@@ -1044,7 +1044,7 @@ mod tests {
             assert!(validate_id(bad).is_err(), "{bad}");
         }
         assert!(validate_person("person:12").is_ok());
-        for bad in ["person:", "person:-1", "person:1 2", "bot:1", "12"] {
+        for bad in ["person:", "person:-1", "person:1 2", "bot:1", "agent:1", "12"] {
             assert!(validate_person(bad).is_err(), "{bad}");
         }
         assert!(validate_agent("claude-code").is_ok());
@@ -1122,7 +1122,7 @@ mod tests {
         assert_eq!((total, more), (612, true));
         let t = &tasks[0];
         assert_eq!((t.project.as_str(), t.project_name.as_deref()), ("HRB", Some("Harbour")));
-        assert_eq!(t.created_by, Some(Creator { kind: "bot".into(), name: Some("hermes".into()), owner: false }));
+        assert_eq!(t.created_by, Some(Creator { kind: "agent".into(), name: Some("hermes".into()), owner: false }));
         assert_eq!(t.assignees, ["person:2"]);
         assert_eq!(t.blocked_by, [Blocker { key: "HRB-3".into(), state: "open".into() }]);
         assert_eq!(t.ready, Some(false));
@@ -1429,7 +1429,7 @@ mod tests {
                 ("people", _) => json!({"item":{"ref":"person:4","name":"-Lena"}}),
                 (_, Some("list")) => json!({"items":[{"ref":"note:1","text":"Booked the hall",
                     "author":{"type":"person","id":"1","name":null,"owner":true},"at":"2026-11-01T20:19:44.490Z"}]}),
-                _ => json!({"item":{"ref":"note:2","text":"-x first","author":{"type":"bot","id":"4","name":"hermes",
+                _ => json!({"item":{"ref":"note:2","text":"-x first","author":{"type":"agent","id":"4","name":"hermes",
                     "owner":false},"at":"2026-11-01T20:20:00.000Z"}}),
             })
         });

@@ -218,7 +218,7 @@ export function memoryAddMock(
         subject: subjects[0] ?? null,
         subjectName: subjects[0] ? (MENTIONS.items.find((m) => m.ref === subjects[0])?.name ?? null) : null,
         subjectIsOwner: false,
-        author: { type: "bot", name: "memo-reader" },
+        author: { type: "agent", name: "memo-reader" },
         scope: "work",
         project: null,
         projectName: null,

@@ -781,7 +781,7 @@ mod tests {
 
     fn batch(status: &str, cites: &str) -> Value {
         json!({"item":{"id":"9","kind":"evidence_findings","status":status,"created_at":"2026-11-07T10:00:00.000Z",
-            "proposed_by":{"type":"bot","name":"memo-reader"},"fingerprint":"5adf3e","payload":{"findings":[
+            "proposed_by":{"type":"agent","name":"memo-reader"},"fingerprint":"5adf3e","payload":{"findings":[
             {"id":"f1","kind":"fact","statement":"Delivery is on the 28th","evidence":[{"reference":cites}]}]}}})
     }
 

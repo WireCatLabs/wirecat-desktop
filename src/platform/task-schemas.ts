@@ -7,7 +7,7 @@ export const TaskKindSchema = v.picklist(["bug", "feature", "chore"])
 export const FOUND_KINDS = ["question", "request", "mention", "promise"] as const
 export type FoundKind = (typeof FOUND_KINDS)[number]
 
-/** Who made a task or wrote a comment: the owner, another person, or an agent (`type` "bot"). */
+/** Who made a task or wrote a comment: the owner, another person, or an agent (`type` "agent"). */
 export const CreatorSchema = v.object({ type: v.string(), name: v.nullable(v.string()), owner: v.boolean() })
 
 export const TaskSchema = v.object({
