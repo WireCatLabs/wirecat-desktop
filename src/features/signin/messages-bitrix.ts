@@ -29,18 +29,22 @@ const en = {
       open: (host: string) => `Open Developer resources on ${host}.`,
       other: "Choose Other, then Incoming webhook.",
       rights:
-        "At the bottom of the page, under Assign permissions, press the + link beside the field. A list with a search field opens: type each code below, user_basic, crm and department, and tick it.",
+        "At the bottom of the page, under Assign permissions, press the + link beside the field. A list with a search field opens: type each code below and tick it.",
       save: (host: string) => `Press Save, then copy the webhook's address. It starts with https://${host}/rest/.`,
     },
     scopes: {
       crm: "CRM",
       user_basic: "Users (basic)",
       department: "Company structure",
+      task: "Tasks",
+      telephony: "Telephony",
+      disk: "Drive",
+      documentgenerator: "Document generator",
     } as Record<WebhookScope, string>,
     copyCode: (code: string) => `Copy ${code}`,
     shot: {
       alt: "Bitrix24's Incoming webhook page. At the bottom, under the permissions, Users (basic) user_basic, CRM crm and Company structure department are chosen.",
-      caption: "The three permissions, chosen",
+      caption: "Where the permissions are chosen",
     },
     enlarge: (caption: string) => `Enlarge: ${caption}`,
     acts: "The agent acts with the rights of the employee who makes the webhook: it sees and changes only what they can.",
@@ -71,7 +75,7 @@ const en = {
     scope: {
       title: "The webhook may not read who made it.",
       cause:
-        "In Bitrix24, open the webhook and check that all three permissions are chosen: Users (basic), user_basic; CRM, crm; Company structure, department. Save. The address stays the same: press Check again.",
+        "In Bitrix24, open the webhook and check that all these permissions are chosen: Users (basic) user_basic, CRM crm, Company structure department, Tasks task, Telephony telephony, Drive disk and Document generator documentgenerator. Save. The address stays the same: press Check again.",
     },
     refused: {
       title: "Bitrix24 refused this webhook.",
@@ -91,7 +95,7 @@ const en = {
       open: (host: string) => `Open Developer resources on ${host}. Choose Other, then Local application.`,
       server: "Choose Server. Paste this address into Your handler path:",
       install: 'Leave Initial installation path empty, and leave "Application completes the installation itself" off.',
-      rights: "Under the access permissions, tick these three.",
+      rights: "Under the access permissions, tick all of these.",
       save: "Press Save. Copy the Application ID (client_id) and the Application key (client_secret) into the fields below.",
     },
     copyHandler: "Copy the handler path",
@@ -131,7 +135,7 @@ const en = {
       scope: {
         title: "The application may not read who signed in.",
         cause:
-          "In Bitrix24, open the application and check that all three permissions are chosen: Users (basic), user_basic; CRM, crm; Company structure, department. Save and sign in again.",
+          "In Bitrix24, open the application and check that all these permissions are chosen: Users (basic) user_basic, CRM crm, Company structure department, Tasks task, Telephony telephony, Drive disk and Document generator documentgenerator. Save and sign in again.",
       },
       invalid: {
         title: "Bitrix24's tool refused what was typed.",
@@ -179,18 +183,22 @@ const ru: BitrixText = {
       open: (host) => `Откройте раздел «Разработчикам» на ${host}.`,
       other: "Выберите «Другое», затем «Входящий вебхук».",
       rights:
-        "Внизу страницы, в разделе «Настройка прав», нажмите «+ выбрать» рядом с полем. Откроется список с поиском: введите по очереди коды user_basic, crm и department и выберите каждое право.",
+        "Внизу страницы, в разделе «Настройка прав», нажмите «+ выбрать» рядом с полем. Откроется список с поиском: введите по очереди каждый код из списка ниже и выберите право.",
       save: (host) => `Нажмите «Сохранить» и скопируйте адрес вебхука. Он начинается с https://${host}/rest/.`,
     },
     scopes: {
       crm: "CRM",
       user_basic: "Пользователи (базовый)",
       department: "Структура компании",
+      task: "Задачи",
+      telephony: "Телефония",
+      disk: "Диск",
+      documentgenerator: "Генератор документов",
     },
     copyCode: (code) => `Скопировать ${code}`,
     shot: {
       alt: "Страница «Входящий вебхук» в Битрикс24. Внизу, в разделе «Настройка прав», выбраны «Пользователи (базовый) (user_basic)», «CRM (crm)» и «Структура компании (department)».",
-      caption: "Три права выбраны",
+      caption: "Где выбирают права",
     },
     enlarge: (caption) => `Увеличить: ${caption}`,
     acts: "Агент действует с правами сотрудника, создавшего вебхук: видит и меняет только то, что может он.",
@@ -220,7 +228,7 @@ const ru: BitrixText = {
     scope: {
       title: "Вебхуку не хватает права читать пользователей.",
       cause:
-        "В Битрикс24 откройте вебхук и проверьте, что в «Настройке прав» выбраны все три права: «Пользователи (базовый)», user_basic; «CRM», crm; «Структура компании», department. Сохраните. Адрес не изменится: нажмите «Проверить снова».",
+        "В Битрикс24 откройте вебхук и проверьте, что в «Настройке прав» выбраны все эти права: «Пользователи (базовый)» user_basic, «CRM» crm, «Структура компании» department, «Задачи» task, «Телефония» telephony, «Диск» disk и «Генератор документов» documentgenerator. Сохраните. Адрес не изменится: нажмите «Проверить снова».",
     },
     refused: {
       title: "Битрикс24 отклонил этот вебхук.",
@@ -241,7 +249,7 @@ const ru: BitrixText = {
       server: "Выберите «Серверное». В поле «Путь вашего обработчика» вставьте этот адрес:",
       install:
         "«Путь для первоначальной установки» оставьте пустым. Галочку о том, что приложение само завершает установку, не ставьте.",
-      rights: "В правах доступа отметьте эти три.",
+      rights: "В правах доступа отметьте все эти права.",
       save: "Нажмите «Сохранить». Скопируйте код приложения (client_id) и ключ приложения (client_secret) в поля ниже.",
     },
     copyHandler: "Скопировать путь обработчика",
@@ -280,7 +288,7 @@ const ru: BitrixText = {
       scope: {
         title: "Приложению не хватает права читать пользователей.",
         cause:
-          "В Битрикс24 откройте приложение и проверьте, что выбраны все три права: «Пользователи (базовый)», user_basic; «CRM», crm; «Структура компании», department. Сохраните и войдите снова.",
+          "В Битрикс24 откройте приложение и проверьте, что выбраны все эти права: «Пользователи (базовый)» user_basic, «CRM» crm, «Структура компании» department, «Задачи» task, «Телефония» telephony, «Диск» disk и «Генератор документов» documentgenerator. Сохраните и войдите снова.",
       },
       invalid: {
         title: "Инструмент Битрикс24 не принял введенное.",
@@ -326,18 +334,22 @@ const es: BitrixText = {
       open: (host) => `Abre Recursos para desarrolladores en ${host}.`,
       other: "Elige Otro y luego Webhook entrante.",
       rights:
-        "Al final de la página, en la sección de permisos, pulsa el enlace + junto al campo. Se abre una lista con buscador: escribe uno a uno los códigos user_basic, crm y department y elige cada permiso.",
+        "Al final de la página, en la sección de permisos, pulsa el enlace + junto al campo. Se abre una lista con buscador: escribe uno a uno los códigos de abajo y elige cada permiso.",
       save: (host) => `Pulsa Guardar y copia la dirección del webhook. Empieza por https://${host}/rest/.`,
     },
     scopes: {
       crm: "CRM",
       user_basic: "Usuarios (básico)",
       department: "Estructura de la empresa",
+      task: "Tareas",
+      telephony: "Telefonía",
+      disk: "Disco",
+      documentgenerator: "Generador de documentos",
     },
     copyCode: (code) => `Copiar ${code}`,
     shot: {
       alt: "La página Webhook entrante de Bitrix24. Abajo, en los permisos, están elegidos Usuarios (básico) user_basic, CRM crm y Estructura de la empresa department.",
-      caption: "Los tres permisos, elegidos",
+      caption: "Dónde se eligen los permisos",
     },
     enlarge: (caption) => `Ampliar: ${caption}`,
     acts: "El agente actúa con los permisos del empleado que crea el webhook: ve y cambia solo lo que esa persona puede.",
@@ -368,7 +380,7 @@ const es: BitrixText = {
     scope: {
       title: "El webhook no puede leer quién lo creó.",
       cause:
-        "En Bitrix24, abre el webhook y comprueba que están elegidos los tres permisos: Usuarios (básico), user_basic; CRM, crm; Estructura de la empresa, department. Guarda. La dirección no cambia: pulsa Comprobar de nuevo.",
+        "En Bitrix24, abre el webhook y comprueba que están elegidos todos estos permisos: Usuarios (básico) user_basic, CRM crm, Estructura de la empresa department, Tareas task, Telefonía telephony, Disco disk y Generador de documentos documentgenerator. Guarda. La dirección no cambia: pulsa Comprobar de nuevo.",
     },
     refused: {
       title: "Bitrix24 rechazó este webhook.",
@@ -389,7 +401,7 @@ const es: BitrixText = {
       server: "Elige Servidor. Pega esta dirección en la ruta de tu controlador:",
       install:
         "Deja vacía la ruta de instalación inicial y deja sin marcar la opción de que la aplicación completa la instalación por sí misma.",
-      rights: "En los permisos de acceso, marca estos tres.",
+      rights: "En los permisos de acceso, marca todos estos.",
       save: "Pulsa Guardar. Copia el ID de la aplicación (client_id) y la clave de la aplicación (client_secret) en los campos de abajo.",
     },
     copyHandler: "Copiar la ruta del controlador",
@@ -429,7 +441,7 @@ const es: BitrixText = {
       scope: {
         title: "La aplicación no puede leer quién inició sesión.",
         cause:
-          "En Bitrix24, abre la aplicación y comprueba que están elegidos los tres permisos: Usuarios (básico), user_basic; CRM, crm; Estructura de la empresa, department. Guarda e inicia sesión de nuevo.",
+          "En Bitrix24, abre la aplicación y comprueba que están elegidos todos estos permisos: Usuarios (básico) user_basic, CRM crm, Estructura de la empresa department, Tareas task, Telefonía telephony, Disco disk y Generador de documentos documentgenerator. Guarda e inicia sesión de nuevo.",
       },
       invalid: {
         title: "La herramienta de Bitrix24 rechazó lo escrito.",

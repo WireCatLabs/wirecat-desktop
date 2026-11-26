@@ -4,6 +4,7 @@ import {
   appProblem,
   portalHost,
   portalProblem,
+  WEBHOOK_SCOPES,
   webhookPage,
   webhookParts,
   webhookProblem,
@@ -168,8 +169,8 @@ describe("Bitrix24's sign-in wizard", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()
     expect(within(dialog).getByText(/under Assign permissions, press the \+ link/)).toBeInTheDocument()
-    await userEvent.click(within(dialog).getByRole("button", { name: "Enlarge: The three permissions, chosen" }))
-    expect(screen.getByRole("dialog", { name: "The three permissions, chosen" })).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Enlarge: Where the permissions are chosen" }))
+    expect(screen.getByRole("dialog", { name: "Where the permissions are chosen" })).toBeInTheDocument()
   })
 
   it("leads to the portal's own webhook page with the rights to tick, then signs in with the webhook on stdin", async () => {
@@ -179,7 +180,7 @@ describe("Bitrix24's sign-in wizard", () => {
     await settled()
     expect(within(dialog).getByText("Open Developer resources on acme.bitrix24.ru.")).toBeInTheDocument()
     expect(within(dialog).getByRole("button", { name: "Open Developer resources" })).toBeInTheDocument()
-    for (const code of ["crm", "user_basic", "department"])
+    for (const code of WEBHOOK_SCOPES)
       expect(within(dialog).getByRole("button", { name: `Copy ${code}` })).toBeInTheDocument()
     expect(within(dialog).getByText(/Only a webhook made by a portal administrator/)).toBeInTheDocument()
 
@@ -239,7 +240,7 @@ describe("Bitrix24's sign-in wizard", () => {
     expect(within(dialog).getByText("The webhook may not read who made it.")).toBeInTheDocument()
     expect(
       within(dialog).getByText(
-        /all three permissions are chosen: Users \(basic\), user_basic; CRM, crm; Company structure, department/,
+        /all these permissions are chosen: Users \(basic\) user_basic, CRM crm, Company structure department, Tasks task, Telephony telephony/,
       ),
     ).toBeInTheDocument()
     expect(within(dialog).getByLabelText("Webhook address")).toHaveValue(HOOK)
@@ -284,7 +285,7 @@ describe("Bitrix24's sign-in wizard", () => {
     expect(within(dialog).getByText("Make a local application")).toBeInTheDocument()
     expect(within(dialog).getByText("https://wirecat.dev/webhooks/apps/b24-callback")).toBeInTheDocument()
     expect(within(dialog).getByRole("button", { name: "Copy the handler path" })).toBeInTheDocument()
-    for (const code of ["crm", "user_basic", "department"])
+    for (const code of WEBHOOK_SCOPES)
       expect(within(dialog).getByRole("button", { name: `Copy ${code}` })).toBeInTheDocument()
     expect(within(dialog).getByRole("button", { name: "Full guide on wirecat.dev" })).toBeInTheDocument()
 
