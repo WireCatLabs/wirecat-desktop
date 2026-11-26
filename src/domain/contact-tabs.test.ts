@@ -24,9 +24,10 @@ describe("contact tabs", () => {
     expect(tabCount("organizations", counts, true)).toBeNull()
   })
 
-  it("knows a bot by memo's prefix only", () => {
+  it("knows a bot by memo's prefix, and by the one before cli-core 2.0", () => {
+    expect(isSenderBot("bot:3")).toBe(true)
     expect(isSenderBot("sender-bot:3")).toBe(true)
-    expect(isSenderBot("bot:3")).toBe(false)
+    expect(isSenderBot("agent:3")).toBe(false)
     expect(isSenderBot(null)).toBe(false)
   })
 })
