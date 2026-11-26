@@ -14,7 +14,7 @@
       "docs": "https://wirecat.dev/en/docs/tg",
       "repo": "https://github.com/WireCatLabs/tg-cli",
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--record", "--json"],
@@ -445,7 +445,7 @@
       "docs": "https://wirecat.dev/en/docs/max",
       "repo": "https://github.com/WireCatLabs/max-cli",
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--record", "--json"],
@@ -869,7 +869,7 @@
       "docs": "https://wirecat.dev/en/docs/wa",
       "repo": "https://github.com/WireCatLabs/whatsapp-cli",
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--record", "--json"],
@@ -1305,7 +1305,7 @@
       "docs": "https://github.com/WireCatLabs/slack-cli#readme",
       "repo": "https://github.com/WireCatLabs/slack-cli",
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--record", "--json"],
@@ -1557,7 +1557,7 @@
       "repo": "https://github.com/WireCatLabs/drive-cli",
       "profiles": {
         "args": ["session", "list", "--no-record", "--json"],
-        "shape": "item.items"
+        "shape": "items"
       },
       "doctor": ["{profile}", "status", "--record", "--json"],
       "runs": {

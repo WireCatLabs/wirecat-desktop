@@ -1,6 +1,6 @@
 //! What a digest's route form offers: the Telegram bots `tg` keeps (a route's profile is a bot profile, as
 //! `tg <profile> bot messages send` takes it), the owner's own Telegram users and the mailboxes `mail` keeps, each with
-//! its address. Read from the tools' own `bot list`, `account list` and `session list`; nothing is written.
+//! its address. Read from the tools' own `bot list` and `session list`; nothing is written.
 //! The ids and addresses are the owner's own and leave Rust unmasked, the exception routes already are (rule 4); never
 //! logged.
 

@@ -248,6 +248,8 @@ pub fn profiles(tool: &Tool) -> Result<Option<Vec<Profile>>, String> {
 
 fn parse_profiles(v: &Value, shape: &str) -> Vec<Profile> {
     let list = match shape {
+        // drive before 0.79.0 nested its rows under `item`.
+        "items" if !v["items"].is_array() => &v["item"]["items"],
         "items" => &v["items"],
         "item.profiles" => &v["item"]["profiles"],
         "item.items" => &v["item"]["items"],
@@ -436,8 +438,11 @@ mod tests {
         let zm = json!({"item": {"profiles": ["personal"]}});
         assert_eq!(parse_profiles(&zm, "item.profiles")[0].name, "personal");
 
-        let drive = json!({"item": {"items": [{"profile": "work"}]}});
-        assert_eq!(parse_profiles(&drive, "item.items")[0].signed_in, None);
+        let drive = json!({"items": [{"profile": "work", "signed_in": true, "state": "saved"}]});
+        assert_eq!(parse_profiles(&drive, "items")[0].signed_in, Some(true));
+        let old_drive = json!({"item": {"items": [{"profile": "work"}]}});
+        assert_eq!(parse_profiles(&old_drive, "items")[0].signed_in, None);
+        assert_eq!(parse_profiles(&old_drive, "item.items")[0].name, "work");
 
         let mail = json!({"items": [{"profile": "work", "address": "a@b.c", "auth": "oauth"}]});
         assert_eq!(parse_profiles(&mail, "items")[0].signed_in, None);
