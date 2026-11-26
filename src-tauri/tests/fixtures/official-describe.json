@@ -507,6 +507,18 @@
   },
   "max": {
     "desktop": {
+      "accountRemove": {
+        "keeps": ["settings", "data", "listed"],
+        "remove": {
+          "confirm": "--yes",
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "minVersion": "0.0.0"
+        },
+        "removes": ["signIn"],
+        "signOut": ["{profile}", "session", "end", "--record", "--json"]
+      },
       "doctor": ["{profile}", "doctor", "--record", "--json"],
       "mcpServer": {
         "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"],
@@ -516,7 +528,7 @@
         "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"]
       },
       "profiles": {
-        "args": ["account", "list", "--no-record", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "runs": {
@@ -551,7 +563,7 @@
       "tagline": "Your MAX account, searchable on your computer",
       "tasks": null
     },
-    "version": "0.118.0"
+    "version": "0.123.0"
   },
   "memo": {
     "desktop": {
