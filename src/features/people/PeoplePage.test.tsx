@@ -101,7 +101,7 @@ describe("People", () => {
     const dialog = await screen.findByRole("dialog", { name: "Harbour Shop" })
     expect(await within(dialog).findByText("organization:3")).toBeVisible()
     expect(within(dialog).getByText("To many readers: a newsletter or a channel")).toBeVisible()
-    expect(people).not.toHaveBeenCalledWith(expect.stringMatching(/^sender-bot:/))
+    expect(people).not.toHaveBeenCalledWith(expect.stringMatching(/^bot:/))
   })
 
   it("on a memo without bots list, the Bots tab lists the people memo marks automated", async () => {

@@ -1,7 +1,8 @@
-/** How memo names a bot. cli-core will call it `bot:<id>` and keep this one as an alias; only this constant changes. */
-const SENDER_BOT_PREFIX = "sender-bot:"
+/** How memo names a bot from cli-core 2.0 on; a memo before it says `sender-bot:<id>`, and Desktop runs either. */
+const SENDER_BOT_PREFIXES = ["bot:", "sender-bot:"]
 
-export const isSenderBot = (ref: string | null | undefined) => !!ref?.startsWith(SENDER_BOT_PREFIX)
+export const isSenderBot = (ref: string | null | undefined) =>
+  SENDER_BOT_PREFIXES.some((prefix) => ref?.startsWith(prefix) === true)
 
 /** Contacts' tabs: each sender is on one of them (owner, 2026-11-25). */
 export const CONTACT_TABS = ["people", "bots", "organizations"] as const

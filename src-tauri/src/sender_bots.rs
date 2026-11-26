@@ -7,13 +7,15 @@ use crate::people::{Call, KindCount, Listed, Page, sendable, text, with_memo, wo
 use serde::Serialize;
 use serde_json::Value;
 
-/// How memo names a bot. cli-core will call it `bot:<id>` and keep this one as an alias; only this constant changes.
-pub const SENDER_BOT_PREFIX: &str = "sender-bot:";
+/// How memo names a bot from cli-core 2.0 on. A memo before it says `sender-bot:<id>`, and Desktop runs whichever memo
+/// is installed.
+pub const SENDER_BOT_PREFIX: &str = "bot:";
+pub const OLD_SENDER_BOT_PREFIX: &str = "sender-bot:";
 const MAX_PAGE: u32 = 200;
 const MAX_QUERY: usize = 100;
 
 pub fn bot_ref(s: &str) -> Result<&str, String> {
-    let id = s.strip_prefix(SENDER_BOT_PREFIX).unwrap_or_default();
+    let id = s.strip_prefix(SENDER_BOT_PREFIX).or_else(|| s.strip_prefix(OLD_SENDER_BOT_PREFIX)).unwrap_or_default();
     if id.is_empty() || id.len() > 15 || id.starts_with('0') || !id.bytes().all(|b| b.is_ascii_digit()) {
         return Err(format!("not a bot: {s}"));
     }
@@ -200,8 +202,9 @@ mod tests {
 
     #[test]
     fn a_bot_ref_is_the_prefix_and_a_number() {
+        assert!(bot_ref("bot:12").is_ok());
         assert!(bot_ref("sender-bot:12").is_ok());
-        for bad in ["sender-bot:", "sender-bot:012", "sender-bot:1 --yes", "bot:3", "person:3"] {
+        for bad in ["bot:", "bot:012", "bot:1 --yes", "sender-bot:", "agent:3", "person:3"] {
             assert!(bot_ref(bad).is_err(), "{bad}");
         }
     }
@@ -224,12 +227,12 @@ mod tests {
             seen.lock().unwrap().push(a.to_vec());
             Ok(json!({
                 "items": [
-                    {"ref": "sender-bot:3", "name": null, "display_name": "Harbour Shop",
+                    {"ref": "bot:3", "name": null, "display_name": "Harbour Shop",
                      "identities": [{"identity": "email:noreply@shop.example", "name": "Harbour Shop", "username": null}],
                      "messages_from": 41, "last_contact": "2026-11-24T10:00:00Z", "reach": "broadcast", "signals": []},
-                    {"ref": "sender-bot:4", "display_name": "Parcel bot",
+                    {"ref": "bot:4", "display_name": "Parcel bot",
                      "identities": [{"identity": "telegram:777", "name": null, "username": "parcel_bot"}]},
-                    {"ref": "sender-bot:5", "identities": [{"identity": "max:55", "name": null, "username": null}]},
+                    {"ref": "bot:5", "identities": [{"identity": "max:55", "name": null, "username": null}]},
                     {"ref": "person:6"}
                 ],
                 "page": {"has_more": true, "total": {"value": 120, "relation": "eq"}}
@@ -250,17 +253,17 @@ mod tests {
     #[test]
     fn show_reads_identities_and_moves() {
         let call = |a: &[String]| {
-            assert_eq!(a[..3], strs(&["bots", "show", "sender-bot:3"]));
+            assert_eq!(a[..3], strs(&["bots", "show", "bot:3"]));
             Ok(json!({"item": {
-                "ref": "sender-bot:3", "display_name": "Harbour Shop", "organization": "organization:2",
+                "ref": "bot:3", "display_name": "Harbour Shop", "organization": "organization:2",
                 "author": "owner", "reason": "a program",
                 "identities": [{"identity": "email:noreply@shop.example", "name": "Harbour Shop", "username": null}],
                 "messages_from": 41, "reach": "broadcast", "signals": ["no-reply", "bulk-mail"],
-                "moves": [{"identity": "email:noreply@shop.example", "from": "person:9", "to": "sender-bot:3",
+                "moves": [{"identity": "email:noreply@shop.example", "from": "person:9", "to": "bot:3",
                            "author": "owner", "reason": null, "at": "2026-11-25T09:00:00Z"}]
             }}))
         };
-        let bot = show_with(&call, "sender-bot:3").unwrap();
+        let bot = show_with(&call, "bot:3").unwrap();
         assert_eq!(bot.organization.as_deref(), Some("organization:2"));
         assert_eq!(bot.signals, strs(&["no-reply", "bulk-mail"]));
         assert_eq!(bot.moves[0].from.as_deref(), Some("person:9"));
