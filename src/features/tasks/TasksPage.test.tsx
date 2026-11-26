@@ -195,7 +195,7 @@ describe("Tasks", () => {
       key: "Q-9",
       project: "IN0BB44DA4",
       projectName: "telegram:1",
-      createdBy: { type: "bot", name: "rule", owner: false },
+      createdBy: { type: "agent", name: "rule", owner: false },
       title: "Can you send the lease by Friday?",
       description: null,
       kind: "question",
@@ -219,7 +219,7 @@ describe("Tasks", () => {
     }
     listing([found])
     vi.spyOn(platform, "taskHistory").mockResolvedValue([
-      { at: found.createdAt, kind: "created", by: { ref: "bot:1", name: "rule", owner: false }, changes: [] },
+      { at: found.createdAt, kind: "created", by: { ref: "agent:1", name: "rule", owner: false }, changes: [] },
     ])
     vi.spyOn(platform, "taskComments").mockResolvedValue([])
     render(<TasksPage />)
@@ -375,7 +375,7 @@ describe("Tasks", () => {
       last: {
         at: "2026-11-01T08:16:00Z",
         kind: "status",
-        by: { ref: "bot:4", name: "hermes", owner: false },
+        by: { ref: "agent:4", name: "hermes", owner: false },
         changes: [{ field: "status", from: "in_progress", to: "todo" }],
       },
     })

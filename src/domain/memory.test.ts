@@ -30,7 +30,7 @@ import {
   withCleanNames,
 } from "./memory"
 
-const entry = (type: string, kind: string, status: string) => ({ type, kind, status, author: { type: "bot" } })
+const entry = (type: string, kind: string, status: string) => ({ type, kind, status, author: { type: "agent" } })
 
 describe("memory records", () => {
   it("files every status under one tab, and an unknown one under All only", () => {
@@ -108,7 +108,7 @@ describe("Memory's search", () => {
     type: "memory",
     kind: "preference",
     status: "confirmed",
-    author: { type: "bot", name: "hermes" },
+    author: { type: "agent", name: "hermes" },
     subject: "person:7",
     subjectName: "James Mead",
     subjectIsOwner: false,

@@ -19,7 +19,7 @@ const entry = (over: Partial<MemoryEntry>): MemoryEntry => ({
   subject: null,
   subjectName: null,
   subjectIsOwner: false,
-  author: { type: "bot", name: "claude-code" },
+  author: { type: "agent", name: "claude-code" },
   scope: "work",
   project: null,
   projectName: null,
