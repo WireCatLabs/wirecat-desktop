@@ -53,36 +53,44 @@ Also checked:
    (hard links need it). Each tool stays a separate global package, so install, update, uninstall, locks and PATH
    keep their current per-tool shape. Rejected: one Desktop-owned npm project folder (measured 435 MB for four CLIs,
    about the same saving) because it needs own shims, folder generations and one lock for all tools.
-2. **pnpm comes with Desktop's own Node through corepack**, pinned to one version, so the user needs nothing new.
+2. **Desktop installs pnpm itself with npm**, pinned to one version (`npm install --prefix <app data>/pnpm
+   pnpm@11.28.8`), and calls that copy by its full path. The user needs nothing new: npm comes with every Node.
+   Not corepack: Desktop downloads the newest supported Node (`src-tauri/src/node.rs:185-191`, 24+ allowed by
+   `system.rs:131-137`), and the Node project's docs describe corepack as no longer shipped with Node 25 and later.
+   The user's own pnpm, if any, is never used.
 3. **Builds are allowed by a list in the catalog**: `better-sqlite3`, `ssh2`, `cpu-features`. The CLIs' own
    `postinstall` installs agent skills and, on Windows, repairs PATH (`tg-cli install/postinstall.mjs`); Desktop does
    both itself (`src-tauri/src/skills.rs`, `profile.rs`), so it stays off unless a test shows it is needed.
 4. **A check after every install runs `<bin> commands` and one store-opening command**, not `--version`.
-5. **Migration is open question 1.** Today's global npm copies are not removed by default.
+5. **Migration: moved automatically on the next update of each tool** (owner, 2026-11-27). Desktop installs the new
+   version through pnpm, runs the check from decision 4, switches to the new copy, and only then removes the old npm
+   copy. A failed step leaves the old copy in use. A copy the user installed outside Desktop is left alone.
+6. **Without Desktop the site keeps `npm install -g`** (owner, 2026-11-27). pnpm is recommended in one place only:
+   a section for people who install three or more tools, with the full command including `--allow-build`, and why
+   (npm keeps a full copy of the shared core in every tool).
 
 ## Work items (wirecat-desktop unless named)
 
-1. **pnpm on Desktop's Node**: corepack, pinned version, `PNPM_HOME` and store under the app data folder; PATH entry
+1. **pnpm on Desktop's Node**: pinned version installed with npm (decision 2), `PNPM_HOME` and store under the app data folder; PATH entry
    through `profile.rs`.
 2. **Default manager pnpm** for a new install (`install.rs:270`), with the catalog's allowed builds; the existing pnpm
    path for updates and uninstall stays.
 3. **Post-install check**: `commands` plus a store-opening command, in `install.rs` after the step that runs today.
-4. **Migration** as the owner decides (open question 1), with the old copy kept until the new one passes the check.
+4. **Migration** on each tool's next update (decision 5), with the old copy kept until the new one passes the check.
 5. **Tests**: `install_e2e.rs` with pnpm on Linux, macOS and Windows (today Linux only, `.github/workflows/ci.yml:61-82`):
    two tools on different cores share files (link count above 1), both pass the check; an update keeps the path in a
    background unit working; a user's own npm copy is left alone.
 6. **cli-core**: update the comment at `src/background/system.ts:62-63` if pnpm 11's layout needs other wording; no
    code change expected.
-7. **Docs** on wirecat.dev (cli-docs): where Desktop puts tools.
+7. **Docs** on wirecat.dev (cli-docs): where Desktop puts tools; the "several tools" section with pnpm (decision 6).
 
 ## Rollout
 
-A Desktop release. New installs use pnpm at once. Migration of existing copies follows the owner's answer; if a step
-fails, the old copy stays and the app keeps using it.
+A Desktop release. New installs use pnpm at once. Existing copies move on each tool's next update; if a step fails,
+the old copy stays and the app keeps using it.
 
-## Open questions for the owner
+## Owner's answers (2026-11-27)
 
-1. **Existing copies** (the owner's 16 CLIs sit in nvm's global npm folder, 4.5 GB): leave them and use pnpm for new
-   installs only; move them to pnpm automatically on the next update of each tool; or offer one "free space" button?
-2. **pnpm for people who install without Desktop**: recommend `pnpm add -g` on the site, or keep npm as the default
-   there?
+1. Existing copies: move them automatically on the next update (decision 5). Users have npm, not pnpm, so Desktop
+   brings its own pnpm (decision 2).
+2. Without Desktop: keep npm on the site, recommend pnpm only for several tools (decision 6).
