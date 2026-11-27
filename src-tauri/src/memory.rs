@@ -529,7 +529,7 @@ fn relationship(v: &Value, pending: bool) -> Option<Entry> {
         subject: text(v, "from"),
         subject_name: name_in(text(v, "from_title")),
         subject_is_owner: false,
-        author: text(v, "proposer").map(|name| Author { kind: "bot".into(), name: Some(name) }),
+        author: text(v, "proposer").map(|name| Author { kind: "agent".into(), name: Some(name) }),
         scope: None,
         project: None,
         project_name: None,
@@ -1553,7 +1553,7 @@ mod tests {
     fn agent_memory() -> Value {
         json!({"ref":"memory:3","id":"3","kind":"summary","text":"Ana moves to Valencia","subject":"person:7",
             "subject_name":"Ana Ruiz","subject_is_owner":false,"project":"project:1","project_name":"Harbour",
-            "author":{"type":"bot","id":"3","name":"claude-code"},
+            "author":{"type":"agent","id":"3","name":"claude-code"},
             "model":null,"confidence":null,"status":"proposed","scope":"personal","supersedes":null,
             "evidence":["document:1","document:2"],"last_verified_at":null,"created_at":"2026-10-31T20:55:43.713Z",
             "updated_at":"2026-10-31T20:55:43.713Z"})
@@ -1562,7 +1562,7 @@ mod tests {
     fn decision(status: &str) -> Value {
         json!({"ref":"fact:1","id":"1","kind":"decision","text":"Launch moves to 2 March","status":status,
             "project":"HRB","subject":null,"subject_name":null,"subject_is_owner":false,"occurred_at":null,
-            "supersedes":null,"author":{"type":"bot","id":"4","name":"hermes"},"model":null,"scope":"work",
+            "supersedes":null,"author":{"type":"agent","id":"4","name":"hermes"},"model":null,"scope":"work",
             "origin":"agent","evidence":["document:2"],"created_at":"2026-10-31T20:55:43.937Z",
             "updated_at":"2026-10-31T20:55:43.937Z","confirmed_by":null})
     }
@@ -1570,7 +1570,7 @@ mod tests {
     fn proposal(status: &str) -> Value {
         json!({"id":"1","kind":"create_task","account":{"provider":"telegram","account":"1"},"target":"chat:telegram/1/77",
             "payload":{"title":"Send Kai the pricing table"},"reason":"Kai asked twice","status":status,
-            "proposed_by":{"type":"bot","id":"4","name":"hermes"},"decided_by":null,"decided_at":null,
+            "proposed_by":{"type":"agent","id":"4","name":"hermes"},"decided_by":null,"decided_at":null,
             "executed_at":null,"result":null,"error":null,"verdict":null,"created_at":"2026-10-31T20:56:09.193Z",
             "summary":"Create task Kai Sample: Send Kai the pricing table","project":null,"project_name":null,
             "verb":"create_task","target_name":"Kai Sample","chat_name":"Kai Sample","text":"Send Kai the pricing table",
@@ -1820,7 +1820,7 @@ mod tests {
                 "facts" => json!({"items":[decision("proposed")],"page":{"has_more":true}}),
                 "actions" => json!({"items":[proposal("proposed")],"page":{"has_more":false}}),
                 _ => {
-                    json!({"items":[{"id":"1","actor":{"type":"bot","id":"5","name":"claude-code"},"tool":"memories_list",
+                    json!({"items":[{"id":"1","actor":{"type":"agent","id":"5","name":"claude-code"},"tool":"memories_list",
                     "tier":"read","target":null,"status":"ok","error":null,"started_at":"2026-10-31T20:57:31.459Z",
                     "finished_at":"2026-10-31T20:57:31.484Z"}]})
                 }
@@ -1839,7 +1839,7 @@ mod tests {
         );
         let m = &entries[2];
         assert_eq!(m.subject_name.as_deref(), Some("Ana Ruiz"));
-        assert_eq!(m.author, Some(Author { kind: "bot".into(), name: Some("claude-code".into()) }));
+        assert_eq!(m.author, Some(Author { kind: "agent".into(), name: Some("claude-code".into()) }));
         assert_eq!(m.links, 2);
         assert_eq!(m.project_name.as_deref(), Some("Harbour"));
         let a = &entries[0];
@@ -1991,7 +1991,7 @@ mod tests {
                 {"id":"f2","kind":"task","project":"project:1","type":"task","title":"Add 40 Spanish queries",
                  "reason":"Lena asked for Spanish coverage","commitment":"explicit",
                  "evidence":[{"reference":"msg:telegram/1/77/42","fingerprint":"b"}]}]},
-            "reason":"","status":status,"proposed_by":{"type":"bot","id":"3","name":"codex-nbb-evaluation"},
+            "reason":"","status":status,"proposed_by":{"type":"agent","id":"3","name":"codex-nbb-evaluation"},
             "decided_by":null,"decided_at":null,"executed_at":null,"result":result,"error":null,"verdict":null,
             "created_at":"2026-11-01T00:16:37.495Z","summary":"Create 1 fact and 1 task in Northbridge Bench",
             "verb":"create","target_name":"Northbridge Bench","chat_name":null,"text":null,"counts":{"facts":1,"tasks":1},
@@ -2250,7 +2250,7 @@ mod tests {
                 {"id":"c1","kind":"new_contact","address":"lena@example.com","name":"Lena Park","reason":"Signs as Lena","evidence":[]},
                 {"id":"o1","kind":"order_update","supplierName":"Shop One","number":"A-1","status":"delivered","reason":"Delivered","evidence":[]},
                 {"id":"u1","kind":"task_update","task":"task:5bc8","change":"close","reason":"Paid","evidence":[]}]},
-            "reason":null,"status":status,"proposed_by":{"type":"bot","id":"4","name":"mail-triage"},
+            "reason":null,"status":status,"proposed_by":{"type":"agent","id":"4","name":"mail-triage"},
             "decided_by":null,"decided_at":null,"result":null,"created_at":"2026-11-10T12:19:00.000Z",
             "summary":"Mail findings","verb":"mail_findings","target_name":null,"chat_name":null,"text":null,
             "project":null,"project_name":null})
@@ -2503,7 +2503,7 @@ mod tests {
         for key in ["ref", "type", "subjectName", "subjectIsOwner", "createdAt", "updatedAt", "links"] {
             assert!(e.get(key).is_some(), "{key}");
         }
-        assert_eq!(e["author"]["type"], "bot");
+        assert_eq!(e["author"]["type"], "agent");
         assert_eq!(serde_json::to_value(Read::Old { version: None, need: "0.128.0".into() }).unwrap()["kind"], "old");
     }
 

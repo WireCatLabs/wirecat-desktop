@@ -174,7 +174,7 @@ fn group(v: &Value, key: Option<String>) -> Group {
     Group { provider: v["provider"].as_str().unwrap_or("unknown").into(), key, counts: counts(v) }
 }
 
-/// The account's name is the profile name `account list` prints; anything else is masked like doctor output.
+/// The account's name is the profile name `session list` prints; anything else is masked like doctor output.
 fn profile_name(v: &Value) -> String {
     v["name"].as_str().filter(|n| catalog::validate_profile(n).is_ok()).map_or_else(|| "•••".into(), str::to_string)
 }

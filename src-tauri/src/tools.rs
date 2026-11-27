@@ -264,11 +264,12 @@ fn parse_profiles(v: &Value, shape: &str) -> Vec<Profile> {
             Value::String(name) => Some(Profile { name: name.clone(), signed_in: None }),
             Value::Object(o) => Some(Profile {
                 name: o.get("profile")?.as_str()?.to_string(),
-                // cli-core 0.466 says it outright; older tools only leave `account` empty.
-                signed_in: o
-                    .get("signed_in")
-                    .and_then(Value::as_bool)
-                    .or_else(|| o.get("account").map(|a| !a.is_null())),
+                // cli-core 0.466 says it outright, and null when the keyring cannot be read; older tools only leave
+                // `account` empty.
+                signed_in: match o.get("signed_in") {
+                    Some(said) => said.as_bool(),
+                    None => o.get("account").map(|a| !a.is_null()),
+                },
             }),
             _ => None,
         })
@@ -443,6 +444,10 @@ mod tests {
         let old_drive = json!({"item": {"items": [{"profile": "work"}]}});
         assert_eq!(parse_profiles(&old_drive, "items")[0].signed_in, None);
         assert_eq!(parse_profiles(&old_drive, "item.items")[0].name, "work");
+
+        let unreadable = json!({"items": [{"profile": "work", "signed_in": null, "state": "unknown", "token_from": null,
+            "account": null}]});
+        assert_eq!(parse_profiles(&unreadable, "items")[0].signed_in, None);
 
         let mail = json!({"items": [{"profile": "work", "address": "a@b.c", "auth": "oauth"}]});
         assert_eq!(parse_profiles(&mail, "items")[0].signed_in, None);

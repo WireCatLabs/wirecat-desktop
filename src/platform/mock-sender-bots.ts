@@ -20,7 +20,7 @@ const seed: Omit<SenderBot, "moves">[] = [
   ["Weather bot", "max:4410", null, "direct", []],
   ["Market deals", "email:deals@market.example", null, "broadcast", ["bulk-mail", "one-click-unsubscribe"]],
 ].map(([name, identity, organization, reach, signals], n) => ({
-  ref: `sender-bot:${n + 1}`,
+  ref: `bot:${n + 1}`,
   name: null,
   displayName: name as string,
   organization: organization as string | null,
@@ -42,7 +42,7 @@ const seed: Omit<SenderBot, "moves">[] = [
 }))
 
 const crowd: Omit<SenderBot, "moves">[] = Array.from({ length: 64 }, (_, n) => ({
-  ref: `sender-bot:${100 + n}`,
+  ref: `bot:${100 + n}`,
   name: null,
   displayName: `Service ${n + 1}`,
   organization: null,
