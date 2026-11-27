@@ -20,6 +20,19 @@ describe("summarize", () => {
     expect(summarize({ item: {} }, 3)[0]?.tone).toBe("bad")
   })
 
+  it("says a tool has no token, at the top or in the block the shared doctor names after it", () => {
+    const noToken = [{ tone: "warn", note: "no_token" }]
+    expect(summarize({ item: { token: { present: false } } }, 0)).toEqual(noToken)
+    expect(summarize({ item: { max: { token: { present: false } } } }, 0, "max")).toEqual(noToken)
+    expect(summarize({ item: { max: { token: { present: true } } } }, 0, "max")).toEqual([
+      { tone: "ok", note: "no_problems" },
+    ])
+    // Another key's token, such as old max's bot token, is not the tool's own.
+    expect(summarize({ item: { bot: { token: { present: false } } } }, 0, "max")).toEqual([
+      { tone: "ok", note: "no_problems" },
+    ])
+  })
+
   it("survives output it does not understand", () => {
     expect(summarize("not json", 1)[0]?.tone).toBe("bad")
   })

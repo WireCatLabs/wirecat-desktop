@@ -70,7 +70,6 @@ const Report = v.looseObject({
         }),
       ),
       store: v.optional(v.looseObject({ exists: v.optional(v.boolean()) })),
-      token: v.optional(v.looseObject({ present: v.optional(v.boolean()) })),
       state: v.optional(v.string()),
     }),
   ),
@@ -115,7 +114,19 @@ function configFindings(config: Config | undefined): Finding[] {
   return []
 }
 
-export function summarize(report: unknown, exitCode: number | null): Finding[] {
+const Token = v.looseObject({ token: v.optional(v.looseObject({ present: v.optional(v.boolean()) })) })
+
+// cli-core's shared messenger doctor answers the tool's own facts in a block named after it (`item.max.token`).
+function tokenMissing(item: Record<string, unknown> | undefined, block: string | undefined): boolean {
+  const top = v.safeParse(Token, item)
+  if (top.success && top.output.token?.present === false) return true
+  if (block === undefined) return false
+  const own = v.safeParse(Token, item?.[block])
+  return own.success && own.output.token?.present === false
+}
+
+/** `block` is the tool's id: shared doctors answer its own facts under that key. */
+export function summarize(report: unknown, exitCode: number | null, block?: string): Finding[] {
   const parsed = v.safeParse(Report, report)
   if (!parsed.success) {
     return [{ tone: "bad", note: "unreadable", exitCode }]
@@ -135,7 +146,7 @@ export function summarize(report: unknown, exitCode: number | null): Finding[] {
   for (const p of item?.files?.problems ?? []) findings.push({ tone: "warn", ...problemSaid(p) })
   if (item?.config?.found === false) findings.push({ tone: "warn", note: "no_config" })
   if (item?.store?.exists === false) findings.push({ tone: "warn", note: "no_data" })
-  if (item?.token?.present === false) findings.push({ tone: "warn", note: "no_token" })
+  if (tokenMissing(item, block)) findings.push({ tone: "warn", note: "no_token" })
   if (item?.state === "expired") findings.push({ tone: "warn", note: "expired" })
   if (item?.state === "not_configured" || item?.state === "missing")
     findings.push({ tone: "warn", note: "not_signed_in" })
