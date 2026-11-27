@@ -72,10 +72,12 @@ pub fn program() -> Option<PathBuf> {
     (program.is_file() && installed_version(&prefix).as_deref() == Some(VERSION)).then_some(program)
 }
 
-/// `program()` that also starts: npm sees `package.json` and counts pnpm as installed, even with its files gone.
+/// `program()` that also starts: npm sees `package.json` and counts pnpm as installed, even with its files gone. With
+/// the app's PATH, which has the app's own Node.js: pnpm's program finds `node` there.
 pub fn working() -> Option<PathBuf> {
     let program = program()?;
-    let out = crate::run::run(&program, &["--version"], None, std::time::Duration::from_secs(30)).ok()?;
+    let path = crate::paths::search_path();
+    let out = crate::run::run(&program, &["--version"], Some(&path), std::time::Duration::from_secs(30)).ok()?;
     (out.code == Some(0) && out.stdout.trim() == VERSION).then_some(program)
 }
 

@@ -110,8 +110,36 @@ fn install_e2e() {
     assert!(paths::find(BIN).is_none());
     assert_eq!(own_pnpm::shims_of(PACKAGE), Vec::<PathBuf>::new());
 
+    #[cfg(unix)]
+    only_the_apps_own_node(&tool, &root);
+
     unlock(&locked);
     let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The app's own Node.js is on the app's search path and on no shell's PATH; pnpm's program must still find `node`.
+/// 0.9.2 checked pnpm with the shell's PATH, and every install with the app's Node.js failed.
+#[cfg(unix)]
+fn only_the_apps_own_node(tool: &Tool, root: &Path) {
+    use std::os::unix::fs::symlink;
+    println!("With only the app's own Node.js, which no shell PATH has");
+    let node = paths::find("node").unwrap();
+    let out = crate::run::run(&node, &["--version"], None, std::time::Duration::from_secs(10)).unwrap();
+    let own = root.join("own-node");
+    let bin = own.join(out.stdout.trim()).join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    for program in ["node", "npm"] {
+        symlink(std::fs::canonicalize(paths::find(program).unwrap()).unwrap(), bin.join(program)).unwrap();
+    }
+    set_env("WIRECAT_NODE_DIR", own.as_os_str());
+    set_env("PATH", std::ffi::OsStr::new("/usr/bin:/bin"));
+    paths::forget_login_shell();
+    paths::refresh(&[]);
+    assert!(paths::which_in("node", std::ffi::OsStr::new("/usr/bin:/bin")).is_none(), "the shell must have no node");
+    let found = paths::find("node");
+    assert!(found.as_ref().is_some_and(|f| f.starts_with(&own)), "the app finds its own Node.js: {found:?}");
+    run(tool, install::install, "done");
+    run(tool, install::uninstall, "removed");
 }
 
 /// The real tg from npm: a copy installed with npm moves to the app's pnpm, its database driver is built, and it still
