@@ -3,7 +3,7 @@
 
 use crate::catalog::Tool;
 use crate::install::{self, InstallEvent, Running};
-use crate::{npm_prefix, paths, system};
+use crate::{npm_prefix, own_pnpm, paths, system};
 use sha2::{Digest, Sha512};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -15,7 +15,7 @@ const BIN: &str = "wirecat-probe";
 const VERSION: &str = "1.0.0";
 
 #[test]
-#[ignore = "runs the real npm and changes this process's environment; bin/install-e2e"]
+#[ignore = "runs the real npm and pnpm and changes this process's environment; bin/install-e2e"]
 fn install_e2e() {
     let root = std::env::temp_dir().join(format!("wirecat-install-e2e-{}", std::process::id()));
     std::fs::create_dir_all(&root).unwrap();
@@ -29,6 +29,8 @@ fn install_e2e() {
         ("LOCALAPPDATA", home.join("AppData").join("Local")),
         ("XDG_DATA_HOME", home.join(".local").join("share")),
         ("WIRECAT_NODE_DIR", root.join("no-managed-node")),
+        // macOS keeps the app's data under `Application Support`: the space must survive pnpm's shims and flags.
+        ("WIRECAT_PNPM_DIR", root.join("Application Support").join("pnpm")),
         ("npm_config_cache", root.join("npm-cache")),
         ("npm_config_userconfig", root.join("npmrc")),
         ("npm_config_registry", PathBuf::from(&registry)),
@@ -37,13 +39,27 @@ fn install_e2e() {
         set_env(name, value.as_os_str());
     }
     std::fs::create_dir_all(&home).unwrap();
+    // pnpm 11 reads the registry from an .npmrc, not from npm's variables.
+    for npmrc in [home.join(".npmrc"), root.join("npmrc")] {
+        std::fs::write(npmrc, format!("registry={registry}\n")).unwrap();
+    }
     let tool = probe_tool();
 
     println!("npm's global folder does not exist yet: {}", missing.display());
     let ready = system::readiness();
     assert_eq!(ready.npm_prefix_writable, Some(true), "a missing global folder is not a locked one");
+
+    println!("A copy the user installed with npm moves to the app's pnpm on the next update");
+    npm_install_by_hand();
+    // A user's npm folder is on their PATH; without it here the copy would be invisible and nothing would be moved.
+    isolate_path(&root, &npm_prefix::bin_dir(&missing));
+    paths::refresh(&[]);
+    assert!(paths::find(BIN).unwrap().starts_with(npm_prefix::bin_dir(&missing)), "the npm copy is in place");
     run(&tool, install::install, "done");
-    assert!(paths::find(BIN).unwrap().starts_with(npm_prefix::bin_dir(&missing)), "installed into npm's own folder");
+    let copies = paths::find_all(BIN);
+    assert_eq!(copies.len(), 1, "one copy is left: {copies:?}");
+    assert!(own_pnpm::owns(&copies[0]), "{} is not the app's pnpm copy", copies[0].display());
+    assert!(!npm_prefix::bin_dir(&missing).join(BIN).exists(), "the npm copy is removed");
     run(&tool, install::uninstall, "removed");
     assert!(paths::find(BIN).is_none());
 
@@ -52,14 +68,10 @@ fn install_e2e() {
     lock(&locked);
     assert!(std::fs::write(locked.join("probe"), b"").is_err() || running_as_root(), "the folder must refuse writes");
     set_env("npm_config_prefix", locked.as_os_str());
-    println!("npm's global folder refuses writes: {}", locked.display());
-    let user = npm_prefix::user_prefix().unwrap();
-    let ready = system::readiness();
-    assert_eq!(ready.npm_prefix_writable, Some(true));
-    assert_eq!(ready.npm_prefix.as_deref(), Some(paths::tilde(&user.to_string_lossy()).as_str()));
+    println!("npm's global folder refuses writes, which the app's pnpm does not need: {}", locked.display());
     run(&tool, install::install, "done");
     let copy = paths::find(BIN).unwrap();
-    assert!(copy.starts_with(npm_prefix::bin_dir(&user)), "{} is not in the user's folder", copy.display());
+    assert!(own_pnpm::owns(&copy), "{} is not the app's pnpm copy", copy.display());
     if cfg!(windows) {
         assert!(paths::in_terminal(BIN), "a new terminal must find it through the user Path");
     }
@@ -68,6 +80,101 @@ fn install_e2e() {
 
     unlock(&locked);
     let _ = std::fs::remove_dir_all(&root);
+}
+
+/// The real tg from npm: a copy installed with npm moves to the app's pnpm, its database driver is built, and it still
+/// opens a store. Downloads about 100 MB; run by hand with `bin/install-e2e real_tool_e2e`.
+#[test]
+#[ignore = "downloads the real tg twice and changes this process's environment"]
+fn real_tool_e2e() {
+    let root = std::env::temp_dir().join(format!("wirecat-real-tool-e2e-{}", std::process::id()));
+    let home = root.join("home");
+    let prefix = root.join("npm");
+    for (name, value) in [
+        ("HOME", home.clone()),
+        ("USERPROFILE", home.clone()),
+        ("APPDATA", home.join("AppData").join("Roaming")),
+        ("LOCALAPPDATA", home.join("AppData").join("Local")),
+        ("XDG_DATA_HOME", home.join(".local").join("share")),
+        ("XDG_CONFIG_HOME", home.join(".config")),
+        ("WIRECAT_NODE_DIR", root.join("no-managed-node")),
+        // macOS keeps the app's data under `Application Support`: the space must survive pnpm's shims and flags.
+        ("WIRECAT_PNPM_DIR", root.join("Application Support").join("pnpm")),
+        ("npm_config_cache", root.join("npm-cache")),
+        ("npm_config_userconfig", root.join("npmrc")),
+        ("npm_config_prefix", prefix.clone()),
+    ] {
+        set_env(name, value.as_os_str());
+    }
+    std::fs::create_dir_all(&home).unwrap();
+    isolate_path(&root, &npm_prefix::bin_dir(&prefix));
+    let tool = crate::catalog::tool("tg").unwrap();
+
+    let npm = paths::find("npm").expect("npm");
+    let status = crate::run::command(&npm, &["install", "--global", &tool.package, "--no-fund", "--no-audit"], None)
+        .status()
+        .unwrap();
+    assert!(status.success(), "npm install by hand");
+    paths::refresh(&[]);
+    let found = paths::find_all(&tool.bin);
+    assert!(found.iter().all(|c| c.starts_with(&root)), "only the run's own copy may be moved: {found:?}");
+    run(tool, install::install, "done");
+    let copies = paths::find_all(&tool.bin);
+    assert_eq!(copies.len(), 1, "one copy is left: {copies:?}");
+    assert!(own_pnpm::owns(&copies[0]), "{} is not the app's pnpm copy", copies[0].display());
+    assert_eq!(own_pnpm::unbuilt_drivers(), Vec::<PathBuf>::new());
+    // Every store opens through this driver; a profile, which a fresh home lacks, is needed for the tool to open one.
+    let links = root.join("Application Support/pnpm/store/v11/links/@/better-sqlite3");
+    let driver = std::fs::read_dir(&links)
+        .unwrap()
+        .flatten()
+        .flat_map(|v| std::fs::read_dir(v.path()).unwrap().flatten())
+        .map(|h| h.path().join("node_modules/better-sqlite3"))
+        .next()
+        .expect("the driver is in the store");
+    let open = format!("new (require({:?}))(':memory:').prepare('select 1').get()", driver.display().to_string());
+    let node = paths::find("node").unwrap();
+    let out = crate::run::run(&node, &["-e", &open], None, std::time::Duration::from_secs(30)).unwrap();
+    assert_eq!(out.code, Some(0), "the driver opens a database: {}", out.stderr);
+    run(tool, install::uninstall, "removed");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// PATH with `first`, then Node.js alone. The folder Node.js sits in holds the user's own tools too (nvm puts every
+/// global program beside `node`), and the install moves and removes every npm copy it finds: on 2026-11-27 a run with
+/// the real PATH removed the owner's own tg. So on Unix only links to `node` and `npm` are kept. A CI runner has no
+/// tools of its own, so Windows keeps its PATH.
+fn isolate_path(root: &Path, first: &Path) {
+    let mut path = vec![first.to_path_buf()];
+    if cfg!(windows) {
+        path.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+    } else {
+        let node = root.join("node-only");
+        std::fs::create_dir_all(&node).unwrap();
+        for program in ["node", "npm"] {
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(paths::find(program).unwrap(), node.join(program)).unwrap();
+        }
+        path.push(node);
+        path.extend(["/usr/bin", "/bin"].map(PathBuf::from));
+    }
+    set_env("PATH", &std::env::join_paths(path).unwrap());
+    paths::forget_login_shell();
+    paths::refresh(&[]);
+    let outside: Vec<String> = paths::lookup().folders.into_iter().filter(|f| f.contains(".nvm")).collect();
+    assert!(outside.is_empty(), "the run must not see the user's own npm folders: {outside:?}");
+}
+
+/// The install a user makes in a terminal, into the npm folder the environment names.
+fn npm_install_by_hand() {
+    let npm = paths::find("npm").expect("npm");
+    let spec = format!("{PACKAGE}@{VERSION}");
+    let status = crate::run::command(&npm, &["install", "--global", &spec, "--no-fund", "--no-audit"], None)
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .status()
+        .unwrap();
+    assert!(status.success(), "npm install by hand");
 }
 
 fn run(tool: &Tool, op: fn(&Tool, &Running, &Channel<InstallEvent>), expected: &str) {
@@ -93,7 +200,7 @@ fn probe_tool() -> Tool {
         "bin": BIN,
         "package": PACKAGE,
         "repo": "WireCatLabs/wirecat-install-probe",
-        "doctor": [],
+        "doctor": ["doctor", "--json"],
         "storage": { "app": "wirecat-probe", "env": "WIRECAT_PROBE" },
     });
     for optional in ["profiles", "skill", "background", "mcp", "mcpServer", "sync", "partOf", "tasks", "memory"] {
@@ -158,6 +265,8 @@ fn serve_registry() -> String {
     let document = serde_json::json!({
         "name": PACKAGE,
         "dist-tags": { "latest": VERSION },
+        // pnpm installs only releases older than a day, and reads their age here.
+        "time": { "created": "2020-01-01T00:00:00.000Z", "modified": "2020-01-01T00:00:00.000Z", VERSION: "2020-01-01T00:00:00.000Z" },
         "versions": { VERSION: {
             "name": PACKAGE,
             "version": VERSION,
@@ -205,7 +314,10 @@ fn answer(mut stream: std::net::TcpStream, document: &str, tarball: &[u8], tarba
 /// The shape of a `WireCat` CLI that matters to installing it: a `bin` that answers `--version`.
 fn package_tarball() -> Vec<u8> {
     let manifest = serde_json::json!({ "name": PACKAGE, "version": VERSION, "bin": { BIN: "cli.js" } }).to_string();
-    let cli = format!("#!/usr/bin/env node\nif (process.argv.includes(\"--version\")) console.log(\"{VERSION}\")\n");
+    let cli = format!(
+        "#!/usr/bin/env node\nif (process.argv.includes(\"--version\")) console.log(\"{VERSION}\")\n\
+         if (process.argv[2] === \"commands\") console.log(JSON.stringify({{ commands: [] }}))\n"
+    );
     let mut tar = tar::Builder::new(flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default()));
     for (name, body, mode) in
         [("package/package.json", manifest.as_bytes(), 0o644), ("package/cli.js", cli.as_bytes(), 0o755)]

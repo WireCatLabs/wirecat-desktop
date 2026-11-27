@@ -36,13 +36,19 @@ pub enum Refusal {
 }
 
 pub fn confirm(npm: &Path, package: &str, version: &str, repo: &str) -> Result<(), Refusal> {
+    confirm_built_by(npm, package, version, &release_workflow(repo))
+}
+
+/// `confirm` against the exact workflow run that must have built the release: `<repo>/<workflow path>@<ref>`, for a
+/// project that releases from tags rather than from `main`, as pnpm does.
+pub fn confirm_built_by(npm: &Path, package: &str, version: &str, workflow: &str) -> Result<(), Refusal> {
     audit(npm, package, version)?;
     let agent = agent();
     let name = package.replacen('/', "%2f", 1);
     let release = get_json(&agent, &format!("{REGISTRY}/{name}/{version}"))?;
     let integrity = release["dist"]["integrity"].as_str().unwrap_or_default();
     let attestations = get_json(&agent, &format!("{REGISTRY}/-/npm/v1/attestations/{name}@{version}"))?;
-    provenance_verdict(&attestations, package, version, integrity, repo).map_err(Refusal::Unconfirmed)
+    verdict_for(&attestations, package, version, integrity, workflow).map_err(Refusal::Unconfirmed)
 }
 
 fn audit(npm: &Path, package: &str, version: &str) -> Result<(), Refusal> {
@@ -104,6 +110,7 @@ fn audit_verdict(code: Option<i32>, stdout: &str) -> Result<(), Refusal> {
 }
 
 /// `attestations` is the registry's answer for this release; `integrity` its `dist.integrity`.
+#[cfg(test)]
 fn provenance_verdict(
     attestations: &Value,
     package: &str,
@@ -111,11 +118,20 @@ fn provenance_verdict(
     integrity: &str,
     repo: &str,
 ) -> Result<(), String> {
+    verdict_for(attestations, package, version, integrity, &release_workflow(repo))
+}
+
+fn verdict_for(
+    attestations: &Value,
+    package: &str,
+    version: &str,
+    integrity: &str,
+    expected: &str,
+) -> Result<(), String> {
     let Signer { issuer, workflow } = attested(attestations, package, version, integrity)?;
     if issuer != GITHUB_ACTIONS {
         return Err(format!("signed with an identity from {issuer}, not from GitHub Actions"));
     }
-    let expected = release_workflow(repo);
     if workflow != expected {
         return Err(format!("built by {workflow}, not by {expected}"));
     }

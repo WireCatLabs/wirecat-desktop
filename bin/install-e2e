@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Installs and uninstalls a tiny test package through the app's own install code with this computer's npm. What it
 # writes stays in a temp folder: npm's global folder, the home folder and the registry are made for the run.
+# `bin/install-e2e real_tool_e2e` moves the real tg from npm to the app's pnpm instead (downloads about 100 MB).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f dist/index.html ] || { mkdir -p dist && echo '<!doctype html>' > dist/index.html; }
-cargo test --manifest-path src-tauri/Cargo.toml --lib -- --exact install_e2e::install_e2e --ignored --nocapture
+cargo test --manifest-path src-tauri/Cargo.toml --lib -- --exact "install_e2e::${1:-install_e2e}" --ignored --nocapture
