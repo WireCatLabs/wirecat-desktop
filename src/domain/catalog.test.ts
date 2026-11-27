@@ -81,6 +81,20 @@ describe("catalog", () => {
     expect(removeCommand("npm", pkg, "/usr/local/bin/zm")).toBe(`npm uninstall --global ${pkg}`)
   })
 
+  it("removes a copy of the app's pnpm with that pnpm, which the user does not have", () => {
+    const pkg = "@wirecat/zoom-cli"
+    const mac = "~/Library/Application Support/dev.wirecat.desktop/pnpm"
+    expect(removeCommand("npm", pkg, `${mac}/home/bin/zm`)).toBe(
+      `PNPM_HOME="$HOME/Library/Application Support/dev.wirecat.desktop/pnpm/home" ` +
+        `"$HOME/Library/Application Support/dev.wirecat.desktop/pnpm/program/bin/pnpm" remove --global ${pkg}`,
+    )
+    const win = "~\\AppData\\Local\\dev.wirecat.desktop\\pnpm"
+    expect(removeCommand("pnpm", pkg, `${win}\\home\\bin\\zm.cmd`)).toBe(
+      `$env:PNPM_HOME="$HOME\\AppData\\Local\\dev.wirecat.desktop\\pnpm\\home"; ` +
+        `& "$HOME\\AppData\\Local\\dev.wirecat.desktop\\pnpm\\program\\pnpm.cmd" remove --global ${pkg}`,
+    )
+  })
+
   it("names a sync by the command words its runs record, never a flag's value", () => {
     const words = (id: string) => syncCommand(findTool(id) as NonNullable<ReturnType<typeof findTool>>)
     expect(words("tg")).toBe("messages sync")

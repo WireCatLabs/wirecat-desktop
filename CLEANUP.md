@@ -50,4 +50,4 @@
 - Branch `pr-assets/setup-renderer` on GitHub: holds only the screenshots the setup renderer's PR body links. Remove after the PR merges. 2026-11-16
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-ydisk` (branch `feat/ydisk`): Yandex Disk in the catalog; remove the worktree once its PR is merged. 2026-11-17
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-hubspot` (branch `feat/hubspot`): HubSpot in the catalog; remove the worktree and the branch once its PR is merged. 2026-11-18
-- `/home/leemour/Projects/AI/wirecat-desktop-wt-shared` (worktree) and branch `feat/pnpm-shared-install`: the app's own pnpm (PR #494). Remove both after the PR merges. 2026-11-27
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-install-heal` (worktree) and branch `fix/install-heal`: install healing for the app's pnpm. Remove both after the PR merges. 2026-11-27

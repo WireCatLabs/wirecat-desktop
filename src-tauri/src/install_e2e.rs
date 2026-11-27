@@ -13,6 +13,10 @@ use tauri::ipc::{Channel, InvokeResponseBody};
 pub const PACKAGE: &str = "wirecat-install-probe";
 const BIN: &str = "wirecat-probe";
 const VERSION: &str = "1.0.0";
+/// A release whose `commands` fails, as a release with a broken build would.
+const BROKEN: &str = "1.1.0";
+/// What the registry gives as `latest`; the update scenarios move it.
+static LATEST: Mutex<&str> = Mutex::new(VERSION);
 
 #[test]
 #[ignore = "runs the real npm and pnpm and changes this process's environment; bin/install-e2e"]
@@ -22,6 +26,7 @@ fn install_e2e() {
     let registry = serve_registry();
     let home = root.join("home");
     let missing = root.join("not-created-yet").join("npm");
+    let pnpm_dir = root.join("Application Support").join("pnpm");
     for (name, value) in [
         ("HOME", home.clone()),
         ("USERPROFILE", home.clone()),
@@ -30,7 +35,7 @@ fn install_e2e() {
         ("XDG_DATA_HOME", home.join(".local").join("share")),
         ("WIRECAT_NODE_DIR", root.join("no-managed-node")),
         // macOS keeps the app's data under `Application Support`: the space must survive pnpm's shims and flags.
-        ("WIRECAT_PNPM_DIR", root.join("Application Support").join("pnpm")),
+        ("WIRECAT_PNPM_DIR", pnpm_dir.clone()),
         ("npm_config_cache", root.join("npm-cache")),
         ("npm_config_userconfig", root.join("npmrc")),
         ("npm_config_registry", PathBuf::from(&registry)),
@@ -75,8 +80,35 @@ fn install_e2e() {
     if cfg!(windows) {
         assert!(paths::in_terminal(BIN), "a new terminal must find it through the user Path");
     }
+
+    println!("An update that fails its check puts the version from before back");
+    *LATEST.lock().unwrap() = BROKEN;
+    run(&tool, install::install, "failed");
+    *LATEST.lock().unwrap() = VERSION;
+    let copies = crate::tools::detect(&tool, true).installs;
+    assert_eq!(copies.len(), 1, "{:?}", copies.iter().map(|c| &c.path).collect::<Vec<_>>());
+    assert_eq!(copies[0].version.as_deref(), Some(VERSION), "the tool is still there, at the version from before");
+
+    println!("A pnpm whose files are gone is installed again");
+    let pnpm_dist = pnpm_dir.join(if cfg!(windows) {
+        "program/node_modules/pnpm/dist"
+    } else {
+        "program/lib/node_modules/pnpm/dist"
+    });
+    std::fs::remove_dir_all(&pnpm_dist).unwrap();
+    assert!(own_pnpm::working().is_none());
+    run(&tool, install::install, "done");
+    assert!(own_pnpm::working().is_some());
+
+    println!("Programs left without their tool's folder are removed with it");
+    let folder = own_pnpm::package_dir(PACKAGE).unwrap();
+    let folder = std::fs::canonicalize(&folder).unwrap();
+    assert!(folder.starts_with(std::fs::canonicalize(&pnpm_dir).unwrap()), "{}", folder.display());
+    std::fs::remove_dir_all(&folder).unwrap();
+    assert_ne!(own_pnpm::shims_of(PACKAGE), Vec::<PathBuf>::new());
     run(&tool, install::uninstall, "removed");
     assert!(paths::find(BIN).is_none());
+    assert_eq!(own_pnpm::shims_of(PACKAGE), Vec::<PathBuf>::new());
 
     unlock(&locked);
     let _ = std::fs::remove_dir_all(&root);
@@ -122,7 +154,7 @@ fn real_tool_e2e() {
     let copies = paths::find_all(&tool.bin);
     assert_eq!(copies.len(), 1, "one copy is left: {copies:?}");
     assert!(own_pnpm::owns(&copies[0]), "{} is not the app's pnpm copy", copies[0].display());
-    assert_eq!(own_pnpm::unbuilt_drivers(), Vec::<PathBuf>::new());
+    assert_eq!(own_pnpm::unbuilt_drivers_of(&tool.package), Vec::<PathBuf>::new());
     // Every store opens through this driver; a profile, which a fresh home lacks, is needed for the tool to open one.
     let links = root.join("Application Support/pnpm/store/v11/links/@/better-sqlite3");
     let driver = std::fs::read_dir(&links)
@@ -136,6 +168,13 @@ fn real_tool_e2e() {
     let node = paths::find("node").unwrap();
     let out = crate::run::run(&node, &["-e", &open], None, std::time::Duration::from_secs(30)).unwrap();
     assert_eq!(out.code, Some(0), "the driver opens a database: {}", out.stderr);
+
+    println!("A driver whose build is gone is built again by the next install");
+    let built = driver.join("build/Release/better_sqlite3.node");
+    std::fs::remove_file(&built).unwrap();
+    assert_eq!(own_pnpm::unbuilt_drivers_of(&tool.package).len(), 1, "the check sees the driver tg loads");
+    run(tool, install::install, "done");
+    assert_eq!(own_pnpm::unbuilt_drivers_of(&tool.package), Vec::<PathBuf>::new());
     run(tool, install::uninstall, "removed");
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -255,36 +294,49 @@ fn running_as_root() -> bool {
     cfg!(unix) && std::env::var("USER").is_ok_and(|u| u == "root")
 }
 
-/// The two requests npm makes for one package: its document, then the tarball the document names.
+/// The two requests npm makes for one package: its document, then the tarball the document names. The document is
+/// built on each request, so `LATEST` moves the release an update gets.
 fn serve_registry() -> String {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let base = format!("http://{}/", listener.local_addr().unwrap());
-    let tarball = package_tarball();
-    let tarball_path = format!("/{PACKAGE}/-/{PACKAGE}-{VERSION}.tgz");
-    let integrity = format!("sha512-{}", base64(&Sha512::digest(&tarball)));
-    let document = serde_json::json!({
-        "name": PACKAGE,
-        "dist-tags": { "latest": VERSION },
-        // pnpm installs only releases older than a day, and reads their age here.
-        "time": { "created": "2020-01-01T00:00:00.000Z", "modified": "2020-01-01T00:00:00.000Z", VERSION: "2020-01-01T00:00:00.000Z" },
-        "versions": { VERSION: {
-            "name": PACKAGE,
-            "version": VERSION,
-            "bin": { BIN: "cli.js" },
-            "dist": { "tarball": format!("{}{}", base.trim_end_matches('/'), tarball_path), "integrity": integrity },
-        }},
-    })
-    .to_string();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let tarballs: Vec<(String, Vec<u8>)> =
+        [VERSION, BROKEN].iter().map(|v| (format!("/{PACKAGE}/-/{PACKAGE}-{v}.tgz"), package_tarball(v))).collect();
+    let document = {
+        let base = base.clone();
+        let tarballs = tarballs.clone();
+        move || {
+            let mut versions = serde_json::Map::new();
+            // pnpm installs only releases older than a day, and reads their age here.
+            let mut time =
+                serde_json::json!({ "created": "2020-01-01T00:00:00.000Z", "modified": "2020-01-01T00:00:00.000Z" });
+            for (v, (path, tarball)) in [VERSION, BROKEN].iter().zip(&tarballs) {
+                let integrity = format!("sha512-{}", base64(&Sha512::digest(tarball)));
+                versions.insert(
+                    (*v).into(),
+                    serde_json::json!({
+                        "name": PACKAGE,
+                        "version": v,
+                        "bin": { BIN: "cli.js" },
+                        "dist": { "tarball": format!("{base}{path}"), "integrity": integrity },
+                    }),
+                );
+                time[*v] = "2020-01-01T00:00:00.000Z".into();
+            }
+            let latest = *LATEST.lock().unwrap();
+            serde_json::json!({ "name": PACKAGE, "dist-tags": { "latest": latest }, "time": time, "versions": versions })
+                .to_string()
+        }
+    };
     std::thread::spawn(move || {
         for stream in listener.incoming().flatten() {
-            let (document, tarball, tarball_path) = (document.clone(), tarball.clone(), tarball_path.clone());
-            std::thread::spawn(move || answer(stream, &document, &tarball, &tarball_path));
+            let (document, tarballs) = (document(), tarballs.clone());
+            std::thread::spawn(move || answer(stream, &document, &tarballs));
         }
     });
-    base
+    format!("{base}/")
 }
 
-fn answer(mut stream: std::net::TcpStream, document: &str, tarball: &[u8], tarball_path: &str) {
+fn answer(mut stream: std::net::TcpStream, document: &str, tarballs: &[(String, Vec<u8>)]) {
     let mut request = Vec::new();
     let mut buf = [0u8; 4096];
     while !request.windows(4).any(|w| w == b"\r\n\r\n") {
@@ -296,9 +348,10 @@ fn answer(mut stream: std::net::TcpStream, document: &str, tarball: &[u8], tarba
     let line = String::from_utf8_lossy(&request).lines().next().unwrap_or_default().to_string();
     let path = line.split_whitespace().nth(1).unwrap_or_default().to_string();
     println!("  registry: {line}");
+    let tarball = tarballs.iter().find(|(p, _)| *p == path).map(|(_, t)| t.as_slice());
     let (status, kind, body): (&str, &str, &[u8]) = if path == format!("/{PACKAGE}") {
         ("200 OK", "application/json", document.as_bytes())
-    } else if path == tarball_path {
+    } else if let Some(tarball) = tarball {
         ("200 OK", "application/octet-stream", tarball)
     } else {
         ("404 Not Found", "application/json", b"{}")
@@ -312,11 +365,16 @@ fn answer(mut stream: std::net::TcpStream, document: &str, tarball: &[u8], tarba
 }
 
 /// The shape of a `WireCat` CLI that matters to installing it: a `bin` that answers `--version`.
-fn package_tarball() -> Vec<u8> {
-    let manifest = serde_json::json!({ "name": PACKAGE, "version": VERSION, "bin": { BIN: "cli.js" } }).to_string();
+fn package_tarball(version: &str) -> Vec<u8> {
+    let manifest = serde_json::json!({ "name": PACKAGE, "version": version, "bin": { BIN: "cli.js" } }).to_string();
+    let commands = if version == BROKEN {
+        "{ console.error(\"broken build\"); process.exit(1) }"
+    } else {
+        "console.log(JSON.stringify({ commands: [] }))"
+    };
     let cli = format!(
-        "#!/usr/bin/env node\nif (process.argv.includes(\"--version\")) console.log(\"{VERSION}\")\n\
-         if (process.argv[2] === \"commands\") console.log(JSON.stringify({{ commands: [] }}))\n"
+        "#!/usr/bin/env node\nif (process.argv.includes(\"--version\")) console.log(\"{version}\")\n\
+         if (process.argv[2] === \"commands\") {commands}\n"
     );
     let mut tar = tar::Builder::new(flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default()));
     for (name, body, mode) in
