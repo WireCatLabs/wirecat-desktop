@@ -56,7 +56,7 @@ Also checked:
 2. **Desktop installs pnpm itself with npm**, pinned to one version (`npm install --prefix <app data>/pnpm
    pnpm@11.28.8`), and calls that copy by its full path. The user needs nothing new: npm comes with every Node.
    Not corepack: Desktop downloads the newest supported Node (`src-tauri/src/node.rs:185-191`, 24+ allowed by
-   `system.rs:131-137`), and the Node project's docs describe corepack as no longer shipped with Node 25 and later.
+   `system.rs:131-137`), and Node 26.1.0 ships no corepack (checked: its `bin/` holds only `node`, `npm`, `npx`).
    The user's own pnpm, if any, is never used.
 3. **Builds are allowed by a list in the catalog**: `better-sqlite3`, `ssh2`, `cpu-features`. The CLIs' own
    `postinstall` installs agent skills and, on Windows, repairs PATH (`tg-cli install/postinstall.mjs`); Desktop does
