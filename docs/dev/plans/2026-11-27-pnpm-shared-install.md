@@ -122,6 +122,7 @@ Correction to the decisions above, where the code differs:
 - **Tests:** `bin/install-e2e` moves an npm copy of a test package to the app's pnpm, and installs with npm's
   folder locked. `bin/install-e2e real_tool_e2e` does the same with the real tg (about 100 MB). Both run on Linux
   here; CI runs the first on Linux only, and the release's install check runs the app's install on all three OSs.
-- **Found while testing:** npm 11.17 also skips build scripts unless they are allowed (`npm warn allow-scripts` on a
-  plain `npm install --global @wirecat/tg-cli`), so the npm path for own and community tools may leave the store
-  driver unbuilt too. Not checked further.
+- **Found while testing:** npm 11.17 warns `allow-scripts … not yet covered by allowScripts` on a plain
+  `npm install --global @wirecat/tg-cli`, but still runs the scripts: `better_sqlite3.node` is built (checked in a
+  fresh prefix, 2026-11-27). The warning says a later npm may skip them, as pnpm does; then the npm path for own and
+  community tools, and the site's `npm install -g`, would need `--allow-scripts`.
