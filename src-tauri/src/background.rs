@@ -136,8 +136,13 @@ fn classify(out: &run::Output, json: Option<&Value>) -> BackgroundFault {
 fn exec(tool: &Tool, args: &[String], timeout: Duration) -> Result<(), BackgroundFault> {
     let other = |message: String| BackgroundFault { kind: BackgroundFaultKind::Other, message };
     let bin = crate::tools::program(&tool.bin).ok_or_else(|| other("the tool is not installed".into()))?;
+    exec_at(&bin, args, timeout)
+}
+
+fn exec_at(bin: &std::path::Path, args: &[String], timeout: Duration) -> Result<(), BackgroundFault> {
+    let other = |message: String| BackgroundFault { kind: BackgroundFaultKind::Other, message };
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let mut cmd = run::command(&bin, &refs, Some(&paths::search_path()));
+    let mut cmd = run::command(bin, &refs, Some(&paths::search_path()));
     // Without a unit the server outlives this call as the tool's own process; it must not file its runs as Desktop's.
     cmd.env_remove(run::CALLER_ENV);
     let out = run::run_command(cmd, timeout).map_err(|e| other(e.to_string()))?;
@@ -195,11 +200,12 @@ fn act(
     }
 }
 
-/// One `server` command for one profile, with no state read around it; an install uses it to move a unit to the copy
-/// it just installed.
-pub fn rerun(tool: &Tool, profile: &str, action: BackgroundAction) -> Result<(), String> {
+/// One `server` command for one profile, run by the copy at `program`, with no state read around it. An install moves
+/// a unit to the copy it just installed this way: the copy the app would pick may be the old one of the same version.
+pub fn rerun(tool: &Tool, program: &std::path::Path, profile: &str, action: BackgroundAction) -> Result<(), String> {
     let timeout = if action == BackgroundAction::Start { Duration::from_mins(2) } else { Duration::from_secs(30) };
-    step(tool, source(tool)?, action, profile, timeout).map_err(|fault| fault.message)
+    let args = catalog::with_profile(words(source(tool)?, action), Some(profile))?;
+    exec_at(program, &args, timeout).map_err(|fault| fault.message)
 }
 
 /// Runs one action for one profile and reads the state again; a failure comes back as data with the state after it.

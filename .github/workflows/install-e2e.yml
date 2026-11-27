@@ -1,0 +1,44 @@
+# The app's install code on all three systems, for a pull request that changes it. ci.yml's `install` job runs it on
+# Linux for every pull request; a change to how tools are installed reaches every user through the updater, and
+# install-check.yml checks macOS and Windows only after a release is public.
+name: install-e2e
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src-tauri/src/install.rs
+      - src-tauri/src/install_e2e.rs
+      - src-tauri/src/own_pnpm.rs
+      - src-tauri/src/npm_prefix.rs
+      - src-tauri/src/paths.rs
+      - src-tauri/src/provenance.rs
+      - bin/install-e2e
+      - .github/workflows/install-e2e.yml
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: npm as the runner set it up
+        shell: bash
+        run: |
+          npm --version
+          npm prefix -g
+          whoami
+      - shell: bash
+        run: bin/install-e2e

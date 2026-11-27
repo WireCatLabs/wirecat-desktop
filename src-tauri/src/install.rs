@@ -439,7 +439,7 @@ fn set_up_pnpm(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) -> R
 /// `--version` alone proves little: pnpm skips build scripts it was not told to run, and the tool then starts and
 /// fails only once a command opens its store. So the store driver's build is checked, and the tool lists its commands,
 /// which loads every command it has. A tool with no doctor is not built on cli-core and has no `commands`.
-fn check_shared(tool: &Tool, wanted: &str, state: &tools::ToolState) -> Result<(), Failure> {
+fn check_shared(tool: &Tool, wanted: &str, state: &tools::ToolState) -> Result<PathBuf, Failure> {
     let copy = state.installs.iter().find(|i| own_pnpm::owns(&paths::untilde(&i.path))).ok_or_else(|| {
         Failure(Reason::Verify, format!("pnpm finished, but `{}` is not in its folder.", tool.bin), None)
     })?;
@@ -461,17 +461,17 @@ fn check_shared(tool: &Tool, wanted: &str, state: &tools::ToolState) -> Result<(
             Some("Try again. If it keeps happening, tell WireCat with Report a problem.".into()),
         ));
     }
-    if tool.doctor.is_empty() {
-        return Ok(());
-    }
     let program = paths::untilde(&copy.path);
+    if tool.doctor.is_empty() {
+        return Ok(program);
+    }
     let out = run::run(&program, &["commands", "--json"], Some(&paths::search_path()), Duration::from_mins(1))
         .map_err(|e| Failure(Reason::Verify, format!("`{} commands` did not run: {e}", tool.bin), None))?;
     if out.code != Some(0) || out.json().is_none() {
         let said = redact::text(out.stderr.lines().last().unwrap_or_default());
         return Err(Failure(Reason::Verify, format!("`{} commands` failed: {said}", tool.bin), None));
     }
-    Ok(())
+    Ok(program)
 }
 
 /// After the app's pnpm installed: the check, then the npm copies go, background units first.
@@ -482,14 +482,17 @@ fn move_to_shared(
     running: &Running,
     send: &dyn Fn(InstallEvent),
 ) -> Result<tools::ToolState, Failure> {
-    if let Err(failure) = check_shared(tool, wanted, &state) {
-        undo_shared(tool, running, send);
-        return Err(failure);
-    }
+    let new_copy = match check_shared(tool, wanted, &state) {
+        Ok(copy) => copy,
+        Err(failure) => {
+            undo_shared(tool, running, send);
+            return Err(failure);
+        }
+    };
     if npm_copies(tool).next().is_none() {
         return Ok(state);
     }
-    repoint_background(tool, send);
+    repoint_background(tool, &new_copy, send);
     retire_npm_copies(tool, running, send);
     paths::refresh(&own_pnpm::bin_dir().into_iter().collect::<Vec<_>>());
     Ok(tools::detect(tool, true))
@@ -506,7 +509,7 @@ fn undo_shared(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) {
 
 /// A background unit runs the program path it was written with, and the npm copy is about to go: each profile's unit
 /// is written again by the new copy (`server install` rewrites it), and a running server restarts on it.
-fn repoint_background(tool: &Tool, send: &dyn Fn(InstallEvent)) {
+fn repoint_background(tool: &Tool, new_copy: &Path, send: &dyn Fn(InstallEvent)) {
     use crate::background::{self, Background, BackgroundAction};
     if tool.background.is_none() {
         return;
@@ -533,7 +536,7 @@ fn repoint_background(tool: &Tool, send: &dyn Fn(InstallEvent)) {
             steps.push(BackgroundAction::Start);
         }
         for action in steps {
-            let line = match background::rerun(tool, &profile.name, action) {
+            let line = match background::rerun(tool, new_copy, &profile.name, action) {
                 Ok(()) => continue,
                 Err(why) => format!("The background server of {} did not move to the new copy: {why}", profile.name),
             };
