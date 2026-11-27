@@ -29,7 +29,8 @@ fn install_e2e() {
         ("LOCALAPPDATA", home.join("AppData").join("Local")),
         ("XDG_DATA_HOME", home.join(".local").join("share")),
         ("WIRECAT_NODE_DIR", root.join("no-managed-node")),
-        ("WIRECAT_PNPM_DIR", root.join("pnpm")),
+        // macOS keeps the app's data under `Application Support`: the space must survive pnpm's shims and flags.
+        ("WIRECAT_PNPM_DIR", root.join("Application Support").join("pnpm")),
         ("npm_config_cache", root.join("npm-cache")),
         ("npm_config_userconfig", root.join("npmrc")),
         ("npm_config_registry", PathBuf::from(&registry)),
@@ -97,7 +98,8 @@ fn real_tool_e2e() {
         ("XDG_DATA_HOME", home.join(".local").join("share")),
         ("XDG_CONFIG_HOME", home.join(".config")),
         ("WIRECAT_NODE_DIR", root.join("no-managed-node")),
-        ("WIRECAT_PNPM_DIR", root.join("pnpm")),
+        // macOS keeps the app's data under `Application Support`: the space must survive pnpm's shims and flags.
+        ("WIRECAT_PNPM_DIR", root.join("Application Support").join("pnpm")),
         ("npm_config_cache", root.join("npm-cache")),
         ("npm_config_userconfig", root.join("npmrc")),
         ("npm_config_prefix", prefix.clone()),
@@ -122,7 +124,7 @@ fn real_tool_e2e() {
     assert!(own_pnpm::owns(&copies[0]), "{} is not the app's pnpm copy", copies[0].display());
     assert_eq!(own_pnpm::unbuilt_drivers(), Vec::<PathBuf>::new());
     // Every store opens through this driver; a profile, which a fresh home lacks, is needed for the tool to open one.
-    let links = root.join("pnpm/store/v11/links/@/better-sqlite3");
+    let links = root.join("Application Support/pnpm/store/v11/links/@/better-sqlite3");
     let driver = std::fs::read_dir(&links)
         .unwrap()
         .flatten()
