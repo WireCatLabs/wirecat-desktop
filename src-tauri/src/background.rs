@@ -195,6 +195,13 @@ fn act(
     }
 }
 
+/// One `server` command for one profile, with no state read around it; an install uses it to move a unit to the copy
+/// it just installed.
+pub fn rerun(tool: &Tool, profile: &str, action: BackgroundAction) -> Result<(), String> {
+    let timeout = if action == BackgroundAction::Start { Duration::from_mins(2) } else { Duration::from_secs(30) };
+    step(tool, source(tool)?, action, profile, timeout).map_err(|fault| fault.message)
+}
+
 /// Runs one action for one profile and reads the state again; a failure comes back as data with the state after it.
 pub fn run_action(tool: &Tool, profile: &str, action: BackgroundAction) -> Result<BackgroundOutcome, String> {
     let src = source(tool)?;

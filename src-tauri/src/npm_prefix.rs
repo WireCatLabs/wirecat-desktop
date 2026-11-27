@@ -77,6 +77,9 @@ pub fn keep_tools_on_windows_path() {
     let user = user_prefix()
         .filter(|p| crate::catalog::catalog().tools.iter().any(|t| p.join(format!("{}.cmd", t.bin)).is_file()));
     crate::profile::keep_tools_on_windows_path(node.as_deref(), user.as_deref());
+    let own = crate::own_pnpm::bin_dir()
+        .filter(|p| crate::catalog::catalog().tools.iter().any(|t| p.join(format!("{}.cmd", t.bin)).is_file()));
+    crate::profile::keep_tools_on_windows_path(None, own.as_deref());
 }
 
 #[cfg(test)]

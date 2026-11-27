@@ -396,9 +396,13 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    holds the session at step `preflight` in the row's panel (or its setup row) until the owner goes ahead, and the
    queue moves on without it.
 2. `platform.install` opens a Tauri `Channel` and invokes `install_tool` with the tool **id** only.
-3. Rust looks the id up in the compiled catalog, checks Node.js, picks a global folder it may write to without
-   administrator rights (`npm_prefix.rs`), then runs `npm install --global <package>@<latest version>` there — or `pnpm add --global` when pnpm owns the copy that is already
-   installed, so an update never leaves a second copy behind.
+3. Rust looks the id up in the compiled catalog and checks Node.js. An official tool installs with the app's own
+   pnpm (`own_pnpm.rs`, installed once with npm into `<app data>/pnpm`), so every tool links one copy of each file
+   from one store instead of carrying its own cli-core; a copy npm installed before moves on its next update. A copy
+   from the user's own pnpm, bun or Volta updates with that manager, and own and community tools keep npm: a global
+   folder it may write to without administrator rights (`npm_prefix.rs`), then `npm install --global
+   <package>@<latest version>` there. Plan and measurements:
+   [2026-11-27-pnpm-shared-install.md](plans/2026-11-27-pnpm-shared-install.md).
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
 5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
    would still run another copy (one of the same or a newer version), the result says which. When npm installed into
@@ -408,6 +412,10 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    PATH, so the setup tells the owner to restart them; this is why an AI app opened before the install misses a tool.
    A network failure of `npm view` or of the install is retried once after 3 s; disk, proxy and certificate, and
    Windows long-path errors get their own reasons with the next step to take.
+   After the app's pnpm installs, the check goes further than `--version`: the store's database driver must be built
+   (pnpm skips build scripts it was not told to run) and the tool must list its commands. A copy that fails is removed
+   and the npm copy stays. Then each profile's background unit that starts at login is written again by the new copy,
+   a running server restarts on it, and every npm copy is removed with the npm it belongs to.
 6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
    line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or

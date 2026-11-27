@@ -316,7 +316,7 @@ pub fn downloads() -> Option<PathBuf> {
 }
 
 fn known_dirs() -> Vec<PathBuf> {
-    let mut dirs = Vec::new();
+    let mut dirs: Vec<PathBuf> = crate::own_pnpm::bin_dir().into_iter().collect();
     if cfg!(windows) {
         for (var, sub) in [("APPDATA", "npm"), ("LOCALAPPDATA", "pnpm"), ("ProgramFiles", "nodejs")] {
             if let Some(base) = std::env::var_os(var) {

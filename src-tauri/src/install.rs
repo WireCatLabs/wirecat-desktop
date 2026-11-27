@@ -1,7 +1,7 @@
 use crate::catalog::Tool;
 use crate::community::Source;
 use crate::provenance::{self, Refusal};
-use crate::{node, npm_prefix, paths, redact, run, skills, system, tools};
+use crate::{node, npm_prefix, own_pnpm, paths, redact, run, skills, system, tools};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -157,8 +157,8 @@ impl Running {
 #[derive(Debug)]
 struct Failure(Reason, String, Option<String>);
 
-/// Installs a new tool with npm, or updates an existing one with the manager that owns it,
-/// so an update never leaves a second copy that shadows the first.
+/// Installs or updates an official tool with the app's pnpm, moving an npm copy there; another tool, or a copy from the
+/// user's own pnpm, bun or Volta, with the manager that owns it, so an update never leaves a second copy behind.
 pub fn install(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) {
     guarded(tool, running, events, &|t, r, e| install_steps(t, r, e, None));
 }
@@ -267,7 +267,8 @@ fn install_steps(
         ));
     }
     let existing = tools::detect(tool, false).installs.into_iter().next();
-    let manager = existing.as_ref().map_or("npm", |i| i.manager);
+    let shared = shared_install(tool.source, existing.as_ref());
+    let manager = if shared { "pnpm" } else { existing.as_ref().map_or("npm", |i| i.manager) };
     // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
     // releases back then fails loudly instead of quietly installing an older one.
     let wanted = match pinned {
@@ -281,38 +282,36 @@ fn install_steps(
     };
     let spec = format!("{}@{wanted}", tool.package);
     let scope = (tool.source == Source::Own).then(|| tool.package.split('/').next().unwrap_or_default());
-    let (program, args) = install_command(manager, &spec, scope)?;
+    let (program_path, args, uses_npm) = install_program(shared, manager, &spec, scope, &ready)?;
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let program_path = paths::find(program).ok_or_else(|| {
-        Failure(
-            Reason::Requirements,
-            format!("{program} was not found."),
-            Some(format!("{manager} installed this tool; reinstall {program} or install Node.js again.")),
-        )
-    })?;
-    if program == "npm" && ready.npm_prefix_writable == Some(false) {
-        return Err(Failure(
-            Reason::Permission,
-            format!("npm installs into {}, which needs administrator rights.", ready.npm_prefix.unwrap_or_default()),
-            Some("Let WireCat set up its own Node.js in your home folder, or point npm at one: npm config set prefix ~/.npm-global.".into()),
-        ));
-    }
 
     confirm_release(tool, &wanted, pinned.map(|p| p.integrity), &send)?;
-    let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
+    let prefix = uses_npm.then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
+    let program_path = match program_path {
+        Some(path) => path,
+        None => set_up_pnpm(tool, running, &send)?,
+    };
     retry_on_network(&|| !running.is_running(&tool.id), &send, "the installation", || {
         run_manager(&program_path, &args, prefix.as_deref(), tool, running, &send, "Installation")
     })?;
 
     send(InstallEvent::Step { step: Step::Verify });
     send(InstallEvent::Check { what: Check::Path });
-    let path_fix = prefix.as_deref().and_then(|p| npm_prefix::reachable_from_terminal(p, &tool.id, &tool.bin));
-    let extra: Vec<_> = prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect();
+    let mut path_fix = prefix.as_deref().and_then(|p| npm_prefix::reachable_from_terminal(p, &tool.id, &tool.bin));
+    let extra: Vec<_> = if shared {
+        own_pnpm::bin_dir().into_iter().collect()
+    } else {
+        prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect()
+    };
     paths::refresh(&extra);
     send(InstallEvent::Check { what: Check::Start });
-    let state = tools::detect(tool, true);
+    let mut state = tools::detect(tool, true);
+    if shared {
+        state = move_to_shared(tool, &wanted, state, running, &send)?;
+        path_fix = own_pnpm::bin_dir().and_then(|dir| reachable_own(&tool.id, &dir));
+    }
     let first = state.installs.first().ok_or_else(|| {
         Failure(
             Reason::Verify,
@@ -327,7 +326,11 @@ fn install_steps(
             None,
         )
     })?;
-    let ours = state.installs.iter().find(|i| i.manager == manager).unwrap_or(first);
+    let ours = state
+        .installs
+        .iter()
+        .find(|i| if shared { own_pnpm::owns(&paths::untilde(&i.path)) } else { i.manager == manager })
+        .unwrap_or(first);
     if let Some(got) = ours.version.as_deref()
         && wanted != got
     {
@@ -349,6 +352,227 @@ fn install_steps(
         skills::SkillRefresh::default()
     };
     Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
+}
+
+/// The program and words that install `spec`, and whether it is npm. `None` is the app's pnpm, set up once the
+/// release is confirmed.
+fn install_program(
+    shared: bool,
+    manager: &str,
+    spec: &str,
+    scope: Option<&str>,
+    ready: &system::Readiness,
+) -> Result<(Option<PathBuf>, Vec<String>, bool), Failure> {
+    Ok(if shared {
+        (None, own_pnpm::add_args(spec, &[PNPM_WIRECAT_NOW]), false)
+    } else {
+        let (program, args) = install_command(manager, spec, scope)?;
+        let path = paths::find(program).ok_or_else(|| {
+            Failure(
+                Reason::Requirements,
+                format!("{program} was not found."),
+                Some(format!("{manager} installed this tool; reinstall {program} or install Node.js again.")),
+            )
+        })?;
+        if program == "npm" && ready.npm_prefix_writable == Some(false) {
+            return Err(Failure(
+                Reason::Permission,
+                format!("npm installs into {}, which needs administrator rights.", ready.npm_prefix.clone().unwrap_or_default()),
+                Some("Let WireCat set up its own Node.js in your home folder, or point npm at one: npm config set prefix ~/.npm-global.".into()),
+            ));
+        }
+        (Some(path), args, program == "npm")
+    })
+}
+
+/// Official tools go through the app's pnpm, also when npm installed them before: the next update moves them (owner,
+/// 2026-11-27). A copy from the user's own pnpm, bun or Volta stays with that manager. Own and community tools keep
+/// npm: their releases are checked against what npm reports, and their builds are not on the app's list.
+fn shared_install(source: Source, existing: Option<&tools::Install>) -> bool {
+    source == Source::Official
+        && existing.is_none_or(|copy| copy.manager == "npm" || own_pnpm::owns(&paths::untilde(&copy.path)))
+}
+
+/// Installs the app's pnpm the first time a tool needs it, after checking that pnpm's own release workflow built it.
+fn set_up_pnpm(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) -> Result<PathBuf, Failure> {
+    if let Some(program) = own_pnpm::program() {
+        return Ok(program);
+    }
+    let npm = paths::find("npm").ok_or_else(|| {
+        Failure(
+            Reason::Requirements,
+            "npm was not found, so pnpm cannot be set up.".into(),
+            Some("Let WireCat set up Node.js for you, or install Node.js again.".into()),
+        )
+    })?;
+    send(InstallEvent::Log {
+        line: format!("Setting up pnpm {}, so the tools share one copy of their files…", own_pnpm::VERSION),
+        stderr: false,
+    });
+    provenance::confirm_built_by(&npm, "pnpm", own_pnpm::VERSION, own_pnpm::BUILT_BY).map_err(
+        |refusal| match refusal {
+            Refusal::Unreachable(detail) => specific(&detail, cfg!(windows)).unwrap_or_else(|| {
+                Failure(
+                    Reason::Network,
+                    "Could not check pnpm with the npm registry.".into(),
+                    Some("Check your internet connection or proxy, then try again.".into()),
+                )
+            }),
+            Refusal::Unconfirmed(detail) => Failure(
+                Reason::Unconfirmed,
+                format!("pnpm {} could not be confirmed as built by its release workflow: {detail}", own_pnpm::VERSION),
+                Some("Try again later. If it keeps happening, tell WireCat with Report a problem.".into()),
+            ),
+        },
+    )?;
+    let (prefix, args) = own_pnpm::setup_args()
+        .ok_or_else(|| Failure(Reason::Requirements, "There is no folder for the app's data.".into(), None))?;
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    retry_on_network(&|| !running.is_running(&tool.id), send, "the pnpm setup", || {
+        run_manager(&npm, &args, Some(&prefix), tool, running, send, "Setting up pnpm")
+    })?;
+    own_pnpm::program().ok_or_else(|| {
+        Failure(Reason::Verify, format!("npm finished, but pnpm {} is not in place.", own_pnpm::VERSION), None)
+    })
+}
+
+/// `--version` alone proves little: pnpm skips build scripts it was not told to run, and the tool then starts and
+/// fails only once a command opens its store. So the store driver's build is checked, and the tool lists its commands,
+/// which loads every command it has. A tool with no doctor is not built on cli-core and has no `commands`.
+fn check_shared(tool: &Tool, wanted: &str, state: &tools::ToolState) -> Result<(), Failure> {
+    let copy = state.installs.iter().find(|i| own_pnpm::owns(&paths::untilde(&i.path))).ok_or_else(|| {
+        Failure(Reason::Verify, format!("pnpm finished, but `{}` is not in its folder.", tool.bin), None)
+    })?;
+    if copy.version.as_deref() != Some(wanted) {
+        return Err(Failure(
+            Reason::Verify,
+            format!(
+                "pnpm installed {} {}, not {wanted}.",
+                tool.bin,
+                copy.version.as_deref().unwrap_or("that does not start")
+            ),
+            copy.problem.clone(),
+        ));
+    }
+    if let Some(unbuilt) = own_pnpm::unbuilt_drivers().first() {
+        return Err(Failure(
+            Reason::Verify,
+            format!("The database driver at {} was not built.", paths::tilde(&unbuilt.to_string_lossy())),
+            Some("Try again. If it keeps happening, tell WireCat with Report a problem.".into()),
+        ));
+    }
+    if tool.doctor.is_empty() {
+        return Ok(());
+    }
+    let program = paths::untilde(&copy.path);
+    let out = run::run(&program, &["commands", "--json"], Some(&paths::search_path()), Duration::from_mins(1))
+        .map_err(|e| Failure(Reason::Verify, format!("`{} commands` did not run: {e}", tool.bin), None))?;
+    if out.code != Some(0) || out.json().is_none() {
+        let said = redact::text(out.stderr.lines().last().unwrap_or_default());
+        return Err(Failure(Reason::Verify, format!("`{} commands` failed: {said}", tool.bin), None));
+    }
+    Ok(())
+}
+
+/// After the app's pnpm installed: the check, then the npm copies go, background units first.
+fn move_to_shared(
+    tool: &Tool,
+    wanted: &str,
+    state: tools::ToolState,
+    running: &Running,
+    send: &dyn Fn(InstallEvent),
+) -> Result<tools::ToolState, Failure> {
+    if let Err(failure) = check_shared(tool, wanted, &state) {
+        undo_shared(tool, running, send);
+        return Err(failure);
+    }
+    if npm_copies(tool).next().is_none() {
+        return Ok(state);
+    }
+    repoint_background(tool, send);
+    retire_npm_copies(tool, running, send);
+    paths::refresh(&own_pnpm::bin_dir().into_iter().collect::<Vec<_>>());
+    Ok(tools::detect(tool, true))
+}
+
+/// A copy that failed its check would win over the npm copy as the newer one, so it goes; the npm copy keeps working.
+fn undo_shared(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) {
+    let Some(pnpm) = own_pnpm::program() else { return };
+    let args = own_pnpm::remove_args(&tool.package);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let _ = run_manager(&pnpm, &args, None, tool, running, send, "Removing the copy that failed its check");
+    paths::refresh(&[]);
+}
+
+/// A background unit runs the program path it was written with, and the npm copy is about to go: each profile's unit
+/// is written again by the new copy (`server install` rewrites it), and a running server restarts on it.
+fn repoint_background(tool: &Tool, send: &dyn Fn(InstallEvent)) {
+    use crate::background::{self, Background, BackgroundAction};
+    if tool.background.is_none() {
+        return;
+    }
+    let Ok(Some(profiles)) = tools::profiles(tool) else { return };
+    for profile in profiles {
+        let Ok(before) = background::status(tool, &profile.name) else { continue };
+        let running = matches!(before, Background::Running { .. });
+        // `server install` also turns on the start at login, so a unit the owner turned off is left: the app writes it
+        // again when they start the server from the Tools page.
+        let unit = matches!(
+            before,
+            Background::Running { starts_at_login: Some(true), .. }
+                | Background::Stopped { starts_at_login: Some(true), .. }
+        );
+        let mut steps = Vec::new();
+        if running {
+            steps.push(BackgroundAction::Stop);
+        }
+        if unit {
+            steps.push(BackgroundAction::Keep);
+        }
+        if running {
+            steps.push(BackgroundAction::Start);
+        }
+        for action in steps {
+            let line = match background::rerun(tool, &profile.name, action) {
+                Ok(()) => continue,
+                Err(why) => format!("The background server of {} did not move to the new copy: {why}", profile.name),
+            };
+            send(InstallEvent::Log { line, stderr: true });
+            break;
+        }
+    }
+}
+
+fn npm_copies(tool: &Tool) -> impl Iterator<Item = PathBuf> {
+    paths::find_all(&tool.bin).into_iter().filter(|c| paths::manager_for(c) == "npm" && !own_pnpm::owns(c))
+}
+
+/// Removes every npm copy, each with the npm it belongs to. One that cannot go stays and is listed on the tool's row,
+/// with the command to remove it.
+fn retire_npm_copies(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) {
+    for copy in npm_copies(tool).collect::<Vec<_>>() {
+        let shown = paths::tilde(&copy.to_string_lossy());
+        let removed = copy_removal(&copy, &tool.package, None).and_then(|plan| {
+            let npm = plan.beside(&copy).or_else(|| paths::find(plan.program)).ok_or("npm was not found")?;
+            let args: Vec<&str> = plan.args.iter().map(String::as_str).collect();
+            run_manager(&npm, &args, plan.prefix.as_deref(), tool, running, send, "Removing the npm copy")
+                .map_err(|Failure(_, message, _)| message)
+        });
+        let line = match removed {
+            Ok(()) => format!("Removed the npm copy at {shown}."),
+            Err(why) => format!("The npm copy at {shown} stays: {why}"),
+        };
+        send(InstallEvent::Log { line, stderr: false });
+    }
+}
+
+/// The app's tool folder on the terminal's PATH, once; `None` when it is there already.
+fn reachable_own(id: &str, dir: &Path) -> Option<crate::terminal_path::PathFix> {
+    if crate::profile::plan_folder(dir).added {
+        return None;
+    }
+    let missing = [(id.to_string(), dir.to_path_buf())];
+    Some(crate::terminal_path::apply(&missing, crate::profile::plan_folder, crate::profile::add_folder))
 }
 
 /// The manager's install line. An own tool installs from the public registry, the one its review read, for its own
@@ -483,6 +707,20 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     let _ = events.send(InstallEvent::Step { step: Step::Check });
     let mut plan = Vec::new();
     for copy in paths::find_all(&tool.bin) {
+        if own_pnpm::owns(&copy) {
+            let pnpm = own_pnpm::program().ok_or_else(|| {
+                Failure(
+                    Reason::Requirements,
+                    format!(
+                        "WireCat's pnpm is missing, so {} cannot be removed.",
+                        paths::tilde(&copy.to_string_lossy())
+                    ),
+                    Some("Install the tool again, then remove it.".into()),
+                )
+            })?;
+            plan.push((pnpm, own_pnpm::remove_args(&tool.package), None));
+            continue;
+        }
         let manager = paths::manager_for(&copy);
         let (program, args): (&str, Vec<&str>) = match manager {
             "pnpm" => ("pnpm", vec!["remove", "--global", &tool.package]),
@@ -500,7 +738,7 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
             )
         })?;
         let prefix = (program == "npm").then(|| npm_prefix::of_copy(&copy)).flatten();
-        plan.push((path, args, prefix));
+        plan.push((path, args.into_iter().map(str::to_string).collect(), prefix));
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Remove });
@@ -508,7 +746,8 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
         let _ = events.send(e);
     };
     for (program, args, prefix) in &plan {
-        run_manager(program, args, prefix.as_deref(), tool, running, &send, "Uninstalling")?;
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        run_manager(program, &args, prefix.as_deref(), tool, running, &send, "Uninstalling")?;
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Verify });
@@ -557,7 +796,12 @@ pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
         Ok(plan) => plan,
         Err(message) => return refused(CopyRefusal::Manager, message),
     };
-    let Some(program) = plan.beside(&target).or_else(|| paths::find(plan.program)) else {
+    let program = if own_pnpm::owns(&target) {
+        own_pnpm::program()
+    } else {
+        plan.beside(&target).or_else(|| paths::find(plan.program))
+    };
+    let Some(program) = program else {
         return refused(
             CopyRefusal::Manager,
             format!("{} was not found, so {shown} cannot be removed here.", plan.program),
@@ -623,6 +867,9 @@ impl CopyPlan {
 
 fn copy_removal(copy: &Path, package: &str, pnpm_home: Option<&Path>) -> Result<CopyPlan, String> {
     let shown = paths::tilde(&copy.to_string_lossy());
+    if own_pnpm::owns(copy) {
+        return Ok(CopyPlan { program: "pnpm", args: own_pnpm::remove_args(package), prefix: None });
+    }
     match paths::manager_for(copy) {
         // pnpm acts on its one global folder; a copy outside it belongs to another pnpm.
         "pnpm" if pnpm_home.is_some_and(|home| copy.starts_with(home)) => Ok(CopyPlan {
@@ -657,11 +904,15 @@ fn run_manager(
     send(InstallEvent::Log { line: format!("$ {name} {}", args.join(" ")), stderr: false });
     let mut tail: Vec<String> = Vec::new();
     let mut cmd = run::command(program, args, Some(&paths::search_path()));
-    if let Some(home) = paths::pnpm_home() {
-        cmd.env("PNPM_HOME", home);
-    }
-    if let Some(prefix) = prefix.map(std::path::Path::to_path_buf).or_else(|| node::owner_of(program)) {
-        cmd.env("npm_config_prefix", prefix);
+    if own_pnpm::is_program(program) {
+        own_pnpm::configure(&mut cmd);
+    } else {
+        if let Some(home) = paths::pnpm_home() {
+            cmd.env("PNPM_HOME", home);
+        }
+        if let Some(prefix) = prefix.map(std::path::Path::to_path_buf).or_else(|| node::owner_of(program)) {
+            cmd.env("npm_config_prefix", prefix);
+        }
     }
     let code = run::stream(
         cmd,

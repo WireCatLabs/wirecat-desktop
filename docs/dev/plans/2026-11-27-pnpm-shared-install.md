@@ -1,6 +1,6 @@
 # Plan: install the tools with pnpm, so they share one copy of their files
 
-Status: draft for the owner's review, 2026-11-27. Nothing here is built. Backlog: cli-core
+Status: built, 2026-11-27 (`src-tauri/src/own_pnpm.rs`, `install.rs`). See "As built" at the end. Backlog: cli-core
 [CORE-73](https://github.com/WireCatLabs/cli-core/blob/main/docs/dev/BACKLOG.md).
 
 ## Goal
@@ -105,3 +105,23 @@ the old copy stays and the app keeps using it.
    outside Desktop. Users have npm, not pnpm, so Desktop
    brings its own pnpm (decision 2).
 2. Without Desktop: keep npm on the site, recommend pnpm only for several tools (decision 6).
+
+## As built (2026-11-27)
+
+Correction to the decisions above, where the code differs:
+
+- **The allowed builds are a list in `own_pnpm.rs`**, not in the catalog: the same three for every tool, changed
+  together with the pinned pnpm.
+- **The check opens no store.** Every store command needs a profile, which a new install lacks. The check reads that
+  the store driver's build ran (`better_sqlite3.node` in pnpm's store) and runs `<bin> commands --json` for tools
+  built on cli-core (those with a doctor). `bin/install-e2e real_tool_e2e` opens a database with that driver.
+- **pnpm's own release is checked** like a tool's: provenance from `pnpm/pnpm`'s release workflow on the tag
+  `v11.28.8` (`provenance::confirm_built_by`), before npm installs it.
+- **A background unit whose start at login is off is not written again**: `server install` would turn it on. The
+  Tools page writes it when the owner starts that server.
+- **Tests:** `bin/install-e2e` moves an npm copy of a test package to the app's pnpm, and installs with npm's
+  folder locked. `bin/install-e2e real_tool_e2e` does the same with the real tg (about 100 MB). Both run on Linux
+  here; CI runs the first on Linux only, and the release's install check runs the app's install on all three OSs.
+- **Found while testing:** npm 11.17 also skips build scripts unless they are allowed (`npm warn allow-scripts` on a
+  plain `npm install --global @wirecat/tg-cli`), so the npm path for own and community tools may leave the store
+  driver unbuilt too. Not checked further.
