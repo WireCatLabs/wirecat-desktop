@@ -86,7 +86,7 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 # apt_update.rs is compiled everywhere and only runs where `package_update::Kind::Apt` can be. zbus 5 is already in
 # the Linux build through the opener and single-instance.
 [dependencies.zbus]
-version = "5"
+version = "6"
 
 [target."cfg(unix)".dependencies]
 libc = "0.2"
