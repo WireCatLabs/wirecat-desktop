@@ -64,7 +64,16 @@ Also checked:
 4. **A check after every install runs `<bin> commands` and one store-opening command**, not `--version`.
 5. **Migration: moved automatically on the next update of each tool** (owner, 2026-11-27). Desktop installs the new
    version through pnpm, runs the check from decision 4, switches to the new copy, and only then removes the old npm
-   copy. A failed step leaves the old copy in use. A copy the user installed outside Desktop is left alone.
+   copy. A failed step leaves the old copy in use.
+   Correction (2026-11-27, owner): copies the user installed with npm outside Desktop move too, nvm folders
+   included. Removal reuses what uninstall does today: `paths::find_all` finds every copy and each is removed by the
+   npm that owns it, the one beside it for nvm (`src-tauri/src/install.rs:482-500`). Order for one tool:
+   1. install the new version through Desktop's pnpm and run the check (decision 4);
+   2. if the tool's background service runs, stop it with the old copy and start it with the new one, so the unit
+      points at the pnpm path (the CLI writes its own unit, `src-tauri/src/background.rs:163-199`);
+   3. remove every npm copy; check that `<bin>` on PATH now resolves to the pnpm copy.
+   A copy npm cannot remove (for example in `/usr/local` without write access) stays; Desktop names its path and the
+   command to remove it. A bun or volta copy is left alone: the owner asked about npm only.
 6. **Without Desktop the site keeps `npm install -g`** (owner, 2026-11-27). pnpm is recommended in one place only:
    a section for people who install three or more tools, with the full command including `--allow-build`, and why
    (npm keeps a full copy of the shared core in every tool).
@@ -79,7 +88,8 @@ Also checked:
 4. **Migration** on each tool's next update (decision 5), with the old copy kept until the new one passes the check.
 5. **Tests**: `install_e2e.rs` with pnpm on Linux, macOS and Windows (today Linux only, `.github/workflows/ci.yml:61-82`):
    two tools on different cores share files (link count above 1), both pass the check; an update keeps the path in a
-   background unit working; a user's own npm copy is left alone.
+   background unit working; a user's own npm copy in an nvm folder is moved and removed, and a copy npm cannot
+   remove stays with a message.
 6. **cli-core**: update the comment at `src/background/system.ts:62-63` if pnpm 11's layout needs other wording; no
    code change expected.
 7. **Docs** on wirecat.dev (cli-docs): where Desktop puts tools; the "several tools" section with pnpm (decision 6).
@@ -91,6 +101,7 @@ the old copy stays and the app keeps using it.
 
 ## Owner's answers (2026-11-27)
 
-1. Existing copies: move them automatically on the next update (decision 5). Users have npm, not pnpm, so Desktop
+1. Existing copies: move them automatically on the next update (decision 5), including the ones installed with npm
+   outside Desktop. Users have npm, not pnpm, so Desktop
    brings its own pnpm (decision 2).
 2. Without Desktop: keep npm on the site, recommend pnpm only for several tools (decision 6).
