@@ -656,7 +656,7 @@
     ]
   },
   "max": {
-    "version": "0.119.0",
+    "version": "0.123.0",
     "profile": true,
     "global": [
       "--brief",
@@ -683,7 +683,6 @@
     ],
     "commands": [
       "account",
-      "account list",
       "account privacy",
       "account privacy set --calls --chat-invites --find-by-phone --hide-online --phone-number",
       "account privacy show",
@@ -1060,7 +1059,9 @@
       "server uninstall",
       "session",
       "session end",
+      "session list",
       "session start --answer-stdin --credential-storage",
+      "session status --check",
       "setup --agent --method",
       "skill",
       "skill install --for",

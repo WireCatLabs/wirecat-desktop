@@ -331,10 +331,10 @@ mod tests {
 
     /// Every official CLI's manifest as cli-docs read it from npm on 2026-11-24 (cli-docs b0d04c2e), slack-cli
     /// 0.3.0's, read on 2026-11-25 (its `signIn.setupFrom` replaces the catalog's, and its `account list` the
-    /// catalog's `session list`), and tg 0.137.0's and wa 0.48.0's, read on 2026-11-26. max 0.119.0 still says
-    /// `account list` until its next release. The changes are the command differences cli-docs
-    /// `registry/drift-allow.json` lists (drive's `sync.lastShape` goes with its `sync.last`), except the MCP servers
-    /// the catalog gives no port and what a sign-out keeps or removes, which stay Desktop's words.
+    /// catalog's `session list`), tg 0.137.0's and wa 0.48.0's, read on 2026-11-26, and max 0.123.0's, read on
+    /// 2026-11-27. The changes are the command differences cli-docs `registry/drift-allow.json` lists (drive's
+    /// `sync.lastShape` goes with its `sync.last`), except the MCP servers the catalog gives no port and what a sign-out
+    /// keeps or removes, which stay Desktop's words.
     #[test]
     fn each_official_cli_overlays_cleanly_and_changes_only_its_commands() {
         let mut all = BTreeMap::new();
@@ -349,7 +349,6 @@ mod tests {
             ("drive", "doctor mcpServer.config sync.last sync.lastShape"),
             ("email", "doctor sync.last"),
             ("gcal", "doctor"),
-            ("max", "profiles.args"),
             ("memo", "skill.install skill.show sync.last"),
             ("notion", "sync.last"),
             ("slk", "profiles.args signIn.setupFrom"),
