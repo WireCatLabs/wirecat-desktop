@@ -140,7 +140,7 @@ function CheckResult(props: {
   const m = useMessages(toolsMessages).health
   if (check.state === "running") return <Skeleton className="h-16 w-full" label={m.running} />
   const { result } = check
-  const findings = summarize(result.report, result.exitCode)
+  const findings = summarize(result.report, result.exitCode, tool.id)
   const config = findings.filter((f) => f.config)
   const other = findings.filter((f) => !f.config)
   return (
