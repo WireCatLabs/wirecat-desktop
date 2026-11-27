@@ -8,6 +8,7 @@
 
 use crate::{node, npm_prefix};
 use std::path::{Path, PathBuf};
+use std::sync::RwLock;
 
 pub const VERSION: &str = "11.28.8";
 /// pnpm publishes from its release workflow on the version's tag.
@@ -25,8 +26,15 @@ fn root() -> Option<PathBuf> {
     if let Some(dir) = std::env::var_os("WIRECAT_PNPM_DIR") {
         return Some(PathBuf::from(dir));
     }
+    // Code here removes files; a test that forgot the variable must not reach the owner's real tools.
+    if cfg!(test) {
+        return None;
+    }
     node::app_data().map(|d| d.join("pnpm"))
 }
+
+/// Held by every run of the app's pnpm; a store prune takes it alone, as removing packages under an install breaks it.
+pub static RUNS: RwLock<()> = RwLock::new(());
 
 /// `PNPM_HOME` for the tools: pnpm links their programs into `bin` and keeps each tool's folder under `global`.
 pub fn home() -> Option<PathBuf> {
@@ -62,6 +70,13 @@ pub fn program() -> Option<PathBuf> {
     let prefix = prefix()?;
     let program = program_at(&prefix);
     (program.is_file() && installed_version(&prefix).as_deref() == Some(VERSION)).then_some(program)
+}
+
+/// `program()` that also starts: npm sees `package.json` and counts pnpm as installed, even with its files gone.
+pub fn working() -> Option<PathBuf> {
+    let program = program()?;
+    let out = crate::run::run(&program, &["--version"], None, std::time::Duration::from_secs(30)).ok()?;
+    (out.code == Some(0) && out.stdout.trim() == VERSION).then_some(program)
 }
 
 pub fn is_program(path: &Path) -> bool {
@@ -110,24 +125,80 @@ pub fn configure(cmd: &mut std::process::Command) {
     }
 }
 
-/// Store drivers whose build did not run. pnpm 11 keeps a global install's packages in the store under
-/// `v11/links/@/<name>/<version>/<hash>/node_modules/<name>`; this layout is pinned with `VERSION`. Without the build
-/// the tool starts and lists its commands, and fails only once a command opens its store.
-pub fn unbuilt_drivers() -> Vec<PathBuf> {
-    store().map_or_default(|s| unbuilt_in(&s))
+/// What prunes the store of packages no installed tool links to: every update leaves the old version's files.
+pub fn prune_args() -> Option<Vec<String>> {
+    store().map(|s| vec!["store".into(), "prune".into(), format!("--store-dir={}", s.display())])
 }
 
-fn unbuilt_in(store: &Path) -> Vec<PathBuf> {
-    let base = store.join("v11").join("links").join("@").join("better-sqlite3");
-    let dirs = |p: &Path| -> Vec<PathBuf> {
-        std::fs::read_dir(p).map_or_default(|r| r.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect())
+/// The folder pnpm installed `package` into, while it is there.
+pub fn package_dir(package: &str) -> Option<PathBuf> {
+    let global = home()?.join("global").join("v11");
+    std::fs::read_dir(global)
+        .ok()?
+        .flatten()
+        .map(|e| e.path().join("node_modules").join(package))
+        .find(|p| p.join("package.json").is_file())
+}
+
+/// Programs in the app's `bin` that still run `package`: pnpm leaves them when the tool's folder went first.
+pub fn shims_of(package: &str) -> Vec<PathBuf> {
+    let Some(bin) = bin_dir() else { return Vec::new() };
+    let marks = [format!("node_modules/{package}/"), format!("node_modules\\{}\\", package.replace('/', "\\"))];
+    std::fs::read_dir(&bin).map_or_default(|r| {
+        r.flatten()
+            .map(|e| e.path())
+            .filter(|p| p.starts_with(&bin) && p.is_file())
+            .filter(|p| std::fs::read_to_string(p).is_ok_and(|text| marks.iter().any(|m| text.contains(m))))
+            .collect()
+    })
+}
+
+/// Drivers `package` loads whose build did not run, found by following its dependencies through the store. Only its
+/// own: a failed build another tool left must not fail this one.
+pub fn unbuilt_drivers_of(package: &str) -> Vec<PathBuf> {
+    package_dir(package).map_or_default(|dir| unbuilt_from(&dir, package))
+}
+
+/// pnpm puts a package's dependencies beside it, in the `node_modules` that holds it, as links into the store.
+fn unbuilt_from(dir: &Path, package: &str) -> Vec<PathBuf> {
+    let mut seen = std::collections::HashSet::new();
+    let mut queue = vec![(std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf()), package.to_string())];
+    let mut unbuilt = Vec::new();
+    while let Some((pkg, name)) = queue.pop() {
+        if !seen.insert(pkg.clone()) {
+            continue;
+        }
+        if name == "better-sqlite3" && !pkg.join("build").join("Release").join("better_sqlite3.node").is_file() {
+            unbuilt.push(pkg.clone());
+        }
+        let Some(modules) = pkg.ancestors().nth(name.split('/').count()) else { continue };
+        for (dep, dep_name) in packages_in(modules) {
+            if dep_name != name
+                && let Ok(real) = std::fs::canonicalize(&dep)
+            {
+                queue.push((real, dep_name));
+            }
+        }
+    }
+    unbuilt
+}
+
+fn packages_in(modules: &Path) -> Vec<(PathBuf, String)> {
+    let names = |p: &Path| -> Vec<String> {
+        std::fs::read_dir(p).map_or_default(|r| {
+            r.flatten().map(|e| e.file_name().to_string_lossy().to_string()).filter(|n| !n.starts_with('.')).collect()
+        })
     };
-    dirs(&base)
-        .iter()
-        .flat_map(|version| dirs(version))
-        .map(|hash| hash.join("node_modules").join("better-sqlite3"))
-        .filter(|pkg| pkg.join("package.json").is_file())
-        .filter(|pkg| !pkg.join("build").join("Release").join("better_sqlite3.node").is_file())
+    names(modules)
+        .into_iter()
+        .flat_map(|n| {
+            if n.starts_with('@') {
+                names(&modules.join(&n)).into_iter().map(|m| format!("{n}/{m}")).collect()
+            } else {
+                vec![n]
+            }
+        })
+        .map(|n| (modules.join(&n), n))
         .collect()
 }
 
@@ -135,21 +206,41 @@ fn unbuilt_in(store: &Path) -> Vec<PathBuf> {
 mod tests {
     use super::*;
 
+    /// The layout pnpm 11 gives a global install: each package in the store's `links`, its dependencies linked beside it.
+    #[cfg(unix)]
     #[test]
-    fn finds_a_driver_whose_build_did_not_run() {
-        let store = std::env::temp_dir().join(format!("wirecat-own-pnpm-{}", std::process::id()));
-        let links = store.join("v11/links/@/better-sqlite3/12.11.1");
-        let built = links.join("aaa/node_modules/better-sqlite3");
-        let unbuilt = links.join("bbb/node_modules/better-sqlite3");
-        for pkg in [&built, &unbuilt] {
-            std::fs::create_dir_all(pkg).unwrap();
-            std::fs::write(pkg.join("package.json"), "{}").unwrap();
-        }
-        std::fs::create_dir_all(built.join("build/Release")).unwrap();
-        std::fs::write(built.join("build/Release/better_sqlite3.node"), "").unwrap();
-        assert_eq!(unbuilt_in(&store), vec![unbuilt]);
-        assert_eq!(unbuilt_in(&store.join("missing")), Vec::<PathBuf>::new());
-        let _ = std::fs::remove_dir_all(&store);
+    fn finds_only_the_unbuilt_driver_its_own_dependencies_reach() {
+        use std::os::unix::fs::symlink;
+        let root = std::env::temp_dir().join(format!("wirecat-own-pnpm-{}", std::process::id()));
+        let links = root.join("links");
+        let place = |name: &str, hash: &str| {
+            let dir = links.join(name).join(hash).join("node_modules").join(name);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("package.json"), "{}").unwrap();
+            dir
+        };
+        let link = |from: &Path, name: &str, to: &Path| {
+            let at = from.ancestors().nth(from_depth(from)).unwrap().join(name);
+            std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+            symlink(to, at).unwrap();
+        };
+        let tool = place("@wirecat/tg-cli", "t");
+        let mtcute = place("@mtcute/node", "m");
+        let reached = place("better-sqlite3", "a");
+        let elsewhere = place("better-sqlite3", "b");
+        link(&tool, "@mtcute/node", &mtcute);
+        link(&mtcute, "better-sqlite3", &reached);
+        assert_eq!(unbuilt_from(&tool, "@wirecat/tg-cli"), vec![std::fs::canonicalize(&reached).unwrap()]);
+        std::fs::create_dir_all(reached.join("build/Release")).unwrap();
+        std::fs::write(reached.join("build/Release/better_sqlite3.node"), "").unwrap();
+        assert!(elsewhere.is_dir(), "an unbuilt driver no dependency reaches");
+        assert_eq!(unbuilt_from(&tool, "@wirecat/tg-cli"), Vec::<PathBuf>::new());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[cfg(unix)]
+    fn from_depth(pkg: &Path) -> usize {
+        if pkg.parent().and_then(Path::file_name).is_some_and(|n| n.to_string_lossy().starts_with('@')) { 2 } else { 1 }
     }
 
     #[test]

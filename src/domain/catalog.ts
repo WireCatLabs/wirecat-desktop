@@ -564,8 +564,21 @@ export function runTool(owner: string, command: string): string {
 /** "Memo and Email" for a shared package, the tool's own name otherwise. */
 export const installCommand = (t: CatalogTool) => `npm install -g ${t.package}`
 
+/** The app's own pnpm folder (`own_pnpm.rs`), from one of its tools' programs. */
+const OWN_PNPM = /^(.*[\\/]dev\.wirecat\.desktop[\\/]pnpm)[\\/]home[\\/]bin[\\/][^\\/]+$/
+
+/** The user has no pnpm of their own, and theirs would look in another folder: the app's, pointed at its home. */
+function ownPnpmRemove(root: string, pkg: string) {
+  const at = root.replace(/^~(?=[\\/])/, "$HOME")
+  return at.includes("\\")
+    ? `$env:PNPM_HOME="${at}\\home"; & "${at}\\program\\pnpm.cmd" remove --global ${pkg}`
+    : `PNPM_HOME="${at}/home" "${at}/program/bin/pnpm" remove --global ${pkg}`
+}
+
 /** Removes one copy with the program that installed it; `install.rs` uninstall_steps maps the same managers. */
 export function removeCommand(manager: string, pkg: string, path: string) {
+  const own = path.match(OWN_PNPM)?.[1]
+  if (own) return ownPnpmRemove(own, pkg)
   if (manager === "pnpm") return `pnpm remove --global ${pkg}`
   if (manager === "bun") return `bun remove --global ${pkg}`
   if (manager === "volta") return `volta uninstall ${pkg}`

@@ -266,7 +266,9 @@ fn install_steps(
             ),
         ));
     }
-    let existing = tools::detect(tool, false).installs.into_iter().next();
+    let installs = tools::detect(tool, false).installs;
+    let previous = installs.iter().find(|i| own_pnpm::owns(&paths::untilde(&i.path))).and_then(|i| i.version.clone());
+    let existing = installs.into_iter().next();
     let shared = shared_install(tool.source, existing.as_ref());
     let manager = if shared { "pnpm" } else { existing.as_ref().map_or("npm", |i| i.manager) };
     // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
@@ -293,9 +295,12 @@ fn install_steps(
         Some(path) => path,
         None => set_up_pnpm(tool, running, &send)?,
     };
-    retry_on_network(&|| !running.is_running(&tool.id), &send, "the installation", || {
-        run_manager(&program_path, &args, prefix.as_deref(), tool, running, &send, "Installation")
-    })?;
+    let install = |what: &str| {
+        retry_on_network(&|| !running.is_running(&tool.id), &send, "the installation", || {
+            run_manager(&program_path, &args, prefix.as_deref(), tool, running, &send, what)
+        })
+    };
+    install("Installation")?;
 
     send(InstallEvent::Step { step: Step::Verify });
     send(InstallEvent::Check { what: Check::Path });
@@ -303,14 +308,16 @@ fn install_steps(
     let extra: Vec<_> = if shared {
         own_pnpm::bin_dir().into_iter().collect()
     } else {
-        prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect()
+        prefix.clone().or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect()
     };
     paths::refresh(&extra);
     send(InstallEvent::Check { what: Check::Start });
     let mut state = tools::detect(tool, true);
     if shared {
-        state = move_to_shared(tool, &wanted, state, running, &send)?;
+        let shared = Shared { wanted: &wanted, previous: previous.as_deref(), again: &|| install("Installing again") };
+        state = move_to_shared(tool, &shared, state, running, &send)?;
         path_fix = own_pnpm::bin_dir().and_then(|dir| reachable_own(&tool.id, &dir));
+        prune_store(&send);
     }
     let first = state.installs.first().ok_or_else(|| {
         Failure(
@@ -331,6 +338,20 @@ fn install_steps(
         .iter()
         .find(|i| if shared { own_pnpm::owns(&paths::untilde(&i.path)) } else { i.manager == manager })
         .unwrap_or(first);
+    held_back(manager, tool, &wanted, ours)?;
+    let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
+    // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
+    let skills = if existing.is_some() {
+        send(InstallEvent::Check { what: Check::Skills });
+        skills::refresh(tool, &version, |line| send(InstallEvent::Log { line, stderr: false }))
+    } else {
+        skills::SkillRefresh::default()
+    };
+    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
+}
+
+/// The version the manager installed, against the one asked for.
+fn held_back(manager: &str, tool: &Tool, wanted: &str, ours: &tools::Install) -> Result<(), Failure> {
     if let Some(got) = ours.version.as_deref()
         && wanted != got
     {
@@ -343,15 +364,7 @@ fn install_steps(
             )),
         ));
     }
-    let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
-    // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
-    let skills = if existing.is_some() {
-        send(InstallEvent::Check { what: Check::Skills });
-        skills::refresh(tool, &version, |line| send(InstallEvent::Log { line, stderr: false }))
-    } else {
-        skills::SkillRefresh::default()
-    };
-    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
+    Ok(())
 }
 
 /// The program and words that install `spec`, and whether it is npm. `None` is the app's pnpm, set up once the
@@ -395,8 +408,11 @@ fn shared_install(source: Source, existing: Option<&tools::Install>) -> bool {
 
 /// Installs the app's pnpm the first time a tool needs it, after checking that pnpm's own release workflow built it.
 fn set_up_pnpm(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) -> Result<PathBuf, Failure> {
-    if let Some(program) = own_pnpm::program() {
+    if let Some(program) = own_pnpm::working() {
         return Ok(program);
+    }
+    if own_pnpm::program().is_some() {
+        send(InstallEvent::Log { line: "WireCat's pnpm does not start; installing it again.".into(), stderr: false });
     }
     let npm = paths::find("npm").ok_or_else(|| {
         Failure(
@@ -431,8 +447,8 @@ fn set_up_pnpm(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) -> R
     retry_on_network(&|| !running.is_running(&tool.id), send, "the pnpm setup", || {
         run_manager(&npm, &args, Some(&prefix), tool, running, send, "Setting up pnpm")
     })?;
-    own_pnpm::program().ok_or_else(|| {
-        Failure(Reason::Verify, format!("npm finished, but pnpm {} is not in place.", own_pnpm::VERSION), None)
+    own_pnpm::working().ok_or_else(|| {
+        Failure(Reason::Verify, format!("npm finished, but pnpm {} does not start.", own_pnpm::VERSION), None)
     })
 }
 
@@ -454,7 +470,7 @@ fn check_shared(tool: &Tool, wanted: &str, state: &tools::ToolState) -> Result<P
             copy.problem.clone(),
         ));
     }
-    if let Some(unbuilt) = own_pnpm::unbuilt_drivers().first() {
+    if let Some(unbuilt) = own_pnpm::unbuilt_drivers_of(&tool.package).first() {
         return Err(Failure(
             Reason::Verify,
             format!("The database driver at {} was not built.", paths::tilde(&unbuilt.to_string_lossy())),
@@ -474,19 +490,39 @@ fn check_shared(tool: &Tool, wanted: &str, state: &tools::ToolState) -> Result<P
     Ok(program)
 }
 
-/// After the app's pnpm installed: the check, then the npm copies go, background units first.
+/// What `move_to_shared` needs from the install: the version it asked for, the version the app's pnpm had before,
+/// and the same install once more.
+struct Shared<'a> {
+    wanted: &'a str,
+    previous: Option<&'a str>,
+    again: &'a dyn Fn() -> Result<(), Failure>,
+}
+
+/// After the app's pnpm installed: the check, then the npm copies go, background units first. A copy that fails the
+/// check is installed once more, which runs a build that did not finish; one that fails again goes, and the copy from
+/// before stays or comes back, so the tool is never left without one.
 fn move_to_shared(
     tool: &Tool,
-    wanted: &str,
+    shared: &Shared,
     state: tools::ToolState,
     running: &Running,
     send: &dyn Fn(InstallEvent),
 ) -> Result<tools::ToolState, Failure> {
-    let new_copy = match check_shared(tool, wanted, &state) {
+    let new_copy = match check_shared(tool, shared.wanted, &state) {
         Ok(copy) => copy,
-        Err(failure) => {
-            undo_shared(tool, running, send);
-            return Err(failure);
+        Err(Failure(_, why, _)) => {
+            send(InstallEvent::Log { line: format!("{why} Installing it once more."), stderr: false });
+            let again = (shared.again)().and_then(|()| {
+                paths::refresh(&own_pnpm::bin_dir().into_iter().collect::<Vec<_>>());
+                check_shared(tool, shared.wanted, &tools::detect(tool, true))
+            });
+            match again {
+                Ok(copy) => copy,
+                Err(Failure(reason, message, hint)) => {
+                    let kept = undo_shared(tool, shared, running, send);
+                    return Err(Failure(reason, message, kept.or(hint)));
+                }
+            }
         }
     };
     if npm_copies(tool).next().is_none() {
@@ -499,12 +535,49 @@ fn move_to_shared(
 }
 
 /// A copy that failed its check would win over the npm copy as the newer one, so it goes; the npm copy keeps working.
-fn undo_shared(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) {
-    let Some(pnpm) = own_pnpm::program() else { return };
-    let args = own_pnpm::remove_args(&tool.package);
+/// When the app's pnpm held the tool before, that version is installed back instead: removing it would leave none.
+/// What the owner keeps, for the failure's hint.
+fn undo_shared(tool: &Tool, shared: &Shared, running: &Running, send: &dyn Fn(InstallEvent)) -> Option<String> {
+    let pnpm = own_pnpm::program()?;
+    let (args, what, kept) = match shared.previous {
+        Some(version) if version == shared.wanted => return None,
+        Some(version) => (
+            own_pnpm::add_args(&format!("{}@{version}", tool.package), &[PNPM_WIRECAT_NOW]),
+            "Installing the version from before",
+            format!("{} {version}, the version from before, is installed back and keeps working.", tool.bin),
+        ),
+        None => (
+            own_pnpm::remove_args(&tool.package),
+            "Removing the copy that failed its check",
+            "The copy from before keeps working.".to_string(),
+        ),
+    };
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let _ = run_manager(&pnpm, &args, None, tool, running, send, "Removing the copy that failed its check");
-    paths::refresh(&[]);
+    let undone = run_manager(&pnpm, &args, None, tool, running, send, what);
+    paths::refresh(&own_pnpm::bin_dir().into_iter().collect::<Vec<_>>());
+    undone.ok().map(|()| kept)
+}
+
+/// Removes the files of versions no tool uses any more. Best effort: skipped while another tool installs, as pnpm
+/// would remove packages under that install.
+fn prune_store(send: &dyn Fn(InstallEvent)) {
+    let (Some(pnpm), Some(args)) = (own_pnpm::program(), own_pnpm::prune_args()) else { return };
+    let Ok(_alone) = own_pnpm::RUNS.try_write() else { return };
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let mut cmd = run::command(&pnpm, &args, Some(&paths::search_path()));
+    own_pnpm::configure(&mut cmd);
+    let line = match run::run_command(cmd, Duration::from_mins(5)) {
+        Ok(out) if out.code == Some(0) => {
+            let said = format!("{}\n{}", out.stdout, out.stderr);
+            let freed = said.lines().map(str::trim).find(|l| l.starts_with("Removed") && l.contains(" files ("));
+            format!("Tidied the tools' shared files{}.", freed.map_or_else(String::new, |f| format!(": {f}")))
+        }
+        Ok(out) => {
+            format!("The shared files were not tidied: {}", redact::text(out.stderr.lines().last().unwrap_or_default()))
+        }
+        Err(e) => format!("The shared files were not tidied: {e}"),
+    };
+    send(InstallEvent::Log { line, stderr: false });
 }
 
 /// A background unit runs the program path it was written with, and the npm copy is about to go: each profile's unit
@@ -708,20 +781,19 @@ fn install_prefix(existing: Option<&tools::Install>) -> Option<std::path::PathBu
 
 fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) -> Result<InstallEvent, Failure> {
     let _ = events.send(InstallEvent::Step { step: Step::Check });
+    let send = |e| {
+        let _ = events.send(e);
+    };
     let mut plan = Vec::new();
+    let mut own = false;
     for copy in paths::find_all(&tool.bin) {
         if own_pnpm::owns(&copy) {
-            let pnpm = own_pnpm::program().ok_or_else(|| {
-                Failure(
-                    Reason::Requirements,
-                    format!(
-                        "WireCat's pnpm is missing, so {} cannot be removed.",
-                        paths::tilde(&copy.to_string_lossy())
-                    ),
-                    Some("Install the tool again, then remove it.".into()),
-                )
-            })?;
-            plan.push((pnpm, own_pnpm::remove_args(&tool.package), None));
+            own = true;
+            // A tool whose folder is already gone has only its programs left, which pnpm no longer knows.
+            if own_pnpm::package_dir(&tool.package).is_some() {
+                let pnpm = set_up_pnpm(tool, running, &send)?;
+                plan.push((pnpm, own_pnpm::remove_args(&tool.package), None));
+            }
             continue;
         }
         let manager = paths::manager_for(&copy);
@@ -745,12 +817,19 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Remove });
-    let send = |e| {
-        let _ = events.send(e);
-    };
     for (program, args, prefix) in &plan {
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
         run_manager(program, &args, prefix.as_deref(), tool, running, &send, "Uninstalling")?;
+    }
+    if own {
+        for shim in own_pnpm::shims_of(&tool.package) {
+            let line = match std::fs::remove_file(&shim) {
+                Ok(()) => format!("Removed {}, left without its tool.", paths::tilde(&shim.to_string_lossy())),
+                Err(e) => format!("{} stays: {e}", paths::tilde(&shim.to_string_lossy())),
+            };
+            send(InstallEvent::Log { line, stderr: false });
+        }
+        prune_store(&send);
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Verify });
@@ -800,7 +879,7 @@ pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
         Err(message) => return refused(CopyRefusal::Manager, message),
     };
     let program = if own_pnpm::owns(&target) {
-        own_pnpm::program()
+        own_pnpm::working()
     } else {
         plan.beside(&target).or_else(|| paths::find(plan.program))
     };
@@ -906,6 +985,8 @@ fn run_manager(
     let name = program.file_stem().unwrap_or_default().to_string_lossy().to_string();
     send(InstallEvent::Log { line: format!("$ {name} {}", args.join(" ")), stderr: false });
     let mut tail: Vec<String> = Vec::new();
+    let _shared =
+        own_pnpm::is_program(program).then(|| own_pnpm::RUNS.read().unwrap_or_else(std::sync::PoisonError::into_inner));
     let mut cmd = run::command(program, args, Some(&paths::search_path()));
     if own_pnpm::is_program(program) {
         own_pnpm::configure(&mut cmd);

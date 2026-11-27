@@ -113,7 +113,9 @@ Correction to the decisions above, where the code differs:
 - **The allowed builds are a list in `own_pnpm.rs`**, not in the catalog: the same three for every tool, changed
   together with the pinned pnpm.
 - **The check opens no store.** Every store command needs a profile, which a new install lacks. The check reads that
-  the store driver's build ran (`better_sqlite3.node` in pnpm's store) and runs `<bin> commands --json` for tools
+  the build ran for the driver the tool itself loads (`better_sqlite3.node`, found by following the tool's
+  dependencies through pnpm's store; correction: at first every driver in the store was read, so one failed build
+  failed every later install) and runs `<bin> commands --json` for tools
   built on cli-core (those with a doctor). `bin/install-e2e real_tool_e2e` opens a database with that driver.
 - **pnpm's own release is checked** like a tool's: provenance from `pnpm/pnpm`'s release workflow on the tag
   `v11.28.8` (`provenance::confirm_built_by`), before npm installs it.
@@ -121,7 +123,13 @@ Correction to the decisions above, where the code differs:
   Tools page writes it when the owner starts that server.
 - **Tests:** `bin/install-e2e` moves an npm copy of a test package to the app's pnpm, and installs with npm's
   folder locked. `bin/install-e2e real_tool_e2e` does the same with the real tg (about 100 MB). Both run on Linux
-  here; CI runs the first on Linux only, and the release's install check runs the app's install on all three OSs.
+  here; CI runs the first on macOS and Windows (`install-e2e.yml`; correction: this said Linux only), and the release's install check runs the app's install on all three OSs.
+- **A failed check never leaves the tool missing** (added after the release, owner's request to check install,
+  uninstall and versions): the copy is installed once more, then goes, and when the app's pnpm held the tool before,
+  that version is installed back. A pnpm that does not start is installed again; an uninstall removes programs left
+  after their tool's folder went; `pnpm store prune` runs after an install or uninstall unless another runs. Each
+  case was first reproduced with pnpm 11.28.8 by hand, then in `bin/install-e2e` (probe) and
+  `bin/install-e2e real_tool_e2e` (a deleted driver build).
 - **Found while testing:** npm 11.17 warns `allow-scripts … not yet covered by allowScripts` on a plain
   `npm install --global @wirecat/tg-cli`, but still runs the scripts: `better_sqlite3.node` is built (checked in a
   fresh prefix, 2026-11-27). The warning says a later npm may skip them, as pnpm does; then the npm path for own and

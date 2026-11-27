@@ -412,10 +412,17 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    PATH, so the setup tells the owner to restart them; this is why an AI app opened before the install misses a tool.
    A network failure of `npm view` or of the install is retried once after 3 s; disk, proxy and certificate, and
    Windows long-path errors get their own reasons with the next step to take.
-   After the app's pnpm installs, the check goes further than `--version`: the store's database driver must be built
-   (pnpm skips build scripts it was not told to run) and the tool must list its commands. A copy that fails is removed
-   and the npm copy stays. Then each profile's background unit that starts at login is written again by the new copy,
-   a running server restarts on it, and every npm copy is removed with the npm it belongs to.
+   After the app's pnpm installs, the check goes further than `--version`: the database driver the tool loads must be
+   built (pnpm skips build scripts it was not told to run; found by following the tool's own dependencies through the
+   store, so a failed build another tool left does not fail this one) and the tool must list its commands. A copy that
+   fails is installed once more, which runs a build that did not finish. If it fails again it goes: the npm copy
+   stays, or, when the app's pnpm held the tool before, that version is installed back, so an update never leaves the
+   tool missing. Then each profile's background unit that starts at login is written again by the new copy, a running
+   server restarts on it, and every npm copy is removed with the npm it belongs to. Last, `pnpm store prune` removes
+   the files of versions no tool uses (each update leaves 40 to 90 MB); it is skipped while another install runs the
+   app's pnpm (`own_pnpm::RUNS`). A pnpm that no longer starts (`own_pnpm::working`) is installed again by the next
+   install or uninstall, and an uninstall also removes programs left in the app's `bin` after their tool's folder
+   went.
 6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
    line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
