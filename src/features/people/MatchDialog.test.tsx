@@ -40,7 +40,7 @@ describe("Match details", () => {
       expect(dialog).not.toHaveTextContent(technical)
   })
 
-  it("does not mark the accounts on a card personal, the scope memo gives every new account", async () => {
+  it("does not mark the accounts on a card personal, the scope wcat gives every new account", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     await user.click(await screen.findByRole("button", { name: "Review matches" }))
@@ -121,7 +121,7 @@ describe("what the people share", () => {
     mailbox: null,
   })
 
-  it("never shows a reference memo gives as evidence, only a phone or an address", () => {
+  it("never shows a reference wcat gives as evidence, only a phone or an address", () => {
     const both = { phones: [], emails: ["ana@example.org"] }
     expect(sharedValue(match("guest-email", ["meeting:12"]), [both, both])).toBe("ana@example.org")
     expect(sharedValue(match("guest-email", ["meeting:12"]), [both, { phones: [], emails: [] }])).toBeNull()
@@ -164,7 +164,7 @@ describe("what the people share", () => {
     expect(contactsOf(person("2389472398472@lid"), null, undefined).phones).toEqual([])
   })
 
-  it("reads the phone and the address memo reports on an account", () => {
+  it("reads the phone and the address wcat reports on an account", () => {
     const person = {
       ref: "person:1",
       name: null,
@@ -210,7 +210,7 @@ describe("A match by name", () => {
     })
   }
 
-  it("gives the company the address the owner picks, and says which one memo refused", async () => {
+  it("gives the company the address the owner picks, and says which one wcat refused", async () => {
     byName(true)
     const resolve = vi
       .spyOn(platform, "peopleResolve")
@@ -245,7 +245,7 @@ describe("A match by name", () => {
     ])
   })
 
-  it("offers no company address before a memo that takes one", async () => {
+  it("offers no company address before a wcat that takes one", async () => {
     byName(false)
     const user = userEvent.setup()
     render(<PeoplePage />)
@@ -298,7 +298,7 @@ describe("One company", () => {
     expect(resolve.mock.calls[0]?.[1]).toEqual({})
   })
 
-  it("asks for the company's name when memo cannot tell it, and sends the name back the same way", async () => {
+  it("asks for the company's name when wcat cannot tell it, and sends the name back the same way", async () => {
     withOneCompany(true)
     const mailbox = vi.spyOn(platform, "peopleResolve")
     const resolve = vi
@@ -319,7 +319,7 @@ describe("One company", () => {
     expect(mailbox).not.toHaveBeenCalled()
   })
 
-  it("says the people went to the company when memo moved no mail address", async () => {
+  it("says the people went to the company when wcat moved no mail address", async () => {
     withOneCompany(true)
     vi.spyOn(platform, "peopleOneCompany").mockImplementation(async (id) => ({ ...organized(id), mailboxes: [] }))
     const { user, card } = await sergey()
@@ -343,7 +343,7 @@ describe("One company", () => {
     expect(within(card).queryByLabelText("Company name")).not.toBeInTheDocument()
   })
 
-  it("is not offered before a memo that makes people one company's", async () => {
+  it("is not offered before a wcat that makes people one company's", async () => {
     withOneCompany(false)
     const { card } = await sergey()
     expect(within(card).queryByRole("button", { name: "One company" })).not.toBeInTheDocument()

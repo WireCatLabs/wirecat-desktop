@@ -71,7 +71,7 @@ describe("Documents", () => {
     await waitFor(() => expect(list).toHaveBeenLastCalledWith('source:"notes:1"', 1, 25))
   })
 
-  it("asks memo for the next page instead of cutting one long list", async () => {
+  it("asks wcat for the next page instead of cutting one long list", async () => {
     vi.spyOn(platform, "documentsList").mockImplementation(async (_query, page, limit) => ({
       documents: Array.from({ length: limit }, (_, i) => row((page - 1) * limit + i + 1)),
       total: 1_240,
@@ -122,18 +122,18 @@ describe("Documents", () => {
     expect(reveal).toHaveBeenCalledWith(expect.stringMatching(/^document:\d+$/))
   })
 
-  it("offers memo's update when memo has no documents yet", async () => {
+  it("offers wcat's update when wcat has no documents yet", async () => {
     vi.spyOn(platform, "documentsRead").mockResolvedValue({ kind: "old", version: "0.132.0", need: "0.133.0" })
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /^Documents/ }))
-    expect(await screen.findByText(/needs Memo 0.133.0 or newer/)).toBeInTheDocument()
+    expect(await screen.findByText(/needs wcat 0.133.0 or newer/)).toBeInTheDocument()
     expect(screen.queryByRole("table", { name: "Documents" })).toBeNull()
 
     useTools.setState({ install: vi.fn(async () => {}) })
     const scroll = vi.fn()
     Object.defineProperty(Element.prototype, "scrollIntoView", { value: scroll, configurable: true })
-    await user.click(screen.getByRole("button", { name: "Update Memo" }))
+    await user.click(screen.getByRole("button", { name: "Update wcat" }))
     // The link lands on Memo's row, not the top of Tools: brought into view, marked and focused.
     const memo = await waitFor(() => {
       const el = document.querySelector<HTMLElement>('[data-tool="memo"]')

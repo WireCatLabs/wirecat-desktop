@@ -66,7 +66,7 @@ pub enum LocalOnly {
 
 fn memo() -> Result<(&'static Tool, &'static LocalOnlySource), String> {
     let tool = crate::catalog::tool("memo")?;
-    let src = tool.local_only.as_ref().ok_or("memo has no local only")?;
+    let src = tool.local_only.as_ref().ok_or("wcat has no local only")?;
     Ok((tool, src))
 }
 
@@ -118,7 +118,7 @@ fn ask(tool: &Tool, args: &[String]) -> Result<LocalOnlyStatus, String> {
     if out.code != Some(0) {
         return Err(refusal(&out, json.as_ref()));
     }
-    json.as_ref().and_then(status_of).ok_or_else(|| "memo gave an answer the app cannot read".to_string())
+    json.as_ref().and_then(status_of).ok_or_else(|| "wcat gave an answer the app cannot read".to_string())
 }
 
 pub fn status() -> Result<LocalOnly, String> {
@@ -134,7 +134,7 @@ pub fn status() -> Result<LocalOnly, String> {
 pub fn set(on: bool) -> Result<LocalOnlyStatus, String> {
     let (tool, src) = memo()?;
     if !crate::command_tree::released_or_listed(tool, gate(src, tools::installed_version(tool).as_deref()), COMMAND) {
-        return Err("This memo has no local only yet. It comes with a memo update.".into());
+        return Err("This wcat version has no local only yet. It comes with a wcat update.".into());
     }
     ask(tool, if on { &src.on } else { &src.off })
 }

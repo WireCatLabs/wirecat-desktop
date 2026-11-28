@@ -24,6 +24,8 @@ pub struct ToolState {
     pub id: String,
     /// Newest first: the first one is the copy the app runs (`program`); the rest are left unused.
     pub installs: Vec<Install>,
+    /// The program the installs are when they are copies of the one this tool replaced: an install switches.
+    pub switch_from: Option<String>,
 }
 
 /// A part reports its owner's copies: it is the same program.
@@ -35,9 +37,9 @@ pub fn detect_all(fresh: bool) -> Vec<ToolState> {
         .iter()
         .map(|t| {
             let owner = catalog::owner(t);
-            let installs =
-                owners.iter().find(|o| o.id == owner.id).map_or_else(Default::default, |o| o.installs.clone());
-            ToolState { id: t.id.clone(), installs }
+            let found = owners.iter().find(|o| o.id == owner.id);
+            let installs = found.map_or_else(Default::default, |o| o.installs.clone());
+            ToolState { id: t.id.clone(), installs, switch_from: found.and_then(|o| o.switch_from.clone()) }
         })
         .collect()
 }
@@ -61,8 +63,22 @@ pub fn installed(tool: &Tool) -> bool {
 }
 
 pub fn detect(tool: &Tool, fresh: bool) -> ToolState {
-    let installs = copies(&tool.bin, fresh).into_iter().map(|(_, i)| i).collect();
-    ToolState { id: tool.id.clone(), installs }
+    let installs: Vec<Install> = copies(&tool.bin, fresh).into_iter().map(|(_, i)| i).collect();
+    if let Some(old) = tool.replaces.as_ref().filter(|_| installs.is_empty()) {
+        let installs: Vec<Install> = copies(&old.bin, fresh).into_iter().map(|(_, i)| i).collect();
+        if !installs.is_empty() {
+            return ToolState { id: tool.id.clone(), installs, switch_from: Some(old.bin.clone()) };
+        }
+    }
+    ToolState { id: tool.id.clone(), installs, switch_from: None }
+}
+
+/// The copies of the program this tool replaced, still on PATH.
+pub fn replaced_copies(tool: &Tool) -> Vec<(PathBuf, &str)> {
+    tool.replaces
+        .iter()
+        .flat_map(|old| paths::find_all(&old.bin).into_iter().map(|c| (c, old.package.as_str())))
+        .collect()
 }
 
 /// The copy of a tool the app runs. PATH order cannot say which one the owner's terminal runs: the login shell the

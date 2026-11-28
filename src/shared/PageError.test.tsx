@@ -8,15 +8,15 @@ it("says what failed, folds the tool's text under Details, retries and reports",
   const user = userEvent.setup()
   const retry = vi.fn()
   render(
-    <PageError raw="spawn memo ENOENT" what="Reading memory" onRetry={retry}>
+    <PageError raw="spawn wcat ENOENT" what="Reading memory" onRetry={retry}>
       Could not read memory.
     </PageError>,
   )
   const alert = screen.getByRole("alert")
   expect(alert).toHaveTextContent(/^Could not read memory\./)
-  expect(screen.queryByText("spawn memo ENOENT")).not.toBeInTheDocument()
+  expect(screen.queryByText("spawn wcat ENOENT")).not.toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Details" }))
-  expect(await screen.findByText("spawn memo ENOENT")).toBeVisible()
+  expect(await screen.findByText("spawn wcat ENOENT")).toBeVisible()
 
   await user.click(screen.getByRole("button", { name: "Try again" }))
   expect(retry).toHaveBeenCalledOnce()

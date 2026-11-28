@@ -124,7 +124,7 @@ export function notesSetupMock(
       if (fail === "sync")
         return onEvent({
           event: "failed",
-          message: "memo stopped with the error conflict.",
+          message: "files stopped with the error conflict.",
           code: "conflict",
           reason: "profile.locked",
           run: null,

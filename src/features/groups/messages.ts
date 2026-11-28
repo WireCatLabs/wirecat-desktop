@@ -50,7 +50,7 @@ const en = {
   scopeNote:
     "Personal or Work on each account: work views, work agents and the work mark on contacts read only work accounts.",
   scopeBusy: "The last change is still being saved. Try again in a moment.",
-  scopeOld: "Personal or work cannot be set yet. Update Memo on the Tools page.",
+  scopeOld: "Personal or work cannot be set yet. Update wcat on the Tools page.",
 }
 
 const ru: typeof en = {
@@ -105,7 +105,7 @@ const ru: typeof en = {
   scopeNote:
     "Личный или Работа у каждого аккаунта: рабочие виды, рабочие агенты и метка «работа» у контактов читают только рабочие аккаунты.",
   scopeBusy: "Прошлое изменение еще сохраняется. Попробуйте через минуту.",
-  scopeOld: "Личный или рабочий пока нельзя поставить. Обновите Memo на странице «Инструменты».",
+  scopeOld: "Личный или рабочий пока нельзя поставить. Обновите wcat на странице «Инструменты».",
 }
 
 const es: typeof en = {
@@ -158,7 +158,7 @@ const es: typeof en = {
   scopeNote:
     "Personal o Trabajo en cada cuenta: las vistas de trabajo, los agentes de trabajo y la marca de trabajo en los contactos leen solo las cuentas de trabajo.",
   scopeBusy: "El último cambio aún se está guardando. Inténtalo de nuevo en un momento.",
-  scopeOld: "Aún no se puede marcar personal o trabajo. Actualiza Memo en la página Herramientas.",
+  scopeOld: "Aún no se puede marcar personal o trabajo. Actualiza wcat en la página Herramientas.",
 }
 
 export const groupsMessages: Messages<typeof en> = { en, ru, es }

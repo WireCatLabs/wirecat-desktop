@@ -163,7 +163,7 @@ fn template_args(verb: &str, digest: Option<&str>, channel: &str, locale: &str) 
         None => KEY.to_string(),
     };
     if !CHANNELS.contains(&channel) {
-        return Err(format!("not a channel memo has: {}", redact::text(channel)));
+        return Err(format!("not a channel wcat has: {}", redact::text(channel)));
     }
     if !LOCALES.contains(&locale) {
         return Err(format!("not a language the digest has: {}", redact::text(locale)));
@@ -270,7 +270,7 @@ pub fn template_preview(
         args.extend(["--file".into(), STDIN_PATH.into()]);
     }
     let args = with_json(args);
-    let memo = memo()?.ok_or("Memo is not installed")?;
+    let memo = memo()?.ok_or("wcat is not installed")?;
     let (out, json) = match draft {
         Some(text) => call_with_input(memo, &args, text, CALL)?,
         None => call(memo, &args, CALL)?,

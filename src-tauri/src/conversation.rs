@@ -281,7 +281,7 @@ fn open(call: &Call, place: &ChatPlace) -> Conversation {
         Err(f) => return failed(f, ChatMissing::Stored),
     };
     let Some(shown) = shown(&show, place.email()) else {
-        return Conversation::Failed { message: "memo did not name the chat".into() };
+        return Conversation::Failed { message: "wcat did not name the chat".into() };
     };
     if !shown.available {
         let signed_in = !shown.chat.profiles.is_empty() || place.email();

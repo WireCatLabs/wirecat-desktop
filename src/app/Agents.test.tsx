@@ -278,9 +278,9 @@ describe("Agents", () => {
     expect(
       within(dialog).queryByText(/tg work config set --json permissions\.messages readonly/),
     ).not.toBeInTheDocument()
-    await user.click(within(dialog).getByRole("checkbox", { name: /Memo/ }))
+    await user.click(within(dialog).getByRole("checkbox", { name: /wcat/ }))
     expect(within(dialog).getByText(/cannot be limited yet: OpenClaw can change and delete/)).toBeInTheDocument()
-    await user.click(within(dialog).getByRole("checkbox", { name: /Memo/ }))
+    await user.click(within(dialog).getByRole("checkbox", { name: /wcat/ }))
 
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
     expect(await within(dialog).findByText("OpenClaw cannot find Telegram")).toBeInTheDocument()

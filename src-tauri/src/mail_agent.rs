@@ -246,7 +246,7 @@ mod tests {
                 "agent",
                 "mail-triage",
                 "claude",
-                "Run memo skill show mail-triage and follow it.",
+                "Run wcat skill show mail-triage and follow it.",
                 "--every",
                 "30m",
                 "--on-new-mail",

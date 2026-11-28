@@ -31,7 +31,7 @@ export default function digests(ctx) {
     const path = stubClaude(ctx)
     memo(["digest", "add", digest.name, "--title", digest.title, "--at", digest.at, "--paused", "--from-app"], { path })
   }
-  const runs = join(ctx.home, ".local", "share", "cli-memo", "schedules", digest.name, "runs")
+  const runs = join(ctx.home, ".local", "share", "wcat", "schedules", digest.name, "runs")
   let written = 0
   for (const day of days) {
     const date = isoDay(dayOf(ctx.anchor, day.days_ago))

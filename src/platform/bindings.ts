@@ -1828,6 +1828,8 @@ export type ToolState = {
 	id: string,
 	/**  Newest first: the first one is the copy the app runs (`program`); the rest are left unused. */
 	installs: Install[],
+	/**  The program the installs are when they are copies of the one this tool replaced: an install switches. */
+	switchFrom: string | null,
 };
 
 export type Transcript = {

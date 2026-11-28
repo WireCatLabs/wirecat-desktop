@@ -254,7 +254,7 @@ seed_tools() {
 }
 
 # Profiles personal and work, made with each tool's own `config set`, so Settings and the tool pages list them.
-# Drive makes a profile only at sign-in; Zoom and Memo have none to make.
+# Drive makes a profile only at sign-in; Zoom, wcat and files have none to make.
 seed_profiles() {
   local bin profile
   for bin in tg max wa mail gcal; do
@@ -274,7 +274,7 @@ seed_version() {
 # The seed set in scripts/sandbox-seed, loaded through the tools' own commands. Every step looks up what is there
 # first, so loading it again adds nothing and a newer version updates what changed.
 seed_demo() {
-  [ -x "$(node_dir)/bin/memo" ] || seed_tools
+  [ -x "$(node_dir)/bin/wcat-wirecat" ] || seed_tools
   in_sandbox node "$root/scripts/sandbox-seed/load.mjs" "$dir/seed-anchor"
   seed_version > "$dir/seed-version"
   echo "Seed set version $(cat "$dir/seed-version") loaded"

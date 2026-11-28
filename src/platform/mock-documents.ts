@@ -180,7 +180,7 @@ function show(ref: string, cursor: number): DocumentDetails {
   }
 }
 
-const FAILED = "another memo sync holds the store; try again when it ends"
+const FAILED = "another wcat sync holds the store; try again when it ends"
 
 export function documentsMock(): Pick<
   Platform,

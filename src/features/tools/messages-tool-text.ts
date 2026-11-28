@@ -15,7 +15,8 @@ export const RU_TAGLINE: Record<string, string> = {
   zm: "Записи и расшифровки встреч\u00a0· поиск",
   drive: "Папки и документы\u00a0· поиск\u00a0· редактирование",
   gcal: "События и встречи\u00a0· поиск\u00a0· изменения",
-  memo: "Заметки, файлы и хранилища Obsidian\u00a0· поиск по всему",
+  memo: "Люди, задачи и воспоминания из всех источников",
+  files: "Заметки, файлы и хранилища Obsidian\u00a0· поиск",
   email: "Ваша почта по IMAP, с поиском на вашем компьютере",
   notion: "Страницы и базы данных\u00a0· поиск",
   ydisk: "Папки и файлы\u00a0· поиск",
@@ -37,7 +38,9 @@ export const RU_SUMMARY: Record<string, string> = {
   drive:
     "Импортируйте выбранные папки Google, ищите по документам локально и храните теги, заметки и воспоминания со ссылкой на источник.",
   gcal: "Копируйте события Google Календаря на этот компьютер, ищите по ним без сети и давайте агенту контекст каждой встречи.",
-  memo: "Ваши заметки, файлы, хранилища Obsidian и сообщения в одном месте для ИИ-агента: поиск, теги, люди и воспоминания, на вашем компьютере.",
+  memo: "Ваши сообщения, почта, встречи и заметки в одном месте для ИИ-агента: люди, задачи, воспоминания и сводки, на вашем компьютере.",
+  files:
+    "Ваши папки с заметками, хранилища Obsidian, файлы PDF и Word в одном месте для ИИ-агента: поиск по словам и по смыслу, на вашем компьютере.",
   email:
     "Gmail, Outlook и другая почта IMAP, скопированная на ваш компьютер: ищите по ней без сети, читайте переписку целиком и смотрите, докуда дошла каждая синхронизация. Синхронизация никогда не меняет ваш ящик.",
   notion:
@@ -65,7 +68,8 @@ export const ES_TAGLINE: Record<string, string> = {
   zm: "Grabaciones y transcripciones\u00a0· búsqueda",
   drive: "Carpetas y documentos\u00a0· búsqueda\u00a0· edición",
   gcal: "Eventos y reuniones\u00a0· búsqueda\u00a0· cambios",
-  memo: "Notas, archivos y bóvedas de Obsidian\u00a0· búsqueda",
+  memo: "Personas, tareas y memorias de todas las fuentes",
+  files: "Notas, archivos y bóvedas de Obsidian\u00a0· búsqueda",
   email: "Tu correo por IMAP, con búsqueda en tu ordenador",
   notion: "Páginas y bases de datos\u00a0· búsqueda",
   ydisk: "Carpetas y archivos\u00a0· búsqueda",
@@ -87,7 +91,9 @@ export const ES_SUMMARY: Record<string, string> = {
   drive:
     "Importa carpetas de Google seleccionadas, busca en los documentos en local y guarda etiquetas, notas y memorias con su fuente.",
   gcal: "Copia los eventos de Google Calendar a este equipo, búscalos sin conexión y da a tu agente el contexto de cada reunión.",
-  memo: "Tus notas, archivos, bóvedas de Obsidian y mensajes en un solo lugar para tu agente de IA: búsqueda, etiquetas, personas y memorias, en tu ordenador.",
+  memo: "Tus mensajes, correo, reuniones y notas en un solo lugar para tu agente de IA: personas, tareas, memorias y resúmenes, en tu ordenador.",
+  files:
+    "Tus carpetas de notas, bóvedas de Obsidian y archivos PDF y Word en un solo lugar para tu agente de IA: búsqueda por palabras y por significado, en tu ordenador.",
   email:
     "Gmail, Outlook y otro correo IMAP copiado a tu equipo: búscalo sin conexión, lee hilos enteros y mira hasta dónde llegó cada sincronización. La sincronización nunca cambia tu buzón.",
   notion:

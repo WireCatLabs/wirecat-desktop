@@ -144,7 +144,7 @@ describe("Logs", () => {
 
     const sources = await openSettings(userEvent.setup())
     expect(within(sources).getByText("arrives with the next update of Zoom")).toBeInTheDocument()
-    expect(within(sources).getByText("arrives with the next update of Memo")).toBeInTheDocument()
+    expect(within(sources).getByText("arrives with the next update of wcat")).toBeInTheDocument()
     const drive = within(sources)
       .getByText(/did not finish in time/)
       .closest("li") as HTMLElement

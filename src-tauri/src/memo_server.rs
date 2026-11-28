@@ -493,7 +493,7 @@ impl Server {
         match answered.recv_timeout(timeout) {
             Ok(Answer::Ours(out)) => Ok(out),
             Ok(Answer::Unreadable) => Err(Asked::Failed(RunError::Other(
-                "memo's command server answered in a form WireCat cannot read".into(),
+                "wcat's command server answered in a form WireCat cannot read".into(),
             ))),
             Err(RecvTimeoutError::Timeout) => {
                 locked(&self.waiting).by_id.remove(&id);
@@ -502,7 +502,7 @@ impl Server {
                 Err(Asked::Failed(RunError::TimedOut))
             }
             Err(RecvTimeoutError::Disconnected) => {
-                Err(Asked::Failed(RunError::Other("memo's command server stopped before it answered".into())))
+                Err(Asked::Failed(RunError::Other("wcat's command server stopped before it answered".into())))
             }
         }
     }
@@ -632,7 +632,7 @@ echo '{"via":"spawn"}'
 
     impl Fake {
         fn new(name: &str, body: &str) -> Fake {
-            let dir = std::env::temp_dir().join(format!("wirecat-memo-server-{}-{name}", std::process::id()));
+            let dir = std::env::temp_dir().join(format!("wirecat-wcat-server-{}-{name}", std::process::id()));
             std::fs::create_dir_all(&dir).unwrap();
             let fake = Fake(dir.join("memo"));
             fake.write(body);
@@ -766,7 +766,7 @@ echo '{"via":"spawn"}'
             let held = s.spawn(|| call(&pool, &fake, "hold3", Duration::from_secs(10)).unwrap());
             wait_until_busy(&pool, &fake, 1);
             let second = call(&pool, &fake, "hold3", Duration::from_secs(10)).unwrap();
-            assert_eq!(via(&second), ("spawn".into(), None), "memo would mix the two requests' options");
+            assert_eq!(via(&second), ("spawn".into(), None), "wcat would mix the two requests' options");
             assert_eq!(via(&held.join().unwrap()), ("server".into(), Some(server)));
         });
         assert_eq!(served_by(&pool, &fake), server, "a busy lane does not retire the server");

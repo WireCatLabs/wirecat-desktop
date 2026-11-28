@@ -35,7 +35,7 @@ describe("the search words the filters write", () => {
     expect(setField("-project:OPS budget", "project", [])).toBe("budget")
   })
 
-  it("writes the due choices memo understands, with the week as dates", () => {
+  it("writes the due choices wcat understands, with the week as dates", () => {
     const today = new Date(2026, 10, 1)
     expect(setDue("x", "week", today)).toBe("x due:[today TO 2026-11-08]")
     expect(setDue("x due:[today TO 2026-11-08]", "overdue", today)).toBe("x when:overdue")

@@ -252,7 +252,7 @@ const en: Words = {
     account: "WireCat could not tell which account the task belongs to. Read the tasks again, then retry.",
     busy: "WireCat is busy, most likely with a sync. Try again in a minute.",
     timeout: "WireCat took too long to answer. Try again, and report it if it happens again.",
-    missing: "Memo is not installed. Install it on the Tools page.",
+    missing: "wcat is not installed. Install it on the Tools page.",
     other: "The change was refused. The details say why.",
   },
   failureDetails: "Details",
@@ -290,7 +290,7 @@ const en: Words = {
   sourceFailed: "Could not read the message.",
   sourceNoAccount:
     "The message is in an account no profile on this computer is signed in to. Sign in to it on the Tools page.",
-  sourceOldMemo: "To show the message here, install or update Memo on the Tools page.",
+  sourceOldMemo: "To show the message here, install or update wcat on the Tools page.",
   sourceNotHere: "The message is not on this computer: it was deleted, or its chat is not synced yet.",
   nextStep: {
     question:
@@ -466,7 +466,7 @@ const ru: Words = {
     account: "WireCat не понял, к какому аккаунту относится задача. Обновите список и попробуйте снова.",
     busy: "WireCat занят, скорее всего синхронизацией. Попробуйте через минуту.",
     timeout: "WireCat слишком долго не отвечал. Попробуйте еще раз, а если повторится, сообщите об ошибке.",
-    missing: "Memo не установлен. Установите его на странице Инструменты.",
+    missing: "wcat не установлен. Установите его на странице Инструменты.",
     other: "Изменение не принято. Причина в подробностях.",
   },
   failureDetails: "Подробнее",
@@ -511,7 +511,7 @@ const ru: Words = {
   sourceFailed: "Не удалось прочитать сообщение.",
   sourceNoAccount:
     "Сообщение в аккаунте, в который не вошел ни один профиль на этом компьютере. Войдите в него на странице «Инструменты».",
-  sourceOldMemo: "Чтобы показать сообщение здесь, установите или обновите Memo на странице «Инструменты».",
+  sourceOldMemo: "Чтобы показать сообщение здесь, установите или обновите wcat на странице «Инструменты».",
   sourceNotHere: "Сообщения нет на этом компьютере: его удалили, или его чат еще не синхронизирован.",
   nextStep: {
     question:
@@ -695,7 +695,7 @@ const es: Words = {
     account: "WireCat no supo a qué cuenta pertenece la tarea. Vuelve a leer las tareas e inténtalo de nuevo.",
     busy: "WireCat está ocupado, seguramente con una sincronización. Inténtalo dentro de un minuto.",
     timeout: "WireCat tardó demasiado en responder. Inténtalo de nuevo y, si se repite, avísanos.",
-    missing: "Memo no está instalado. Instálalo en la página Herramientas.",
+    missing: "wcat no está instalado. Instálalo en la página Herramientas.",
     other: "El cambio fue rechazado. Los detalles dicen por qué.",
   },
   failureDetails: "Detalles",
@@ -733,7 +733,7 @@ const es: Words = {
   sourceFailed: "No se pudo leer el mensaje.",
   sourceNoAccount:
     "El mensaje está en una cuenta en la que ningún perfil de este ordenador ha iniciado sesión. Inicia sesión en Herramientas.",
-  sourceOldMemo: "Para ver el mensaje aquí, instala o actualiza Memo en Herramientas.",
+  sourceOldMemo: "Para ver el mensaje aquí, instala o actualiza wcat en Herramientas.",
   sourceNotHere: "El mensaje no está en este ordenador: se borró, o su chat aún no está sincronizado.",
   nextStep: {
     question:

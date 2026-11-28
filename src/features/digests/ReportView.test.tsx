@@ -104,7 +104,7 @@ describe("a digest with a section this app does not know", () => {
   })
 })
 
-describe("a digest memo's check refused", () => {
+describe("a digest wcat's check refused", () => {
   it("is told apart from an older run's text, with the field that failed", async () => {
     vi.spyOn(platform, "digestShow").mockResolvedValue({
       date: "2026-11-24",
@@ -123,7 +123,7 @@ describe("a digest memo's check refused", () => {
   })
 })
 
-describe("a digest memo left parts out of", () => {
+describe("a digest wcat left parts out of", () => {
   it("says how many and which fields, and says nothing when it left nothing out", () => {
     const document = documentOf(crmSection(now))
     const { unmount } = render(<ReportView report={v.parse(ReportSchema, document)} now={now} />)

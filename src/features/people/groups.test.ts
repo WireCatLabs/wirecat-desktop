@@ -19,7 +19,7 @@ const match = (id: string, persons: [string, string], over: Partial<Match> = {})
   ...over,
 })
 
-it("keeps memo's order, a card where its highest pair is, and the pairs of one shared mailbox on one card", () => {
+it("keeps wcat's order, a card where its highest pair is, and the pairs of one shared mailbox on one card", () => {
   const info = { shared: "role", mailbox: "info@acme.example" }
   const groups = groupMatches(
     [

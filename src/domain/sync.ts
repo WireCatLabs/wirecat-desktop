@@ -9,6 +9,7 @@ export type SyncWhat =
   | "meetings"
   | "calls"
   | "notes and mail"
+  | "notes"
   | "mail"
   | "records"
   | "tracker"

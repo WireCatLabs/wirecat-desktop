@@ -14,11 +14,11 @@ const groups: Group[] = [
 const members = (gs: Group[], name: string) => gs.find((g) => g.name === name)?.members.map((m) => m.source)
 
 describe("account groups", () => {
-  it("puts all first and keeps Memo's order for the saved groups", () => {
+  it("puts all first and keeps wcat's order for the saved groups", () => {
     expect(columnsOf(groups).map((g) => g.name)).toEqual([ALL, "work", "personal"])
   })
 
-  it("turns a drop into Memo's change: a move between saved groups, a copy as an add", () => {
+  it("turns a drop into wcat's change: a move between saved groups, a copy as an add", () => {
     expect(changeOf(groups, tgHome.source, "personal", "work", false)).toEqual({
       kind: "move",
       source: tgHome.source,
@@ -69,7 +69,7 @@ describe("account groups", () => {
     expect(taken[0]?.suggested).toEqual([])
   })
 
-  it("checks a new group's name as Memo would", () => {
+  it("checks a new group's name as wcat would", () => {
     expect(nameProblem(" ", [])).toBe("empty")
     expect(nameProblem("All", [])).toBe("reserved")
     expect(nameProblem("my group", [])).toBe("chars")

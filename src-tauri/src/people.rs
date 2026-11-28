@@ -481,7 +481,7 @@ const MAX_QUERY: usize = 100;
 
 fn page_args(kind: &str, page: u32, size: u32, query: &str, sort: &str) -> Result<Vec<String>, String> {
     let kind = KINDS.iter().find(|k| **k == kind).ok_or("not a kind of people")?;
-    let sort = SORTS.iter().find(|s| **s == sort).ok_or("not an order memo sorts people by")?;
+    let sort = SORTS.iter().find(|s| **s == sort).ok_or("not an order wcat sorts people by")?;
     if page == 0 || !(1..=MAX_PAGE).contains(&size) {
         return Err(format!("a page is 1 to {MAX_PAGE} people, from page 1"));
     }
@@ -523,7 +523,7 @@ fn memo() -> Result<&'static Tool, String> {
 }
 
 pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
-    let bin = tools::program(&memo()?.bin).ok_or("Memo is not installed")?;
+    let bin = tools::program(&memo()?.bin).ok_or("wcat is not installed")?;
     f(&|args: &[String]| call_at(&bin, args))
 }
 
@@ -542,7 +542,7 @@ pub fn kinds() -> Result<BTreeMap<String, KindCount>, String> {
 
 pub fn read(kind: &str) -> Result<Read, String> {
     let tool = memo()?;
-    let need = tool.people.as_ref().ok_or("Memo has no People commands in the catalog")?.min_version.clone();
+    let need = tool.people.as_ref().ok_or("wcat has no People commands in the catalog")?.min_version.clone();
     let state = tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(Read::Missing) };
     if crate::tools::older(first.version.as_deref(), &need) {
@@ -698,7 +698,7 @@ fn person(v: &Value) -> Option<Person> {
 }
 
 fn show_with(call: &Call, who: &str) -> Result<Person, String> {
-    person(&call(&words(&["people", "show", who]))?).ok_or_else(|| "Memo's answer did not describe the person".into())
+    person(&call(&words(&["people", "show", who]))?).ok_or_else(|| "wcat's answer did not describe the person".into())
 }
 
 pub fn show(reference: &str) -> Result<Person, String> {
@@ -746,9 +746,9 @@ fn decided(v: &Value, id: &str) -> Result<(), String> {
     let named =
         |key: &str| item[key].as_array().into_iter().flatten().find(|d| number(&d["id"]).as_deref() == Some(id));
     if let Some(no) = named("refused") {
-        return Err(text(no, "reason").or_else(|| text(no, "message")).unwrap_or_else(|| "Memo refused it".into()));
+        return Err(text(no, "reason").or_else(|| text(no, "message")).unwrap_or_else(|| "wcat refused it".into()));
     }
-    named("decided").map(|_| ()).ok_or_else(|| "Memo did not say it decided the match.".into())
+    named("decided").map(|_| ()).ok_or_else(|| "wcat did not say it decided the match.".into())
 }
 
 /// A rejection needs a reason in memo; the owner's few words, kept on one line.
@@ -791,7 +791,7 @@ fn decide_split_with(
 ) -> Result<Person, String> {
     let reference = person_ref(reference)?;
     if id.is_empty() || !id.bytes().all(|b| b.is_ascii_digit()) {
-        return Err("Not a proposal memo listed. Read again.".into());
+        return Err("Not a proposal wcat listed. Read again.".into());
     }
     let why = match answer {
         Answer::Reject => {
@@ -899,10 +899,10 @@ fn resolve_with(
 ) -> Result<Resolved, String> {
     let reference = person_ref(reference)?;
     if number(&json!(id)).is_none() {
-        return Err("Not a match memo listed. Read again.".into());
+        return Err("Not a match wcat listed. Read again.".into());
     }
     let organization = match organization {
-        Some(o) => Some(organization_ref(o).ok_or("Not an organization memo listed.")?),
+        Some(o) => Some(organization_ref(o).ok_or("Not an organization wcat listed.")?),
         None => None,
     };
     let name = company_name(name)?;
@@ -941,7 +941,7 @@ pub fn resolve(
         let tool = memo()?;
         let version = tools::program(&tool.bin).and_then(|bin| tools::version_of(&bin));
         if !company_mailbox_open(tool, version.as_deref()) {
-            let message = "this memo gives a company an address only on a shared-mailbox match".to_string();
+            let message = "this wcat gives a company an address only on a shared-mailbox match".to_string();
             return Ok(Resolved::Refused { reason: OLD_MEMO.into(), message, organizations: Vec::new() });
         }
     }
@@ -972,10 +972,10 @@ fn refusal(call: &Call, v: &Value) -> Option<Resolved> {
 /// organization's, and the people leave the list. There is no person left to read after it.
 fn one_company_with(call: &Call, id: &str, organization: Option<&str>, name: Option<&str>) -> Result<Resolved, String> {
     if number(&json!(id)).is_none() {
-        return Err("Not a match memo listed. Read again.".into());
+        return Err("Not a match wcat listed. Read again.".into());
     }
     let organization = match organization {
-        Some(o) => Some(organization_ref(o).ok_or("Not an organization memo listed.")?),
+        Some(o) => Some(organization_ref(o).ok_or("Not an organization wcat listed.")?),
         None => None,
     };
     let mut args = decision(&["people", "resolve", id, "organization"]);
@@ -988,7 +988,7 @@ fn one_company_with(call: &Call, id: &str, organization: Option<&str>, name: Opt
         return Ok(refused);
     }
     let item = body(&v);
-    let organization = text(item, "organization").ok_or("memo named no organization")?;
+    let organization = text(item, "organization").ok_or("wcat named no organization")?;
     let strings = |key: &str| -> Vec<String> {
         item[key].as_array().map_or_else(Default::default, |a| a.iter().filter_map(id_text).collect())
     };
@@ -1005,7 +1005,7 @@ pub fn one_company(id: &str, organization: Option<&str>, name: Option<&str>) -> 
     let tool = memo()?;
     let version = tools::program(&tool.bin).and_then(|bin| tools::version_of(&bin));
     if !one_company_open(tool, version.as_deref()) {
-        let message = "this memo cannot make people a company's mailboxes".to_string();
+        let message = "this wcat cannot make people a company's mailboxes".to_string();
         return Ok(Resolved::Refused { reason: OLD_MEMO.into(), message, organizations: Vec::new() });
     }
     with_memo(|call| one_company_with(call, id, organization, name))
@@ -1073,7 +1073,7 @@ const MAX_DOUBTS: u32 = 50;
 
 fn doubts_with(call: &Call, page: u32, size: u32) -> Result<Doubts, String> {
     if page == 0 || page > MAX_PAGE || size == 0 || size > MAX_DOUBTS {
-        return Err("Not a page memo can give.".into());
+        return Err("Not a page wcat can give.".into());
     }
     let v = call(&words(&["people", "links", "check", "--limit", &size.to_string(), "--page", &page.to_string()]))?;
     Ok(Doubts {
@@ -1161,7 +1161,7 @@ pub fn test_people() -> Result<TestPeople, String> {
 /// The address stays the organization's; memo has no link between a person and one address.
 fn contact_with(call: &Call, reference: &str, organization: &str) -> Result<(), String> {
     let reference = person_ref(reference)?;
-    let organization = organization_ref(organization).ok_or("Not an organization memo listed.")?;
+    let organization = organization_ref(organization).ok_or("Not an organization wcat listed.")?;
     let v = call(&decision(&["relationships", "add", reference, organization, "--role", "contact"]))?;
     match v["error"]["message"].as_str() {
         Some(message) => Err(message.to_string()),
@@ -1276,7 +1276,7 @@ fn unlink_with(call: &Call, reference: &str, chosen: &[String]) -> Result<Unlink
     let mut args = vec!["people", "unlink"];
     args.extend(chosen);
     args.extend(["--from", reference]);
-    let moved = person(&call(&decision(&args))?).ok_or("Memo's answer did not describe the new person")?;
+    let moved = person(&call(&decision(&args))?).ok_or("wcat's answer did not describe the new person")?;
     Ok(Unlinked { person: show_with(call, reference)?, moved_to: moved.reference })
 }
 
@@ -1290,7 +1290,7 @@ fn unmerge_with(call: &Call, reference: &str, merge_id: &str) -> Result<Person, 
     if merge_word(merge_id).is_none() || !shown.merges.iter().any(|m| m.id == merge_id) {
         return Err("This merge is not on this person any more. Read again.".into());
     }
-    person(&call(&decision(&["people", "unmerge", merge_id]))?).ok_or("Memo's answer did not describe the person")?;
+    person(&call(&decision(&["people", "unmerge", merge_id]))?).ok_or("wcat's answer did not describe the person")?;
     show_with(call, reference)
 }
 
@@ -1339,7 +1339,7 @@ pub fn check(name: &str) -> Result<Vec<Similar>, String> {
 
 fn add_with(call: &Call, name: &str) -> Result<String, String> {
     let v = call(&named_args(&["people", "add"], typed_name(name)?))?;
-    person_of(&body(&v)["ref"]).ok_or_else(|| "Memo's answer did not name the new person".into())
+    person_of(&body(&v)["ref"]).ok_or_else(|| "wcat's answer did not name the new person".into())
 }
 
 /// A new person known by name only; answers their ref.

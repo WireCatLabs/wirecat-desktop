@@ -37,7 +37,7 @@ function value(field: string, v: unknown, m: TaskWords, known: Known, lang: Lang
 }
 
 /** memo's rule that finds tasks in messages signs them "rule"; the owner knows it as Memo. */
-const named = (name: string | null | undefined) => (name === "rule" ? "Memo" : name)
+const named = (name: string | null | undefined) => (name === "rule" ? "wcat" : name)
 
 function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang): string[] {
   const who = e.by?.owner ? m.you : (named(e.by?.name) ?? m.someone)

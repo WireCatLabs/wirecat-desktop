@@ -325,6 +325,104 @@
     },
     "version": "0.36.0"
   },
+  "files": {
+    "desktop": {
+      "doctor": ["doctor", "--record", "--json"],
+      "mcpServer": null,
+      "profiles": null,
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": {
+        "args": ["search", "notes", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json", "--", "{query}"],
+        "shape": "items",
+        "what": "notes",
+        "fields": [
+          {
+            "name": "title",
+            "group": "what",
+            "example": "title:plan",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "tag",
+            "group": "what",
+            "example": "tag:work",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "date",
+            "group": "when",
+            "example": "date>=30d",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "author",
+            "group": "who",
+            "example": "author:\"Ana Ruiz\"",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "text",
+            "group": "what",
+            "example": "text:budget",
+            "top": false,
+            "values": null
+          },
+          {
+            "name": "site",
+            "group": "files",
+            "example": "site:github.com",
+            "top": false,
+            "values": null
+          },
+          {
+            "name": "source",
+            "group": "where",
+            "example": "source:internal",
+            "top": false,
+            "values": ["internal", "file"]
+          }
+        ],
+        "values": {}
+      },
+      "settings": null,
+      "setup": null,
+      "signIn": null,
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "storage": {
+        "app": "files-cli",
+        "env": "FILES"
+      },
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeCheck": null,
+      "storeInfo": ["store", "info", "--no-record", "--json"],
+      "storeReset": null,
+      "storeResetPreview": null,
+      "storeTableSizes": null,
+      "storeTables": null,
+      "sync": {
+        "run": ["sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "notes",
+        "note": null
+      },
+      "tagline": "Notes, files and Obsidian vaults · search",
+      "tasks": null
+    },
+    "version": "1.0.0"
+  },
   "gcal": {
     "desktop": {
       "doctor": ["{profile}", "doctor", "--record", "--json"],
@@ -590,8 +688,8 @@
         "status": ["skill", "status", "--no-record", "--json"]
       },
       "storage": {
-        "app": "cli-memo",
-        "env": "MEMO"
+        "app": "wcat",
+        "env": "WCAT"
       },
       "storeBackup": null,
       "storeBackupEncrypted": null,

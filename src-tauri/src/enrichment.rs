@@ -264,7 +264,7 @@ fn ask(tool: &Tool, args: &[String], timeout: Duration) -> Result<Result<Enrichm
         }
         return Err(refusal_of(&out, json.as_ref()));
     }
-    json.as_ref().and_then(status_of).map(Ok).ok_or_else(|| "memo gave an answer the app cannot read".to_string())
+    json.as_ref().and_then(status_of).map(Ok).ok_or_else(|| "wcat gave an answer the app cannot read".to_string())
 }
 
 fn too_old(tool: &Tool) -> String {
@@ -312,7 +312,7 @@ fn choice_words(
         return Ok(with_choice(words, &c.provider, &c.model, None));
     };
     if !src.base_url.open(tools::installed_version(tool).as_deref()) {
-        return Err("This memo cannot use a model address yet. It comes with a memo update.".into());
+        return Err("This wcat version cannot use a model address yet. It comes with a wcat update.".into());
     }
     if c.provider != "openai" {
         return Err("A model address is for an OpenAI-compatible API.".into());
@@ -328,7 +328,7 @@ fn offered(tool: &Tool, provider: &str, model: &str) -> Result<(), String> {
     if status.offered.iter().any(|o| o.provider == provider && o.model == model) {
         Ok(())
     } else {
-        Err(format!("memo does not offer {provider} {model} for search rewriting"))
+        Err(format!("wcat does not offer {provider} {model} for search rewriting"))
     }
 }
 
@@ -372,7 +372,7 @@ fn offered_provider(tool: &Tool, src: &EnrichmentSource, provider: &str) -> Resu
     if status.offered.iter().any(|o| o.provider == provider) {
         Ok(())
     } else {
-        Err(format!("memo offers no provider {provider}"))
+        Err(format!("wcat offers no provider {provider}"))
     }
 }
 
@@ -403,7 +403,7 @@ pub fn set_key(tool: &Tool, provider: &str, key: &str) -> Result<EnrichmentStatu
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(&bin, &refs, Some(&crate::paths::search_path()));
     let out = run::run_with_input(cmd, Some(format!("{key}\n").as_bytes()), CALL, || false)
-        .map_err(|e| format!("Could not run memo: {e}."))?;
+        .map_err(|e| format!("Could not run wcat: {e}."))?;
     let code = out.code;
     let json = out.json();
     if code != Some(0) {
@@ -413,7 +413,7 @@ pub fn set_key(tool: &Tool, provider: &str, key: &str) -> Result<EnrichmentStatu
         return Err(masked(&failure(&out, json.as_ref()), key));
     }
     if json.as_ref().map(body).and_then(|b| b["stored"].as_bool()) != Some(true) {
-        return Err("memo did not say it stored the key".into());
+        return Err("wcat did not say it stored the key".into());
     }
     after_key(tool, src)
 }
@@ -435,7 +435,7 @@ fn after_key(tool: &Tool, src: &EnrichmentSource) -> Result<EnrichmentStatus, St
 }
 
 fn too_old_name(tool: &Tool) -> String {
-    tools::installed_version(tool).map_or_else(|| "This memo".into(), |v| format!("memo {v}"))
+    tools::installed_version(tool).map_or_else(|| "This wcat version".into(), |v| format!("wcat {v}"))
 }
 
 /// Turns it off and deletes what the model wrote.

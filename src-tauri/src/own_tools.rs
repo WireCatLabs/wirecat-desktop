@@ -643,8 +643,8 @@ fn taken_by_others(catalog: &Catalog, saved: &str, package: &str) -> Taken {
     taken
 }
 
-const SYNC_WHAT: [&str; 9] =
-    ["messages", "files", "meetings", "calls", "notes and mail", "mail", "records", "tracker", "content"];
+const SYNC_WHAT: [&str; 10] =
+    ["messages", "files", "meetings", "calls", "notes and mail", "notes", "mail", "records", "tracker", "content"];
 
 const FIRST_PORT: u64 = 8770;
 const LAST_PORT: u64 = 8999;

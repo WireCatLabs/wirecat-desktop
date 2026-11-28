@@ -371,7 +371,7 @@ fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRe
 
 /// An answer instead of a board while memo is missing or older than the catalog's `crmBoard.minVersion`.
 fn unusable() -> Result<Option<CrmRead>, String> {
-    let source = crate::catalog::tool("memo")?.crm_board.as_ref().ok_or("Memo has no Clients page in the catalog")?;
+    let source = crate::catalog::tool("memo")?.crm_board.as_ref().ok_or("wcat has no Clients page in the catalog")?;
     Ok(task_board::memo_unusable(&source.min_version)?.map(|u| match u {
         Unusable::Missing => CrmRead::Missing,
         Unusable::Old { version, need } => CrmRead::Old { version, need },
@@ -408,7 +408,7 @@ fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result
         return Err(invalid(format!("a move names the card's own stage, not {stage}")));
     }
     let moved = call(&words(&[kind.plural(), "move", reference, stage]))?;
-    card(body(&moved)).ok_or_else(|| invalid(format!("memo did not answer the moved {}", kind.noun())))
+    card(body(&moved)).ok_or_else(|| invalid(format!("wcat did not answer the moved {}", kind.noun())))
 }
 
 /// Moves the owner's own deal or lead through memo, which answers the card; memo refuses a CRM's copy itself ("change

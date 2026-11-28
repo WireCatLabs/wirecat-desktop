@@ -6,7 +6,7 @@ describe("runOutcome", () => {
     expect(runOutcome({ exitCode: 0, skipped: null })).toBe("ok")
   })
 
-  it("is skipped when memo noted a start it left out after the last run", () => {
+  it("is skipped when wcat noted a start it left out after the last run", () => {
     const skipped = { at: "2026-11-05T22:04:36Z", why: "today's runs cost $5.02" }
     expect(runOutcome({ exitCode: 0, skipped })).toBe("skipped")
     expect(runOutcome({ exitCode: 1, skipped })).toBe("skipped")
@@ -18,7 +18,7 @@ describe("runOutcome", () => {
 })
 
 describe("dailyCap", () => {
-  it("is none when memo says 0 or does not say", () => {
+  it("is none when wcat says 0 or does not say", () => {
     expect(dailyCap(5)).toBe(5)
     expect(dailyCap(0)).toBeNull()
     expect(dailyCap(null)).toBeNull()

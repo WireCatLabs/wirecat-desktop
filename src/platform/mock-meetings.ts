@@ -356,7 +356,7 @@ function show(ref: string, cursor: number): MeetingDetails {
   }
 }
 
-const FAILED = "another memo sync holds the store; try again when it ends"
+const FAILED = "another wcat sync holds the store; try again when it ends"
 
 /**
  * pbx's two calls by their record or their own id (`<uniqueid>#<sequence>`, as a link names it): 77's recording is a

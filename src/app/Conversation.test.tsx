@@ -146,18 +146,18 @@ describe("a conversation a link opens", () => {
 
     vi.spyOn(platform, "conversationRead").mockResolvedValueOnce({ state: "noMemo" })
     link({ type: "chat", provider: "telegram", account: "1", chat: "2" })
-    expect(await screen.findByText("This page reads Memo, which is not installed.", undefined)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Install Memo" })).toBeInTheDocument()
+    expect(await screen.findByText("This page reads wcat, which is not installed.", undefined)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Install wcat" })).toBeInTheDocument()
   })
 
   it("offers to try again after a failed read", async () => {
     const user = userEvent.setup()
-    vi.spyOn(platform, "conversationRead").mockRejectedValueOnce(new Error("memo stopped after 60 s"))
+    vi.spyOn(platform, "conversationRead").mockRejectedValueOnce(new Error("wcat stopped after 60 s"))
     render(<App />)
     link({ type: "chat", provider: "telegram", account: "1", chat: "2" })
     expect(await screen.findByRole("heading", { name: "WireCat could not read this conversation" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Details" }))
-    expect(await screen.findByText("memo stopped after 60 s")).toBeInTheDocument()
+    expect(await screen.findByText("wcat stopped after 60 s")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Try again" }))
     expect(await messages()).toBeInTheDocument()
   })

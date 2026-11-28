@@ -3,10 +3,10 @@ import type { NotesProblem } from "@/platform/bindings"
 
 const en = {
   title: "Set up your notes",
-  what: "Memo reads the notes in the folders you choose, on this computer. It keeps a searchable copy in its own store and never changes your files. Three steps, the last one optional.",
+  what: "Files reads the notes in the folders you choose, on this computer. It keeps a searchable copy in its own store and never changes your files. Three steps, the last one optional.",
   folderTitle: "Choose your notes folders",
   folderWhat:
-    "Connect an Obsidian vault, or choose any folder of Markdown files. WireCat checks whether a folder belongs to a vault, so Memo reads its tags and [[links]] the way Obsidian does. You can add more than one.",
+    "Connect an Obsidian vault, or choose any folder of Markdown files. WireCat checks whether a folder belongs to a vault, so Files reads its tags and [[links]] the way Obsidian does. You can add more than one.",
   choose: "Choose a folder…",
   chooseAnother: "Add another folder…",
   chooseVault: "Connect an Obsidian vault…",
@@ -16,10 +16,10 @@ const en = {
   format: (format: string) => (format === "obsidian" ? "Obsidian" : "Markdown"),
   picking: "Waiting for the folder window…",
   adding: "Adding the folder…",
-  foldersLabel: "Folders Memo reads",
+  foldersLabel: "Folders Files reads",
   noFolder: "No folder yet.",
   holdsVaults: (name: string, count: number) =>
-    `${name} is no Obsidian vault, but it holds ${plural("en", count, { one: "one vault", other: "# vaults" })}. Connect ${count === 1 ? "it" : "them one by one"}, so Memo reads tags and links the way Obsidian does, or add ${name} as plain Markdown.`,
+    `${name} is no Obsidian vault, but it holds ${plural("en", count, { one: "one vault", other: "# vaults" })}. Connect ${count === 1 ? "it" : "them one by one"}, so Files reads tags and links the way Obsidian does, or add ${name} as plain Markdown.`,
   vaultsInside: (name: string) => `Obsidian vaults in ${name}`,
   addPlain: (name: string) => `Add ${name} as plain Markdown`,
   folderAdded: (name: string, format: string, vault: boolean) =>
@@ -33,17 +33,17 @@ const en = {
   removeDelete: "Remove and delete notes…",
   removeDeleteFor: (name: string) => `Remove ${name} and delete its notes`,
   removing: "Removing the folder…",
-  removedKept: (name: string) => `Memo stopped reading ${name}. Its notes stay searchable.`,
+  removedKept: (name: string) => `Files stopped reading ${name}. Its notes stay searchable.`,
   removedDeleted: (name: string, notes: number | null) =>
-    `Memo stopped reading ${name} and deleted ${notes === null ? "its notes" : plural("en", notes, { one: "# note", other: "# notes" })} from its store.`,
+    `Files stopped reading ${name} and deleted ${notes === null ? "its notes" : plural("en", notes, { one: "# note", other: "# notes" })} from its store.`,
   confirmTitle: (name: string) => `Remove ${name} and delete its notes?`,
   confirmWhat: (path: string) =>
-    `Memo deletes every note it read from ${path} from its own store, so search no longer finds them. Your files on disk are not touched, and notes from your other folders stay.`,
+    `Files deletes every note it read from ${path} from its own store, so search no longer finds them. Your files on disk are not touched, and notes from your other folders stay.`,
   confirmDelete: "Remove and delete notes",
   confirmCancel: "Cancel",
   syncTitle: "Read your notes",
   syncWhat:
-    "Memo reads every note in these folders once. A few hundred notes take under a minute. Later runs read only what changed.",
+    "Files reads every note in these folders once. A few hundred notes take under a minute. Later runs read only what changed.",
   syncNeedsFolder: "Choose a folder first.",
   syncStart: "Read my notes",
   syncAgain: "Read again",
@@ -72,13 +72,13 @@ const en = {
   switching: "Switching…",
   switched: (minutes: number | null) =>
     minutes === null
-      ? "Switched. Memo re-indexes your notes and mail at the next syncs; search keeps working meanwhile."
+      ? "Switched. Files re-indexes your notes at the next syncs; search keeps working meanwhile."
       : minutes === 0
         ? "Switched. Search already has everything it needs."
         : `Switched. Re-indexing takes about ${minutes} min at the next syncs; search keeps working meanwhile.`,
   modelsLabel: "Search models",
   modelStart: (mb: number) => `Download ${mb} MB`,
-  modelRunning: (mb: number) => `Downloading ${mb} MB… Memo does not report how far it is. It can take a few minutes.`,
+  modelRunning: (mb: number) => `Downloading ${mb} MB… Files does not report how far it is. It can take a few minutes.`,
   modelPreparing: "Done. Preparing your notes for search by meaning…",
   modelLabel: "Downloading the search model",
   modelCount: (done: number, total: number) => `${done} of ${total} MB`,
@@ -89,26 +89,26 @@ const en = {
   tryAgain: "Try again",
   chooseOther: "Choose another folder…",
   loadFailed: "Could not read the notes setup.",
-  noMemo: "Install Memo to set up your notes.",
+  noMemo: "Install Files to set up your notes.",
   old: (version: string | null, need: string) =>
-    `${version ? `Memo ${version}` : "This Memo"} is too old for this setup. Update it to ${need} or later, above, then come back.`,
+    `${version ? `Files ${version}` : "This Files"} is too old for this setup. Update it to ${need} or later, above, then come back.`,
   problem: {
     folderUnreadable:
       "WireCat cannot read that folder. It may have moved, or the system may not let this app open it. Choose it again, or pick another folder.",
     diskFull: "There is not enough free space on this computer. Free some space, about 300 MB, then try again.",
     offline: "The download did not reach the internet. Check your connection, then try again.",
-    tooOld: "This version of Memo does not have that command. Update Memo above, then try again.",
-    busy: "Another Memo run is using your notes, such as a sync or an import. Wait until it ends, then try again.",
-    other: "Memo stopped with an error. Try again. If it repeats, the Logs page shows the run.",
+    tooOld: "This version of Files does not have that command. Update Files above, then try again.",
+    busy: "Another Files run is using your notes, such as a sync or an import. Wait until it ends, then try again.",
+    other: "Files stopped with an error. Try again. If it repeats, the Logs page shows the run.",
   } satisfies Record<NotesProblem, string>,
 }
 
 const ru: typeof en = {
   title: "Настройка заметок",
-  what: "Memo читает заметки из папок, которые вы выберете, на этом компьютере. Он хранит копию для поиска в своём хранилище и не меняет ваши файлы. Три шага, последний необязательный.",
+  what: "Files читает заметки из папок, которые вы выберете, на этом компьютере. Он хранит копию для поиска в своём хранилище и не меняет ваши файлы. Три шага, последний необязательный.",
   folderTitle: "Выберите папки с заметками",
   folderWhat:
-    "Подключите хранилище Obsidian или выберите любую папку с файлами Markdown. WireCat проверяет, входит ли папка в хранилище, и Memo читает теги и [[ссылки]] так же, как Obsidian. Можно добавить несколько папок.",
+    "Подключите хранилище Obsidian или выберите любую папку с файлами Markdown. WireCat проверяет, входит ли папка в хранилище, и Files читает теги и [[ссылки]] так же, как Obsidian. Можно добавить несколько папок.",
   choose: "Выбрать папку…",
   chooseAnother: "Добавить ещё папку…",
   chooseVault: "Подключить хранилище Obsidian…",
@@ -118,10 +118,10 @@ const ru: typeof en = {
   format: (format: string) => (format === "obsidian" ? "Obsidian" : "Markdown"),
   picking: "Ждём окно выбора папки…",
   adding: "Добавляем папку…",
-  foldersLabel: "Папки, которые читает Memo",
+  foldersLabel: "Папки, которые читает Files",
   noFolder: "Папок пока нет.",
   holdsVaults: (name: string, count: number) =>
-    `Папка ${name} не хранилище Obsidian, но в ней ${plural("ru", count, { one: "# хранилище", few: "# хранилища", many: "# хранилищ", other: "# хранилища" })}. Подключите ${count === 1 ? "его" : "их по одному"}, чтобы Memo читал теги и ссылки так же, как Obsidian, или добавьте ${name} как обычный Markdown.`,
+    `Папка ${name} не хранилище Obsidian, но в ней ${plural("ru", count, { one: "# хранилище", few: "# хранилища", many: "# хранилищ", other: "# хранилища" })}. Подключите ${count === 1 ? "его" : "их по одному"}, чтобы Files читал теги и ссылки так же, как Obsidian, или добавьте ${name} как обычный Markdown.`,
   vaultsInside: (name: string) => `Хранилища Obsidian в папке ${name}`,
   addPlain: (name: string) => `Добавить ${name} как обычный Markdown`,
   folderAdded: (name: string, format: string, vault: boolean) =>
@@ -135,21 +135,21 @@ const ru: typeof en = {
   removeDelete: "Убрать и удалить заметки…",
   removeDeleteFor: (name: string) => `Убрать ${name} и удалить её заметки`,
   removing: "Убираем папку…",
-  removedKept: (name: string) => `Memo перестал читать ${name}. Её заметки остаются в поиске.`,
+  removedKept: (name: string) => `Files перестал читать ${name}. Её заметки остаются в поиске.`,
   removedDeleted: (name: string, notes: number | null) =>
-    `Memo перестал читать ${name} и удалил ${
+    `Files перестал читать ${name} и удалил ${
       notes === null
         ? "её заметки"
         : plural("ru", notes, { one: "# заметку", few: "# заметки", many: "# заметок", other: "# заметки" })
     } из своего хранилища.`,
   confirmTitle: (name: string) => `Убрать ${name} и удалить её заметки?`,
   confirmWhat: (path: string) =>
-    `Memo удалит из своего хранилища все заметки, прочитанные из ${path}, и поиск их больше не найдёт. Ваши файлы на диске не тронут, заметки из других папок останутся.`,
+    `Files удалит из своего хранилища все заметки, прочитанные из ${path}, и поиск их больше не найдёт. Ваши файлы на диске не тронут, заметки из других папок останутся.`,
   confirmDelete: "Убрать и удалить заметки",
   confirmCancel: "Отменить",
   syncTitle: "Прочитайте заметки",
   syncWhat:
-    "Memo один раз читает все заметки в этих папках. Несколько сотен заметок занимают меньше минуты. Дальше он читает только то, что изменилось.",
+    "Files один раз читает все заметки в этих папках. Несколько сотен заметок занимают меньше минуты. Дальше он читает только то, что изменилось.",
   syncNeedsFolder: "Сначала выберите папку.",
   syncStart: "Прочитать заметки",
   syncAgain: "Прочитать снова",
@@ -188,14 +188,14 @@ const ru: typeof en = {
   switching: "Переключаю…",
   switched: (minutes) =>
     minutes === null
-      ? "Переключено. Memo переиндексирует заметки и почту при следующих синхронизациях; поиск всё это время работает."
+      ? "Переключено. Files переиндексирует заметки при следующих синхронизациях; поиск всё это время работает."
       : minutes === 0
         ? "Переключено. Для поиска уже всё готово."
         : `Переключено. Переиндексация займёт около ${minutes} мин при следующих синхронизациях; поиск всё это время работает.`,
   modelsLabel: "Модели поиска",
   modelStart: (mb: number) => `Скачать ${mb} МБ`,
   modelRunning: (mb: number) =>
-    `Скачиваем ${mb} МБ… Memo не сообщает, сколько уже скачано. Это может занять несколько минут.`,
+    `Скачиваем ${mb} МБ… Files не сообщает, сколько уже скачано. Это может занять несколько минут.`,
   modelPreparing: "Готово. Готовим заметки к поиску по смыслу…",
   modelLabel: "Загрузка модели поиска",
   modelCount: (done: number, total: number) => `${done} из ${total} МБ`,
@@ -207,26 +207,26 @@ const ru: typeof en = {
   tryAgain: "Повторить",
   chooseOther: "Выбрать другую папку…",
   loadFailed: "Не удалось прочитать настройки заметок.",
-  noMemo: "Установите Memo, чтобы настроить заметки.",
+  noMemo: "Установите Files, чтобы настроить заметки.",
   old: (version: string | null, need: string) =>
-    `${version ? `Memo ${version}` : "Этот Memo"} слишком старый для этой настройки. Обновите его до ${need} или новее выше и вернитесь сюда.`,
+    `${version ? `Files ${version}` : "Этот Files"} слишком старый для этой настройки. Обновите его до ${need} или новее выше и вернитесь сюда.`,
   problem: {
     folderUnreadable:
       "WireCat не может прочитать эту папку. Её могли переместить, или система не даёт приложению её открыть. Выберите её снова или другую папку.",
     diskFull: "На компьютере не хватает свободного места. Освободите около 300 МБ и повторите.",
     offline: "Загрузка не дошла до интернета. Проверьте соединение и повторите.",
-    tooOld: "В этой версии Memo нет такой команды. Обновите Memo выше и повторите.",
-    busy: "Другой запуск Memo использует ваши заметки, например синхронизация или импорт. Дождитесь его конца и повторите.",
-    other: "Memo остановился с ошибкой. Повторите. Если повторится, запуск виден на странице «Журнал».",
+    tooOld: "В этой версии Files нет такой команды. Обновите Files выше и повторите.",
+    busy: "Другой запуск Files использует ваши заметки, например синхронизация или импорт. Дождитесь его конца и повторите.",
+    other: "Files остановился с ошибкой. Повторите. Если повторится, запуск виден на странице «Журнал».",
   },
 }
 
 const es: typeof en = {
   title: "Configura tus notas",
-  what: "Memo lee las notas de las carpetas que elijas, en este equipo. Guarda una copia para buscar en su propio almacén y nunca cambia tus archivos. Tres pasos, el último opcional.",
+  what: "Files lee las notas de las carpetas que elijas, en este equipo. Guarda una copia para buscar en su propio almacén y nunca cambia tus archivos. Tres pasos, el último opcional.",
   folderTitle: "Elige tus carpetas de notas",
   folderWhat:
-    "Conecta una bóveda de Obsidian o elige cualquier carpeta con archivos Markdown. WireCat comprueba si la carpeta forma parte de una bóveda, y así Memo lee sus etiquetas y [[enlaces]] como Obsidian. Puedes añadir más de una.",
+    "Conecta una bóveda de Obsidian o elige cualquier carpeta con archivos Markdown. WireCat comprueba si la carpeta forma parte de una bóveda, y así Files lee sus etiquetas y [[enlaces]] como Obsidian. Puedes añadir más de una.",
   choose: "Elegir una carpeta…",
   chooseAnother: "Añadir otra carpeta…",
   chooseVault: "Conectar una bóveda de Obsidian…",
@@ -236,10 +236,10 @@ const es: typeof en = {
   format: (format: string) => (format === "obsidian" ? "Obsidian" : "Markdown"),
   picking: "Esperando la ventana de carpetas…",
   adding: "Añadiendo la carpeta…",
-  foldersLabel: "Carpetas que lee Memo",
+  foldersLabel: "Carpetas que lee Files",
   noFolder: "Aún no hay ninguna carpeta.",
   holdsVaults: (name: string, count: number) =>
-    `${name} no es una bóveda de Obsidian, pero ${plural("es", count, { one: "contiene una", other: "contiene # bóvedas" })}. ${count === 1 ? "Conéctala" : "Conéctalas una a una"} para que Memo lea las etiquetas y los enlaces como Obsidian, o añade ${name} como Markdown normal.`,
+    `${name} no es una bóveda de Obsidian, pero ${plural("es", count, { one: "contiene una", other: "contiene # bóvedas" })}. ${count === 1 ? "Conéctala" : "Conéctalas una a una"} para que Files lea las etiquetas y los enlaces como Obsidian, o añade ${name} como Markdown normal.`,
   vaultsInside: (name: string) => `Bóvedas de Obsidian en ${name}`,
   addPlain: (name: string) => `Añadir ${name} como Markdown normal`,
   folderAdded: (name: string, format: string, vault: boolean) =>
@@ -253,17 +253,17 @@ const es: typeof en = {
   removeDelete: "Quitar y borrar notas…",
   removeDeleteFor: (name: string) => `Quitar ${name} y borrar sus notas`,
   removing: "Quitando la carpeta…",
-  removedKept: (name: string) => `Memo dejó de leer ${name}. Sus notas siguen en la búsqueda.`,
+  removedKept: (name: string) => `Files dejó de leer ${name}. Sus notas siguen en la búsqueda.`,
   removedDeleted: (name: string, notes: number | null) =>
-    `Memo dejó de leer ${name} y borró ${notes === null ? "sus notas" : plural("es", notes, { one: "# nota", other: "# notas" })} de su almacén.`,
+    `Files dejó de leer ${name} y borró ${notes === null ? "sus notas" : plural("es", notes, { one: "# nota", other: "# notas" })} de su almacén.`,
   confirmTitle: (name: string) => `¿Quitar ${name} y borrar sus notas?`,
   confirmWhat: (path: string) =>
-    `Memo borra de su propio almacén todas las notas que leyó de ${path}, y la búsqueda ya no las encuentra. Tus archivos en el disco no se tocan y las notas de tus otras carpetas se quedan.`,
+    `Files borra de su propio almacén todas las notas que leyó de ${path}, y la búsqueda ya no las encuentra. Tus archivos en el disco no se tocan y las notas de tus otras carpetas se quedan.`,
   confirmDelete: "Quitar y borrar notas",
   confirmCancel: "Cancelar",
   syncTitle: "Lee tus notas",
   syncWhat:
-    "Memo lee una vez todas las notas de estas carpetas. Unos cientos de notas tardan menos de un minuto. Después solo lee lo que cambió.",
+    "Files lee una vez todas las notas de estas carpetas. Unos cientos de notas tardan menos de un minuto. Después solo lee lo que cambió.",
   syncNeedsFolder: "Primero elige una carpeta.",
   syncStart: "Leer mis notas",
   syncAgain: "Leer de nuevo",
@@ -292,13 +292,13 @@ const es: typeof en = {
   switching: "Cambiando…",
   switched: (minutes) =>
     minutes === null
-      ? "Cambiado. Memo vuelve a indexar notas y correo en las próximas sincronizaciones; la búsqueda sigue funcionando mientras tanto."
+      ? "Cambiado. Files vuelve a indexar las notas en las próximas sincronizaciones; la búsqueda sigue funcionando mientras tanto."
       : minutes === 0
         ? "Cambiado. La búsqueda ya tiene todo lo que necesita."
         : `Cambiado. Volver a indexar lleva unos ${minutes} min en las próximas sincronizaciones; la búsqueda sigue funcionando mientras tanto.`,
   modelsLabel: "Modelos de búsqueda",
   modelStart: (mb: number) => `Descargar ${mb} MB`,
-  modelRunning: (mb: number) => `Descargando ${mb} MB… Memo no indica cuánto lleva. Puede tardar unos minutos.`,
+  modelRunning: (mb: number) => `Descargando ${mb} MB… Files no indica cuánto lleva. Puede tardar unos minutos.`,
   modelPreparing: "Listo. Preparando tus notas para la búsqueda por significado…",
   modelLabel: "Descargando el modelo de búsqueda",
   modelCount: (done: number, total: number) => `${done} de ${total} MB`,
@@ -310,18 +310,18 @@ const es: typeof en = {
   tryAgain: "Reintentar",
   chooseOther: "Elegir otra carpeta…",
   loadFailed: "No se pudo leer la configuración de las notas.",
-  noMemo: "Instala Memo para configurar tus notas.",
+  noMemo: "Instala Files para configurar tus notas.",
   old: (version: string | null, need: string) =>
-    `${version ? `Memo ${version}` : "Este Memo"} es demasiado antiguo para esta configuración. Actualízalo a ${need} o posterior, arriba, y vuelve aquí.`,
+    `${version ? `Files ${version}` : "Este Files"} es demasiado antiguo para esta configuración. Actualízalo a ${need} o posterior, arriba, y vuelve aquí.`,
   problem: {
     folderUnreadable:
       "WireCat no puede leer esa carpeta. Puede que la hayan movido, o que el sistema no deje abrirla a esta app. Elígela de nuevo o elige otra carpeta.",
     diskFull: "No hay suficiente espacio libre en este equipo. Libera unos 300 MB y vuelve a intentarlo.",
     offline: "La descarga no llegó a internet. Revisa tu conexión y vuelve a intentarlo.",
-    tooOld: "Esta versión de Memo no tiene ese comando. Actualiza Memo arriba y vuelve a intentarlo.",
-    busy: "Otra ejecución de Memo está usando tus notas, por ejemplo una sincronización o una importación. Espera a que termine y vuelve a intentarlo.",
+    tooOld: "Esta versión de Files no tiene ese comando. Actualiza Files arriba y vuelve a intentarlo.",
+    busy: "Otra ejecución de Files está usando tus notas, por ejemplo una sincronización o una importación. Espera a que termine y vuelve a intentarlo.",
     other:
-      "Memo se detuvo con un error. Vuelve a intentarlo. Si se repite, la página de registros muestra la ejecución.",
+      "Files se detuvo con un error. Vuelve a intentarlo. Si se repite, la página de registros muestra la ejecución.",
   },
 }
 

@@ -85,7 +85,7 @@ describe("Editing a finding before deciding it", () => {
     expect(show).toHaveBeenCalledWith("action:7")
   })
 
-  it("is not offered by a memo without actions edit", async () => {
+  it("is not offered by a wcat without actions edit", async () => {
     reading((out) => ({ ...out, findingsEdit: false }))
     const { batch } = await openBatch()
     expect(within(batch).queryByRole("button", { name: /Edit the finding/ })).not.toBeInTheDocument()

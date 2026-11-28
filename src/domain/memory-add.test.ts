@@ -51,7 +51,7 @@ describe("Add to Memory", () => {
     ).toEqual(["f2"])
   })
 
-  it("words memo's known refusals and leaves the rest in memo's words", () => {
+  it("words wcat's known refusals and leaves the rest in wcat's words", () => {
     expect(reasonOf("source.url-refused")).toBe("source.url-refused")
     expect(reasonOf("reader.not-running")).toBe("reader.not-running")
     expect(reasonOf("the store is busy")).toBeNull()
@@ -59,7 +59,7 @@ describe("Add to Memory", () => {
     expect(fileName("C:\\Users\\o\\runner notes.pdf")).toBe("runner notes.pdf")
   })
 
-  it("needs a key only for a model that is not on this computer, as memo decides", () => {
+  it("needs a key only for a model that is not on this computer, as wcat decides", () => {
     const model = { provider: "openai", baseUrl: null, origin: null, images: true, key: { stored: false } }
     expect(imageReasonBefore(model)).toBe("ai.key-missing")
     expect(imageReasonBefore({ ...model, baseUrl: "http://localhost:1234/v1" })).toBeNull()

@@ -5,7 +5,7 @@ const en = {
   title: "Rewrite records for better search",
   what: "A hosted model reads each note, document and email and writes short facts and questions about it in other words. Search then finds a record even when you ask in words the record does not use.",
   measured: (rewordedOff: number, rewordedOn: number, ownOff: number, ownOn: number) =>
-    `In Memo's tests, a question in other words found its record among the first ten results ${rewordedOn} times in 100 instead of ${rewordedOff}. A question in the record's own words put it first a little less often: ${ownOn} times in 100 instead of ${ownOff}.`,
+    `In wcat's tests, a question in other words found its record among the first ten results ${rewordedOn} times in 100 instead of ${rewordedOff}. A question in the record's own words put it first a little less often: ${ownOn} times in 100 instead of ${ownOff}.`,
   off: "Off. Nothing leaves this computer.",
   offCost: (records: string, provider: string, usd: string) =>
     `Turning it on would send ${records} to ${provider}, for about ${usd}.`,
@@ -14,28 +14,28 @@ const en = {
   modelLabel: "Model",
   offer: (provider: string, model: string) => `${provider} ${model}`,
   offerPrice: (input: string, output: string) => `${input} in, ${output} out per million tokens`,
-  memoDefault: "Memo's default",
+  memoDefault: "wcat's default",
   ownOffer: "Another model at an address",
   ownOfferNote: "A server on this computer (Ollama, LM Studio) or an OpenAI-compatible service",
   ownModelHelp: "Name the model as the server names it, for example llama3.1:8b.",
   addressLabel: "Address (base URL)",
   addressHelp:
     "For example http://localhost:11434/v1 for Ollama on this computer, or https://openrouter.ai/api/v1. A server on another computer needs https.",
-  ownNeeds: "Type the model's name and the address. Memo then says what would be sent.",
+  ownNeeds: "Type the model's name and the address. wcat then says what would be sent.",
   counting: "Counting the records and the cost…",
   sends: (records: string) =>
-    `The text of every note, document and email in Memo's storage, from every account: ${records} now, and each record added or changed later, at every sync.`,
+    `The text of every note, document and email in wcat's storage, from every account: ${records} now, and each record added or changed later, at every sync.`,
   to: (provider: string, host: string, model: string) => `It goes to ${provider} (${host}), model ${model}.`,
   toHere: (host: string, model: string) => `It stays on this computer: model ${model} at ${host}.`,
   toAddress: (host: string, model: string) => `It goes to ${host}, model ${model}.`,
   cost: (usd: string, input: string, output: string) =>
     `Rewriting what is here now costs about ${usd} (${input} input and ${output} output tokens).`,
   costUnknown: (input: string, output: string) =>
-    `Memo knows no price for this model: ${input} input and ${output} output tokens.`,
-  pace: (perSync: string, syncs: string) => `Memo rewrites up to ${perSync} per sync: ${syncs} for what is here.`,
-  kept: "The model's facts and questions stay in Memo's storage. Turning it off deletes them.",
+    `wcat knows no price for this model: ${input} input and ${output} output tokens.`,
+  pace: (perSync: string, syncs: string) => `wcat rewrites up to ${perSync} per sync: ${syncs} for what is here.`,
+  kept: "The model's facts and questions stay in wcat's storage. Turning it off deletes them.",
   keyMissing: (variable: string) =>
-    `No API key found. Add it as ${variable} where Memo runs; until then nothing is sent, and each sync says so.`,
+    `No API key found. Add it as ${variable} where wcat runs; until then nothing is sent, and each sync says so.`,
   keyMissingGeneric: "No API key found. Until you add one, nothing is sent, and each sync says so.",
   agree: (records: string, provider: string) => `Send ${records} to ${provider} and turn on`,
   cancel: "Cancel",
@@ -56,13 +56,13 @@ const en = {
   turnOff: "Turn off",
   offTitle: "Turn off and delete the model's text?",
   offWhat: (records: string) =>
-    `Memo deletes the facts and questions the model wrote for ${records}. Search reads only the records' own words again. Turning it on later sends the records again and costs again.`,
+    `wcat deletes the facts and questions the model wrote for ${records}. Search reads only the records' own words again. Turning it on later sends the records again and costs again.`,
   keepOn: "Keep it on",
   offConfirm: "Turn off and delete",
   turningOff: uiMessages.en.turningOff,
   turnedOff: (records: string) => `Off. Deleted the model's text for ${records}. Nothing more is sent.`,
   old: (version: string | null) =>
-    `${version ? `Memo ${version}` : "This Memo"} cannot rewrite records yet. It comes with a Memo update.`,
+    `${version ? `wcat ${version}` : "This wcat"} cannot rewrite records yet. It comes with a wcat update.`,
   lessThanCent: "less than $0.01",
   records: (n: number) => plural("en", n, { one: "# record", other: "# records" }),
   syncs: (n: number) => plural("en", n, { one: "# sync", other: "# syncs" }),
@@ -88,7 +88,7 @@ const ru: typeof en = {
   title: "Переписывать записи для лучшего поиска",
   what: "Облачная модель читает каждую заметку, документ и письмо и пишет о них короткие факты и вопросы другими словами. Тогда поиск находит запись, даже если вы спрашиваете словами, которых в ней нет.",
   measured: (rewordedOff, rewordedOn, ownOff, ownOn) =>
-    `В тестах memo вопрос другими словами находил свою запись в первой десятке ${rewordedOn} раз из 100 вместо ${rewordedOff}. Вопрос словами самой записи ставил её первой чуть реже: ${ownOn} раз из 100 вместо ${ownOff}.`,
+    `В тестах wcat вопрос другими словами находил свою запись в первой десятке ${rewordedOn} раз из 100 вместо ${rewordedOff}. Вопрос словами самой записи ставил её первой чуть реже: ${ownOn} раз из 100 вместо ${ownOff}.`,
   off: "Выключено. Ничего не уходит с этого компьютера.",
   offCost: (records, provider, usd) => `Если включить, в ${provider} уйдёт ${records}, примерно за ${usd}.`,
   turnOn: "Включить",
@@ -96,28 +96,28 @@ const ru: typeof en = {
   modelLabel: "Модель",
   offer: (provider, model) => `${provider} ${model}`,
   offerPrice: (input, output) => `${input} за вход, ${output} за выход на миллион токенов`,
-  memoDefault: "по умолчанию в memo",
+  memoDefault: "по умолчанию в wcat",
   ownOffer: "Другая модель по адресу",
   ownOfferNote: "Сервер на этом компьютере (Ollama, LM Studio) или сервис, совместимый с OpenAI",
   ownModelHelp: "Название модели, как его пишет сервер, например llama3.1:8b.",
   addressLabel: "Адрес (base URL)",
   addressHelp:
     "Например, http://localhost:11434/v1 для Ollama на этом компьютере или https://openrouter.ai/api/v1. Серверу на другом компьютере нужен https.",
-  ownNeeds: "Введите название модели и адрес. Тогда Memo скажет, что отправится.",
+  ownNeeds: "Введите название модели и адрес. Тогда wcat скажет, что отправится.",
   counting: "Считаю записи и стоимость…",
   sends: (records) =>
-    `Текст каждой заметки, документа и письма в хранилище Memo, из всех аккаунтов: сейчас ${records}, а потом каждая новая или изменённая запись, при каждой синхронизации.`,
+    `Текст каждой заметки, документа и письма в хранилище wcat, из всех аккаунтов: сейчас ${records}, а потом каждая новая или изменённая запись, при каждой синхронизации.`,
   to: (provider, host, model) => `Он уходит в ${provider} (${host}), модель ${model}.`,
   toHere: (host, model) => `Он остается на этом компьютере: модель ${model} по адресу ${host}.`,
   toAddress: (host, model) => `Он уходит на ${host}, модель ${model}.`,
   cost: (usd, input, output) =>
     `Переписать то, что есть сейчас, стоит около ${usd} (${input} входных и ${output} выходных токенов).`,
-  costUnknown: (input, output) => `Memo не знает цену этой модели: ${input} входных и ${output} выходных токенов.`,
+  costUnknown: (input, output) => `wcat не знает цену этой модели: ${input} входных и ${output} выходных токенов.`,
   pace: (perSync, syncs) =>
-    `За одну синхронизацию Memo переписывает до ${perSync}: для того, что есть сейчас, нужно ${syncs}.`,
-  kept: "Факты и вопросы модели хранятся в хранилище Memo. Если выключить, они удаляются.",
+    `За одну синхронизацию wcat переписывает до ${perSync}: для того, что есть сейчас, нужно ${syncs}.`,
+  kept: "Факты и вопросы модели хранятся в хранилище wcat. Если выключить, они удаляются.",
   keyMissing: (variable) =>
-    `API-ключ не найден. Добавьте его как ${variable} там, где работает Memo; до тех пор ничего не отправляется, и каждая синхронизация об этом скажет.`,
+    `API-ключ не найден. Добавьте его как ${variable} там, где работает wcat; до тех пор ничего не отправляется, и каждая синхронизация об этом скажет.`,
   keyMissingGeneric:
     "API-ключ не найден. Пока вы его не добавите, ничего не отправляется, и каждая синхронизация об этом скажет.",
   agree: (records, provider) => `Отправить ${records} в ${provider} и включить`,
@@ -138,13 +138,13 @@ const ru: typeof en = {
   turnOff: "Выключить",
   offTitle: "Выключить и удалить текст модели?",
   offWhat: (records) =>
-    `Memo удалит факты и вопросы, которые модель написала для: ${records}. Поиск снова читает только слова самих записей. Если включить позже, записи отправятся снова и это снова будет стоить денег.`,
+    `wcat удалит факты и вопросы, которые модель написала для: ${records}. Поиск снова читает только слова самих записей. Если включить позже, записи отправятся снова и это снова будет стоить денег.`,
   keepOn: "Оставить включённым",
   offConfirm: "Выключить и удалить",
   turningOff: uiMessages.ru.turningOff,
   turnedOff: (records) => `Выключено. Текст модели удалён для: ${records}. Больше ничего не отправляется.`,
   old: (version) =>
-    `${version ? `Memo ${version}` : "Эта версия Memo"} пока не умеет переписывать записи. Это придёт с обновлением Memo.`,
+    `${version ? `wcat ${version}` : "Эта версия wcat"} пока не умеет переписывать записи. Это придёт с обновлением wcat.`,
   lessThanCent: "меньше $0.01",
   records: (n) => plural("ru", n, { one: "# запись", few: "# записи", many: "# записей", other: "# записи" }),
   syncs: (n) =>
@@ -178,7 +178,7 @@ const es: typeof en = {
   title: "Reescribir registros para buscar mejor",
   what: "Un modelo en la nube lee cada nota, documento y correo y escribe hechos y preguntas breves sobre ellos con otras palabras. Así la búsqueda encuentra un registro aunque preguntes con palabras que el registro no usa.",
   measured: (rewordedOff, rewordedOn, ownOff, ownOn) =>
-    `En las pruebas de memo, una pregunta con otras palabras encontró su registro entre los diez primeros resultados ${rewordedOn} veces de 100 en lugar de ${rewordedOff}. Una pregunta con las palabras del propio registro lo puso primero algo menos: ${ownOn} veces de 100 en lugar de ${ownOff}.`,
+    `En las pruebas de wcat, una pregunta con otras palabras encontró su registro entre los diez primeros resultados ${rewordedOn} veces de 100 en lugar de ${rewordedOff}. Una pregunta con las palabras del propio registro lo puso primero algo menos: ${ownOn} veces de 100 en lugar de ${ownOff}.`,
   off: "Desactivado. Nada sale de este ordenador.",
   offCost: (records, provider, usd) => `Al activarlo se enviarían ${records} a ${provider}, por unos ${usd}.`,
   turnOn: "Activar",
@@ -186,28 +186,28 @@ const es: typeof en = {
   modelLabel: "Modelo",
   offer: (provider, model) => `${provider} ${model}`,
   offerPrice: (input, output) => `${input} de entrada, ${output} de salida por millón de tokens`,
-  memoDefault: "predeterminado de memo",
+  memoDefault: "predeterminado de wcat",
   ownOffer: "Otro modelo en una dirección",
   ownOfferNote: "Un servidor en este ordenador (Ollama, LM Studio) o un servicio compatible con OpenAI",
   ownModelHelp: "Escribe el modelo como lo nombra el servidor, por ejemplo llama3.1:8b.",
   addressLabel: "Dirección (base URL)",
   addressHelp:
     "Por ejemplo http://localhost:11434/v1 para Ollama en este ordenador, o https://openrouter.ai/api/v1. Un servidor en otro ordenador necesita https.",
-  ownNeeds: "Escribe el nombre del modelo y la dirección. Memo dirá entonces qué se enviaría.",
+  ownNeeds: "Escribe el nombre del modelo y la dirección. wcat dirá entonces qué se enviaría.",
   counting: "Contando los registros y el coste…",
   sends: (records) =>
-    `El texto de cada nota, documento y correo del almacenamiento de Memo, de todas las cuentas: ${records} ahora, y cada registro nuevo o cambiado después, en cada sincronización.`,
+    `El texto de cada nota, documento y correo del almacenamiento de wcat, de todas las cuentas: ${records} ahora, y cada registro nuevo o cambiado después, en cada sincronización.`,
   to: (provider, host, model) => `Va a ${provider} (${host}), modelo ${model}.`,
   toHere: (host, model) => `Se queda en este ordenador: modelo ${model} en ${host}.`,
   toAddress: (host, model) => `Va a ${host}, modelo ${model}.`,
   cost: (usd, input, output) =>
     `Reescribir lo que hay ahora cuesta unos ${usd} (${input} tokens de entrada y ${output} de salida).`,
   costUnknown: (input, output) =>
-    `Memo no conoce el precio de este modelo: ${input} tokens de entrada y ${output} de salida.`,
-  pace: (perSync, syncs) => `Memo reescribe hasta ${perSync} por sincronización: ${syncs} para lo que hay ahora.`,
-  kept: "Los hechos y preguntas del modelo se guardan en el almacenamiento de Memo. Al desactivarlo se borran.",
+    `wcat no conoce el precio de este modelo: ${input} tokens de entrada y ${output} de salida.`,
+  pace: (perSync, syncs) => `wcat reescribe hasta ${perSync} por sincronización: ${syncs} para lo que hay ahora.`,
+  kept: "Los hechos y preguntas del modelo se guardan en el almacenamiento de wcat. Al desactivarlo se borran.",
   keyMissing: (variable) =>
-    `No se encontró ninguna clave de API. Añádela como ${variable} donde se ejecuta Memo; hasta entonces no se envía nada y cada sincronización lo dice.`,
+    `No se encontró ninguna clave de API. Añádela como ${variable} donde se ejecuta wcat; hasta entonces no se envía nada y cada sincronización lo dice.`,
   keyMissingGeneric:
     "No se encontró ninguna clave de API. Hasta que añadas una, no se envía nada y cada sincronización lo dice.",
   agree: (records, provider) => `Enviar ${records} a ${provider} y activar`,
@@ -228,13 +228,13 @@ const es: typeof en = {
   turnOff: "Desactivar",
   offTitle: "¿Desactivar y borrar el texto del modelo?",
   offWhat: (records) =>
-    `Memo borra los hechos y preguntas que el modelo escribió para ${records}. La búsqueda vuelve a leer solo las palabras de los registros. Si lo activas más tarde, los registros se envían otra vez y vuelve a costar.`,
+    `wcat borra los hechos y preguntas que el modelo escribió para ${records}. La búsqueda vuelve a leer solo las palabras de los registros. Si lo activas más tarde, los registros se envían otra vez y vuelve a costar.`,
   keepOn: "Dejarlo activado",
   offConfirm: "Desactivar y borrar",
   turningOff: uiMessages.es.turningOff,
   turnedOff: (records) => `Desactivado. Se borró el texto del modelo de ${records}. No se envía nada más.`,
   old: (version) =>
-    `${version ? `Memo ${version}` : "Esta versión de Memo"} aún no puede reescribir registros. Llegará con una actualización de Memo.`,
+    `${version ? `wcat ${version}` : "Esta versión de wcat"} aún no puede reescribir registros. Llegará con una actualización de wcat.`,
   lessThanCent: "menos de 0,01 US$",
   records: (n) => plural("es", n, { one: "# registro", other: "# registros" }),
   syncs: (n) => plural("es", n, { one: "# sincronización", other: "# sincronizaciones" }),

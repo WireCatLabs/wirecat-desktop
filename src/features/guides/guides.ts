@@ -139,9 +139,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Mensajes, correo, notas y tareas abiertas con una persona, y tres temas para tratar.",
     },
     prompt: {
-      en: "Use memo CLI to prepare me for my call with Kai Moreno tomorrow. Show our recent messages and mail, my notes about Kai and the open tasks between us. Give me three points to raise, each with its source.",
-      ru: "Используй memo CLI, чтобы подготовить меня к завтрашнему звонку с Kai Moreno. Покажи наши недавние сообщения и письма, мои заметки о Kai и открытые задачи между нами. Дай три темы для разговора, у каждой — источник.",
-      es: "Usa memo CLI para prepararme para mi llamada de mañana con Kai Moreno. Muestra nuestros mensajes y correos recientes, mis notas sobre Kai y las tareas abiertas entre nosotros. Dame tres temas para tratar, cada uno con su fuente.",
+      en: "Use wcat CLI to prepare me for my call with Kai Moreno tomorrow. Show our recent messages and mail, my notes about Kai and the open tasks between us. Give me three points to raise, each with its source.",
+      ru: "Используй wcat CLI, чтобы подготовить меня к завтрашнему звонку с Kai Moreno. Покажи наши недавние сообщения и письма, мои заметки о Kai и открытые задачи между нами. Дай три темы для разговора, у каждой — источник.",
+      es: "Usa wcat CLI para prepararme para mi llamada de mañana con Kai Moreno. Muestra nuestros mensajes y correos recientes, mis notas sobre Kai y las tareas abiertas entre nosotros. Dame tres temas para tratar, cada uno con su fuente.",
     },
     extraPrompt: {
       zm: {
@@ -153,11 +153,11 @@ const FIRST_GUIDES: Guide[] = [
     steps: [
       {
         text: {
-          en: "Finds the person among the people memo knows",
-          ru: "Находит человека среди тех, кого знает memo",
-          es: "Encuentra a la persona entre las que memo conoce",
+          en: "Finds the person among the people wcat knows",
+          ru: "Находит человека среди тех, кого знает wcat",
+          es: "Encuentra a la persona entre las que wcat conoce",
         },
-        run: "memo people list Kai",
+        run: "wcat people list Kai",
       },
       {
         text: {
@@ -165,7 +165,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Собирает сообщения, письма, заметки и события о человеке",
           es: "Reúne mensajes, correo, notas y eventos sobre la persona",
         },
-        run: "memo context person:…",
+        run: "wcat context person:…",
       },
       {
         text: {
@@ -181,7 +181,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Перечисляет открытые задачи и оставляет те, что связаны с Kai",
           es: "Enumera las tareas abiertas y se queda con las de Kai",
         },
-        run: "memo tasks list",
+        run: "wcat tasks list",
       },
     ],
     result: {
@@ -190,9 +190,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Un resumen de una pantalla y tres temas. Cada tema enlaza a su fuente.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#prepare-for-a-meeting-with-someone",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#подготовка-к-встрече-с-человеком",
-      es: "https://wirecat.dev/es/docs/memo/recipes#prepararte-para-una-reunión-con-alguien",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#prepare-for-a-meeting-with-someone",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#подготовка-к-встрече-с-человеком",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#prepararte-para-una-reunión-con-alguien",
     },
   },
   {
@@ -211,9 +211,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Todo lo que te pidieron esta semana, como tareas que tú eliges.",
     },
     prompt: {
-      en: "Use {cli} CLI and memo CLI. Find messages from the last week where someone asked me to do something. List them with their sources. Create a task only for the ones I choose, linked to the message.",
-      ru: "Используй {cli} CLI и memo CLI. Найди сообщения за последнюю неделю, где меня о чём-то просили. Покажи их со ссылками на источники. Создай задачи только для тех, что я выберу, со ссылкой на сообщение.",
-      es: "Usa {cli} CLI y memo CLI. Busca los mensajes de la última semana en los que alguien me pidió algo. Muéstralos con sus fuentes. Crea una tarea solo para los que yo elija, enlazada al mensaje.",
+      en: "Use {cli} CLI and wcat CLI. Find messages from the last week where someone asked me to do something. List them with their sources. Create a task only for the ones I choose, linked to the message.",
+      ru: "Используй {cli} CLI и wcat CLI. Найди сообщения за последнюю неделю, где меня о чём-то просили. Покажи их со ссылками на источники. Создай задачи только для тех, что я выберу, со ссылкой на сообщение.",
+      es: "Usa {cli} CLI y wcat CLI. Busca los mensajes de la última semana en los que alguien me pidió algo. Muéstralos con sus fuentes. Crea una tarea solo para los que yo elija, enlazada al mensaje.",
     },
     steps: [
       {
@@ -230,7 +230,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Добавляет задачу для каждой просьбы, которую вы выбрали",
           es: "Añade una tarea por cada petición que elijas",
         },
-        run: "memo tasks add msg:{provider}/…",
+        run: "wcat tasks add msg:{provider}/…",
       },
     ],
     result: {
@@ -239,9 +239,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Una lista de peticiones para elegir y luego tareas que enlazan a cada mensaje.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#turn-requests-into-tasks",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#превратить-просьбы-в-задачи",
-      es: "https://wirecat.dev/es/docs/memo/recipes#convertir-peticiones-en-tareas",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#turn-requests-into-tasks",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#превратить-просьбы-в-задачи",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#convertir-peticiones-en-tareas",
     },
   },
   {
@@ -260,9 +260,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "La factura que envió Ana: importe y vencimiento guardados, con el mensaje como prueba.",
     },
     prompt: {
-      en: "Use {cli} CLI and memo CLI. Find the invoice Ana Ortiz sent me in October. Read it and show me the amount, the due date and who it is from. After I agree, record them as facts with the message as evidence.",
-      ru: "Используй {cli} CLI и memo CLI. Найди счёт, который Ana Ortiz прислала мне в октябре. Прочитай его и покажи сумму, срок оплаты и от кого он. После моего согласия запиши это как факты, с сообщением как доказательством.",
-      es: "Usa {cli} CLI y memo CLI. Busca la factura que Ana Ortiz me envió en octubre. Léela y muéstrame el importe, el vencimiento y de quién es. Cuando yo esté de acuerdo, regístralo como hechos con el mensaje como prueba.",
+      en: "Use {cli} CLI and wcat CLI. Find the invoice Ana Ortiz sent me in October. Read it and show me the amount, the due date and who it is from. After I agree, record them as facts with the message as evidence.",
+      ru: "Используй {cli} CLI и wcat CLI. Найди счёт, который Ana Ortiz прислала мне в октябре. Прочитай его и покажи сумму, срок оплаты и от кого он. После моего согласия запиши это как факты, с сообщением как доказательством.",
+      es: "Usa {cli} CLI y wcat CLI. Busca la factura que Ana Ortiz me envió en octubre. Léela y muéstrame el importe, el vencimiento y de quién es. Cuando yo esté de acuerdo, regístralo como hechos con el mensaje como prueba.",
     },
     steps: [
       {
@@ -295,7 +295,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Записывает каждый одобренный факт с источником",
           es: "Registra cada hecho que apruebes, con su fuente",
         },
-        run: "memo facts add",
+        run: "wcat facts add",
       },
     ],
     result: {
@@ -304,9 +304,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Los hechos, cada uno con enlace al mensaje y al archivo. Tu agente pregunta antes de guardar.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#record-a-decision-from-a-chat",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#записать-решение-из-чата",
-      es: "https://wirecat.dev/es/docs/memo/recipes#registrar-una-decisión-de-un-chat",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#record-a-decision-from-a-chat",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#записать-решение-из-чата",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#registrar-una-decisión-de-un-chat",
     },
   },
   {
@@ -325,9 +325,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Las decisiones y próximos pasos de una llamada: tareas y un borrador de seguimiento.",
     },
     prompt: {
-      en: "Use zm CLI and memo CLI. Take today's call with the Harbour team. List the decisions and who agreed to do what, quoting the transcript. Propose a task for each action, and create only the ones I approve. Then draft a short follow-up message; do not send it.",
-      ru: "Используй zm CLI и memo CLI. Возьми сегодняшний звонок с командой Harbour. Перечисли решения и кто что взялся сделать, с цитатами из расшифровки. Предложи задачу на каждое действие и создай только те, что я одобрю. Потом набросай короткое письмо-итог; не отправляй его.",
-      es: "Usa zm CLI y memo CLI. Toma la llamada de hoy con el equipo de Harbour. Enumera las decisiones y quién se comprometió a qué, citando la transcripción. Propón una tarea por cada acción y crea solo las que yo apruebe. Luego redacta un breve mensaje de seguimiento; no lo envíes.",
+      en: "Use zm CLI and wcat CLI. Take today's call with the Harbour team. List the decisions and who agreed to do what, quoting the transcript. Propose a task for each action, and create only the ones I approve. Then draft a short follow-up message; do not send it.",
+      ru: "Используй zm CLI и wcat CLI. Возьми сегодняшний звонок с командой Harbour. Перечисли решения и кто что взялся сделать, с цитатами из расшифровки. Предложи задачу на каждое действие и создай только те, что я одобрю. Потом набросай короткое письмо-итог; не отправляй его.",
+      es: "Usa zm CLI y wcat CLI. Toma la llamada de hoy con el equipo de Harbour. Enumera las decisiones y quién se comprometió a qué, citando la transcripción. Propón una tarea por cada acción y crea solo las que yo apruebe. Luego redacta un breve mensaje de seguimiento; no lo envíes.",
     },
     steps: [
       {
@@ -356,7 +356,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Добавляет задачи, которые вы одобрили",
           es: "Añade las tareas que apruebes",
         },
-        run: "memo tasks add",
+        run: "wcat tasks add",
       },
     ],
     result: {
@@ -365,9 +365,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Tareas que enlazan al momento de la llamada y un borrador que editas y envías tú.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#review-a-meetings-decisions-and-follow-ups",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#проверить-решения-и-поручения-со-встречи",
-      es: "https://wirecat.dev/es/docs/memo/recipes#revisar-las-decisiones-y-los-seguimientos-de-una-reunión",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#review-a-meetings-decisions-and-follow-ups",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#проверить-решения-и-поручения-со-встречи",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#revisar-las-decisiones-y-los-seguimientos-de-una-reunión",
     },
   },
   {
@@ -385,9 +385,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "El mensaje, correo o nota donde ocurrió, citado y con su fuente.",
     },
     prompt: {
-      en: "Use memo CLI to find where we decided the launch date for the Harbour project. Search my notes, mail and messages. Quote the text and show the source of each result. If you find nothing, tell me what you searched.",
-      ru: "Используй memo CLI, чтобы найти, где мы решили дату запуска проекта Harbour. Ищи в заметках, почте и сообщениях. Процитируй текст и покажи источник каждого результата. Если ничего не найдёшь, скажи, где искал.",
-      es: "Usa memo CLI para encontrar dónde decidimos la fecha de lanzamiento del proyecto Harbour. Busca en mis notas, correo y mensajes. Cita el texto y muestra la fuente de cada resultado. Si no encuentras nada, dime dónde buscaste.",
+      en: "Use wcat CLI to find where we decided the launch date for the Harbour project. Search my notes, mail and messages. Quote the text and show the source of each result. If you find nothing, tell me what you searched.",
+      ru: "Используй wcat CLI, чтобы найти, где мы решили дату запуска проекта Harbour. Ищи в заметках, почте и сообщениях. Процитируй текст и покажи источник каждого результата. Если ничего не найдёшь, скажи, где искал.",
+      es: "Usa wcat CLI para encontrar dónde decidimos la fecha de lanzamiento del proyecto Harbour. Busca en mis notas, correo y mensajes. Cita el texto y muestra la fuente de cada resultado. Si no encuentras nada, dime dónde buscaste.",
     },
     steps: [
       {
@@ -396,7 +396,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Ищет сразу в сообщениях, письмах, заметках и событиях",
           es: "Busca a la vez en mensajes, correo, notas y eventos",
         },
-        run: 'memo search all "Harbour launch date"',
+        run: 'wcat search all "Harbour launch date"',
       },
       {
         text: {
@@ -404,7 +404,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Уточняет поиск в одном виде источников",
           es: "Afina la búsqueda en un tipo de fuente",
         },
-        run: 'memo search mail "launch date"',
+        run: 'wcat search mail "launch date"',
       },
     ],
     result: {
@@ -413,9 +413,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Citas con sus fuentes, o una explicación clara de dónde buscó.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#find-where-something-was-decided",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#где-было-принято-решение",
-      es: "https://wirecat.dev/es/docs/memo/recipes#encontrar-dónde-se-decidió-algo",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#find-where-something-was-decided",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#где-было-принято-решение",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#encontrar-dónde-se-decidió-algo",
     },
   },
   {
@@ -429,9 +429,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Lo atrasado, quién espera tu respuesta y lo que otros hacen por ti.",
     },
     prompt: {
-      en: "Use memo CLI. Plan my day: tasks that are overdue or due today, chats where I owe an answer, and reminders for today. Suggest an order and say why. Do not change anything.",
-      ru: "Используй memo CLI. Спланируй мой день: просроченные задачи и задачи на сегодня, чаты, где я должен ответить, и напоминания на сегодня. Предложи порядок и объясни почему. Ничего не меняй.",
-      es: "Usa memo CLI. Planifica mi día: tareas atrasadas o para hoy, chats donde debo una respuesta y recordatorios de hoy. Sugiere un orden y explica por qué. No cambies nada.",
+      en: "Use wcat CLI. Plan my day: tasks that are overdue or due today, chats where I owe an answer, and reminders for today. Suggest an order and say why. Do not change anything.",
+      ru: "Используй wcat CLI. Спланируй мой день: просроченные задачи и задачи на сегодня, чаты, где я должен ответить, и напоминания на сегодня. Предложи порядок и объясни почему. Ничего не меняй.",
+      es: "Usa wcat CLI. Planifica mi día: tareas atrasadas o para hoy, chats donde debo una respuesta y recordatorios de hoy. Sugiere un orden y explica por qué. No cambies nada.",
     },
     steps: [
       {
@@ -440,7 +440,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Читает, что требует внимания сегодня",
           es: "Lee lo que necesita atención hoy",
         },
-        run: "memo tasks agenda",
+        run: "wcat tasks agenda",
       },
       {
         text: {
@@ -448,7 +448,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Перечисляет напоминания на сегодня",
           es: "Enumera los recordatorios de hoy",
         },
-        run: "memo reminders list",
+        run: "wcat reminders list",
       },
     ],
     result: {
@@ -457,9 +457,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Una lista ordenada para el día, con el motivo de cada lugar.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/tasks",
-      ru: "https://wirecat.dev/ru/docs/memo/tasks",
-      es: "https://wirecat.dev/es/docs/memo/tasks",
+      en: "https://wirecat.dev/en/docs/wcat/tasks",
+      ru: "https://wirecat.dev/ru/docs/wcat/tasks",
+      es: "https://wirecat.dev/es/docs/wcat/tasks",
     },
   },
   {
@@ -584,14 +584,14 @@ const FIRST_GUIDES: Guide[] = [
       es: "Una preferencia que tu agente tendrá en cuenta, con el mensaje de donde salió.",
     },
     prompt: {
-      en: "Use memo CLI to find what Kai Moreno said about meeting times. Show me the memory you would save and the message it is based on. Save it with the message as evidence only after I agree.",
-      ru: "Используй memo CLI, чтобы найти, что Kai Moreno говорил о времени встреч. Покажи, что ты сохранишь, и сообщение, на котором это основано. Сохрани со ссылкой на сообщение только после моего согласия.",
-      es: "Usa memo CLI para encontrar lo que dijo Kai Moreno sobre los horarios de reunión. Muéstrame el recuerdo que guardarías y el mensaje en el que se basa. Guárdalo con el mensaje como prueba solo cuando yo esté de acuerdo.",
+      en: "Use wcat CLI to find what Kai Moreno said about meeting times. Show me the memory you would save and the message it is based on. Save it with the message as evidence only after I agree.",
+      ru: "Используй wcat CLI, чтобы найти, что Kai Moreno говорил о времени встреч. Покажи, что ты сохранишь, и сообщение, на котором это основано. Сохрани со ссылкой на сообщение только после моего согласия.",
+      es: "Usa wcat CLI para encontrar lo que dijo Kai Moreno sobre los horarios de reunión. Muéstrame el recuerdo que guardarías y el mensaje en el que se basa. Guárdalo con el mensaje como prueba solo cuando yo esté de acuerdo.",
     },
     steps: [
       {
         text: { en: "Searches the messages", ru: "Ищет в сообщениях", es: "Busca en los mensajes" },
-        run: 'memo search messages "Kai meeting times"',
+        run: 'wcat search messages "Kai meeting times"',
       },
       {
         text: {
@@ -599,7 +599,7 @@ const FIRST_GUIDES: Guide[] = [
           ru: "Сохраняет одобренное воспоминание с источником",
           es: "Guarda el recuerdo que apruebes, con su fuente",
         },
-        run: "memo memories add",
+        run: "wcat memories add",
       },
     ],
     result: {
@@ -608,9 +608,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Un recuerdo enlazado a su mensaje. Las próximas respuestas sobre Kai lo tendrán en cuenta.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#remember-a-preference-with-its-source",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#запомнить-предпочтение-вместе-с-источником",
-      es: "https://wirecat.dev/es/docs/memo/recipes#recordar-una-preferencia-con-su-fuente",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#remember-a-preference-with-its-source",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#запомнить-предпочтение-вместе-с-источником",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#recordar-una-preferencia-con-su-fuente",
     },
   },
 ]

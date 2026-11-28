@@ -7,7 +7,7 @@ const en = {
   intro:
     "Records from a spreadsheet or another system: invoices, payments, organizations and the rest. Choose a type, " +
     "download its template, fill it in, then check the file before it goes in.",
-  readingTypes: "Asking Memo which records it takes",
+  readingTypes: "Asking wcat which records it takes",
   type: "Type",
   format: "Format",
   separator: "Separator",
@@ -40,7 +40,7 @@ const en = {
   checkedRefused: (n: number) =>
     `${plural("en", n, { one: "# record is", other: "# records are" })} refused and will be skipped. Fix the file and ` +
     "check again, or import the rest.",
-  failed: (why: string) => `memo could not read the file: ${why}`,
+  failed: (why: string) => `wcat could not read the file: ${why}`,
   done: "Imported.",
   wouldBe: "The check says",
   counts: {
@@ -67,7 +67,7 @@ const ru: typeof en = {
   intro:
     "Записи из таблицы или другой системы: счета, платежи, организации и остальное. Выберите тип, скачайте его " +
     "шаблон, заполните и проверьте файл, прежде чем загружать.",
-  readingTypes: "Спрашиваю memo, какие записи он принимает",
+  readingTypes: "Спрашиваю wcat, какие записи он принимает",
   type: "Тип",
   format: "Формат",
   separator: "Разделитель",
@@ -100,7 +100,7 @@ const ru: typeof en = {
   checkedRefused: (n) =>
     `${pluralRu(n, ["# запись не принята", "# записи не приняты", "# записей не принято"])} и будут пропущены. ` +
     "Исправьте файл и проверьте снова или импортируйте остальное.",
-  failed: (why) => `memo не смог прочитать файл: ${why}`,
+  failed: (why) => `wcat не смог прочитать файл: ${why}`,
   done: "Импортировано.",
   wouldBe: "По проверке",
   counts: {
@@ -127,7 +127,7 @@ const es: typeof en = {
   intro:
     "Registros de una hoja de cálculo o de otro sistema: facturas, pagos, organizaciones y el resto. Elige un tipo, " +
     "descarga su plantilla, rellénala y comprueba el archivo antes de importarlo.",
-  readingTypes: "Preguntando a memo qué registros acepta",
+  readingTypes: "Preguntando a wcat qué registros acepta",
   type: "Tipo",
   format: "Formato",
   separator: "Separador",
@@ -160,7 +160,7 @@ const es: typeof en = {
   checkedRefused: (n) =>
     `${esForms(n, ["# registro rechazado", "# registros rechazados"])}; se omitirán. Corrige el archivo y ` +
     "compruébalo otra vez, o importa el resto.",
-  failed: (why) => `memo no pudo leer el archivo: ${why}`,
+  failed: (why) => `wcat no pudo leer el archivo: ${why}`,
   done: "Importado.",
   wouldBe: "La comprobación dice",
   counts: {

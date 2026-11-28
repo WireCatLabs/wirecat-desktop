@@ -16,6 +16,7 @@ const EN_WHAT: Record<SyncWhat, { one: string; other: string; place: [string, st
     place: ["source", "sources"],
     noun: "notes and mail",
   },
+  notes: { one: "changed note", other: "changed notes", place: ["folder", "folders"], noun: "notes" },
   mail: { one: "new email", other: "new emails", place: ["account", "accounts"], noun: "mail" },
   records: { one: "new record", other: "new records", place: ["source", "sources"], noun: "records" },
   tracker: { one: "updated item", other: "updated items", place: ["kind of data", "kinds of data"], noun: "items" },
@@ -68,6 +69,14 @@ const RU_WHAT: Record<
     from: ["источника", "источников"],
     noun: { one: "# письмо или заметка", few: "# письма и заметки", many: "# писем и заметок" },
     none: "новых писем и заметок нет",
+    failed: "Не удалось прочитать",
+  },
+  notes: {
+    new: { one: "# изменённая заметка", few: "# изменённые заметки", many: "# изменённых заметок" },
+    place: { one: "# папка", few: "# папки", many: "# папок" },
+    from: ["папки", "папок"],
+    noun: { one: "# заметка", few: "# заметки", many: "# заметок" },
+    none: "изменённых заметок нет",
     failed: "Не удалось прочитать",
   },
   mail: {
@@ -151,6 +160,13 @@ const ES_WHAT: Record<
     place: ["fuente", "fuentes"],
     noun: ["correo o nota", "correos y notas"],
     none: "no hay correos ni notas nuevos",
+  },
+  notes: {
+    one: "nota cambiada",
+    other: "notas cambiadas",
+    place: ["carpeta", "carpetas"],
+    noun: ["nota", "notas"],
+    none: "no hay notas cambiadas",
   },
   mail: {
     one: "correo nuevo",

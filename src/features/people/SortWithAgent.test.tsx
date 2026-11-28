@@ -23,7 +23,7 @@ it("copies the prompt and opens the agent with the same prompt in a terminal", a
   await user.click(screen.getByRole("button", { name: "Copy the prompt for an agent" }))
   const prompt = sortMessages.en.prompt
   expect(write).toHaveBeenCalledWith(prompt)
-  expect(prompt).toMatch(/memo people review .*--json/)
+  expect(prompt).toMatch(/wcat people review .*--json/)
   expect(prompt).toMatch(/Never pass --as-owner/)
   expect(prompt).toContain("Sorting the owner's matches for him")
   expect(prompt).toContain('--name "<company>"')

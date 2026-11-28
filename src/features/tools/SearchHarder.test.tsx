@@ -6,7 +6,7 @@ import { platform } from "@/platform/bridge"
 import { render, screen, waitFor } from "@/testing/render"
 import { choiceOf, SearchHarder } from "./SearchHarder"
 
-const memo = findTool("memo") as NonNullable<ReturnType<typeof findTool>>
+const files = findTool("files") as NonNullable<ReturnType<typeof findTool>>
 const off: HarderStatus = {
   on: false,
   provider: "anthropic",
@@ -33,17 +33,17 @@ const openai: HarderStatus = {
 
 afterEach(() => vi.restoreAllMocks())
 
-it("is offered only for memo, from the first memo on npm that has it", () => {
-  expect(memo.searchHarder).not.toBeNull()
+it("is offered only for files, from the first files on npm that has it", () => {
+  expect(files.searchHarder).not.toBeNull()
   expect(findTool("tg")?.searchHarder).toBeNull()
-  expect(memo.searchHarder?.minVersion).toBe("0.131.74")
+  expect(files.searchHarder?.minVersion).toBe("0.0.0")
 })
 
-it("says that no memo release can search harder yet", async () => {
+it("says that no files release can search harder yet", async () => {
   vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "old", version: "0.131.73", need: null })
-  render(<SearchHarder tool={memo} />)
+  render(<SearchHarder tool={files} />)
   expect(
-    await screen.findByText("Search harder comes with a Memo update that is not released yet."),
+    await screen.findByText("Search harder comes with a Files update that is not released yet."),
   ).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument()
 })
@@ -61,7 +61,7 @@ it("allows it only after showing what one search sends, where, its price and the
   const turnOn = vi
     .spyOn(platform, "searchHarderOn")
     .mockResolvedValue({ ...openai, on: true, consentedAt: "2026-11-09T09:12:00.000Z" })
-  render(<SearchHarder tool={memo} />)
+  render(<SearchHarder tool={files} />)
 
   await user.click(await screen.findByRole("button", { name: "Allow" }))
   const consent = await screen.findByRole("region", { name: "What searching harder sends" })
@@ -69,13 +69,13 @@ it("allows it only after showing what one search sends, where, its price and the
     await screen.findByText(/its first 30 results, each with its date, title and up to 400 characters/),
   ).toBeInTheDocument()
   expect(screen.getByText("They go to Anthropic (api.anthropic.com), model claude-haiku-5-5.")).toBeInTheDocument()
-  expect(screen.getByText(/No API key found \(Memo also reads ANTHROPIC_API_KEY\)/)).toBeInTheDocument()
-  expect(preview).toHaveBeenLastCalledWith("memo", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
+  expect(screen.getByText(/No API key found \(Files also reads ANTHROPIC_API_KEY\)/)).toBeInTheDocument()
+  expect(preview).toHaveBeenLastCalledWith("files", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
   expect(turnOn).not.toHaveBeenCalled()
 
   await user.click(screen.getByRole("radio", { name: "OpenAI" }))
   await waitFor(() =>
-    expect(preview).toHaveBeenLastCalledWith("memo", { provider: "openai", model: null, baseUrl: null }),
+    expect(preview).toHaveBeenLastCalledWith("files", { provider: "openai", model: null, baseUrl: null }),
   )
   expect(await screen.findByRole("textbox", { name: /Model/ })).toHaveValue("gpt-4o-mini")
   expect(await screen.findByText(/\$0\.15 for each million tokens sent/)).toBeInTheDocument()
@@ -88,7 +88,7 @@ it("allows it only after showing what one search sends, where, its price and the
     "https://openrouter.ai/api/v1",
   )
   await waitFor(() =>
-    expect(preview).toHaveBeenLastCalledWith("memo", {
+    expect(preview).toHaveBeenLastCalledWith("files", {
       provider: "openai",
       model: "deepseek/deepseek-chat",
       baseUrl: "https://openrouter.ai/api/v1",
@@ -97,7 +97,7 @@ it("allows it only after showing what one search sends, where, its price and the
   await waitFor(() => expect(screen.getByRole("button", { name: "Allow search harder with OpenAI" })).toBeEnabled())
   await user.click(screen.getByRole("button", { name: "Allow search harder with OpenAI" }))
 
-  expect(turnOn).toHaveBeenCalledWith("memo", {
+  expect(turnOn).toHaveBeenCalledWith("files", {
     provider: "openai",
     model: "deepseek/deepseek-chat",
     baseUrl: "https://openrouter.ai/api/v1",
@@ -106,39 +106,39 @@ it("allows it only after showing what one search sends, where, its price and the
   await waitFor(() => expect(consent).not.toBeInTheDocument())
 })
 
-it("says in plain words when memo refuses because WireCat runs from an agent's terminal", async () => {
+it("says in plain words when files refuses because WireCat runs from an agent's terminal", async () => {
   const user = userEvent.setup()
   vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: off })
   vi.spyOn(platform, "searchHarderPreview").mockResolvedValue(off)
   vi.spyOn(platform, "searchHarderOn").mockRejectedValue(
-    new Error("memo lets only you allow this, and WireCat was started from an AI agent's terminal."),
+    new Error("files lets only you allow this, and WireCat was started from an AI agent's terminal."),
   )
-  render(<SearchHarder tool={memo} />)
+  render(<SearchHarder tool={files} />)
   await user.click(await screen.findByRole("button", { name: "Allow" }))
   const agree = await screen.findByRole("button", { name: "Allow search harder with Anthropic" })
   await waitFor(() => expect(agree).toBeEnabled())
   await user.click(agree)
-  expect(await screen.findByText(/Could not allow it: memo lets only you allow this/)).toBeInTheDocument()
+  expect(await screen.findByText(/Could not allow it: files lets only you allow this/)).toBeInTheDocument()
   expect(screen.getByRole("region", { name: "What searching harder sends" })).toBeInTheDocument()
 })
 
-it("turns off with memo's revoke", async () => {
+it("turns off with files's revoke", async () => {
   const user = userEvent.setup()
   vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({
     state: "ready",
     status: { ...off, on: true, consentedAt: "2026-11-09T09:12:00.000Z" },
   })
   const revoke = vi.spyOn(platform, "searchHarderOff").mockResolvedValue(off)
-  render(<SearchHarder tool={memo} />)
+  render(<SearchHarder tool={files} />)
   expect(
     await screen.findByText(/Allowed since .*: Anthropic claude-haiku-5-5 \(api\.anthropic\.com\)\./),
   ).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Turn off" }))
-  expect(revoke).toHaveBeenCalledWith("memo")
+  expect(revoke).toHaveBeenCalledWith("files")
   expect(await screen.findByText("Off. No search sends anything.")).toBeInTheDocument()
 })
 
-it("sends an address only for OpenAI, and an empty model as memo's choice", () => {
+it("sends an address only for OpenAI, and an empty model as files's choice", () => {
   expect(choiceOf({ provider: "anthropic", model: " ", baseUrl: "https://x.example/v1" })).toEqual({
     provider: "anthropic",
     model: null,

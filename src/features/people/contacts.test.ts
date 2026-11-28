@@ -39,7 +39,7 @@ describe("what a match rests on", () => {
     expect(matchFacts(match({}), ["A", "A"], sides).map((f) => f.kind)).toEqual(["name", "phone", "email"])
   })
 
-  it("says only a shared chat when memo pointed at one and the sides show nothing else", () => {
+  it("says only a shared chat when wcat pointed at one and the sides show nothing else", () => {
     expect(matchFacts(match({ evidence: ["chat:1"] }), ["A", "A"], [of([]), of([])]).at(-1)).toEqual({
       kind: "chat",
       value: null,

@@ -70,7 +70,7 @@ describe("Meetings", () => {
     await waitFor(() => expect(list).toHaveBeenLastCalledWith("has_transcript:true", expect.anything(), 1, 500))
   })
 
-  it("pages the table on memo's side, newest first, never cutting a whole list", async () => {
+  it("pages the table on wcat's side, newest first, never cutting a whole list", async () => {
     const list = vi.spyOn(platform, "meetingsList").mockImplementation(async (_q, window, page, limit) => ({
       kind: "ready",
       page: {
@@ -165,11 +165,11 @@ describe("Meetings", () => {
     expect(await screen.findByRole("dialog", { name: "Board review" })).toBeInTheDocument()
   })
 
-  it("offers memo's update when memo has no meetings commands yet", async () => {
+  it("offers wcat's update when wcat has no meetings commands yet", async () => {
     vi.spyOn(platform, "meetingsList").mockResolvedValue({ kind: "old", version: "0.132.0", need: "0.133.0" })
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /^Meetings/ }))
-    expect(await screen.findByText(/needs Memo 0.133.0 or newer/)).toBeInTheDocument()
+    expect(await screen.findByText(/needs wcat 0.133.0 or newer/)).toBeInTheDocument()
   })
 })

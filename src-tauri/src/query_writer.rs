@@ -627,7 +627,7 @@ mod tests {
         let zm = system_prompt(catalog::tool("zm").unwrap()).unwrap();
         assert!(zm.contains("This tool has no keys") && !zm.contains("from:") && !zm.contains("date>="));
         assert!(!zm.contains('*'), "a meeting search takes no patterns");
-        let notes = system_prompt(catalog::tool("memo").unwrap()).unwrap();
+        let notes = system_prompt(catalog::tool("files").unwrap()).unwrap();
         assert!(notes.contains("author:*Ana*") && notes.contains("launch* date:today") && !notes.contains("has:"));
         assert!(notes.contains("Never put * before a word") && !notes.contains("*launch*"));
         let mail = system_prompt(catalog::tool("email").unwrap()).unwrap();

@@ -17,7 +17,7 @@ const AGENTS: Pick<BackgroundAgent, "id" | "name" | "reportsCost">[] = [
 const UNHELD = ["codex", "cursor", "openclaw", "hermes", "kimi"]
 const WARNED = ["codex"]
 const REASON = "cannot be held to read-only commands in its one-shot mode"
-const WARNED_REASON = "runs any program and reads your files; Memo blocks writing files and the network"
+const WARNED_REASON = "runs any program and reads your files; wcat blocks writing files and the network"
 
 // The agent for background jobs: Claude Code and Gemini CLI ready, Codex ready after a warning, Kimi CLI installed but
 // greyed (memo cannot limit it), Cursor's settings found but not its `cursor-agent`, the rest not installed, none
@@ -71,7 +71,7 @@ export function backgroundAgentMock(
     async backgroundAgentChoose(id) {
       await delay(300)
       const agent = answer().agents.find((a) => a.id === id)
-      if (agent?.needsAck && !agent.acknowledged) throw new Error(`Memo cannot limit what ${id} runs: confirm first.`)
+      if (agent?.needsAck && !agent.acknowledged) throw new Error(`wcat cannot limit what ${id} runs: confirm first.`)
       chosen = id
       return answer()
     },

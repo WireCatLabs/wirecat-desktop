@@ -30,7 +30,7 @@ const READERS: Reader[] = [
     leavesComputer: true,
     readsFiles: false,
     chosen: false,
-    problem: readersScenario === "ai-unset" ? "no AI model is chosen: memo models ai set" : null,
+    problem: readersScenario === "ai-unset" ? "no AI model is chosen: wcat models ai set" : null,
   },
   {
     id: "claude-code",
@@ -74,7 +74,7 @@ const READERS: Reader[] = [
     leavesComputer: true,
     readsFiles: false,
     chosen: false,
-    problem: "no OpenAI key: memo models keys set openai",
+    problem: "no OpenAI key: wcat models keys set openai",
   },
 ]
 

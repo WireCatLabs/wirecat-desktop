@@ -76,7 +76,7 @@ pub fn validate_source(source: &str) -> Result<&str, String> {
         plain(provider, 32, |c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
             && plain(account, MAX_SOURCE, |c| !c.is_whitespace() && !c.is_control())
     });
-    if ok { Ok(source) } else { Err("not an account Memo listed".into()) }
+    if ok { Ok(source) } else { Err("not an account wcat listed".into()) }
 }
 
 fn words(parts: &[&str]) -> Vec<String> {

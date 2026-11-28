@@ -45,7 +45,7 @@ type Failed = { phase: "failed"; problem: NotesProblem }
  * memo's first run on its details page: which folders hold the notes, the first read of them, and the optional search
  * model. A separate section from the services panel. Every step is one of memo's own commands, run by Rust.
  */
-export function MemoSetup({ tool }: { tool: CatalogTool }) {
+export function FilesSetup({ tool }: { tool: CatalogTool }) {
   const m = useMessages(notesSetupMessages)
   const headingId = useId()
   const [setup, setSetup] = useState<NotesSetup | null>(null)

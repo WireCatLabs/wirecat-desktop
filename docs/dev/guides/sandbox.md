@@ -84,7 +84,7 @@ memo gives deals, facts and memories no id a loader could set, so they are match
   a later load writes the same dates. A due date is set once, when the task is made.
 - **The Email profile** is `owner@studio.example.org` with Gmail's IMAP host, because mail-cli reads a Takeout file
   only into a Gmail mailbox. Nobody signs in and nothing is sent.
-- **Digest days** are files a digest run would leave (`~/.local/share/cli-memo/schedules/morning-digest/runs`, in the
+- **Digest days** are files a digest run would leave (`~/.local/share/wcat/schedules/morning-digest/runs`, in the
   `wirecat.report/1` format), since making them otherwise is a paid model run; `src/platform/digest-seed.test.ts`
   holds them to the page's schema. `memo digest add` needs `claude` on PATH, so a stub that only fails is on PATH for
   that one call. The app does not see it, so the digests' Settings tab says no agent is set up.

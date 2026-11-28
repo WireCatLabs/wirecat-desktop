@@ -32,7 +32,7 @@ const en = {
   aiModelUses: "Reads with the model and the one key you set in AI model above.",
   aiModelNotReady: "Choose a model and its key in AI model first.",
   goAiModel: "Open AI model",
-  updateForAiModel: "Update Memo on the Tools page to read with the AI model you set above.",
+  updateForAiModel: "Update wcat on the Tools page to read with the AI model you set above.",
 }
 
 const ru: typeof en = {
@@ -67,7 +67,7 @@ const ru: typeof en = {
   aiModelUses: "Читает моделью и единственным ключом, которые вы задали выше в «Модели ИИ».",
   aiModelNotReady: "Сначала выберите модель и её ключ в «Модели ИИ».",
   goAiModel: "Открыть «Модель ИИ»",
-  updateForAiModel: "Обновите Memo на странице Инструменты, чтобы читать моделью ИИ, заданной выше.",
+  updateForAiModel: "Обновите wcat на странице Инструменты, чтобы читать моделью ИИ, заданной выше.",
 }
 
 const es: typeof en = {
@@ -102,7 +102,7 @@ const es: typeof en = {
   aiModelUses: "Lee con el modelo y la única clave que pusiste arriba en Modelo de IA.",
   aiModelNotReady: "Primero elige un modelo y su clave en Modelo de IA.",
   goAiModel: "Abrir Modelo de IA",
-  updateForAiModel: "Actualiza Memo en la página Herramientas para leer con el modelo de IA que pusiste arriba.",
+  updateForAiModel: "Actualiza wcat en la página Herramientas para leer con el modelo de IA que pusiste arriba.",
 }
 
 export const readersMessages: Messages<typeof en> = { en, ru, es }

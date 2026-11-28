@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { isSenderBot, kindOfTab, tabCount, tabOf } from "./contact-tabs"
 
 describe("contact tabs", () => {
-  it("puts each kind on one tab, bots on Bots whichever memo lists them", () => {
+  it("puts each kind on one tab, bots on Bots whichever wcat lists them", () => {
     expect(tabOf("stranger", true)).toBe("people")
     expect(tabOf("automated", true)).toBe("people")
     expect(tabOf("automated", false)).toBe("bots")
@@ -24,7 +24,7 @@ describe("contact tabs", () => {
     expect(tabCount("organizations", counts, true)).toBeNull()
   })
 
-  it("knows a bot by memo's prefix, and by the one before cli-core 2.0", () => {
+  it("knows a bot by wcat's prefix, and by the one before cli-core 2.0", () => {
     expect(isSenderBot("bot:3")).toBe(true)
     expect(isSenderBot("sender-bot:3")).toBe(true)
     expect(isSenderBot("agent:3")).toBe(false)

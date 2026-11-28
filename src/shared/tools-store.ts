@@ -19,6 +19,8 @@ type LoadError = { message: string } | null
 
 type ToolsState = {
   installs: Record<string, ToolState["installs"]>
+  /** The tools whose installs are copies of the program they replaced, by id: that program's name. */
+  switchFrom: Record<string, string>
   /** null while asking npm; an empty object when npm could not answer. */
   latest: Record<string, string | null> | null
   /** Keyed by the package owner's id (`ownerId`): a part's install is its owner's. */
@@ -170,19 +172,29 @@ export const useTools = create<ToolsState>((set, get) => {
   const keep = platform.kind === "tauri"
   const persist = () => {
     if (!keep) return
-    const { installs, latest } = get()
-    save({ tools: Object.entries(installs).map(([id, copies]) => ({ id, installs: copies })), latest })
+    const { installs, latest, switchFrom } = get()
+    const tools = Object.entries(installs).map(([id, copies]) => ({
+      id,
+      installs: copies,
+      switchFrom: switchFrom[id] ?? null,
+    }))
+    save({ tools, latest })
   }
   const saved = keep ? readSaved() : null
 
   const redetect = async (fresh: boolean) => {
     const detected = await platform.detectTools(fresh)
-    set({ installs: Object.fromEntries(detected.map((d) => [d.id, d.installs])), checked: true })
+    set({
+      installs: Object.fromEntries(detected.map((d) => [d.id, d.installs])),
+      switchFrom: Object.fromEntries(detected.flatMap((d) => (d.switchFrom ? [[d.id, d.switchFrom]] : []))),
+      checked: true,
+    })
     persist()
   }
 
   return {
     installs: Object.fromEntries((saved?.tools ?? []).map((t) => [t.id, t.installs])),
+    switchFrom: Object.fromEntries((saved?.tools ?? []).flatMap((t) => (t.switchFrom ? [[t.id, t.switchFrom]] : []))),
     latest: saved?.latest ?? null,
     sessions: {},
     offerClear: false,

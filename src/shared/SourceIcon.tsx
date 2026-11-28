@@ -4,12 +4,12 @@ import { cx } from "@/ui/cx"
 import { ServiceIcon } from "./ServiceIcon"
 import { ToolIcon } from "./ToolIcon"
 
-/** memo's own accounts: notes folders, sources added by hand and imports have no tool but memo. */
-const MEMO_OWN = new Set(["notes", "sources", "import"])
+/** The files CLI's own accounts: notes folders, sources added by hand and imports have no tool but files. */
+const FILES_OWN = new Set(["notes", "sources", "import"])
 
 /** A source as the owner knows it: memo's `bitrix24` is the Bitrix24 tool, `telegram` is Telegram. */
 export function sourceOf(provider: string): { tool: string; name: string } {
-  if (MEMO_OWN.has(provider)) return { tool: "memo", name: findTool("memo")?.name ?? "memo" }
+  if (FILES_OWN.has(provider)) return { tool: "files", name: findTool("files")?.name ?? "files" }
   const tool = findTool(toolOfProvider(provider)) ?? crmToolOf(provider)
   return { tool: tool?.id ?? provider, name: tool?.name ?? provider }
 }

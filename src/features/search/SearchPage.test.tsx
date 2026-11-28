@@ -25,6 +25,15 @@ const allowed: HarderStatus = {
   key: { present: false, source: null, envVar: "ANTHROPIC_API_KEY" },
 }
 
+// The mixed scenario has no files CLI: these searches need it installed.
+function withFiles() {
+  const detect = platform.detectTools.bind(platform)
+  const copy = { path: "~/.local/share/pnpm/bin/wcat-files", version: "1.0.0", manager: "pnpm", problem: null }
+  vi.spyOn(platform, "detectTools").mockImplementation(async (fresh) =>
+    (await detect(fresh)).map((t) => (t.id === "files" ? { ...t, installs: [copy] } : t)),
+  )
+}
+
 async function choose(user: ReturnType<typeof userEvent.setup>, box: string, option: string) {
   const select = await screen.findByRole("combobox", { name: box })
   await waitFor(() => expect(select).not.toHaveAttribute("aria-disabled", "true"))
@@ -360,15 +369,16 @@ describe("Search", () => {
   it("asks a tool without profiles for no profile", async () => {
     const user = userEvent.setup()
     const search = vi.spyOn(platform, "searchStore")
+    withFiles()
     render(<SearchPage />)
-    await choose(user, "Tool", "Memo")
+    await choose(user, "Tool", "Files")
     expect(screen.queryByRole("combobox", { name: "Profile" })).not.toBeInTheDocument()
     await user.type(screen.getByRole("combobox", { name: "Search notes" }), "plan{Enter}")
     expect(await screen.findByText("Showing 1–50 of 128 results")).toBeInTheDocument()
-    expect(search).toHaveBeenLastCalledWith("memo", null, "plan", 50, 1)
+    expect(search).toHaveBeenLastCalledWith("files", null, "plan", 50, 1)
   })
 
-  it("offers memo's search harder only once allowed, and says whether the model reordered the hits", async () => {
+  it("offers files's search harder only once allowed, and says whether the model reordered the hits", async () => {
     const user = userEvent.setup()
     const status = vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: allowed })
     const used = { provider: "openai", model: "gpt-4o-mini" }
@@ -384,18 +394,19 @@ describe("Search", () => {
       if (plain.kind !== "hits") throw new Error("the mock answers hits")
       return { answer: { ...plain, paged: false, total: null }, outcome }
     })
+    withFiles()
     render(<SearchPage />)
-    await choose(user, "Tool", "Memo")
+    await choose(user, "Tool", "Files")
     await user.type(screen.getByRole("combobox", { name: "Search notes" }), "plan{Enter}")
     expect(await screen.findByText("Showing 1–50 of 128 results")).toBeInTheDocument()
     expect(await screen.findByText("Sends your question and the first 30 results to Anthropic")).toBeInTheDocument()
-    expect(status).toHaveBeenCalledWith("memo")
+    expect(status).toHaveBeenCalledWith("files")
 
     await user.click(screen.getByRole("button", { name: "Search harder" }))
     expect(
       await screen.findByText("The usual order: there is no key for the provider, nothing was sent."),
     ).toBeInTheDocument()
-    expect(harder).toHaveBeenCalledWith("memo", "plan", 50)
+    expect(harder).toHaveBeenCalledWith("files", "plan", 50)
     expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Back to the usual order" }))
@@ -413,13 +424,14 @@ describe("Search", () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: allowed })
     const harder = vi.spyOn(platform, "searchHarderRun")
+    withFiles()
     render(<SearchPage />)
-    await choose(user, "Tool", "Memo")
+    await choose(user, "Tool", "Files")
     const bar = screen.getByRole("combobox", { name: "Search notes" })
     await user.type(bar, "plan{Enter}")
     const button = await screen.findByRole("button", { name: "Search harder" })
     await user.click(button)
-    expect(harder).toHaveBeenLastCalledWith("memo", "plan", 50)
+    expect(harder).toHaveBeenLastCalledWith("files", "plan", 50)
     await screen.findByText(/^Reordered by Anthropic/)
 
     await user.type(bar, " secret draft")
@@ -430,8 +442,9 @@ describe("Search", () => {
   it("offers no search harder while the owner has not allowed it", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: { ...allowed, on: false } })
+    withFiles()
     render(<SearchPage />)
-    await choose(user, "Tool", "Memo")
+    await choose(user, "Tool", "Files")
     await user.type(screen.getByRole("combobox", { name: "Search notes" }), "plan{Enter}")
     expect(await screen.findByText("Showing 1–50 of 128 results")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Search harder" })).not.toBeInTheDocument()

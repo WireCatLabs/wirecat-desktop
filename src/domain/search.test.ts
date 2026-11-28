@@ -33,7 +33,7 @@ describe("hitRow", () => {
     })
   })
 
-  it("names the tool a memo hit came from", () => {
+  it("names the tool a wcat hit came from", () => {
     expect(hitRow({ ref: "msg:telegram/1/-100/4000" }, 0).tool).toBe("tg")
     expect(hitRow({ ref: "meeting:1/100" }, 0).tool).toBeNull()
   })

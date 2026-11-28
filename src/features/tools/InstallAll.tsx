@@ -34,7 +34,10 @@ const outdatedOf = (listBlocks: boolean) => (s: Tools) =>
   s.checked && s.latest
     ? tools
         .filter((t) => updatable(t, listBlocks) && idle(s, t.id))
-        .filter((t) => toolStatus(s.installs[t.id], s.latest?.[t.id] ?? null).kind === "outdated")
+        .filter(
+          (t) =>
+            toolStatus(s.installs[t.id], s.latest?.[t.id] ?? null, undefined, s.switchFrom[t.id]).kind === "outdated",
+        )
         .map((t) => t.id)
     : []
 

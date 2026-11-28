@@ -14,7 +14,7 @@ const KEEP = new Set([
   "WhatsApp",
   "Zoom",
   "Google Drive",
-  "Memo",
+  "wcat",
   "Email",
   "Node.js",
   "npm",

@@ -23,6 +23,7 @@ describe("catalog", () => {
       "drive",
       "gcal",
       "memo",
+      "files",
       "email",
       "notion",
       "ydisk",

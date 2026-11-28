@@ -780,13 +780,13 @@ pub(crate) fn memo() -> Result<&'static Tool, String> {
 
 pub fn read(page: u32) -> Result<Read, String> {
     let tool = memo()?;
-    let need = tool.memory.as_ref().ok_or("Memo has no memory commands in the catalog")?.min_version.clone();
+    let need = tool.memory.as_ref().ok_or("wcat has no memory commands in the catalog")?.min_version.clone();
     let state = tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(Read::Missing) };
     if crate::tools::older(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
-    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("wcat is not installed")?;
     let version = crate::tools::version_of(&bin);
     let revoke = can_revoke(tool, version.as_deref());
     let mut read = read_with(
@@ -908,12 +908,19 @@ fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
 }
 
 pub(crate) fn memo_bin() -> Result<std::path::PathBuf, String> {
-    crate::tools::program(&memo()?.bin).ok_or_else(|| "Memo is not installed".into())
+    crate::tools::program(&memo()?.bin).ok_or_else(|| "wcat is not installed".into())
 }
 
 pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
     let bin = memo_bin()?;
     f(&|args: &[String]| call_at(&bin, args, WRITE))
+}
+
+/// Notes and notes folders belong to the files CLI since memo's split (cli-core #3383).
+fn with_files<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
+    let tool = crate::catalog::tool("files")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Files is not installed")?;
+    f(&|args: &[String]| crate::memo_cli::spawn_at(&bin, args, WRITE).map_err(String::from))
 }
 
 /// One memory or fact read back as memo now has it, after the owner answered something about it.
@@ -939,7 +946,7 @@ pub(crate) fn parse_entry(r: &Ref, v: &Value) -> Result<Entry, String> {
             e
         }),
     };
-    parsed.ok_or_else(|| "Memo's answer did not describe the record".into())
+    parsed.ok_or_else(|| "wcat's answer did not describe the record".into())
 }
 
 /// An action answers its sources in `show` itself; a memory or a fact only with `--sources`.
@@ -981,7 +988,7 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     // memo gives no fingerprint for a mail batch and does not ask for one; an evidence batch cannot be decided without.
     let fingerprint = text_field(item, "fingerprint");
     if fingerprint.is_none() && kind.as_deref() == Some(FINDINGS) {
-        return Err("Memo did not give these findings' fingerprint".into());
+        return Err("wcat did not give these findings' fingerprint".into());
     }
     let decide = |verb: &str, names: &[String], fingerprint: Option<String>| {
         let mut args: Vec<String> = vec!["actions".into(), verb.into(), r.memo()];
@@ -1108,9 +1115,9 @@ pub fn edit_finding(
 ) -> Result<Entry, String> {
     let r = Ref::parse(reference)?;
     let tool = memo()?;
-    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("wcat is not installed")?;
     if !can_edit_findings(tool, crate::tools::version_of(&bin).as_deref()) {
-        return Err("Update Memo to change a finding before deciding it.".into());
+        return Err("Update wcat to change a finding before deciding it.".into());
     }
     with_memo(|call| edit_finding_with(call, &r, finding, fingerprint, changes))
 }
@@ -1127,7 +1134,7 @@ pub(crate) fn discard_with(call: &Call, r: &Ref, revoke: bool) -> Result<Entry, 
         Kind::Action => "reject",
         Kind::Fact => {
             let shown = call(&words(&["facts", "show", &r.memo()]))?;
-            let f = fact(body(&shown)).ok_or("Memo's answer did not describe the fact")?;
+            let f = fact(body(&shown)).ok_or("wcat's answer did not describe the fact")?;
             let owners = f.author.as_ref().is_some_and(|a| a.kind == "person");
             match (f.status.as_str(), f.kind.as_str()) {
                 ("proposed", _) => "reject",
@@ -1179,7 +1186,7 @@ fn decide_relationship(call: &Call, id: &str, confirm: bool) -> Result<Entry, St
     if let Some(refused) = item["refused"].as_array().and_then(|a| a.first()) {
         return Err(text(refused, "reason")
             .or_else(|| text(refused, "code"))
-            .unwrap_or_else(|| "Memo refused it".into()));
+            .unwrap_or_else(|| "wcat refused it".into()));
     }
     let status = item["decided"].as_array().and_then(|a| a.first()).and_then(|d| text(d, "status"));
     let standing = if status.as_deref() == Some("confirmed") { "confirmed" } else { "rejected" };
@@ -1224,7 +1231,7 @@ fn correct_args_with(r: &Ref, old: &Value, text: &str, change: &Change) -> Resul
     let item = body(old);
     let kinds: &[&str] = if r.kind == Kind::Fact { &FACT_KINDS } else { &MEMORY_KINDS };
     if let Some(k) = change.kind.as_deref().filter(|k| !kinds.contains(k)) {
-        return Err(format!("not a kind memo keeps here: {k}"));
+        return Err(format!("not a kind wcat keeps here: {k}"));
     }
     let field = |k: &str| match (k, &change.kind, &change.subject) {
         ("kind", Some(kind), _) => Some(kind.clone()),
@@ -1237,15 +1244,15 @@ fn correct_args_with(r: &Ref, old: &Value, text: &str, change: &Change) -> Resul
     let mut args: Vec<String> = vec![r.noun().into(), "add".into()];
     match r.kind {
         Kind::Memory => {
-            let kind = field("kind").ok_or("Memo did not say the memory's kind")?;
-            let scope = field("scope").ok_or("Memo did not say the memory's scope")?;
+            let kind = field("kind").ok_or("wcat did not say the memory's kind")?;
+            let scope = field("scope").ok_or("wcat did not say the memory's scope")?;
             args.extend(["--kind".into(), kind, "--scope".into(), scope]);
         }
         Kind::Fact => {
             if !matches!(field("status").as_deref(), Some("proposed" | "accepted")) {
-                return Err("Memo corrects only a proposed or accepted fact; forget this one instead.".into());
+                return Err("wcat corrects only a proposed or accepted fact; forget this one instead.".into());
             }
-            let kind = field("kind").ok_or("Memo did not say the fact's kind")?;
+            let kind = field("kind").ok_or("wcat did not say the fact's kind")?;
             args.extend(["--kind".into(), kind]);
             if let Some(scope) = field("scope") {
                 args.extend(["--scope".into(), scope]);
@@ -1294,7 +1301,7 @@ fn correct_changed(call: &Call, r: &Ref, text: &str, change: &Change) -> Result<
         Kind::Fact => fact(item),
         _ => memory(item),
     }
-    .ok_or_else(|| "Memo's answer did not describe the correction".into())
+    .ok_or_else(|| "wcat's answer did not describe the correction".into())
 }
 
 pub fn correct(reference: &str, text: &str, change: &Change) -> Result<Entry, String> {
@@ -1310,7 +1317,7 @@ fn forget_with(call: &Call, r: &Ref) -> Result<Forgot, String> {
     let v = call(&decision(&[r.noun(), "remove", &r.memo()]))?;
     let item = body(&v);
     if item["removed"].as_bool() != Some(true) {
-        return Err("Memo did not say the record was erased".into());
+        return Err("wcat did not say the record was erased".into());
     }
     Ok(Forgot { reference: r.memo(), links: item["links"].as_u64().unwrap_or(0) })
 }
@@ -1423,7 +1430,10 @@ fn context_with(call: &Call, reference: &str) -> Result<Context, String> {
 }
 
 pub fn context(reference: &str) -> Result<Context, String> {
-    with_memo(|call| context_with(call, reference))
+    match source_ref(reference)? {
+        SourceRef::Note(_) => with_files(|call| context_with(call, reference)),
+        _ => with_memo(|call| context_with(call, reference)),
+    }
 }
 
 /// The file a note was read from, found again from memo's answer, never from the interface: only a file inside one of
@@ -1435,7 +1445,7 @@ fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String>
     let shown = call(&words(&["notes", "show", r]))?;
     let note = body(&shown);
     let path = text(note, "path").filter(|_| text(note, "source").as_deref() == Some("file"));
-    let path = path.ok_or("Memo keeps no file for this note.")?;
+    let path = path.ok_or("wcat keeps no file for this note.")?;
     let folders = call(&words(&["folders", "list"]))?;
     let roots: Vec<std::path::PathBuf> = folders["items"].as_array().map_or_else(Default::default, |a| {
         a.iter().filter_map(|f| text(f, "path")).map(std::path::PathBuf::from).collect()
@@ -1454,13 +1464,13 @@ fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String>
     let file = joined.canonicalize().map_err(|_| "The note's file is not on this computer any more.".to_string())?;
     let inside = roots.iter().filter_map(|r| r.canonicalize().ok()).any(|root| file.starts_with(root));
     if !inside || !file.is_file() {
-        return Err("The note's file is outside Memo's folders.".into());
+        return Err("The note's file is outside wcat's folders.".into());
     }
     Ok(file)
 }
 
 pub fn open_source(reference: &str) -> Result<(), String> {
-    open_file(&with_memo(|call| note_file(call, reference))?)
+    open_file(&with_files(|call| note_file(call, reference))?)
 }
 
 /// A file of the owner's in its default program, or in its folder when that program would run it.

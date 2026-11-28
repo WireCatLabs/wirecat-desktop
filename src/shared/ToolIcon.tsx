@@ -1,4 +1,4 @@
-import { Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
+import { Brain, Globe, Mail, NotebookText, Package, Phone, Send } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import amocrm from "@/assets/logos/amocrm.png"
 import attio from "@/assets/logos/attio.png"
@@ -39,7 +39,8 @@ const LOGOS: Record<string, string> = {
 }
 
 const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-  memo: NotebookText,
+  memo: Brain,
+  files: NotebookText,
   email: Mail,
   funnel: Globe,
   pbx: Phone,

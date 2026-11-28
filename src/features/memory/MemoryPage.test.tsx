@@ -22,7 +22,7 @@ const all = async (user: ReturnType<typeof userEvent.setup>) => {
 }
 
 describe("Memory", () => {
-  it("titles a mail findings batch by its mailbox and count, not memo's kind name", () => {
+  it("titles a mail findings batch by its mailbox and count, not wcat's kind name", () => {
     const batch = { kind: "mail_findings", verb: "mail_findings", summary: "Mail findings", text: null } as MemoryEntry
     expect(actionLine(batch, memoryMessages.en, true)).toBe("Findings from mail")
     const listed = { ...batch, type: "action", status: "proposed", account: "email:me@example.com", findings: [{}, {}] }
@@ -290,7 +290,7 @@ describe("Memory", () => {
     await waitFor(() => expect(useTasks.getState().open).toBe("HRB-14"))
   })
 
-  it("takes back an approval where memo can: a memory stops holding, a decision is undone", async () => {
+  it("takes back an approval where wcat can: a memory stops holding, a decision is undone", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await rack()
@@ -307,7 +307,7 @@ describe("Memory", () => {
     await waitFor(() => expect(within(decision).getByText("Rejected")).toBeInTheDocument())
   })
 
-  it("on an older memo offers only Edit and Erase on an approved fact, and says why", async () => {
+  it("on an older wcat offers only Edit and Erase on an approved fact, and says why", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await rack()
@@ -378,7 +378,7 @@ describe("Memory", () => {
     }
   })
 
-  it("sends All activity to Logs filtered to memo's memory runs", async () => {
+  it("sends All activity to Logs filtered to wcat's memory runs", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await user.click(await screen.findByRole("button", { name: "All activity in Logs" }))
@@ -392,7 +392,7 @@ describe("Memory", () => {
   })
 
   it("offers one retry when memory cannot be read: the error's, not the header's Read again too", async () => {
-    const read = vi.spyOn(platform, "memoryRead").mockRejectedValue(new Error("spawn memo ENOENT"))
+    const read = vi.spyOn(platform, "memoryRead").mockRejectedValue(new Error("spawn wcat ENOENT"))
     render(<MemoryPage />)
     const alert = await screen.findByRole("alert")
     expect(within(alert).getByRole("button", { name: "Try again" })).toBeInTheDocument()
@@ -400,9 +400,9 @@ describe("Memory", () => {
     read.mockRestore()
   })
 
-  it("shows the rest of memory, and says so, when memo does not list the links", async () => {
+  it("shows the rest of memory, and says so, when wcat does not list the links", async () => {
     const read = await platform.memoryRead()
-    if (read.kind !== "ready") throw new Error("the mock memo is ready")
+    if (read.kind !== "ready") throw new Error("the mock wcat is ready")
     vi.spyOn(platform, "memoryRead").mockResolvedValue({ ...read, linksError: "the program did not finish in time" })
     render(<MemoryPage />)
     await rack()

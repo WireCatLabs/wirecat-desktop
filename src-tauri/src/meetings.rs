@@ -77,7 +77,7 @@ pub struct MeetingDocument {
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::struct_excessive_bools, reason = "the flags mirror memo's answer, one per thing a meeting has")]
+#[allow(clippy::struct_excessive_bools, reason = "the flags mirror wcat's answer, one per thing a meeting has")]
 pub struct MeetingRow {
     #[serde(rename = "ref")]
     pub reference: String,
@@ -423,7 +423,7 @@ fn show_with(call: &Call, reference: &str, cursor: u64) -> Result<MeetingDetails
     let mut args = words(&["meetings", "show", "--cursor", &cursor, "--limit", &limit]);
     args.extend(["--".to_string(), reference.to_string()]);
     let v = call(&args)?;
-    details_of(body(&v)).ok_or_else(|| Failure::plain("Memo's answer about this meeting could not be read."))
+    details_of(body(&v)).ok_or_else(|| Failure::plain("wcat's answer about this meeting could not be read."))
 }
 
 fn memo() -> Result<&'static Tool, String> {
@@ -436,7 +436,7 @@ pub fn list(query: &str, window: &Window, page: u32, limit: u32) -> Result<Meeti
         return Err("That page of meetings does not exist.".into());
     }
     let tool = memo()?;
-    let need = tool.meetings_page.as_ref().ok_or("Memo has no Meetings commands in the catalog")?.min_version.clone();
+    let need = tool.meetings_page.as_ref().ok_or("wcat has no Meetings commands in the catalog")?.min_version.clone();
     let state = crate::tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(MeetingsRead::Missing) };
     if crate::tools::older(first.version.as_deref(), &need) {

@@ -236,7 +236,7 @@ fn added(v: &Value) -> Option<Added> {
 fn add_with(feed: &Feed, source: &AddSource, picked: Option<&Path>) -> Result<Added, String> {
     let (args, input) = add_args(source, picked)?;
     let v = feed(&args, input.as_deref().map(str::as_bytes))?;
-    added(&v).ok_or_else(|| "Memo's answer did not describe the source".into())
+    added(&v).ok_or_else(|| "wcat's answer did not describe the source".into())
 }
 
 pub fn add(source: &AddSource, picked: Option<&Path>) -> Result<Added, String> {
@@ -312,7 +312,7 @@ fn show_with(feed: &Feed, reference: &str) -> Result<Shown, String> {
     let v = feed(&words(&["sources", "show", document(reference)?]), None)?;
     let item = body(&v);
     Ok(Shown {
-        reference: text(item, "ref").ok_or("Memo's answer did not describe the source")?,
+        reference: text(item, "ref").ok_or("wcat's answer did not describe the source")?,
         title: text(item, "title"),
         kind: text(item, "kind"),
         url: text(item, "url"),
@@ -405,7 +405,7 @@ fn choose_with(feed: &Feed, id: &str) -> Result<Vec<Reader>, String> {
     // memo refuses Ollama and the API readers without a model, and only the owner may name one.
     if entry.is_some_and(|r| r["needs_model"].as_bool() == Some(true)) {
         let model = entry.and_then(|r| text(r, "model")).ok_or_else(|| {
-            format!("{id} needs a model, and WireCat cannot choose one yet. Choose it in Memo, then here again.")
+            format!("{id} needs a model, and WireCat cannot choose one yet. Choose it in wcat, then here again.")
         })?;
         args.push(format!("--model={}", one_line("A model", &model, 200)?));
     }
@@ -429,7 +429,7 @@ pub struct Suggested {
 /// The batch read back is used only if it is the findings of this source: proposed, or already decided when memo says
 /// it reused an earlier reading, and every finding citing the document.
 fn batch_of(shown: &Value, reference: &str, reused: bool) -> Result<Entry, String> {
-    let wrong = || "Memo's answer did not describe this source's suggested facts".to_string();
+    let wrong = || "wcat's answer did not describe this source's suggested facts".to_string();
     let batch = action(body(shown)).filter(|b| b.findings.is_some()).ok_or_else(wrong)?;
     let cites = batch.findings.iter().flatten().all(|f| f.evidence.iter().any(|e| e == reference));
     if !cites || (batch.status != "proposed" && !reused) {
@@ -459,7 +459,7 @@ fn suggest_with(
     args.extend(words(&[]));
     let v = feed(&args, None)?;
     let item = body(&v);
-    let id = id_of(&item[BATCH]).ok_or("Memo did not name the suggested facts")?;
+    let id = id_of(&item[BATCH]).ok_or("wcat did not name the suggested facts")?;
     let reused = item["reused"].as_bool().unwrap_or(false);
     let batch = batch_of(&feed(&words(&["actions", "show", &id]), None)?, reference, reused)?;
     Ok(Suggested { batch, reused })

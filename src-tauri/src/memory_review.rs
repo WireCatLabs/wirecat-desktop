@@ -127,7 +127,7 @@ fn target(reference: &str) -> Result<Ref, String> {
 
 fn show_with(call: &Call, reference: &str, id: &str) -> Result<Review, String> {
     let item = shown(call, &target(reference)?, id)?;
-    parse_review(id, &item["source_review"]).ok_or_else(|| "Memo's answer did not describe the review".into())
+    parse_review(id, &item["source_review"]).ok_or_else(|| "wcat's answer did not describe the review".into())
 }
 
 pub fn show(reference: &str, id: &str) -> Result<Review, String> {
@@ -142,10 +142,10 @@ fn decided(v: &Value, id: &str) -> Result<(), String> {
         item[key].as_array().into_iter().flatten().filter(|d| memory::id_of(&d["id"]).as_deref() == Some(id))
     };
     if let Some(no) = names("refused").next() {
-        return Err(text(no, "reason").or_else(|| text(no, "message")).unwrap_or_else(|| "Memo refused it".into()));
+        return Err(text(no, "reason").or_else(|| text(no, "message")).unwrap_or_else(|| "wcat refused it".into()));
     }
     if names("decided").next().is_none() {
-        return Err("Memo did not say it decided the review.".into());
+        return Err("wcat did not say it decided the review.".into());
     }
     Ok(())
 }

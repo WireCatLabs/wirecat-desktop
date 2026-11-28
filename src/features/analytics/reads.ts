@@ -65,7 +65,7 @@ export function useTaskSources() {
       ["memo", useAggregate("taskMeetings", "memo")],
     ],
     TaskSourcesSchema,
-    "memo stats tasks show",
+    "wcat stats tasks show",
   )
 }
 

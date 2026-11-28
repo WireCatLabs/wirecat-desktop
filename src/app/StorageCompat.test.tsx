@@ -23,7 +23,7 @@ describe("Tools and the shared storage", () => {
   it("says which installed tools can't read storage, and why", async () => {
     render(<App />)
 
-    expect(await screen.findByText(/2 tools need an update to read storage: WhatsApp and Memo/)).toBeInTheDocument()
+    expect(await screen.findByText(/2 tools need an update to read storage: WhatsApp and wcat/)).toBeInTheDocument()
     expect(screen.getByText(/Zoom can't say yet/)).toBeInTheDocument()
     const wa = await row(/WhatsApp/)
     expect(await within(wa).findByText("Can't read storage (schema 33). Update WhatsApp.")).toBeInTheDocument()

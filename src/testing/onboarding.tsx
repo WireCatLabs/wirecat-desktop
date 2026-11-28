@@ -84,6 +84,7 @@ export function fakeInstaller(installed: Record<string, string> = {}) {
       return {
         id: t.id,
         installs: version ? [{ path: `~/.local/bin/${t.bin}`, version, manager: "npm", problem: null }] : [],
+        switchFrom: null,
       }
     }),
   )

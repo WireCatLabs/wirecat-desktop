@@ -266,8 +266,11 @@ fn install_steps(
             ),
         ));
     }
-    let installs = tools::detect(tool, false).installs;
-    let previous = installs.iter().find(|i| own_pnpm::owns(&paths::untilde(&i.path))).and_then(|i| i.version.clone());
+    let detected = tools::detect(tool, false);
+    let switching = detected.switch_from.is_some();
+    let installs = detected.installs;
+    let owned = |i: &&tools::Install| !switching && own_pnpm::owns(&paths::untilde(&i.path));
+    let previous = installs.iter().find(owned).and_then(|i| i.version.clone());
     let existing = installs.into_iter().next();
     let shared = shared_install(tool.source, existing.as_ref());
     let manager = if shared { "pnpm" } else { existing.as_ref().map_or("npm", |i| i.manager) };
@@ -291,6 +294,7 @@ fn install_steps(
     let prefix = uses_npm.then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
+    install_notes_tool(tool, switching, running, events)?;
     let program_path = match program_path {
         Some(path) => path,
         None => set_up_pnpm(tool, running, &send)?,
@@ -339,6 +343,7 @@ fn install_steps(
         .find(|i| if shared { own_pnpm::owns(&paths::untilde(&i.path)) } else { i.manager == manager })
         .unwrap_or(first);
     held_back(manager, tool, &wanted, ours)?;
+    retire_replaced(tool, running, &send);
     let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
     // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
     let skills = if existing.is_some() {
@@ -619,6 +624,72 @@ fn repoint_background(tool: &Tool, new_copy: &Path, send: &dyn Fn(InstallEvent))
     }
 }
 
+/// Takes the notes folders over from the package a switch replaces.
+const NOTES_TOOL: &str = "files";
+
+/// The notes tool goes in before the switch when the old program reads notes folders and the notes tool is missing:
+/// its first start takes the folders from the old program's settings, which the new program's first start moves.
+fn install_notes_tool(
+    tool: &Tool,
+    switching: bool,
+    running: &Running,
+    events: &Channel<InstallEvent>,
+) -> Result<(), Failure> {
+    let Some(notes) = crate::catalog::tool(NOTES_TOOL).ok().filter(|_| switching) else { return Ok(()) };
+    let Some(src) = notes.notes_setup.as_ref() else { return Ok(()) };
+    let Some(old) = tool.replaces.as_ref() else { return Ok(()) };
+    if tools::installed(notes) {
+        return Ok(());
+    }
+    let Some(program) = tools::program(&old.bin) else { return Ok(()) };
+    let words: Vec<&str> = src.folders.iter().map(String::as_str).collect();
+    let listed = run::run(&program, &words, Some(&paths::search_path()), Duration::from_secs(30)).ok();
+    let folders = listed.and_then(|o| o.json()).map_or(0, |v| v["items"].as_array().map_or(0, Vec::len));
+    if folders == 0 {
+        return Ok(());
+    }
+    let _ = events.send(InstallEvent::Log {
+        line: format!("Your notes folders move to {}: installing {} first.", notes.name, notes.package),
+        stderr: false,
+    });
+    if !running.start(&notes.id) {
+        return Err(Failure(Reason::Busy, held_message(Reason::Busy).into(), None));
+    }
+    let result = install_steps(notes, running, events, None);
+    running.finish(&notes.id);
+    result.map(|_| ())
+}
+
+/// Removes the copies of the package this tool replaced, also when they were left beside the new one, each with the
+/// manager that put it there. One that cannot go stays, with a line that says why.
+fn retire_replaced(tool: &Tool, running: &Running, send: &dyn Fn(InstallEvent)) {
+    let copies = tools::replaced_copies(tool);
+    if copies.is_empty() {
+        return;
+    }
+    let pnpm_home = paths::pnpm_home().map(PathBuf::from);
+    for (copy, package) in copies {
+        let shown = paths::tilde(&copy.to_string_lossy());
+        let removed = copy_removal(&copy, package, pnpm_home.as_deref()).and_then(|plan| {
+            let program = if own_pnpm::owns(&copy) {
+                own_pnpm::working()
+            } else {
+                plan.beside(&copy).or_else(|| paths::find(plan.program))
+            };
+            let program = program.ok_or_else(|| format!("{} was not found", plan.program))?;
+            let args: Vec<&str> = plan.args.iter().map(String::as_str).collect();
+            run_manager(&program, &args, plan.prefix.as_deref(), tool, running, send, "Removing the old package")
+                .map_err(|Failure(_, message, _)| message)
+        });
+        let line = match removed {
+            Ok(()) => format!("Removed {package} at {shown}."),
+            Err(why) => format!("{package} at {shown} stays: {why}"),
+        };
+        send(InstallEvent::Log { line, stderr: false });
+    }
+    paths::refresh(&[]);
+}
+
 fn npm_copies(tool: &Tool) -> impl Iterator<Item = PathBuf> {
     paths::find_all(&tool.bin).into_iter().filter(|c| paths::manager_for(c) == "npm" && !own_pnpm::owns(c))
 }
@@ -786,22 +857,23 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     };
     let mut plan = Vec::new();
     let mut own = false;
-    for copy in paths::find_all(&tool.bin) {
+    let copies = paths::find_all(&tool.bin).into_iter().map(|c| (c, tool.package.as_str()));
+    for (copy, package) in copies.chain(tools::replaced_copies(tool)) {
         if own_pnpm::owns(&copy) {
             own = true;
             // A tool whose folder is already gone has only its programs left, which pnpm no longer knows.
-            if own_pnpm::package_dir(&tool.package).is_some() {
+            if own_pnpm::package_dir(package).is_some() {
                 let pnpm = set_up_pnpm(tool, running, &send)?;
-                plan.push((pnpm, own_pnpm::remove_args(&tool.package), None));
+                plan.push((pnpm, own_pnpm::remove_args(package), None));
             }
             continue;
         }
         let manager = paths::manager_for(&copy);
         let (program, args): (&str, Vec<&str>) = match manager {
-            "pnpm" => ("pnpm", vec!["remove", "--global", &tool.package]),
-            "bun" => ("bun", vec!["remove", "--global", &tool.package]),
-            "volta" => ("volta", vec!["uninstall", &tool.package]),
-            _ => ("npm", vec!["uninstall", "--global", &tool.package]),
+            "pnpm" => ("pnpm", vec!["remove", "--global", package]),
+            "bun" => ("bun", vec!["remove", "--global", package]),
+            "volta" => ("volta", vec!["uninstall", package]),
+            _ => ("npm", vec!["uninstall", "--global", package]),
         };
         // An nvm copy belongs to the npm of that Node version, which sits beside it.
         let beside = copy.parent().and_then(|dir| paths::which_in(program, dir.as_os_str()));
@@ -822,7 +894,8 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
         run_manager(program, &args, prefix.as_deref(), tool, running, &send, "Uninstalling")?;
     }
     if own {
-        for shim in own_pnpm::shims_of(&tool.package) {
+        let old = tool.replaces.iter().map(|r| r.package.as_str());
+        for shim in std::iter::once(tool.package.as_str()).chain(old).flat_map(own_pnpm::shims_of) {
             let line = match std::fs::remove_file(&shim) {
                 Ok(()) => format!("Removed {}, left without its tool.", paths::tilde(&shim.to_string_lossy())),
                 Err(e) => format!("{} stays: {e}", paths::tilde(&shim.to_string_lossy())),
@@ -834,7 +907,8 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
 
     let _ = events.send(InstallEvent::Step { step: Step::Verify });
     paths::refresh(&[]);
-    if let Some(left) = paths::find(&tool.bin) {
+    let old = tool.replaces.as_ref().and_then(|r| paths::find(&r.bin));
+    if let Some(left) = paths::find(&tool.bin).or(old) {
         return Err(Failure(
             Reason::Verify,
             format!("`{}` is still at {}.", tool.bin, paths::tilde(&left.to_string_lossy())),

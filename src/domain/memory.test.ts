@@ -42,7 +42,7 @@ describe("memory records", () => {
     expect(toneOf("failed")).toBe("bad")
   })
 
-  it("offers only what memo 0.130.0 does with each record", () => {
+  it("offers only what wcat 0.130.0 does with each record", () => {
     expect(can(entry("memory", "summary", "proposed"))).toEqual({
       confirm: true,
       discard: true,
@@ -75,7 +75,7 @@ describe("memory records", () => {
     expect(can(rel("link:9", "confirmed", "reported")).correct).toBe(false)
   })
 
-  it("takes back an approval the way memo can, and says when it cannot", () => {
+  it("takes back an approval the way wcat can, and says when it cannot", () => {
     expect(undoOf(entry("memory", "summary", "confirmed"))).toBe("invalidate")
     expect(undoOf(entry("fact", "decision", "accepted"))).toBe("reverse")
     expect(undoOf(entry("fact", "promise", "accepted"))).toBe("none")
@@ -85,7 +85,7 @@ describe("memory records", () => {
     expect(undoOf(entry("memory", "summary", "stale"))).toBeNull()
   })
 
-  it("takes back an agent's accepted fact once memo can, never the owner's own or a correction", () => {
+  it("takes back an agent's accepted fact once wcat can, never the owner's own or a correction", () => {
     const promise = entry("fact", "promise", "accepted")
     expect(undoOf(promise, true)).toBe("revoke")
     expect(can(promise, true).discard).toBe(true)
@@ -129,7 +129,7 @@ describe("Memory's search", () => {
     expect(hit('subject:"person:7"')).toBe(true)
   })
 
-  it("matches memo's kind and scope, the writer, and free words anywhere", () => {
+  it("matches wcat's kind and scope, the writer, and free words anywhere", () => {
     expect(hit("kind:preference scope:work by:hermes friday")).toBe(true)
     expect(hit("scope:personal")).toBe(false)
     expect(hit("by:me")).toBe(false)
@@ -206,7 +206,7 @@ describe("rules of a record's row", () => {
     expect(createdTarget(null)).toBeNull()
   })
 
-  it("puts only memo's own ways back in the menu", () => {
+  it("puts only wcat's own ways back in the menu", () => {
     expect(["reject", "invalidate", "reverse", "revoke"].map((u) => undoMenuKey(u as never))).toEqual([
       "reject",
       "invalidate",
@@ -219,7 +219,7 @@ describe("rules of a record's row", () => {
     expect(undoMenuKey(null)).toBeNull()
   })
 
-  it("names a cited source in words when memo gives no title", () => {
+  it("names a cited source in words when wcat gives no title", () => {
     expect(citedLabelOf("msg:email/leemour%40gmail.com/1881473858250960641/1881473858250960641")).toEqual({
       kind: "mail",
       where: "leemour@gmail.com",
@@ -278,12 +278,12 @@ describe("source reviews", () => {
     expect(entryInTab("review", { status: "confirmed" })).toBe(false)
   })
 
-  it("reads an unknown cause from a newer memo as a plain change", () => {
+  it("reads an unknown cause from a newer wcat as a plain change", () => {
     expect(causeOf("deleted")).toBe("deleted")
     expect(causeOf("expired")).toBe("changed")
   })
 
-  it("offers Withdraw only where memo has a way to say it no longer holds", () => {
+  it("offers Withdraw only where wcat has a way to say it no longer holds", () => {
     expect(reviewChoices(entry("memory", "summary", "confirmed"))).toEqual([
       "stillTrue",
       "dismiss",

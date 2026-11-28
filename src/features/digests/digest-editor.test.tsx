@@ -17,7 +17,7 @@ describe("the digest's sources", () => {
     ])
   })
 
-  it("offers Drive, Calendar and a CRM only from the memo that reads them, and keeps one already picked", () => {
+  it("offers Drive, Calendar and a CRM only from the wcat that reads them, and keeps one already picked", () => {
     const installs = { drive: [{}], gcal: [{}], bitrix: [{}] }
     const values = (more: boolean, picked: string[] = []) =>
       sourceOptions(installs, picked, names, more).map((o) => o.value)

@@ -98,8 +98,8 @@ const en = {
     reversed: "Reversed",
   } as Record<string, string>,
   latest500: "From the latest 500 of each; older ones are not counted here yet.",
-  memoryMissing: "Memory comes with Memo. Install it on the Tools page.",
-  memoryOld: "Update Memo on the Tools page to see its memory here.",
+  memoryMissing: "Memory comes with wcat. Install it on the Tools page.",
+  memoryOld: "Update wcat on the Tools page to see its memory here.",
   memoryError: "Could not read the memory.",
   noMemory: "Nothing remembered yet.",
 
@@ -361,8 +361,8 @@ const ru: typeof en = {
     reversed: "Отменено",
   },
   latest500: "По последним 500 каждого вида; более старые здесь пока не считаются.",
-  memoryMissing: "Память приходит с Memo. Установите его на странице «Инструменты».",
-  memoryOld: "Обновите Memo на странице «Инструменты», чтобы видеть здесь память.",
+  memoryMissing: "Память приходит с wcat. Установите его на странице «Инструменты».",
+  memoryOld: "Обновите wcat на странице «Инструменты», чтобы видеть здесь память.",
   memoryError: "Не удалось прочитать память.",
   noMemory: "Пока ничего не запомнено.",
 
@@ -622,8 +622,8 @@ const es: typeof en = {
     reversed: "Revertidos",
   },
   latest500: "De los últimos 500 de cada tipo; los más antiguos aún no se cuentan aquí.",
-  memoryMissing: "La memoria viene con Memo. Instálalo en Herramientas.",
-  memoryOld: "Actualiza Memo en Herramientas para ver aquí su memoria.",
+  memoryMissing: "La memoria viene con wcat. Instálalo en Herramientas.",
+  memoryOld: "Actualiza wcat en Herramientas para ver aquí su memoria.",
   memoryError: "No se pudo leer la memoria.",
   noMemory: "Todavía no hay nada recordado.",
 

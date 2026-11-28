@@ -501,7 +501,7 @@ mod tests {
     fn never_hands_a_tool_a_profile_from_the_environment() {
         let cmd = command(Path::new("tg"), &[], None);
         let removed: Vec<_> = cmd.get_envs().filter(|(_, v)| v.is_none()).map(|(k, _)| k.to_owned()).collect();
-        for prefix in ["TG", "MAX", "WA", "ZM", "DRIVE", "MEMO"] {
+        for prefix in ["TG", "MAX", "WA", "ZM", "DRIVE", "WCAT", "FILES"] {
             assert!(removed.contains(&std::ffi::OsString::from(format!("{prefix}_PROFILE"))), "{prefix}_PROFILE");
         }
         for name in ["CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CODEX_THREAD_ID", "WIRECAT_HOLDER", "OPENCLAW_SHELL"] {

@@ -76,13 +76,13 @@ describe("Reading for facts", () => {
     expect(screen.getByText("Recommended")).toBeInTheDocument()
     expect(screen.getByText(/one key you set in AI model above/)).toBeInTheDocument()
     expect(screen.queryByLabelText("Key")).not.toBeInTheDocument()
-    expect(screen.queryByText(/Update Memo/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Update wcat/)).not.toBeInTheDocument()
   })
 
   it("points to AI model when the AI model reader or a key reader cannot read yet", async () => {
     const listed = (chosen: boolean) => [
-      reader("ai-model", { chosen, available: false, problem: "no AI model is chosen: memo models ai set" }),
-      reader("openai", { signedIn: false, problem: "no OpenAI key: memo models keys set openai" }),
+      reader("ai-model", { chosen, available: false, problem: "no AI model is chosen: wcat models ai set" }),
+      reader("openai", { signedIn: false, problem: "no OpenAI key: wcat models keys set openai" }),
       reader("ollama", { available: false, problem: "Ollama is not running on this computer" }),
     ]
     vi.spyOn(platform, "memoryReaders").mockResolvedValue(listed(false))
@@ -94,7 +94,7 @@ describe("Reading for facts", () => {
     await user.click(screen.getByRole("button", { name: "Use this reader" }))
     expect(choose).toHaveBeenCalledWith("ai-model")
     expect(await screen.findByText("Choose a model and its key in AI model first.")).toBeInTheDocument()
-    expect(screen.queryByText(/memo models/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/wcat models/)).not.toBeInTheDocument()
     await pick(user, "OpenAI")
     expect(screen.getByText(/Needs its own key/)).toBeInTheDocument()
     await pick(user, "Ollama")
@@ -106,17 +106,17 @@ describe("Reading for facts", () => {
     expect(useNav.getState().active).toBe("settings")
   })
 
-  it("asks an older memo to update for the AI model reader", async () => {
+  it("asks an older wcat to update for the AI model reader", async () => {
     useTools.setState({
       installs: { memo: [{ path: "/bin/memo", version: "0.131.75", manager: "npm", problem: null }] },
     })
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama")])
     render(<ReadersSetting />)
-    expect(await screen.findByText(/Update Memo on the Tools page/)).toBeInTheDocument()
+    expect(await screen.findByText(/Update wcat on the Tools page/)).toBeInTheDocument()
     expect(screen.queryByLabelText("Key")).not.toBeInTheDocument()
   })
 
-  it("is not shown, and asks memo nothing, when memo is not installed", () => {
+  it("is not shown, and asks wcat nothing, when wcat is not installed", () => {
     useTools.setState({ installs: {} })
     const readers = vi.spyOn(platform, "memoryReaders")
     render(<ReadersSetting />)
@@ -124,20 +124,20 @@ describe("Reading for facts", () => {
     expect(readers).not.toHaveBeenCalled()
   })
 
-  it("says memo is needed, and asks memo nothing, once the tools show it is not installed", () => {
+  it("says wcat is needed, and asks wcat nothing, once the tools show it is not installed", () => {
     useTools.setState({ installs: { memo: [] } })
     const readers = vi.spyOn(platform, "memoryReaders")
     render(<ReadersSetting />)
     expect(screen.getByRole("region", { name: "Reading for facts" })).toHaveTextContent(
-      "This page reads Memo, which is not installed.",
+      "This page reads wcat, which is not installed.",
     )
     expect(readers).not.toHaveBeenCalled()
   })
 
-  it("says an older memo cannot do it yet", async () => {
+  it("says an older wcat cannot do it yet", async () => {
     vi.spyOn(platform, "memoryReaders").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'readers'"))
     render(<ReadersSetting />)
-    expect(await screen.findByText(/This needs a newer Memo than/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(await screen.findByText(/This needs a newer wcat than/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
   })
 })

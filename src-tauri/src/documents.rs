@@ -164,7 +164,7 @@ fn query_word(query: &str) -> Result<String, String> {
         return Err("That search is too long.".into());
     }
     if q.chars().any(char::is_control) {
-        return Err("That search holds a character memo cannot take.".into());
+        return Err("That search holds a character wcat cannot take.".into());
     }
     Ok(q.to_string())
 }
@@ -295,13 +295,13 @@ fn show_args(reference: &str, cursor: u64, max: u32) -> Vec<String> {
 
 fn show_with(call: &Call, reference: &str, cursor: u64) -> Result<DocumentDetails, Failure> {
     let v = call(&show_args(reference, cursor, TEXT_PART))?;
-    details_of(body(&v)).ok_or_else(|| Failure::plain("Memo's answer about this document could not be read."))
+    details_of(body(&v)).ok_or_else(|| Failure::plain("wcat's answer about this document could not be read."))
 }
 
 /// The file memo keeps for a document, found again from memo's own answer, never from the interface.
 fn local_file(call: &Call, reference: &str) -> Result<PathBuf, Failure> {
     let v = call(&show_args(reference, 0, 1))?;
-    let path = text(body(&v), "local_path").ok_or_else(|| Failure::plain("Memo keeps no file for this document."))?;
+    let path = text(body(&v), "local_path").ok_or_else(|| Failure::plain("wcat keeps no file for this document."))?;
     let file = PathBuf::from(path)
         .canonicalize()
         .map_err(|_| Failure::plain("The document's file is not on this computer any more."))?;
@@ -329,7 +329,7 @@ fn limits(page: u32, limit: u32) -> Result<(), String> {
 /// The page's first read: the accounts and folders, or why memo cannot give them.
 pub fn read() -> Result<DocumentsRead, String> {
     let tool = memo()?;
-    let need = tool.documents.as_ref().ok_or("Memo has no Documents commands in the catalog")?.min_version.clone();
+    let need = tool.documents.as_ref().ok_or("wcat has no Documents commands in the catalog")?.min_version.clone();
     let state = crate::tools::detect(tool, false);
     let Some(first) = state.installs.first() else { return Ok(DocumentsRead::Missing) };
     if crate::tools::older(first.version.as_deref(), &need) {

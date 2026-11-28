@@ -47,7 +47,7 @@ it("shows all first, every saved group, and the account that is in two of them",
   expect(column(/^work/).queryByText("tg work")).toBeNull()
 })
 
-it("moves an account from the keyboard, and puts it back with Memo's reason when Memo refuses", async () => {
+it("moves an account from the keyboard, and puts it back with wcat's reason when wcat refuses", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue(ready)
   const move = vi.spyOn(platform, "groupsMove").mockRejectedValue(new Error("email names more than this account"))
   render(<GroupsSetting />)
@@ -76,7 +76,7 @@ it("adds from all, never takes from it, and makes a new group with its first acc
   expect(await column(/^clients/).findByText("email:me@work.example")).toBeInTheDocument()
 })
 
-it("refuses a group name Memo would refuse before asking it, at the field, with focus in it", async () => {
+it("refuses a group name wcat would refuse before asking it, at the field, with focus in it", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue(ready)
   render(<GroupsSetting />)
   await userEvent.type(await screen.findByRole("textbox", { name: "New group" }), "all")
@@ -86,11 +86,11 @@ it("refuses a group name Memo would refuse before asking it, at the field, with 
   expect(screen.getByRole("textbox", { name: "New group" })).toHaveAttribute("aria-invalid", "true")
 })
 
-it("asks for a memo update on an older memo, in the words every page uses", async () => {
+it("asks for a wcat update on an older wcat, in the words every page uses", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue({ kind: "old", version: "0.131.51" })
   render(<GroupsSetting />)
-  expect(await screen.findByText("This needs a newer Memo than 0.131.51.")).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+  expect(await screen.findByText("This needs a newer wcat than 0.131.51.")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
 })
 
 it("puts an account on the work side from all", async () => {
@@ -105,7 +105,7 @@ it("puts an account on the work side from all", async () => {
   expect(scope).toHaveBeenCalledWith("telegram:1", "work")
 })
 
-it("shows no personal or work switch on a memo before account scopes", async () => {
+it("shows no personal or work switch on a wcat before account scopes", async () => {
   const old = groups.map((g) => ({ ...g, members: g.members.map((x) => ({ ...x, scope: null })) }))
   vi.spyOn(platform, "groupsRead").mockResolvedValue({ ...ready, groups: old })
   render(<GroupsSetting />)

@@ -25,7 +25,7 @@ describe("Reading pictures", () => {
     })
   })
 
-  it("turns on only once the owner picks an agent, saying so at the agents when pressed before, with the warning shown and memo's answer kept", async () => {
+  it("turns on only once the owner picks an agent, saying so at the agents when pressed before, with the warning shown and wcat's answer kept", async () => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
     const set = vi.spyOn(platform, "pictureReadingSet").mockResolvedValue(codex)
     const user = userEvent.setup()
@@ -68,7 +68,7 @@ describe("Reading pictures", () => {
   it.each([
     ["picture-reading.owner-only", /Only you can turn this on/],
     ["picture-reading.agent-missing", /Choose the agent that reads: Claude Code or Codex/],
-  ])("words memo's %s", async (reason, text) => {
+  ])("words wcat's %s", async (reason, text) => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
     vi.spyOn(platform, "pictureReadingSet").mockRejectedValue(new Error(reason))
     const user = userEvent.setup()
@@ -82,7 +82,7 @@ describe("Reading pictures", () => {
     expect(screen.queryByText(reason)).toBeNull()
   })
 
-  it("says an unknown refusal in its own words and folds memo's text under Details", async () => {
+  it("says an unknown refusal in its own words and folds wcat's text under Details", async () => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "ready", setting: never })
     vi.spyOn(platform, "pictureReadingSet").mockRejectedValue(new Error("store.busy: another process holds it"))
     const user = userEvent.setup()
@@ -98,10 +98,10 @@ describe("Reading pictures", () => {
     expect(screen.getByText("store.busy: another process holds it")).toBeInTheDocument()
   })
 
-  it("asks for a memo update while no memo with it is released", async () => {
+  it("asks for a wcat update while no wcat with it is released", async () => {
     vi.spyOn(platform, "pictureReadingStatus").mockResolvedValue({ state: "old", version: "0.131.85", need: null })
     render(<PictureReadingSetting />)
-    expect(await screen.findByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Update wcat" })).toBeInTheDocument()
     expect(screen.queryByRole("radio")).toBeNull()
   })
 })

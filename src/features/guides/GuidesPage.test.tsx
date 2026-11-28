@@ -53,11 +53,11 @@ it("lets the owner switch between installed messengers, starting on the first in
       .map((r) => r.getAttribute("value")),
   ).toEqual(["tg", "wa"])
   expect(within(messenger).getByRole("radio", { name: "Telegram" })).toBeChecked()
-  expect(runsOf(box)).toEqual(["tg <profile> review date>7d", "memo tasks add msg:telegram/…"])
+  expect(runsOf(box)).toEqual(["tg <profile> review date>7d", "wcat tasks add msg:telegram/…"])
 
   fireEvent.click(within(messenger).getByRole("radio", { name: "WhatsApp" }))
-  expect(promptOf(box)).toMatch(/^Use wa CLI and memo CLI\. /)
-  expect(runsOf(box).slice(-2)).toEqual(["wa <profile> review date>7d", "memo tasks add msg:whatsapp/…"])
+  expect(promptOf(box)).toMatch(/^Use wa CLI and wcat CLI\. /)
+  expect(runsOf(box).slice(-2)).toEqual(["wa <profile> review date>7d", "wcat tasks add msg:whatsapp/…"])
   expect(within(box).getByText(/^Uses memory and WhatsApp$/)).toBeInTheDocument()
   // The Start here guide keeps its own choice.
   expect(promptOf(guide("Catch up on what you missed"))).toMatch(/^Use tg CLI\. /)
@@ -97,7 +97,7 @@ it("shows no switch on a guide whose words are the same for every messenger", ()
   expect(within(box).getByText(/^Uses memory: everything synced from Telegram and WhatsApp$/)).toBeInTheDocument()
 })
 
-it("says a guide that only asks memo reads every synced source, not one messenger", () => {
+it("says a guide that only asks wcat reads every synced source, not one messenger", () => {
   installed("tg", "max", "zm", "memo")
   render(<GuidesPage />)
   openGuide("Find where something was decided")

@@ -5,9 +5,9 @@ export type TaskFailure = "account" | "busy" | "timeout" | "missing" | "other"
 // own for these: every one is `input.invalid`.
 const RULES: [TaskFailure, RegExp][] = [
   ["account", /\bgive --(account|source)\b/],
-  ["busy", /\b(database is locked|SQLITE_BUSY|holds the store|another memo process)\b/i],
+  ["busy", /\b(database is locked|SQLITE_BUSY|holds the store|another wcat process)\b/i],
   ["timeout", /\btimed? ?out\b/i],
-  ["missing", /\bMemo is not installed\b/],
+  ["missing", /\b(wcat|Files) is not installed\b/],
 ]
 
 export function taskFailure(raw: string): TaskFailure {

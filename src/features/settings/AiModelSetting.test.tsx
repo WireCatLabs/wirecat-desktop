@@ -206,7 +206,7 @@ describe("AI model", () => {
     expect(await screen.findByText(/leaves this work to your agent/)).toBeInTheDocument()
   })
 
-  it("names the action that failed, and words a refusal memo did not explain", async () => {
+  it("names the action that failed, and words a refusal wcat did not explain", async () => {
     vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
     vi.spyOn(platform, "aiModelOff").mockRejectedValue(new Error("another run holds the store"))
     vi.spyOn(platform, "aiModelCheck").mockRejectedValue(new Error("the process was killed"))
@@ -252,7 +252,7 @@ describe("AI model", () => {
     expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent(NO_MODEL)
   })
 
-  it("does not word what memo said about a provider, which may quote a key", async () => {
+  it("does not word what wcat said about a provider, which may quote a key", async () => {
     vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
     vi.spyOn(platform, "aiModelCheck").mockResolvedValue(checked("constructor"))
     const user = userEvent.setup()
@@ -354,26 +354,26 @@ describe("AI model", () => {
     expect(await screen.findByText(/seems not to read pictures.*Choose a model that reads them/)).toBeInTheDocument()
   })
 
-  it("asks for a memo update when memo has no models ai", async () => {
+  it("asks for a wcat update when wcat has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'ai'"))
     render(<AiModelSetting />)
-    expect(await screen.findByText("This needs a newer Memo than 0.131.86.")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(await screen.findByText("This needs a newer wcat than 0.131.86.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })
 
-  it("says memo is needed, and asks memo nothing, once the tools show it is not installed", () => {
+  it("says wcat is needed, and asks wcat nothing, once the tools show it is not installed", () => {
     useTools.setState({ installs: { memo: [] } })
     const show = vi.spyOn(platform, "aiModelShow")
     render(<AiModelSetting />)
     expect(screen.getByRole("region", { name: "AI model" })).toHaveTextContent(
-      "This page reads Memo, which is not installed.",
+      "This page reads wcat, which is not installed.",
     )
-    expect(screen.getByRole("button", { name: "Install Memo" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Install wcat" })).toBeInTheDocument()
     expect(show).not.toHaveBeenCalled()
   })
 
-  it("is not shown, and asks memo nothing, while the tools are not found yet", () => {
+  it("is not shown, and asks wcat nothing, while the tools are not found yet", () => {
     useTools.setState({ installs: {} })
     const show = vi.spyOn(platform, "aiModelShow")
     render(<AiModelSetting />)

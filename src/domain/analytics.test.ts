@@ -116,7 +116,7 @@ describe("people and chats", () => {
 })
 
 describe("tasks", () => {
-  it("asks memo for each bar's closed tasks, the first bar starting with the period", () => {
+  it("asks wcat for each bar's closed tasks, the first bar starting with the period", () => {
     const r = closedRanges("30d", TODAY)
     expect(r[0]).toEqual({ key: "2026-09-28", query: "state:(done OR dismissed) closed:[2026-10-04 TO 2026-10-04]" })
     expect(r).toHaveLength(6)

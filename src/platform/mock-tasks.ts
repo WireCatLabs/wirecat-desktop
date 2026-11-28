@@ -505,7 +505,7 @@ export function tasksMock(): TaskApi {
     label?: TaskWrite,
   ): Promise<TaskWrite> => {
     await delay(260)
-    if (scenario() === "write-fail") throw new Error("another memo process holds the store; try again in a minute")
+    if (scenario() === "write-fail") throw new Error("another wcat process holds the store; try again in a minute")
     const t = find(key)
     if (conflictLeft && key === "HRB-12") {
       conflictLeft = false
@@ -532,7 +532,7 @@ export function tasksMock(): TaskApi {
       await delay(s === "loading" ? 60_000 : s === "many" ? 500 : 350)
       if (s === "missing") return { kind: "missing" }
       if (s === "old") return { kind: "old", version: "0.131.4", need: "0.131.11" }
-      if (s === "fail") throw new Error("another memo process holds the store; try again in a minute")
+      if (s === "fail") throw new Error("another wcat process holds the store; try again in a minute")
       if (s === "none") return { kind: "ready", tasks: [], total: 0, more: false }
       try {
         const found = filter(sorted(), query)
@@ -549,7 +549,7 @@ export function tasksMock(): TaskApi {
     async taskCounts(query): Promise<TaskCounts> {
       await delay(420)
       // task_board.rs checks no version for counts, so a missing memo is its plain error.
-      if (scenario() === "missing") throw new Error("Memo is not installed")
+      if (scenario() === "missing") throw new Error("wcat is not installed")
       if (scenario() === "none")
         return { total: 0, project: [], assignee: [], priority: [], state: [], due: [], agent: [] }
       const without = (field: Field) => {
@@ -632,7 +632,7 @@ export function tasksMock(): TaskApi {
     },
     async taskCreate(n: NewTask) {
       await delay(300)
-      if (scenario() === "write-fail") throw new Error("another memo process holds the store; try again in a minute")
+      if (scenario() === "write-fail") throw new Error("another wcat process holds the store; try again in a minute")
       const number =
         tasks.filter((t) => t.project === n.project).reduce((m, t) => Math.max(m, Number(t.key.split("-")[1])), 0) + 1
       const mid = { critical: 0.875, high: 0.625, medium: 0.375, low: 0.125 }
@@ -763,7 +763,7 @@ export function tasksMock(): TaskApi {
     },
     async taskCommentAdd(key, text) {
       await delay(260)
-      if (scenario() === "write-fail") throw new Error("another memo process holds the store; try again in a minute")
+      if (scenario() === "write-fail") throw new Error("another wcat process holds the store; try again in a minute")
       const said: TaskComment = { ref: `note:${noteId++}`, text, author: OWNER, at: new Date().toISOString() }
       comments.set(key, [...(comments.get(key) ?? []), said])
       return said
@@ -779,7 +779,7 @@ export function tasksMock(): TaskApi {
     },
     async personAdd(name) {
       await delay(260)
-      if (scenario() === "write-fail") throw new Error("another memo process holds the store; try again in a minute")
+      if (scenario() === "write-fail") throw new Error("another wcat process holds the store; try again in a minute")
       const added: Person = { ref: `person:${people.length + 1}`, name: name.trim(), owner: false }
       people = [...people, added]
       return added

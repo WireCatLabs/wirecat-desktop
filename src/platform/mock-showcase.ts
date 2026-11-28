@@ -32,7 +32,8 @@ export const SHOWCASE_VERSIONS: Record<string, string> = {
   slk: "0.1.0",
   zm: "0.64.0",
   drive: "0.55.0",
-  memo: "0.131.14",
+  memo: "1.0.0",
+  files: "1.0.0",
   gcal: "0.23.0",
   email: "0.35.0",
   bitrix: "0.13.0",
@@ -163,6 +164,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
       return tools.map(({ id, bin }) => ({
         id,
         installs: [{ path: `~/.local/share/pnpm/bin/${bin}`, version: version(id), manager: "pnpm", problem: null }],
+        switchFrom: null,
       }))
     },
     async latestVersions() {

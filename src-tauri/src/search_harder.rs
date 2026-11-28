@@ -116,7 +116,7 @@ fn too_old(tool: &Tool, src: &SearchHarderSource) -> Result<(), String> {
     if gate(src, tools::installed_version(tool).as_deref()) {
         Ok(())
     } else {
-        Err("This memo cannot search harder yet. It comes with a memo update.".into())
+        Err("This files version cannot search harder yet. It comes with a files update.".into())
     }
 }
 
@@ -235,7 +235,7 @@ fn ask(tool: &Tool, args: &[String], timeout: Duration) -> Result<HarderStatus, 
     if out.code != Some(0) {
         return Err(refusal(&out, json.as_ref()));
     }
-    json.as_ref().and_then(status_of).ok_or_else(|| "memo gave an answer the app cannot read".to_string())
+    json.as_ref().and_then(status_of).ok_or_else(|| "files gave an answer the app cannot read".to_string())
 }
 
 pub fn status(tool: &Tool) -> Result<SearchHarder, String> {
@@ -343,8 +343,8 @@ mod tests {
         crate::run::Output { code: Some(code), stdout: stdout.into(), stderr: stderr.into() }
     }
 
-    fn memo_source() -> &'static SearchHarderSource {
-        source(catalog::tool("memo").unwrap()).unwrap()
+    fn files_source() -> &'static SearchHarderSource {
+        source(catalog::tool("files").unwrap()).unwrap()
     }
 
     fn choice(provider: &str, model: Option<&str>, base_url: Option<&str>) -> HarderChoice {
@@ -357,7 +357,7 @@ mod tests {
 
     #[test]
     fn runs_memos_own_commands_with_the_choice_in_place() {
-        let src = memo_source();
+        let src = files_source();
         assert_eq!(src.show.join(" "), "models search-consents show --no-record --json");
         assert_eq!(
             with_choice(&src.preview, &choice("openai", None, None)).unwrap().join(" "),
@@ -380,7 +380,7 @@ mod tests {
 
     #[test]
     fn nothing_the_window_sends_becomes_a_flag() {
-        let src = memo_source();
+        let src = files_source();
         for bad in [
             choice("gemini", None, None),
             choice("--yes", None, None),
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn the_search_sends_only_with_harder_and_is_never_recorded() {
-        let src = memo_source();
+        let src = files_source();
         let args = search_args(src, "-tag:work budget", 50).unwrap();
         assert_eq!(
             args.join(" "),
@@ -434,8 +434,8 @@ mod tests {
         assert!(!gate(&src, Some("0.131.73")));
         assert!(!gate(&src, None));
         assert!(gate(&src, Some("0.131.86")));
-        // The first memo on npm with `--harder` and `meta.ranking`.
-        assert_eq!(memo_source().min_version.as_deref(), Some("0.131.74"));
+        // Every files release has `--harder` and `meta.ranking`: they came from memo with the notes.
+        assert_eq!(files_source().min_version.as_deref(), Some("0.0.0"));
     }
 
     #[test]

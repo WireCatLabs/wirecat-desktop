@@ -94,7 +94,7 @@ describe("The meeting card", () => {
     expect(within(dialog).getByRole("button", { name: "Open Lena Ortiz on Contacts" })).toBeVisible()
   })
 
-  it("collapses what memo does not know into one line instead of empty sections", async () => {
+  it("collapses what wcat does not know into one line instead of empty sections", async () => {
     const bare: MeetingRow = {
       ...row,
       ref: "event:700",

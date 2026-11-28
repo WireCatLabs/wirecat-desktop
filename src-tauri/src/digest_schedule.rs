@@ -16,7 +16,7 @@ use serde_json::Value;
 use std::time::Duration;
 
 const NAME: &str = "morning-digest";
-const PROMPT: &str = "Run memo skill show morning-digest and follow it.";
+const PROMPT: &str = "Run wcat skill show morning-digest and follow it.";
 /// The mail agent's minimum: `schedule agent` with its caps. A memo without `--deliver-to` refuses that option itself,
 /// and its words reach the page.
 const MIN_MEMO: &str = "0.131.26";
@@ -289,7 +289,7 @@ fn agent_args(
         return Err(format!("at most {MAX_ROUTES} routes"));
     }
     if let Some(bad) = routes.iter().find(|r| route(r).is_none()) {
-        return Err(format!("not a route memo takes: {}", redact::text(bad)));
+        return Err(format!("not a route wcat takes: {}", redact::text(bad)));
     }
     let cap = |v: f64, zero: bool| v.is_finite() && v <= MAX_USD && (v > 0.0 || (zero && v == 0.0));
     if !cap(max_cost, false) || !cap(max_cost_per_day, true) {
@@ -495,7 +495,7 @@ mod tests {
         let routes = vec!["telegram-bot:personal/user:1001".to_string()];
         assert_eq!(
             agent_args("claude", "08:30", &routes, 0.5, 1.0).unwrap().join(" "),
-            "schedule agent morning-digest claude Run memo skill show morning-digest and follow it. --at 08:30 \
+            "schedule agent morning-digest claude Run wcat skill show morning-digest and follow it. --at 08:30 \
              --max-cost 0.5 --max-cost-per-day 1 --notify-on always --deliver-to telegram-bot:personal/user:1001 --json"
         );
         assert!(agent_args("claude", "8:30", &routes, 0.5, 1.0).is_err());
