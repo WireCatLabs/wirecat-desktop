@@ -1,11 +1,8 @@
 # Cleanup
 
 - `bin/setup-mcp-registry-key` — one-off; remove once the MCP Registry key is set and CI publishes. 2026-10-25
-- `~/.cache/wirecat-fresh-install` — throwaway home of `bin/try-fresh-install` (PR #93); touched 2026-11-05 04:12, remove after that. 2026-11-04
 - pnpm store: `pnpm store prune` fails with "Permission denied" on `/home/leemour/Projects/AI/arendamed/directus/data/database` (Docker-owned); fix the folder owner, then prune to drop the `wcat-fixture-*` test packages. 2026-10-30
-- `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/wa-0.29-report` (branch `docs/wa-0.29-report`) — cli-private PR #555 is still open; remove after it merges. 2026-11-05
 - `/home/leemour/Projects/AI/cli-core-release-memo36` and `/home/leemour/Projects/AI/cli-memo-release-core0564` — release clones on main, files changed within the last 3 hours (another session may use them); remove after the releases. 2026-11-05
-- Release clones `cli-core-release`, `tg-release`, `wa-release` in `/var/tmp/claude/claude-1000/-home-leemour-Projects-AI-wirecat-desktop/1843f46d-831c-4149-8277-335fa93ea262/scratchpad/` — clean and pushed; remove after the whatsapp release and cli-private#555. 2026-11-05
 - `.claude/worktrees/store-check-gaps` (branch `fix/store-check-gaps`): worktree for the setup store check and the storage-line row shift; remove once its PR is merged. 2026-11-07
 - `/home/leemour/Projects/AI/ssign/.claude/worktrees/upstream-held` (branch `upstream/windows-held-file`): source of Le-Syl21/ssign#21; remove after it merges or closes. 2026-11-07
 - `.claude/worktrees/journal-2276` (branch `docs/journal-need-2276`): journal PR; remove once merged. 2026-11-07
@@ -51,3 +48,25 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-ydisk` (branch `feat/ydisk`): Yandex Disk in the catalog; remove the worktree once its PR is merged. 2026-11-17
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-hubspot` (branch `feat/hubspot`): HubSpot in the catalog; remove the worktree and the branch once its PR is merged. 2026-11-18
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-install-heal` (worktree) and branch `fix/install-heal`: install healing for the app's pnpm. Remove both after the PR merges. 2026-11-27
+- Local branch `bench/gemma-local` in cli-core (85d5e116): 7 commits never pushed, no merged PR; worktree
+  `cli-core-wt-gemma-bench` already removed. Delete only after the owner says the Gemma benchmark commits can go.
+  2026-11-08, updated 2026-11-28
+- Local branch `feat/gemma-default` in cli-memo (8ab7f59): 1 commit not on any remote, no merged PR; worktree
+  `cli-memo-wt-gemma-release` already removed. Delete after confirming a37d308 in feat/crm-landing carries it.
+  2026-11-08, updated 2026-11-28
+- Local branch `docs/people-clients-digests-plan` in wirecat-desktop (df76e877): 7 commits not on any remote and not in
+  PR #248; worktree and remote branch already removed. Delete after the owner checks those plan commits. 2026-11-09,
+  updated 2026-11-28
+- Local branch `feat/clients-stage-confirm` in wirecat-desktop (b4b69f48): 3 commits never pushed, no merged PR (taken
+  by bitrix24-cli-92 into feat/deal-stage-edit); worktree already removed. 2026-11-09, updated 2026-11-28
+- Local branch `refactor/segmented-switches` in wirecat-desktop (6f139994): 2 commits not on any remote and not in PR
+  #281; worktree wd-ui2 and remote branch already removed. 2026-11-10, updated 2026-11-28
+- `~/.cache/wirecat-sandbox/seedwork`, `~/.cache/wirecat-sandbox/seedtest`: throwaway sandboxes used to probe and test
+  the seed set loader (feat/sandbox-seed-set); `seedtest` holds seed version 2 from the update test, so it cannot load
+  version 1 again. Remove with `rm -rf`. 2026-11-10
+- `src/features/digests/messages-schedule.ts` `otherLine` and `src/features/digests/messages-book.ts` `notScheduled`:
+  message strings no code reads (already unused before UX-159..162); drop them in a later change. 2026-11-10
+- info/exclude of the shared repository: six lines '.bug717-*.mjs' from BUG-717, remove with the worktree — 2026-11-11
+- src/assets/logos/zoom.png: replaced by zoom.svg (sharp, rounded) in fix/approvals-analytics-feedback; nothing imports
+  the PNG any more. 2026-11-11
+- bin/zoom-sync-facts (git-excluded): read-only check for the Zoom tile, remove after the owner has run it. 2026-11-11
