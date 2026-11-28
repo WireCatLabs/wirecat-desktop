@@ -32,7 +32,7 @@ const START_WAIT: Duration = Duration::from_mins(3);
 /// The catalog keys that hold commands, as cli-docs' drift check compares them (`FACTS` in its
 /// `scripts/official-tools.ts`). Within `sync` and `signIn` only the listed keys are commands.
 const COMMANDS: [&str; 8] = ["profiles", "doctor", "runs", "setup", "skill", "mcpServer", "accountRemove", "meetings"];
-const SYNC: [&str; 3] = ["run", "last", "lastShape"];
+const SYNC: [&str; 4] = ["run", "last", "lastShape", "schedule"];
 const SIGN_IN: [&str; 2] = ["methods", "setupFrom"];
 /// Desktop's own words for what a sign-out removes and keeps: the catalog's stay when it has them.
 const CATALOG_FIRST: [&str; 2] = ["accountRemove.keeps", "accountRemove.removes"];
@@ -441,6 +441,17 @@ mod tests {
             d["mcpServer"]["port"] = outside;
             assert!(overlay(&entry("gcal"), &d).unwrap_err().starts_with("mcpServer.port"));
         }
+    }
+
+    #[test]
+    fn a_sync_timer_the_manifest_names_replaces_the_catalogs() {
+        let mut d = desktop("email");
+        d["sync"]["schedule"] = json!({ "every": "15m", "choices": ["15m", "1h"], "args": ["sync", "--quick"] });
+        let (out, changed) = overlay(&entry("email"), &d).unwrap();
+        assert_eq!(out["sync"]["schedule"], d["sync"]["schedule"]);
+        assert!(changed.iter().any(|c| c == "sync.schedule.args"), "{changed:?}");
+        let tool: Tool = serde_json::from_value(out).unwrap();
+        assert_eq!(tool.sync.and_then(|s| s.schedule).map(|s| s.args), Some(vec!["sync".into(), "--quick".into()]));
     }
 
     #[test]

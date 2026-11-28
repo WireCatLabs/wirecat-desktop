@@ -118,11 +118,11 @@ fn new_entry(entry: &Value, shown: &Value) -> Result<Value, Problem> {
             }
         }
     }
-    // The manifest names no port; cli-docs gives each official tool one, so it is the same on every computer.
+    // The tool's own manifest names its port (NEED-2918); the list's is for a release that does not name one yet.
     if e["mcpServer"].is_object() {
-        match entry["mcpPort"].as_u64() {
+        match e["mcpServer"]["port"].as_u64().or_else(|| entry["mcpPort"].as_u64()) {
             Some(port) => e["mcpServer"]["port"] = json!(port),
-            None => return Err(rule("mcpServer", "its MCP server has no port in the list.".into())),
+            None => return Err(rule("mcpServer", "its MCP server has no port in its manifest or the list.".into())),
         }
     }
     for (key, value) in [
@@ -212,6 +212,9 @@ pub mod tests {
         );
         assert_eq!(e["mcpServer"]["port"], 8740);
         assert_eq!(e["sync"]["what"], "records", "free text becomes the closed list's records");
+        let mut named = beeline();
+        named["desktop"]["mcpServer"]["port"] = json!(8741);
+        assert_eq!(new(&named)["mcpServer"]["port"], 8741, "the manifest's port wins over the list's");
         assert_eq!(e["i18n"]["ru"]["tagline"], "Звонки и записи");
         assert_eq!(e["summaries"]["ru"], "Звонки Билайна для агента.");
         assert!(e["community"].is_null());

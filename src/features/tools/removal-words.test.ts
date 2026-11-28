@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { tools as catalogTools } from "../../domain/catalog"
 import { accountsMessages } from "./messages-accounts"
 import { busyHolder, keptReason, signInLine } from "./removal-words"
 
@@ -29,11 +30,18 @@ describe("removal words", () => {
 
   it("does not promise mail a revoke unless the plan shows Google OAuth", () => {
     const key = (target: string) => [{ kind: "keyring" as const, target }]
-    expect(signInLine("mail", "Mail", null, ru, key("oauth:google:work"))).toBe(ru.signInRevokes)
-    expect(signInLine("mail", "Mail", null, ru, key("oauth:microsoft:work"))).toBe(ru.signInLocal)
-    expect(signInLine("mail", "Mail", null, ru, key("work"))).toBe(ru.signInAppPassword)
-    expect(signInLine("mail", "Mail", true, ru)).toBe(ru.signInGoogleRevoked)
-    expect(signInLine("mail", "Mail", false, ru)).toBe(ru.signInProviderKept)
+    expect(signInLine("email", "Mail", null, ru, key("oauth:google:work"))).toBe(ru.signInRevokes)
+    expect(signInLine("email", "Mail", null, ru, key("oauth:microsoft:work"))).toBe(ru.signInLocal)
+    expect(signInLine("email", "Mail", null, ru, key("work"))).toBe(ru.signInAppPassword)
+    expect(signInLine("email", "Mail", true, ru)).toBe(ru.signInGoogleRevoked)
+    expect(signInLine("email", "Mail", false, ru)).toBe(ru.signInProviderKept)
+  })
+
+  it("finds mail by its catalog id, not by its program's name", () => {
+    const mail = catalogTools.find((tool) => tool.bin === "mail")
+    expect(mail?.id).toBe("email")
+    expect(signInLine(mail?.id ?? "", "Mail", true, ru)).toBe(ru.signInGoogleRevoked)
+    expect(signInLine("mail", "Mail", true, ru)).toBeNull()
   })
 
   it("names what holds the account from the tool's busy message", () => {
