@@ -463,6 +463,12 @@ const COMMAND_KEYS = [
   "accountRemove",
   "sync",
   "signIn",
+  "settings",
+  "search",
+  "storeInfo",
+  "bot",
+  "background",
+  "mailInbox",
 ] as const
 const Described = v.object({ id: v.string(), described: v.partial(v.pick(ToolSchema, COMMAND_KEYS)) })
 const pickCommands = (t: CatalogTool) => Object.fromEntries(COMMAND_KEYS.map((k) => [k, t[k]]))

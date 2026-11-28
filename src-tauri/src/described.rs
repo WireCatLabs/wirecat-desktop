@@ -31,18 +31,50 @@ const START_WAIT: Duration = Duration::from_mins(3);
 
 /// The catalog keys that hold commands, as cli-docs' drift check compares them (`FACTS` in its
 /// `scripts/official-tools.ts`). Within `sync` and `signIn` only the listed keys are commands.
-const COMMANDS: [&str; 8] = ["profiles", "doctor", "runs", "setup", "skill", "mcpServer", "accountRemove", "meetings"];
+const COMMANDS: [&str; 11] = [
+    "profiles",
+    "doctor",
+    "runs",
+    "setup",
+    "skill",
+    "mcpServer",
+    "accountRemove",
+    "meetings",
+    "settings",
+    "search",
+    "storeInfo",
+];
 const SYNC: [&str; 4] = ["run", "last", "lastShape", "schedule"];
-const SIGN_IN: [&str; 2] = ["methods", "setupFrom"];
-/// Desktop's own words for what a sign-out removes and keeps: the catalog's stay when it has them.
-const CATALOG_FIRST: [&str; 2] = ["accountRemove.keeps", "accountRemove.removes"];
+const SIGN_IN: [&str; 8] = ["methods", "setupFrom", "identity", "identityCheck", "appSetup", "links", "guide", "pick"];
+/// Keys only a `WireCat` tool's own answer may set, and only where the catalog has one: they need Desktop's own screens
+/// (a bot's token steps, a background server, the inbox page). Desktop 0.9.3 and older refuse an answer with them.
+const BUILT_IN_ONLY: [&str; 3] = ["bot", "background", "mailInbox"];
+/// What a sign-out removes and keeps: the answer's list wins only when it names all the catalog's, so the bare default
+/// cli-base writes for every CLI never drops the words Desktop already had for a tool.
+const AT_LEAST: [&str; 2] = ["accountRemove.keeps", "accountRemove.removes"];
 /// The version a command needs says nothing about the installed program that describes itself; cli-base writes `0.0.0`.
 const NEVER: [&str; 1] = ["accountRemove.remove.minVersion"];
 /// A `WireCat` tool's own MCP port sits below the ports own tools get (8770 on, `own_tools.rs`), so the two never meet.
 const OFFICIAL_PORTS: std::ops::Range<u64> = 8700..8770;
 /// The keys the interface replaces on a built-in tool whose commands changed.
-pub const SHOWN: [&str; 10] =
-    ["profiles", "doctor", "runs", "setup", "skill", "mcpServer", "accountRemove", "meetings", "sync", "signIn"];
+pub const SHOWN: [&str; 16] = [
+    "profiles",
+    "doctor",
+    "runs",
+    "setup",
+    "skill",
+    "mcpServer",
+    "accountRemove",
+    "meetings",
+    "sync",
+    "signIn",
+    "settings",
+    "search",
+    "storeInfo",
+    "bot",
+    "background",
+    "mailInbox",
+];
 
 /// One tool's last answer and the program that gave it; `desktop` is `None` when it gave none that could be read, so
 /// the same program is not asked again.
@@ -76,7 +108,7 @@ fn describable_entry(entry: &Value) -> bool {
 /// `entry` with the commands `desktop` states, and the paths that changed. Like the drift check, a `null` or missing
 /// key says nothing, an object is merged key by key and a word list replaces the catalog's whole.
 pub fn overlay(entry: &Value, desktop: &Value) -> Result<(Value, Vec<String>), String> {
-    crate::own_tools::desktop_entry(desktop).map_err(|(key, why)| format!("{key}: {why}"))?;
+    crate::own_tools::desktop_entry(&without_built_in_only(desktop)).map_err(|(key, why)| format!("{key}: {why}"))?;
     if let Some(key) = community::FORBIDDEN.iter().find(|k| !desktop[**k].is_null()) {
         return Err(format!("{key}: only the compiled catalog sets it."));
     }
@@ -101,6 +133,9 @@ pub fn overlay(entry: &Value, desktop: &Value) -> Result<(Value, Vec<String>), S
         }
         merge(&mut out[key], &desktop[key], key, &mut changed);
     }
+    for key in BUILT_IN_ONLY.into_iter().filter(|k| !entry[*k].is_null()) {
+        merge(&mut out[key], &desktop[key], key, &mut changed);
+    }
     if !desktop["sync"].is_null() && !entry["sync"].is_null() {
         let mut said = pick(&desktop["sync"], &SYNC);
         // A shape belongs to the command it reads.
@@ -115,10 +150,46 @@ pub fn overlay(entry: &Value, desktop: &Value) -> Result<(Value, Vec<String>), S
     if changed.is_empty() {
         return Ok((out, changed));
     }
-    community::words(&shown(&out)).map_err(|p| p.to_string())?;
+    let mut commands = shown(&out);
+    // A search field's example is a query the person may pick, passed after `--` like one they typed, not a command.
+    commands["search"].as_object_mut().map(|m| m.remove("fields"));
+    community::words(&commands).map_err(|p| p.to_string())?;
+    for (key, link) in [
+        ("signIn.guide", &out["signIn"]["guide"]),
+        ("bot.create", &out["bot"]["create"]),
+        ("bot.docs", &out["bot"]["docs"]),
+    ] {
+        if !link.is_null() && !link.as_str().is_some_and(|l| l.starts_with("https://")) {
+            return Err(format!("{key}: a link must be https."));
+        }
+    }
+    let host = |h: &Value| {
+        h.as_str().is_some_and(|h| {
+            h.split('.').count() > 1
+                && h.split('.').all(|l| {
+                    !l.is_empty() && l.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+                })
+        })
+    };
+    if !out["signIn"]["links"].as_array().is_none_or(|l| l.iter().all(host)) {
+        return Err("signIn.links: each is a lower-case domain name.".into());
+    }
     community::account_remove(&out["accountRemove"]).map_err(|p| p.to_string())?;
     serde_json::from_value::<Tool>(out.clone()).map_err(|e| format!("not a catalog entry: {e}"))?;
     Ok((out, changed))
+}
+
+/// `desktop` without the keys only a built-in tool's own answer may set, which the own-tool rules do not read.
+pub fn without_built_in_only(desktop: &Value) -> Value {
+    let mut out = desktop.clone();
+    for key in BUILT_IN_ONLY {
+        out.as_object_mut().map(|m| m.remove(key));
+    }
+    out
+}
+
+fn names_all(said: &Value, into: &Value) -> bool {
+    into.as_array().is_none_or(|had| had.iter().all(|w| said.as_array().is_some_and(|s| s.contains(w))))
 }
 
 fn pick(v: &Value, keys: &[&str]) -> Value {
@@ -126,7 +197,7 @@ fn pick(v: &Value, keys: &[&str]) -> Value {
 }
 
 fn merge(into: &mut Value, said: &Value, path: &str, changed: &mut Vec<String>) {
-    if said.is_null() || NEVER.contains(&path) || (CATALOG_FIRST.contains(&path) && !into.is_null()) {
+    if said.is_null() || NEVER.contains(&path) || (AT_LEAST.contains(&path) && !names_all(said, into)) {
         return;
     }
     if let Some(map) = said.as_object()
@@ -378,10 +449,9 @@ mod tests {
         let expected: BTreeMap<String, String> = [
             ("attio", "accountRemove.remove"),
             ("drive", "doctor mcpServer.config sync.last sync.lastShape"),
-            ("email", "doctor sync.last"),
+            ("email", "doctor"),
             ("gcal", "doctor"),
-            ("memo", "skill.install skill.show sync.last"),
-            ("notion", "sync.last"),
+            ("memo", "skill.install skill.show"),
             ("slk", "profiles.args signIn.setupFrom"),
             ("zm", "doctor setup sync.run"),
         ]
@@ -441,6 +511,68 @@ mod tests {
             d["mcpServer"]["port"] = outside;
             assert!(overlay(&entry("gcal"), &d).unwrap_err().starts_with("mcpServer.port"));
         }
+    }
+
+    #[test]
+    fn the_sign_in_checks_settings_search_and_store_info_come_from_the_answer() {
+        let mut d = desktop("bitrix");
+        d["signIn"]["identity"] = json!(["{profile}", "session", "status", "--check", "--no-record", "--json"]);
+        d["signIn"]["links"] = json!(["bitrix24.ru", "bitrix24.com"]);
+        d["signIn"]["guide"] = json!("https://wirecat.dev/en/docs/b24");
+        d["settings"] = entry("tg")["settings"].clone();
+        d["storeInfo"] = json!(["store", "info", "--no-record", "--json"]);
+        d["search"] = entry("tg")["search"].clone();
+        let (out, changed) = overlay(&entry("bitrix"), &d).unwrap();
+        for key in ["signIn.identity", "signIn.links", "signIn.guide", "settings", "storeInfo", "search"] {
+            assert!(changed.iter().any(|c| c.starts_with(key)), "{key}: {changed:?}");
+        }
+        assert_eq!(out["signIn"]["identity"], d["signIn"]["identity"]);
+        assert_eq!(out["search"]["fields"], d["search"]["fields"], "an example with quotes is not a command word");
+
+        let refused = |change: &dyn Fn(&mut Value)| {
+            let mut d = desktop("bitrix");
+            change(&mut d);
+            overlay(&entry("bitrix"), &d).unwrap_err()
+        };
+        assert!(refused(&|d| d["signIn"]["guide"] = json!("http://example.com")).starts_with("signIn.guide"));
+        assert!(refused(&|d| d["signIn"]["links"] = json!(["Example.com/x"])).starts_with("signIn.links"));
+        assert!(refused(&|d| d["signIn"]["appSetup"] = json!(["app", "$(id)"])).contains("not allowed"));
+    }
+
+    #[test]
+    fn a_bot_a_background_server_and_the_inbox_only_where_the_catalog_has_one() {
+        let mut d = desktop("tg");
+        d["bot"] = entry("tg")["bot"].clone();
+        d["bot"]["docs"] = json!("https://wirecat.dev/en/docs/tg/bot");
+        d["background"] = entry("tg")["background"].clone();
+        d["background"]["stop"] = json!(["{profile}", "server", "stop", "--force", "--json"]);
+        let (out, changed) = overlay(&entry("tg"), &d).unwrap();
+        assert!(changed.iter().any(|c| c == "bot.docs") && changed.iter().any(|c| c == "background.stop"));
+        assert_eq!(out["bot"]["listMinVersion"], entry("tg")["bot"]["listMinVersion"], "merged key by key");
+
+        let mut gcal = desktop("gcal");
+        gcal["bot"] = d["bot"].clone();
+        gcal["mailInbox"] = entry("email")["mailInbox"].clone();
+        let (out, _) = overlay(&entry("gcal"), &gcal).unwrap();
+        assert!(out["bot"].is_null() && out["mailInbox"].is_null(), "no screens for them");
+
+        d["bot"]["create"] = json!("javascript:alert(1)");
+        assert!(overlay(&entry("tg"), &d).unwrap_err().starts_with("bot.create"));
+        assert!(without_built_in_only(&d).get("bot").is_none());
+    }
+
+    #[test]
+    fn a_sign_out_list_wins_only_when_it_names_all_the_catalogs() {
+        let mut d = desktop("tg");
+        d["accountRemove"]["removes"] = json!(["signIn"]);
+        let (out, _) = overlay(&entry("tg"), &d).unwrap();
+        assert_eq!(out["accountRemove"]["removes"], entry("tg")["accountRemove"]["removes"], "the bare default");
+        let mut more = entry("tg")["accountRemove"]["removes"].as_array().unwrap().clone();
+        more.push(json!("deviceKeys"));
+        d["accountRemove"]["removes"] = json!(more);
+        let (out, changed) = overlay(&entry("tg"), &d).unwrap();
+        assert_eq!(out["accountRemove"]["removes"], json!(more));
+        assert!(changed.iter().any(|c| c == "accountRemove.removes"));
     }
 
     #[test]

@@ -79,6 +79,18 @@ describe("community tools", () => {
     expect(findTool("zm")?.sync).toEqual(sync)
   })
 
+  it("takes the bot, background server and settings from the tool's own answer too", () => {
+    const tg = findTool("tg")
+    const bot = tg?.bot ? { ...tg.bot, docs: "https://wirecat.dev/en/docs/tg/bot" } : null
+    const settings = tg?.settings ? { ...tg.settings, readOnly: [] } : null
+    expect(addCommunityTools([{ source: "official", entry: { id: "tg", described: { bot, settings } } }])).toEqual([])
+    expect(findTool("tg")?.bot?.docs).toBe("https://wirecat.dev/en/docs/tg/bot")
+    expect(findTool("tg")?.settings?.readOnly).toEqual([])
+    expect(findTool("tg")?.background).toEqual(tg?.background)
+    replaceAddedTools([])
+    expect(findTool("tg")?.bot).toEqual(tg?.bot)
+  })
+
   it("refuses a description of a tool it does not have or of the wrong shape", () => {
     const rejected = addCommunityTools([
       { source: "official", entry: { id: "nosuch", described: {} } },

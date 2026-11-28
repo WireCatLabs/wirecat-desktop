@@ -101,8 +101,9 @@ pub fn read(entry: &Value, builtin: &Catalog) -> Result<Read, Problem> {
 }
 
 fn new_entry(entry: &Value, shown: &Value) -> Result<Value, Problem> {
-    let mut e: Map<String, Value> =
-        crate::own_tools::desktop_entry(&entry["desktop"]).map_err(|(key, why)| rule(&key, why))?;
+    // A tool new to the app has none of Desktop's own screens, so what needs them is left out, not refused.
+    let desktop = crate::described::without_built_in_only(&entry["desktop"]);
+    let mut e: Map<String, Value> = crate::own_tools::desktop_entry(&desktop).map_err(|(key, why)| rule(&key, why))?;
     let en = &shown["i18n"]["en"];
     let text = |key: &str, fallback: &Value| en.get(key).filter(|v| v.is_string()).unwrap_or(fallback).clone();
     let name = text("name", &entry["name"]);
