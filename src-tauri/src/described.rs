@@ -108,8 +108,9 @@ fn describable_entry(entry: &Value) -> bool {
 /// `entry` with the commands `desktop` states, and the paths that changed. Like the drift check, a `null` or missing
 /// key says nothing, an object is merged key by key and a word list replaces the catalog's whole.
 pub fn overlay(entry: &Value, desktop: &Value) -> Result<(Value, Vec<String>), String> {
-    crate::own_tools::desktop_entry(&without_built_in_only(desktop)).map_err(|(key, why)| format!("{key}: {why}"))?;
-    if let Some(key) = community::FORBIDDEN.iter().find(|k| !desktop[**k].is_null()) {
+    let checked = without_built_in_only(desktop);
+    crate::own_tools::desktop_entry(&checked).map_err(|(key, why)| format!("{key}: {why}"))?;
+    if let Some(key) = community::FORBIDDEN.iter().find(|k| !checked[**k].is_null()) {
         return Err(format!("{key}: only the compiled catalog sets it."));
     }
     if desktop["storage"] != entry["storage"] {
@@ -616,7 +617,7 @@ mod tests {
         };
         assert!(refused(&|d| d["storage"]["app"] = json!("cli-memo")).starts_with("storage"));
         assert!(refused(&|d| d["doctor"] = json!(["doctor", "; rm -rf ~"])).contains("not allowed"));
-        assert!(refused(&|d| d["bot"] = json!({ "set": ["bot"] })).starts_with("bot"));
+        assert!(refused(&|d| d["crm"] = json!({ "set": ["crm"] })).starts_with("crm"));
         assert!(refused(&|d| d["unknown"] = json!(1)).starts_with("unknown"));
         refused(&|d| d["doctor"] = json!({ "args": ["doctor"] }));
         assert!(refused(&|d| d["accountRemove"]["remove"]["confirm"] = json!("--dry-run")).contains("remove.confirm"));
