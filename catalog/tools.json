@@ -2030,7 +2030,7 @@
       },
       "sync": {
         "run": ["sync", "--record", "--json"],
-        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "notes and mail",
         "note": null
@@ -2172,7 +2172,7 @@
       "tasks": null,
       "sync": {
         "run": ["{profile}", "sync", "--record", "--json"],
-        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "mail",
         "note": null,
@@ -2364,7 +2364,7 @@
       "tasks": null,
       "sync": {
         "run": ["{profile}", "sync", "--record", "--json"],
-        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "files",
         "note": null
