@@ -10,7 +10,7 @@ import { FEATURES, localOnlyMessages, PLACES } from "./messages-local-only"
 
 const feature = (id: string, where: string, address: string | null = null, refused = false) => ({
   id,
-  title: `memo's ${id}`,
+  title: `wcat's ${id}`,
   where,
   address,
   refused,
@@ -38,7 +38,7 @@ describe("Only this computer", () => {
     })
   })
 
-  it("lists where each feature sends data, and turns on with memo's answer as the new state", async () => {
+  it("lists where each feature sends data, and turns on with wcat's answer as the new state", async () => {
     vi.spyOn(platform, "localOnlyStatus").mockResolvedValue({ state: "ready", status: off })
     const set = vi.spyOn(platform, "localOnlySet").mockResolvedValue(on)
     const show = vi.spyOn(platform, "localOnlyStatus")
@@ -52,7 +52,7 @@ describe("Only this computer", () => {
     expect(within(row("AI model")).getByText("localhost:11434")).toBeInTheDocument()
     expect(within(row("Rewrite records for better search")).getByText("Another computer")).toBeInTheDocument()
     expect(within(row("Reading pictures")).getByText("Through your agent")).toBeInTheDocument()
-    expect(within(row("memo's new_thing")).getByText("Unknown")).toBeInTheDocument()
+    expect(within(row("wcat's new_thing")).getByText("Unknown")).toBeInTheDocument()
     expect(screen.queryByText("Refused")).toBeNull()
 
     await userEvent.setup().click(toggle)
@@ -78,24 +78,24 @@ describe("Only this computer", () => {
     expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true")
   })
 
-  it("shows no date for a setting memo could not read", async () => {
+  it("shows no date for a setting wcat could not read", async () => {
     vi.spyOn(platform, "localOnlyStatus").mockResolvedValue({ state: "ready", status: { ...on, since: null } })
     render(<LocalOnlySetting />)
     expect(await screen.findByText(/^On\./)).toBeInTheDocument()
   })
 
-  it("asks for a memo update while no memo with it is released", async () => {
+  it("asks for a wcat update while no wcat with it is released", async () => {
     vi.spyOn(platform, "localOnlyStatus").mockResolvedValue({ state: "old", version: "0.131.84", need: null })
     render(<LocalOnlySetting />)
-    expect(await screen.findByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Update wcat" })).toBeInTheDocument()
     expect(screen.queryByRole("switch")).toBeNull()
   })
 
-  it("asks memo nothing when it is not installed", () => {
+  it("asks wcat nothing when it is not installed", () => {
     useTools.setState({ installs: { memo: [] } })
     const show = vi.spyOn(platform, "localOnlyStatus")
     render(<LocalOnlySetting />)
-    expect(screen.getByRole("button", { name: "Install Memo" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Install wcat" })).toBeInTheDocument()
     expect(show).not.toHaveBeenCalled()
   })
 })

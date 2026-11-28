@@ -103,10 +103,10 @@ describe("Importing records from a file", () => {
     expect(screen.getByText("total is a decimal number")).toBeInTheDocument()
   })
 
-  it("asks for an update when memo cannot import files", async () => {
+  it("asks for an update when wcat cannot import files", async () => {
     vi.spyOn(platform, "recordTypes").mockRejectedValue(new Error(RECORDS_TOO_OLD))
     render(<ImportPanel />)
-    expect(await screen.findByText(/This needs a newer Memo than/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(await screen.findByText(/This needs a newer wcat than/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
   })
 })

@@ -469,8 +469,8 @@ mod tests {
             assert!(a.iter().any(|x| x == "--no-record"), "{id}: a search is not kept in the tool's history");
             assert!(a.iter().any(|x| x == "--json"), "{id}");
             assert!(!a.iter().any(|x| x == "--sync-first" || x == "server" || x == "both"), "{id}");
-            // memo has no --offline; it never connects to anything to search.
-            if tool.bin != "memo" {
+            // files has no --offline; it never connects to anything to search.
+            if tool.id != "files" {
                 assert!(a.iter().any(|x| x == "--offline"), "{id}: --offline");
             }
         }
@@ -483,17 +483,15 @@ mod tests {
 
     #[test]
     fn search_by_meaning_only_where_its_filters_hold() {
-        for (id, below, fixed) in [("drive", "0.50.9", "0.51.0"), ("memo", "0.124.3", "0.125.0")] {
-            let src = src(id);
-            let profile = (id == "drive").then_some("personal");
-            let plain = args(src, profile, "x", 10, 1).unwrap();
-            assert!(!plain.iter().any(|a| a == "--exact"), "{id}");
-            let gate = src.exact_below.as_deref();
-            assert!(with_exact(plain.clone(), gate, Some(below)).iter().any(|a| a == "--exact"), "{id} {below}");
-            assert!(with_exact(plain.clone(), gate, None).iter().any(|a| a == "--exact"), "{id} unknown");
-            assert!(!with_exact(plain.clone(), gate, Some(fixed)).iter().any(|a| a == "--exact"), "{id} {fixed}");
-            assert!(!with_exact(plain, gate, Some("1.0.0")).iter().any(|a| a == "--exact"), "{id} 1.0.0");
-        }
+        let (below, fixed) = ("0.50.9", "0.51.0");
+        let drive = src("drive");
+        let plain = args(drive, Some("personal"), "x", 10, 1).unwrap();
+        assert!(!plain.iter().any(|a| a == "--exact"));
+        let gate = drive.exact_below.as_deref();
+        assert!(with_exact(plain.clone(), gate, Some(below)).iter().any(|a| a == "--exact"), "{below}");
+        assert!(with_exact(plain.clone(), gate, None).iter().any(|a| a == "--exact"), "unknown");
+        assert!(!with_exact(plain.clone(), gate, Some(fixed)).iter().any(|a| a == "--exact"), "{fixed}");
+        assert!(!with_exact(plain, gate, Some("1.0.0")).iter().any(|a| a == "--exact"), "1.0.0");
         let tg = args(src("tg"), Some("p"), "x", 10, 1).unwrap();
         assert_eq!(with_exact(tg.clone(), None, Some("0.1.0")), tg);
     }
@@ -549,8 +547,8 @@ mod tests {
         assert!(args(src("tg"), None, "x", 10, 1).is_err());
         assert!(args(src("tg"), Some("--json"), "x", 10, 1).is_err());
         assert!(args(src("tg"), Some("a b"), "x", 10, 1).is_err());
-        assert!(args(src("memo"), Some("personal"), "x", 10, 1).is_err());
-        assert!(args(src("memo"), None, "x", 10, 1).is_ok());
+        assert!(args(src("files"), Some("personal"), "x", 10, 1).is_err());
+        assert!(args(src("files"), None, "x", 10, 1).is_ok());
     }
 
     #[test]

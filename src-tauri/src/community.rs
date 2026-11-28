@@ -23,8 +23,10 @@ const MAX_TOOLS: usize = 32;
 
 /// Fields a community tool may not set: parts of our packages, memo's own pages, a bot token on stdin, emptying the
 /// store every tool shares, and writing a CRM's cards from the Clients board.
-pub const FORBIDDEN: [&str; 11] = [
+pub const FORBIDDEN: [&str; 13] = [
     "partOf",
+    "replaces",
+    "mcpName",
     "commandPrefix",
     "memory",
     "taskBoard",
@@ -297,6 +299,10 @@ impl Taken {
         self.ids.insert(tool.id.clone(), owner());
         self.bins.insert(tool.bin.clone(), owner());
         self.packages.insert(tool.package.clone(), owner());
+        if let Some(old) = &tool.replaces {
+            self.bins.insert(old.bin.clone(), owner());
+            self.packages.insert(old.package.clone(), owner());
+        }
         self.folders.insert(tool.storage.app.to_lowercase(), owner());
         self.folders.insert(tool.storage.env.to_lowercase(), owner());
         if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
@@ -738,7 +744,8 @@ mod tests {
         assert!(rejected(&with("repo", json!("https://github.com/WireCatLabs/acme"))).contains("WireCat's own"));
         assert!(rejected(&with("repo", json!("https://gitlab.com/example/acme"))).contains("github.com"));
         assert!(rejected(&with("id", json!("tg"))).contains("taken"));
-        assert!(rejected(&with("bin", json!("memo"))).contains("taken"));
+        assert!(rejected(&with("bin", json!("wcat-wirecat"))).contains("taken"));
+        assert!(rejected(&with("bin", json!("memo"))).contains("taken"), "the program wcat replaced");
         assert!(rejected(&with("docs", json!("http://example.com"))).contains("https"));
     }
 

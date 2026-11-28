@@ -124,6 +124,7 @@ fn own_unit(unit: &str) -> bool {
         .iter()
         .any(|t| name.strip_prefix(t.bin.as_str()).is_some_and(|rest| rest.starts_with('-') && rest.len() > 1))
         || name.starts_with("wirecat-")
+        || name.starts_with("wcat-")
 }
 
 #[cfg(test)]
@@ -173,9 +174,9 @@ mod tests {
 
     #[test]
     fn stops_only_the_tools_own_units() {
-        assert!(own_unit("memo-import.timer"));
+        assert!(own_unit("wcat-import.timer"));
         assert!(own_unit("wirecat-live.service"));
-        assert!(!own_unit("memo.timer"));
+        assert!(!own_unit("wcat.timer"));
         assert!(!own_unit("ssh.service"));
         assert!(!own_unit("mail-sync"));
         assert_eq!(runnable(tg(), "systemctl --user stop ssh.service"), None);

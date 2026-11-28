@@ -301,7 +301,7 @@ pub(crate) fn unusable(tool: &Tool, need: &str) -> Option<Unusable> {
 
 /// `None` when Memo can serve the page; otherwise what the page shows instead.
 fn gate() -> Result<Option<Read>, String> {
-    let need = memo()?.task_board.as_ref().ok_or("Memo has no task board in the catalog")?.min_version.clone();
+    let need = memo()?.task_board.as_ref().ok_or("wcat has no task board in the catalog")?.min_version.clone();
     Ok(memo_unusable(&need)?.map(|u| match u {
         Unusable::Missing => Read::Missing,
         Unusable::Old { version, need } => Read::Old { version, need },
@@ -470,7 +470,7 @@ fn people_listed_with(call: &Call, refs: &[String]) -> Result<Vec<Person>, Failu
 
 pub fn people_named(refs: &[String]) -> Result<Vec<Person>, String> {
     let tool = memo()?;
-    let bin = tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = tools::program(&tool.bin).ok_or("wcat is not installed")?;
     let shows =
         tool.people.as_ref().is_some_and(|p| !crate::tools::older(tools::version_of(&bin).as_deref(), &p.min_version));
     with_memo(READ, |call| if shows { Ok(people_named_with(call, refs)) } else { people_listed_with(call, refs) })
@@ -490,7 +490,7 @@ fn person_add_with(call: &Call, name: &str) -> Result<Person, Failure> {
     let reference = reference.ok_or_else(|| Failure {
         reason: None,
         details: Value::Null,
-        message: "Memo did not name the person".into(),
+        message: "wcat did not name the person".into(),
     })?;
     Ok(Person { reference, name: text(item, "name"), owner: false })
 }
@@ -622,7 +622,7 @@ fn comment_add_with(call: &Call, key: &str, text: &str) -> Result<Comment, Failu
     comment(body(&call(&args)?)).ok_or_else(|| Failure {
         reason: None,
         details: Value::Null,
-        message: "Memo's answer did not describe the comment".into(),
+        message: "wcat's answer did not describe the comment".into(),
     })
 }
 
@@ -636,7 +636,7 @@ fn shown(v: &Value) -> Result<Task, Failure> {
     task(body(v)).ok_or_else(|| Failure {
         reason: None,
         details: Value::Null,
-        message: "Memo's answer did not describe the task".into(),
+        message: "wcat's answer did not describe the task".into(),
     })
 }
 

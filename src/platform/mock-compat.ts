@@ -17,7 +17,7 @@ const SUPPORT: Record<string, { speaks: number; current: boolean } | null> = {
   "max@0.75.0": { speaks: 34, current: true },
   "wa@0.6.0": { speaks: 29, current: false },
   "wa@0.7.0": { speaks: 34, current: true },
-  "memo@0.95.0": { speaks: 33, current: true },
+  "wcat@0.95.0": { speaks: 33, current: true },
   "drive@0.30.0": { speaks: 33, current: true },
 }
 
@@ -55,7 +55,7 @@ export async function storeCompatMock(installed: ReadonlyMap<string, string>): P
   return {
     tools: [...installed].map(([id, version]) => viewOf(id, version)),
     clients: [
-      { command: "memo", version: "0.93.0", speaks: 31 },
+      { command: "wcat-wirecat", version: "0.93.0", speaks: 31 },
       { command: "tg", version: "0.88.0", speaks: 33 },
     ],
   }

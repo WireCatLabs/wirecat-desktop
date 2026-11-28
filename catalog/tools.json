@@ -1785,77 +1785,22 @@
     },
     {
       "id": "memo",
-      "name": "Memo",
-      "tagline": "Notes, files and Obsidian vaults\u00a0· search everything",
-      "bin": "memo",
-      "package": "@wirecat/cli-memo",
-      "summary": "Your notes, files, Obsidian vaults and messages in one place for your AI agent: search, tags, people and memories, on your computer.",
-      "docs": "https://wirecat.dev/en/docs/memo",
-      "repo": "https://github.com/WireCatLabs/cli-memo",
+      "name": "wcat",
+      "tagline": "People, tasks and memories from every source",
+      "bin": "wcat-wirecat",
+      "package": "@wirecat/wirecat",
+      "replaces": { "package": "@wirecat/cli-memo", "bin": "memo" },
+      "mcpName": "wirecat",
+      "summary": "Your messages, mail, meetings and notes in one place for your AI agent: people, tasks, memories and digests, on your computer.",
+      "docs": "https://wirecat.dev/en/docs/wcat",
+      "repo": "https://github.com/WireCatLabs/wirecat",
       "profiles": null,
       "doctor": ["doctor", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
-      "search": {
-        "args": ["search", "notes", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json", "--", "{query}"],
-        "shape": "items",
-        "what": "notes",
-        "fields": [
-          {
-            "name": "title",
-            "group": "what",
-            "example": "title:plan",
-            "top": true,
-            "values": null
-          },
-          {
-            "name": "tag",
-            "group": "what",
-            "example": "tag:work",
-            "top": true,
-            "values": null
-          },
-          {
-            "name": "date",
-            "group": "when",
-            "example": "date>=30d",
-            "top": true,
-            "values": null
-          },
-          {
-            "name": "author",
-            "group": "who",
-            "example": "author:\"Ana Ruiz\"",
-            "top": true,
-            "values": null
-          },
-          {
-            "name": "text",
-            "group": "what",
-            "example": "text:budget",
-            "top": false,
-            "values": null
-          },
-          {
-            "name": "site",
-            "group": "files",
-            "example": "site:github.com",
-            "top": false,
-            "values": null
-          },
-          {
-            "name": "source",
-            "group": "where",
-            "example": "source:internal",
-            "top": false,
-            "values": ["internal", "file"]
-          }
-        ],
-        "values": {},
-        "exactBelow": "0.125.0"
-      },
+      "search": null,
       "aggregates": {
         "taskSources": {
           "args": [
@@ -1953,19 +1898,6 @@
         "moreSources": { "minVersion": "0.131.86" },
         "agentConsent": { "minVersion": "0.131.86" }
       },
-      "notesSetup": {
-        "minVersion": "0.134.0",
-        "folders": ["folders", "list", "--no-record", "--json"],
-        "add": ["folders", "add", "{path}", "--format", "{format}", "--no-record", "--json"],
-        "remove": ["folders", "remove", "{id}", "--record", "--json"],
-        "removeDelete": ["folders", "remove", "{id}", "--allow-delete", "--yes", "--record", "--json"],
-        "sync": ["sync", "--only", "notes", "--record", "--json"],
-        "models": ["models", "list", "--no-record", "--json"],
-        "choices": ["embeddinggemma", "e5-small"],
-        "recommended": "embeddinggemma",
-        "download": ["models", "download", "{model}", "--json"],
-        "use": ["models", "set", "{model}", "--json"]
-      },
       "enrichment": {
         "show": ["models", "consents", "show", "--no-record", "--json"],
         "baseUrl": { "minVersion": "0.131.85" },
@@ -1997,26 +1929,6 @@
         "keySet": ["models", "keys", "set", "{provider}", "--record", "--json"],
         "keyRemove": ["models", "keys", "remove", "{provider}", "--record", "--json"]
       },
-      "searchHarder": {
-        "minVersion": "0.131.74",
-        "show": ["models", "search-consents", "show", "--no-record", "--json"],
-        "preview": ["models", "search-consents", "set", "{provider}", "{model}", "{baseUrl}", "--no-record", "--json"],
-        "on": ["models", "search-consents", "set", "{provider}", "{model}", "{baseUrl}", "--yes", "--record", "--json"],
-        "off": ["models", "search-consents", "revoke", "--record", "--json"],
-        "search": [
-          "search",
-          "all",
-          "--only",
-          "notes",
-          "--harder",
-          "--limit",
-          "{limit}",
-          "--no-record",
-          "--json",
-          "--",
-          "{query}"
-        ]
-      },
       "localOnly": {
         "minVersion": "0.131.85",
         "show": ["models", "local-only", "show", "--no-record", "--json"],
@@ -2044,8 +1956,144 @@
       "storeResetPreview": null,
       "storeReset": null,
       "storage": {
-        "app": "cli-memo",
-        "env": "MEMO"
+        "app": "wcat",
+        "env": "WCAT"
+      },
+      "settings": null,
+      "signIn": null
+    },
+    {
+      "id": "files",
+      "name": "Files",
+      "tagline": "Notes, files and Obsidian vaults\u00a0· search",
+      "bin": "wcat-files",
+      "package": "@wirecat/files-cli",
+      "summary": "Your notes folders, Obsidian vaults, PDF and Word files in one place for your AI agent: search them by words and by meaning, on your computer.",
+      "docs": "https://wirecat.dev/en/docs/files",
+      "repo": "https://github.com/WireCatLabs/files-cli",
+      "profiles": null,
+      "doctor": ["doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": {
+        "args": ["search", "notes", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json", "--", "{query}"],
+        "shape": "items",
+        "what": "notes",
+        "fields": [
+          {
+            "name": "title",
+            "group": "what",
+            "example": "title:plan",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "tag",
+            "group": "what",
+            "example": "tag:work",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "date",
+            "group": "when",
+            "example": "date>=30d",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "author",
+            "group": "who",
+            "example": "author:\"Ana Ruiz\"",
+            "top": true,
+            "values": null
+          },
+          {
+            "name": "text",
+            "group": "what",
+            "example": "text:budget",
+            "top": false,
+            "values": null
+          },
+          {
+            "name": "site",
+            "group": "files",
+            "example": "site:github.com",
+            "top": false,
+            "values": null
+          },
+          {
+            "name": "source",
+            "group": "where",
+            "example": "source:internal",
+            "top": false,
+            "values": ["internal", "file"]
+          }
+        ],
+        "values": {}
+      },
+      "setup": null,
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": null,
+      "memory": null,
+      "tasks": null,
+      "notesSetup": {
+        "minVersion": "0.0.0",
+        "folders": ["folders", "list", "--no-record", "--json"],
+        "add": ["folders", "add", "{path}", "--format", "{format}", "--no-record", "--json"],
+        "remove": ["folders", "remove", "{id}", "--record", "--json"],
+        "removeDelete": ["folders", "remove", "{id}", "--allow-delete", "--yes", "--record", "--json"],
+        "sync": ["sync", "--record", "--json"],
+        "models": ["models", "list", "--no-record", "--json"],
+        "choices": ["embeddinggemma", "e5-small"],
+        "recommended": "embeddinggemma",
+        "download": ["models", "download", "{model}", "--json"],
+        "use": ["models", "set", "{model}", "--json"]
+      },
+      "searchHarder": {
+        "minVersion": "0.0.0",
+        "show": ["models", "search-consents", "show", "--no-record", "--json"],
+        "preview": ["models", "search-consents", "set", "{provider}", "{model}", "{baseUrl}", "--no-record", "--json"],
+        "on": ["models", "search-consents", "set", "{provider}", "{model}", "{baseUrl}", "--yes", "--record", "--json"],
+        "off": ["models", "search-consents", "revoke", "--record", "--json"],
+        "search": [
+          "search",
+          "all",
+          "--only",
+          "notes",
+          "--harder",
+          "--limit",
+          "{limit}",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
+      "sync": {
+        "run": ["sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "notes",
+        "note": null
+      },
+      "storeInfo": ["store", "info", "--no-record", "--json"],
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "files-cli",
+        "env": "FILES"
       },
       "settings": null,
       "signIn": null
@@ -2200,7 +2248,7 @@
           "agent",
           "mail-triage",
           "{harness}",
-          "Run memo skill show mail-triage and follow it.",
+          "Run wcat skill show mail-triage and follow it.",
           "--every",
           "{every}",
           "--on-new-mail",

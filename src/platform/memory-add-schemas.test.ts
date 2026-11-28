@@ -71,7 +71,7 @@ describe("Add to Memory schemas", () => {
     expect(v.parse(ReaderSchema, READER)).toEqual(READER)
   })
 
-  it("reads a record with a source review, and one from before memo had them", () => {
+  it("reads a record with a source review, and one from before wcat had them", () => {
     const marked = { ...ENTRY, sourceReview: { id: "17090", cause: "changed" } }
     expect(v.parse(MemoryEntrySchema, marked).sourceReview).toEqual({ id: "17090", cause: "changed" })
     expect(v.parse(MemoryEntrySchema, ENTRY).sourceReview).toBeNull()

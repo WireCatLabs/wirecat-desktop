@@ -29,7 +29,7 @@ async function openCard(name: string) {
 const ready = { state: "ready" as const, chars: 0, limit: 4000, updatedAt: null, updatedBy: null, history: 0 }
 
 describe("what the digest collects", () => {
-  it("saves the brief through memo, counts it against the limit and undoes the change", async () => {
+  it("saves the brief through wcat, counts it against the limit and undoes the change", async () => {
     const save = vi.spyOn(platform, "digestBriefSave")
     const undo = vi.spyOn(platform, "digestBriefUndo")
     const { user, card } = await openCard("What to collect")
@@ -49,7 +49,7 @@ describe("what the digest collects", () => {
     await waitFor(() => expect(brief).toHaveValue(editorMessages.en.brief.template.daily))
   })
 
-  it("shows memo's own words when it refuses the brief", async () => {
+  it("shows wcat's own words when it refuses the brief", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: null })
     vi.spyOn(platform, "digestBriefSave").mockRejectedValue(
       new Error("only the owner changes the digest brief, not an agent"),
@@ -62,7 +62,7 @@ describe("what the digest collects", () => {
     )
   })
 
-  it("stops a brief over the limit before it reaches memo", async () => {
+  it("stops a brief over the limit before it reaches wcat", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: "x".repeat(4000), chars: 4000 })
     const save = vi.spyOn(platform, "digestBriefSave")
     const { user, card } = await openCard("What to collect")
@@ -87,16 +87,16 @@ describe("what the digest collects", () => {
     expect(save).not.toHaveBeenCalled()
   })
 
-  it("asks for a memo update when this memo has no brief", async () => {
+  it("asks for a wcat update when this wcat has no brief", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ state: "unsupported" })
     const { card } = await openCard("What to collect")
-    expect(await within(card).findByText(/Update Memo on the Tools page to write them/)).toBeInTheDocument()
+    expect(await within(card).findByText(/Update wcat on the Tools page to write them/)).toBeInTheDocument()
     expect(within(card).queryByRole("textbox")).not.toBeInTheDocument()
   })
 })
 
 describe("how the digest looks", () => {
-  it("previews the unsaved draft, saves it, and resets to memo's template", async () => {
+  it("previews the unsaved draft, saves it, and resets to wcat's template", async () => {
     const preview = vi.spyOn(platform, "digestTemplatePreview")
     const save = vi.spyOn(platform, "digestTemplateSave")
     const reset = vi.spyOn(platform, "digestTemplateReset")
@@ -136,7 +136,7 @@ describe("how the digest looks", () => {
     )
   })
 
-  it("shows memo's check when it refuses a template", async () => {
+  it("shows wcat's check when it refuses a template", async () => {
     vi.spyOn(platform, "digestTemplateSave").mockRejectedValue(
       new Error('the template was not saved — sample: it does not render: tag "for" not closed'),
     )
@@ -146,9 +146,9 @@ describe("how the digest looks", () => {
     expect(await within(card).findByRole("alert")).toHaveTextContent('tag "for" not closed')
   })
 
-  it("asks for a memo update when this memo has no templates", async () => {
+  it("asks for a wcat update when this wcat has no templates", async () => {
     vi.spyOn(platform, "digestTemplate").mockResolvedValue({ state: "unsupported" })
     const { card } = await openCard("How it looks")
-    expect(await within(card).findByText(/Update Memo on the Tools page to edit them/)).toBeInTheDocument()
+    expect(await within(card).findByText(/Update wcat on the Tools page to edit them/)).toBeInTheDocument()
   })
 })

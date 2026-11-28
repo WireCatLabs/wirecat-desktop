@@ -46,7 +46,7 @@ const card = (title: string) => screen.findByRole("button", { name: title })
 describe("Clients on the base stages", () => {
   beforeEach(() => freshMemo())
 
-  it("opens again within a minute on the cards it showed, without asking memo or showing a skeleton", async () => {
+  it("opens again within a minute on the cards it showed, without asking wcat or showing a skeleton", async () => {
     const read = vi.spyOn(platform, "clientsRead")
     const { unmount } = render(<ClientsPage />)
     await card("Site for Northstar")
@@ -109,7 +109,7 @@ describe("Clients on the base stages", () => {
     expect(list.mock.calls.some(([q]) => q.includes("project:*") && q.includes("related:"))).toBe(false)
   })
 
-  it("asks a memo before related: only for the contacts' tasks", async () => {
+  it("asks a wcat before related: only for the contacts' tasks", async () => {
     const memo = clientsMock("none")
     vi.spyOn(platform, "clientsRead").mockImplementation(async (kind) => {
       const out = await memo.clientsRead(kind)
@@ -162,10 +162,10 @@ describe("Clients on the base stages", () => {
     expect(screen.getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument()
   })
 
-  it("offers Memo's install when it is missing", async () => {
+  it("offers wcat's install when it is missing", async () => {
     vi.spyOn(platform, "clientsRead").mockResolvedValue({ kind: "missing" })
     render(<ClientsPage />)
-    expect(await screen.findByRole("button", { name: "Install Memo" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Install wcat" })).toBeInTheDocument()
   })
 
   it("shows every pipeline's cards under the base stages, each with its stage and pipeline, and Unsorted first", async () => {
@@ -181,7 +181,7 @@ describe("Clients on the base stages", () => {
     )
   })
 
-  it("shows memo's default lead stages in the interface's language and leaves out an empty Unsorted", async () => {
+  it("shows wcat's default lead stages in the interface's language and leaves out an empty Unsorted", async () => {
     useClients.setState({ kind: "lead" })
     render(<ClientsPage />)
     const call = within(await column(/^New/)).getByRole("button", { name: "Call from the site" })
@@ -203,7 +203,7 @@ describe("Clients on the base stages", () => {
     }
   })
 
-  it("places a card under memo's suggestion, marked not confirmed, and its mark opens the stage dialog", async () => {
+  it("places a card under wcat's suggestion, marked not confirmed, and its mark opens the stage dialog", async () => {
     const user = userEvent.setup()
     render(<ClientsPage />)
     const contract = await column(/^Contract/)
@@ -237,7 +237,7 @@ describe("Clients on the base stages", () => {
     delete document.documentElement.dataset.input
   })
 
-  it("counts every open card memo holds and says how many one read did not bring", async () => {
+  it("counts every open card wcat holds and says how many one read did not bring", async () => {
     const memo = clientsMock()
     vi.spyOn(platform, "clientsRead").mockImplementation(async (...args) => {
       const r = await memo.clientsRead(...args)
@@ -309,11 +309,11 @@ describe("Clients on the base stages", () => {
     expect(move).toHaveBeenCalledWith("deal", "deal:1", "Call", null)
   })
 
-  it("asks to update memo when it is too old for Clients", async () => {
+  it("asks to update wcat when it is too old for Clients", async () => {
     vi.spyOn(platform, "clientsRead").mockResolvedValue({ kind: "old", version: "0.131.54", need: "0.131.71" })
     render(<ClientsPage />)
-    expect(await screen.findByText(/needs Memo 0\.131\.71 or newer; this computer has 0\.131\.54/)).toBeVisible()
-    expect(screen.getByRole("button", { name: "Update Memo" })).toBeVisible()
+    expect(await screen.findByText(/needs wcat 0\.131\.71 or newer; this computer has 0\.131\.54/)).toBeVisible()
+    expect(screen.getByRole("button", { name: "Update wcat" })).toBeVisible()
   })
 
   it("says to update the CRM's own tool when it is older than the one that moves cards", async () => {
@@ -358,7 +358,7 @@ describe("Clients on the base stages", () => {
 
 const WORK = { account: NORTHSTAR, profile: "work" }
 
-describe("Clients on the base stages, once memo names b24 for the portal", () => {
+describe("Clients on the base stages, once wcat names b24 for the portal", () => {
   beforeEach(() => freshMemo("one"))
 
   it("asks which stage when several fit, offers the last pick first, and sends b24 the CRM's stage id, else its name", async () => {
@@ -424,7 +424,7 @@ describe("Clients moving a CRM's cards through b24", () => {
     )
   })
 
-  it("writes nothing while memo names no profile, asks which one, and keeps the choice for the next move", async () => {
+  it("writes nothing while wcat names no profile, asks which one, and keeps the choice for the next move", async () => {
     freshMemo("choose")
     const move = vi.spyOn(platform, "clientsMove")
     const user = userEvent.setup()
@@ -621,7 +621,7 @@ describe("Accepting every CRM's suggestions from the notice", () => {
     expect(confirm).not.toHaveBeenCalledWith("deal", "pipeline:own")
   })
 
-  it("keeps the chip for a stage memo could not place, and says the suggestions are done", async () => {
+  it("keeps the chip for a stage wcat could not place, and says the suggestions are done", async () => {
     memoWith((r) => r)
     await acceptAll()
     expect(await screen.findByText("Every suggestion is confirmed.")).toBeInTheDocument()
@@ -712,7 +712,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     return { user, map, column, badge, columnAction }
   }
 
-  it("opens on the CRM with stages to sort, every unconfirmed stage in Unmapped with memo's suggestion", async () => {
+  it("opens on the CRM with stages to sort, every unconfirmed stage in Unmapped with wcat's suggestion", async () => {
     const { map, column } = await openMap()
     expect(within(map).getByRole("radio", { name: "Bitrix24 · northstar.example" })).toBeChecked()
     const unmapped = await column(/^Unmapped/)
@@ -724,7 +724,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(map).not.toHaveTextContent("Brief")
   })
 
-  it("confirms memo's suggestion for one stage with a click, and the keyboard goes on to the next one", async () => {
+  it("confirms wcat's suggestion for one stage with a click, and the keyboard goes on to the next one", async () => {
     const set = vi.spyOn(platform, "clientsMapSet")
     const { user, column } = await openMap()
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Confirm: Call" }))
@@ -733,7 +733,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Confirm: Contract" })).toHaveFocus())
   })
 
-  it("keeps every suggestion clickable while memo writes one, and writes them one after another", async () => {
+  it("keeps every suggestion clickable while wcat writes one, and writes them one after another", async () => {
     let release = () => {}
     const set = vi
       .spyOn(platform, "clientsMapSet")
@@ -790,17 +790,17 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(screen.getByRole("button", { name: "Open AI model settings" })).toBeVisible()
   })
 
-  it("offers the memo update, and leaves the dialog for it, when memo cannot suggest yet", async () => {
+  it("offers the wcat update, and leaves the dialog for it, when wcat cannot suggest yet", async () => {
     vi.spyOn(platform, "clientsMapSuggest").mockRejectedValue(new CommandError(TOO_OLD, "unknown command 'suggest'"))
     useTools.setState({ install: vi.fn(async () => {}) })
     const { user, column } = await openMap()
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Suggest with AI" }))
-    expect(await screen.findByText(/This needs a newer Memo than/)).toBeVisible()
-    await user.click(screen.getByRole("button", { name: "Update Memo" }))
+    expect(await screen.findByText(/This needs a newer wcat than/)).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Update wcat" }))
     expect(screen.queryByRole("dialog", { name: "Deal stages of your CRMs" })).toBeNull()
   })
 
-  it("puts a stage on another base stage than memo suggested, from the stage's own menu", async () => {
+  it("puts a stage on another base stage than wcat suggested, from the stage's own menu", async () => {
     const set = vi.spyOn(platform, "clientsMapSet")
     const { user, column } = await openMap()
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Another stage for Lead in" }))
@@ -870,7 +870,7 @@ describe("Calls on a card", () => {
     vi.spyOn(platform, "listProfiles").mockResolvedValue([{ name: "office", signedIn: true }])
   })
 
-  it("lists the people's calls through b24 as memo's profile, and opens one in the profile the owner picks", async () => {
+  it("lists the people's calls through b24 as wcat's profile, and opens one in the profile the owner picks", async () => {
     const open = vi.spyOn(platform, "callOpen")
     const user = userEvent.setup()
     render(<ClientsPage />)
@@ -956,7 +956,7 @@ describe("A deal's company", () => {
     expect(platform.peopleProfile).toHaveBeenCalledWith("person:7")
   })
 
-  it("asks to update Memo when it has no company card", async () => {
+  it("asks to update wcat when it has no company card", async () => {
     vi.spyOn(platform, "organizationCard").mockRejectedValue(new CommandError(TOO_OLD, "unknown command 'context'"))
     const user = userEvent.setup()
     render(<ClientsPage />)

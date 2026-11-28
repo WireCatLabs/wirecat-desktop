@@ -43,7 +43,7 @@ it("says the only ready agent runs the jobs, and greys the others with their sta
   )
 })
 
-it("greys an agent memo cannot limit and never offers it, keeping memo's reason out of the page", async () => {
+it("greys an agent wcat cannot limit and never offers it, keeping wcat's reason out of the page", async () => {
   const kimi = {
     id: "kimi",
     name: "Kimi CLI",
@@ -87,7 +87,7 @@ it("offers Codex after a warning: Cancel keeps the choice, «I understand» conf
   expect(
     within(warning).getByText(/can still run any program on this computer and read your files/),
   ).toBeInTheDocument()
-  expect(within(warning).getByText(/^Memo says: runs any program/)).toBeInTheDocument()
+  expect(within(warning).getByText(/^wcat says: runs any program/)).toBeInTheDocument()
   await user.click(within(warning).getByRole("button", { name: "Cancel" }))
   expect(ack).not.toHaveBeenCalled()
   expect(choose).not.toHaveBeenCalled()
@@ -115,13 +115,13 @@ it("keeps the warning open with the error when the confirmation is not saved, an
   expect(choose).not.toHaveBeenCalled()
 })
 
-it("on a memo that cannot list its agents, keeps Claude Code, greys Codex and points to the Memo update", async () => {
+it("on a wcat that cannot list its agents, keeps Claude Code, greys Codex and points to the wcat update", async () => {
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"], "claude", false))
   render(<BackgroundAgentSetting />)
 
-  expect(await screen.findByText(/This Memo knows only Claude Code and Codex/)).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Open Memo" })).toBeInTheDocument()
-  expect(screen.getByText("Digests are written by Claude Code until you update Memo.")).toBeInTheDocument()
+  expect(await screen.findByText(/This wcat knows only Claude Code and Codex/)).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Open wcat" })).toBeInTheDocument()
+  expect(screen.getByText("Digests are written by Claude Code until you update wcat.")).toBeInTheDocument()
 })
 
 it("names an agent whose program is gone and asks to install it again", async () => {

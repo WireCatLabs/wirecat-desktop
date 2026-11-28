@@ -339,7 +339,7 @@ function Waiting({ count, m }: { count: number | null; m: MailAgentText }) {
     <div className="flex max-w-[28rem] flex-col gap-1.5">
       <p className="text-[0.9rem] font-medium text-ink">{m.waiting(count)}</p>
       <p className="text-[0.875rem] text-ink-dim">{m.review}</p>
-      <CopyField value="memo review list" label={m.copyReview} />
+      <CopyField value="wcat review list" label={m.copyReview} />
     </div>
   )
 }

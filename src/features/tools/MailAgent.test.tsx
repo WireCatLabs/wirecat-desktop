@@ -36,7 +36,7 @@ beforeEach(() => {
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude"]))
 })
 
-it("is offered only for Email, which names memo's schedule", () => {
+it("is offered only for Email, which names wcat's schedule", () => {
   expect(email.mailAgent).toEqual({
     via: "memo",
     name: "mail-triage",
@@ -46,7 +46,7 @@ it("is offered only for Email, which names memo's schedule", () => {
   expect(findTool("tg")?.mailAgent).toBeNull()
 })
 
-it("turns the schedule on through memo and then shows its status and the day's spend", async () => {
+it("turns the schedule on through wcat and then shows its status and the day's spend", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "off", harness: true })
   const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue(on)
   render(<MailAgent tool={email} />)
@@ -62,7 +62,7 @@ it("turns the schedule on through memo and then shows its status and the day's s
   expect(screen.getByText("17 proposals wait for you")).toBeInTheDocument()
 })
 
-it("turns it off with memo's remove", async () => {
+it("turns it off with wcat's remove", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue(on)
   const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ state: "off", harness: true })
   render(<MailAgent tool={email} />)
@@ -187,7 +187,7 @@ it("switches to Codex only through its warning, and asks no more once confirmed"
   await vi.waitFor(() => expect(set).toHaveBeenCalledWith("email", true, "30m", "codex"))
 })
 
-it("saves a schedule memo stopped again as it is, with its own agent and interval, and chooses nothing", async () => {
+it("saves a schedule wcat stopped again as it is, with its own agent and interval, and chooses nothing", async () => {
   vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agents(["claude", "gemini"], "gemini"))
   const why =
     "schedule mail-triage does not run: it was saved by an older version, which kept no agent to rebuild its start from; save it again to run it"
@@ -211,15 +211,15 @@ it("saves a schedule memo stopped again as it is, with its own agent and interva
   expect(screen.queryByRole("button", { name: "Save again" })).not.toBeInTheDocument()
 })
 
-it("offers Memo instead of a switch when memo is not installed", async () => {
+it("offers wcat instead of a switch when wcat is not installed", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "noMemo" })
   render(<MailAgent tool={email} />)
 
-  expect(await screen.findByRole("button", { name: "Open Memo" })).toBeInTheDocument()
+  expect(await screen.findByRole("button", { name: "Open wcat" })).toBeInTheDocument()
   expect(screen.queryByRole("switch")).not.toBeInTheDocument()
 })
 
-it("says when a run was skipped at the day's cost cap, memo's words under Details", async () => {
+it("says when a run was skipped at the day's cost cap, wcat's words under Details", async () => {
   const why = "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow"
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
     ...on,
@@ -234,8 +234,8 @@ it("says when a run was skipped at the day's cost cap, memo's words under Detail
   expect(screen.getByText("Spent today: $5.02 of $5.00")).toBeInTheDocument()
 })
 
-it("translates a skip by its reason id and folds memo's sentence for an id it does not know under Details", async () => {
-  const skipped = (reason: string) => ({ at: new Date().toISOString(), why: "memo's english", reason })
+it("translates a skip by its reason id and folds wcat's sentence for an id it does not know under Details", async () => {
+  const skipped = (reason: string) => ({ at: new Date().toISOString(), why: "wcat's english", reason })
   const status = vi.spyOn(platform, "mailAgentStatus")
   status.mockResolvedValue({ ...on, last: { ...ran, skipped: skipped("mail.none-new") } })
   const { unmount } = render(<MailAgent tool={email} />)
@@ -251,10 +251,10 @@ it("translates a skip by its reason id and folds memo's sentence for an id it do
   render(<MailAgent tool={email} />)
   expect(await screen.findByText("Last start skipped just now.")).toBeInTheDocument()
   fireEvent.click(screen.getByRole("button", { name: "Details" }))
-  expect(await screen.findByText("memo's english")).toBeInTheDocument()
+  expect(await screen.findByText("wcat's english")).toBeInTheDocument()
 })
 
-it("leaves the cap out when there is none or memo is too old to report it", async () => {
+it("leaves the cap out when there is none or wcat is too old to report it", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ ...on, maxCostPerDayUsd: 0 })
   const { unmount } = render(<MailAgent tool={email} />)
   expect(await screen.findByText("Spent today: $0.84")).toBeInTheDocument()
@@ -265,7 +265,7 @@ it("leaves the cap out when there is none or memo is too old to report it", asyn
   expect(await screen.findByText("Spent today: $0.84")).toBeInTheDocument()
 })
 
-it("shows the schedule's own interval and changes it through memo, never falling back to 5 minutes", async () => {
+it("shows the schedule's own interval and changes it through wcat, never falling back to 5 minutes", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue(on)
   const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, when: "every 1h", every: "1h" })
   const user = userEvent.setup()

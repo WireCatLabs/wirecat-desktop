@@ -119,7 +119,7 @@ export function conversationMock(params: URLSearchParams): Pick<Platform, "conve
       await delay(ask.kind === "open" ? 450 : 350)
       if (mode === "nomemo") return { state: "noMemo" }
       if (mode === "old") return { state: "old", message: "unknown command 'show'" }
-      if (mode === "failed") return { state: "failed", message: "memo stopped after 60 s" }
+      if (mode === "failed") return { state: "failed", message: "wcat stopped after 60 s" }
       if (place.account === "9") return { state: "missing", what: "account" }
       if (place.chat === "404" || place.message === "404") return { state: "missing", what: "stored" }
       if (mode === "thread" && place.provider === "email" && !place.message) return { state: "missing", what: "thread" }

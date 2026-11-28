@@ -45,8 +45,8 @@ const en = {
     noKey: "No key is stored for the AI model. Add it in the AI model settings.",
     localOnly:
       "Only this computer is on in Settings, so mail never goes to a model on another computer. Choose a model on this computer, or turn that switch off.",
-    ask: "Your model is outside this computer, and Memo asks before mail goes there. Send this account's new mail?",
-    denied: "Memo is set to never send mail to this model. Choose a model on this computer in Settings.",
+    ask: "Your model is outside this computer, and wcat asks before mail goes there. Send this account's new mail?",
+    denied: "wcat is set to never send mail to this model. Choose a model on this computer in Settings.",
     agent: "Email refused because WireCat was started from an AI agent's session. Open WireCat from the app menu.",
     notSynced: "Nothing is synced in this account yet. Sync it on the Tools page first.",
     busy: "A sync of this account holds the mail store. Try again when it ends.",
@@ -108,8 +108,8 @@ const ru: typeof en = {
     noKey: "Для модели ИИ не сохранен ключ. Добавьте его в настройках модели ИИ.",
     localOnly:
       'В настройках включено "Только этот компьютер", поэтому почта не уходит в модель на другом компьютере. Выберите модель на этом компьютере или выключите этот переключатель.',
-    ask: "Ваша модель работает не на этом компьютере, и Memo спрашивает, прежде чем отправить туда почту. Отправить новую почту этого аккаунта?",
-    denied: "В Memo запрещено отправлять почту в эту модель. Выберите в настройках модель на этом компьютере.",
+    ask: "Ваша модель работает не на этом компьютере, и wcat спрашивает, прежде чем отправить туда почту. Отправить новую почту этого аккаунта?",
+    denied: "В wcat запрещено отправлять почту в эту модель. Выберите в настройках модель на этом компьютере.",
     agent: "Email отказал, потому что WireCat запущен из сессии ИИ-агента. Откройте WireCat из меню приложений.",
     notSynced: "В этом аккаунте еще ничего не синхронизировано. Сначала синхронизируйте его на странице Инструменты.",
     busy: "Хранилище почты сейчас занято синхронизацией этого аккаунта. Попробуйте, когда она закончится.",
@@ -171,8 +171,8 @@ const es: typeof en = {
     noKey: "No hay una clave guardada para el modelo de IA. Añádela en los ajustes del modelo de IA.",
     localOnly:
       'En Ajustes está activado "Solo este ordenador", así que el correo nunca va a un modelo en otro ordenador. Elige un modelo en este ordenador o desactiva ese interruptor.',
-    ask: "Tu modelo está fuera de este ordenador y Memo pregunta antes de enviarle correo. ¿Envío el correo nuevo de esta cuenta?",
-    denied: "Memo tiene prohibido enviar correo a este modelo. Elige en Ajustes un modelo en este ordenador.",
+    ask: "Tu modelo está fuera de este ordenador y wcat pregunta antes de enviarle correo. ¿Envío el correo nuevo de esta cuenta?",
+    denied: "wcat tiene prohibido enviar correo a este modelo. Elige en Ajustes un modelo en este ordenador.",
     agent:
       "Email se negó porque WireCat se abrió desde la sesión de un agente de IA. Abre WireCat desde el menú de aplicaciones.",
     notSynced: "Esta cuenta aún no tiene nada sincronizado. Sincronízala primero en la página Herramientas.",

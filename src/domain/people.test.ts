@@ -26,7 +26,7 @@ const id = (identity: string, scopes: (string | null)[] = [], movable = true) =>
 })
 
 describe("people", () => {
-  it("groups a person's accounts by source in memo's order", () => {
+  it("groups a person's accounts by source in wcat's order", () => {
     const groups = bySource([id("telegram:1"), id("email:a@x.org"), id("telegram:2")])
     expect(groups.map((g) => [g.provider, g.identities.length])).toEqual([
       ["telegram", 2],
@@ -121,7 +121,7 @@ describe("people", () => {
     expect(refs({ query: "len" })).toEqual(["person:3"])
   })
 
-  it("words memo's known refusals and leaves the rest in memo's words", () => {
+  it("words wcat's known refusals and leaves the rest in wcat's words", () => {
     expect(reasonOf("identity.stale")).toBe("identity.stale")
     expect(reasonOf("the store is busy")).toBeNull()
   })

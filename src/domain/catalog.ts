@@ -309,6 +309,7 @@ const ToolSchema = v.object({
         "meetings",
         "calls",
         "notes and mail",
+        "notes",
         "mail",
         "records",
         "tracker",

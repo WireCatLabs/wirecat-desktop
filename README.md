@@ -64,13 +64,13 @@ The sidebar has these pages, top to bottom:
 | Page | What it does |
 | --- | --- |
 | Tools | Two tabs. **Tools** shows every WireCat CLI tool, which are installed and in which version, and installs, updates and uninstalls them, runs a tool's own health check and signs in to an account. **Agents** finds the AI agents on this computer and gives them each tool's skill and MCP server, and connects ChatGPT and Claude in the browser through a tool's MCP server. |
-| Tasks | One task list for you and your agents, as a table or a board. Memo keeps it, and agents read and change the same list. |
+| Tasks | One task list for you and your agents, as a table or a board. wcat keeps it, and agents read and change the same list. |
 | Digests | Three tabs. **Digests** shows what each digest wrote, newest day first; every person, chat, task, meeting, document and deal in it opens here. **Inbox** shows new mail sorted by your AI model: what needs an answer, what to read and what can wait. **Settings** holds the presets to make a digest, every digest's schedule, sources, brief and look. |
 | Clients | Deals and leads from your CRM and messages, as a table or a board by stage. |
 | Contacts | Who is who across your sources, and the matches to confirm. |
 | Meetings | Meetings, calls and calendar events of every account, by week, by month or as a table. A calendar event and its Zoom or Meet meeting are one row; each opens with its people, transcript and summary. |
 | Documents | Every document WireCat keeps: Google Drive files, your notes folders, files you added and imports. Read the text here, or open the file where it lives. |
-| Memory | What your agents concluded about you and the people you talk to, and what they propose to do. Nothing counts until you approve it. Memo keeps it. |
+| Memory | What your agents concluded about you and the people you talk to, and what they propose to do. Nothing counts until you approve it. wcat keeps it. |
 | Guides | Ready prompts for your agent, such as a catch-up on what you missed or a brief before a call. Each one says which tools and commands it uses. |
 | Analytics | Two tabs. **Data** counts your messages, chats and projects over time. **Storage** shows the data folders of each tool and the shared archive, makes a backup of the shared archive (with an optional password) and clears it. |
 | Search | Searches what one tool keeps on this computer, for one account. It reads the local copy only and never asks the service. Your agent can write the query from a plain sentence. |
@@ -109,7 +109,8 @@ The app installs the same npm packages as a command-line user.
 | [Zoom](https://wirecat.dev/en/docs/zm) | `zm` | `@wirecat/zoom-cli` |
 | [Google Drive](https://wirecat.dev/en/docs/drive) | `drive` | `@wirecat/drive-cli` |
 | [Google Calendar](https://wirecat.dev/en/docs/gcal) | `gcal` | `@wirecat/gcal-cli` |
-| [Memo](https://wirecat.dev/en/docs/memo) | `memo` | `@wirecat/cli-memo` |
+| [wcat](https://wirecat.dev/en/docs/wcat) | `wcat` (program `wcat-wirecat`) | `@wirecat/wirecat` |
+| [Files](https://wirecat.dev/en/docs/files) | `wcat files` (program `wcat-files`) | `@wirecat/files-cli` |
 | [Email](https://wirecat.dev/en/docs/mail) | `mail` | `@wirecat/mail-cli` |
 
 ## Tools from outside WireCat

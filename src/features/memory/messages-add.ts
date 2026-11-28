@@ -137,7 +137,7 @@ const en = {
       "WireCat cannot read this kind of file or page. Save it as PDF, Word or plain text and add that.",
     "source.no-text": "There is no text in it. Add a file that holds text, or paste the text.",
     "source.unreadable": "It could not be read: it may be damaged or locked. Save it again, or as PDF or plain text.",
-    "source.engine-missing": "The reader for this kind of file is missing. Reinstall Memo on the Tools page.",
+    "source.engine-missing": "The reader for this kind of file is missing. Reinstall wcat on the Tools page.",
     "source.too-large": "It is too large. Add a smaller part, or save only its text and add that.",
     "source.url-refused":
       "WireCat reads only public pages: not a local or home network address, and not a link with a password in it.",
@@ -301,7 +301,7 @@ const ru: typeof en = {
       "WireCat не читает такой файл или страницу. Сохраните как PDF, Word или текст и добавьте его.",
     "source.no-text": "В нём нет текста. Добавьте файл с текстом или вставьте текст.",
     "source.unreadable": "Не удалось прочитать: файл повреждён или защищён. Сохраните его заново, как PDF или текст.",
-    "source.engine-missing": "Нет программы для чтения таких файлов. Переустановите Memo на странице Инструменты.",
+    "source.engine-missing": "Нет программы для чтения таких файлов. Переустановите wcat на странице Инструменты.",
     "source.too-large": "Слишком большой. Добавьте часть поменьше или сохраните только текст.",
     "source.url-refused":
       "WireCat читает только открытые страницы: не локальный адрес, не адрес домашней сети и не ссылку с паролем.",
@@ -464,7 +464,7 @@ const es: typeof en = {
     "source.unsupported": "WireCat no lee este tipo de archivo o página. Guárdalo como PDF, Word o texto y añade ese.",
     "source.no-text": "No tiene texto. Añade un archivo con texto o pega el texto.",
     "source.unreadable": "No se pudo leer: puede estar dañado o bloqueado. Guárdalo de nuevo, o como PDF o texto.",
-    "source.engine-missing": "Falta el lector de este tipo de archivo. Reinstala Memo en la página Herramientas.",
+    "source.engine-missing": "Falta el lector de este tipo de archivo. Reinstala wcat en la página Herramientas.",
     "source.too-large": "Es demasiado grande. Añade una parte más pequeña o solo su texto.",
     "source.url-refused":
       "WireCat solo lee páginas públicas: no una dirección local ni de la red de casa, ni un enlace con contraseña.",

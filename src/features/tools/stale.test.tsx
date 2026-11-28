@@ -9,7 +9,7 @@ import { render, screen, waitFor, within } from "@/testing/render"
 import { ToolsPage } from "./ToolsPage"
 
 const copy = (version: string) => [{ path: "~/bin/tg", version, manager: "pnpm" as const, problem: null }]
-const answer = (version: string): ToolState[] => [{ id: "tg", installs: copy(version) }]
+const answer = (version: string): ToolState[] => [{ id: "tg", installs: copy(version), switchFrom: null }]
 
 function held<T>() {
   let resolve: (value: T) => void = () => undefined

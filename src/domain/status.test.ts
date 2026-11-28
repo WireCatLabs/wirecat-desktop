@@ -27,6 +27,19 @@ describe("toolStatus", () => {
     expect(toolStatus([install("0.7.0")], null)).toEqual({ kind: "ready", version: "0.7.0", checkingUpdates: false })
   })
 
+  it("offers the switch for a copy of the program a tool replaced, whatever its version says", () => {
+    expect(toolStatus([install("0.156.0")], "1.0.0", undefined, "memo")).toEqual({
+      kind: "outdated",
+      version: "0.156.0",
+      latest: "1.0.0",
+      switchFrom: "memo",
+    })
+    expect(toolStatus([install("2.0.0")], null, undefined, "memo")).toMatchObject({
+      kind: "outdated",
+      switchFrom: "memo",
+    })
+  })
+
   it("does not call a tool up to date before npm answers", () => {
     expect(toolStatus([install("0.6.0")], undefined)).toEqual({
       kind: "ready",

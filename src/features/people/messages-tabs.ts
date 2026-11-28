@@ -12,7 +12,7 @@ const en = {
     unsorted: "Incomplete",
   } as Record<string, string>,
   botHelp: "Programs that write to you: no-reply and alert addresses, a shop's or a service's mail, messenger bots.",
-  automatedPeopleHelp: "People memo marks by a name or a bulk mailbox, not yet sorted as bots.",
+  automatedPeopleHelp: "People wcat marks by a name or a bulk mailbox, not yet sorted as bots.",
 }
 
 const ru: typeof en = {
@@ -27,7 +27,7 @@ const ru: typeof en = {
   },
   botHelp:
     "Программы, которые вам пишут: адреса no-reply и уведомлений, письма магазинов и сервисов, боты в мессенджерах.",
-  automatedPeopleHelp: "Люди, которых memo отметил по имени или массовому адресу; в боты они ещё не перенесены.",
+  automatedPeopleHelp: "Люди, которых wcat отметил по имени или массовому адресу; в боты они ещё не перенесены.",
 }
 
 const es: typeof en = {
@@ -42,7 +42,7 @@ const es: typeof en = {
   },
   botHelp:
     "Programas que te escriben: direcciones no-reply y de avisos, correo de tiendas y servicios, bots de mensajería.",
-  automatedPeopleHelp: "Personas que memo marca por un nombre o un buzón masivo, aún no pasadas a bots.",
+  automatedPeopleHelp: "Personas que wcat marca por un nombre o un buzón masivo, aún no pasadas a bots.",
 }
 
 export const tabMessages: Messages<typeof en> = { en, ru, es }

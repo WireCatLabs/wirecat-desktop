@@ -506,7 +506,7 @@ export const useTasks = create<TasksState>((set, get) => {
       set((s) => ({ busy: { ...s.busy, new: true }, failed: without(s.failed, "new") }))
       try {
         const out = await platform.taskCreate(task)
-        if (out.kind !== "saved") throw new Error("memo did not answer the new task")
+        if (out.kind !== "saved") throw new Error("wcat did not answer the new task")
         const made = out.task
         set((s) => ({
           tasks: [made, ...s.tasks.filter((t) => t.key !== made.key)],

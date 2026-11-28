@@ -33,7 +33,7 @@ describe("the documents tree", () => {
     ])
   })
 
-  it("keeps a folder whose parent is deeper than memo listed at the top", () => {
+  it("keeps a folder whose parent is deeper than wcat listed at the top", () => {
     const [account] = branches([{ ...notes, folders: [{ path: "A/B", name: "B", depth: 2, count: 1 }] }])
     expect(account?.children.map((c) => c.label)).toEqual(["B"])
   })

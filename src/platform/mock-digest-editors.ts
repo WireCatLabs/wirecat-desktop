@@ -87,7 +87,7 @@ export function digestEditorsMock(params: URLSearchParams): Pick<Platform, Edito
     async digestBriefSave(body) {
       await delay(400)
       const text = body.trim()
-      if (!text) throw new Error("the brief is empty; memo digest brief reset removes it")
+      if (!text) throw new Error("the brief is empty; wcat digest brief reset removes it")
       if (text.length > LIMIT)
         throw new Error(
           `the brief is ${text.length} characters; the limit is ${LIMIT}, because every morning run reads it and pays for it. Nothing was saved`,

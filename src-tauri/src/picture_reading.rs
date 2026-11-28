@@ -57,7 +57,7 @@ pub enum PictureReading {
 
 fn memo() -> Result<(&'static Tool, &'static PictureReadingSource), String> {
     let tool = crate::catalog::tool("memo")?;
-    let src = tool.picture_reading.as_ref().ok_or("memo has no picture reading")?;
+    let src = tool.picture_reading.as_ref().ok_or("wcat has no picture reading")?;
     Ok((tool, src))
 }
 
@@ -134,7 +134,7 @@ fn ask(tool: &Tool, args: &[String]) -> Result<PictureReadingSetting, String> {
     if out.code != Some(0) {
         return Err(refusal(&out, json.as_ref()));
     }
-    json.as_ref().and_then(setting_of).ok_or_else(|| "memo gave an answer the app cannot read".to_string())
+    json.as_ref().and_then(setting_of).ok_or_else(|| "wcat gave an answer the app cannot read".to_string())
 }
 
 pub fn status() -> Result<PictureReading, String> {
@@ -150,7 +150,7 @@ pub fn status() -> Result<PictureReading, String> {
 pub fn set(mode: &str, agent: Option<&str>, model: Option<&str>) -> Result<PictureReadingSetting, String> {
     let (tool, src) = memo()?;
     if !crate::command_tree::released_or_listed(tool, gate(src, tools::installed_version(tool).as_deref()), COMMAND) {
-        return Err("This memo cannot read pictures yet. It comes with a memo update.".into());
+        return Err("This wcat version cannot read pictures yet. It comes with a wcat update.".into());
     }
     ask(tool, &set_args(src, mode, agent, model)?)
 }

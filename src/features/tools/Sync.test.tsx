@@ -183,7 +183,7 @@ describe("syncing a profile from the Manage panel", () => {
     expect(screen.queryByText(/internet/)).not.toBeInTheDocument()
   })
 
-  it("syncs mail per profile, apart from memo's one lock", () => {
+  it("syncs mail per profile, apart from wcat's one lock", () => {
     useSync.getState().start("memo", null)
     useSync.getState().start("email", "personal")
     useSync.getState().start("email", "work")

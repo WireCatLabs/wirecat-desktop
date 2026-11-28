@@ -149,7 +149,7 @@ describe("Add to memory", () => {
 
   it("sends the owner to AI model when the chosen AI model reader has no model or key", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([
-      { ...reader("ai-model", true), problem: "the AI model has no key: memo models ai set" },
+      { ...reader("ai-model", true), problem: "the AI model has no key: wcat models ai set" },
       reader("ollama", false),
     ])
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
@@ -278,7 +278,7 @@ describe("Add to memory", () => {
     ).toBeInTheDocument()
   })
 
-  it("asks for a memo update, not for a model, when memo has no models ai", async () => {
+  it("asks for a wcat update, not for a model, when wcat has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'ai'"))
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
     vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
@@ -294,12 +294,12 @@ describe("Add to memory", () => {
     await user.click(within(panel).getByRole("radio", { name: /File/ }))
     await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
     expect(await within(panel).findByText(/Pictures cannot be read with an AI model yet/)).toBeInTheDocument()
-    expect(within(panel).getByText(/This needs a newer Memo than/)).toBeInTheDocument()
-    expect(within(panel).getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(within(panel).getByText(/This needs a newer wcat than/)).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
     expect(within(panel).queryByText(/No AI model is set/)).not.toBeInTheDocument()
   })
 
-  it("does not claim no model is set when memo could not be asked", async () => {
+  it("does not claim no model is set when wcat could not be asked", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("memo.refused"))
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
     vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
@@ -359,20 +359,20 @@ describe("Add to memory", () => {
     expect(!!within(panel).queryByRole("button", { name: "Open AI model settings" })).toBe(linked)
   })
 
-  it("tells the owner to update memo when it cannot list readers yet, and still saves", async () => {
+  it("tells the owner to update wcat when it cannot list readers yet, and still saves", async () => {
     vi.spyOn(platform, "memoryReaders").mockRejectedValue(new CommandError(TOO_OLD, "error: unknown command 'readers'"))
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
     const user = userEvent.setup()
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    expect(await within(panel).findByText(/This needs a newer Memo than/)).toBeInTheDocument()
+    expect(await within(panel).findByText(/This needs a newer wcat than/)).toBeInTheDocument()
     expect(within(panel).getByText("Sources can be read for facts after the update.")).toBeInTheDocument()
-    expect(within(panel).getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
     expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeEnabled()
   })
 
-  it("reads again with the reader chosen now, says who reads it, and lists only what memo linked", async () => {
+  it("reads again with the reader chosen now, says who reads it, and lists only what wcat linked", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
     const decided = { ...BATCH, status: "approved", model: "codex/gpt-5" } as MemoryEntry
@@ -430,7 +430,7 @@ describe("Add to memory", () => {
     expect(await within(panel).findByText("Shortened for the preview.")).toBeInTheDocument()
   })
 
-  it("words a refusal of pasted text without memo's own message", async () => {
+  it("words a refusal of pasted text without wcat's own message", async () => {
     vi.spyOn(platform, "memorySourceAdd").mockRejectedValue(new Error("memo.refused"))
     const user = userEvent.setup()
     const panel = await openPanel(user)
@@ -440,7 +440,7 @@ describe("Add to memory", () => {
     expect(within(panel).queryByRole("button", { name: /Report/ })).not.toBeInTheDocument()
   })
 
-  it("words memo's refusal of a link and stays on the step", async () => {
+  it("words wcat's refusal of a link and stays on the step", async () => {
     vi.spyOn(platform, "memorySourceAdd").mockRejectedValue(new Error("source.needs-sign-in"))
     const user = userEvent.setup()
     const panel = await openPanel(user)

@@ -71,9 +71,13 @@ pub struct Registrations {
 }
 
 /// `tg-personal` is what cli-core's `mcp add` names a profile's server; `tg` alone is what its help suggests.
+/// A replaced tool's old name counts too: its server no longer starts, and the owner must see it to remove it.
 fn is_wirecat(name: &str) -> bool {
     catalog::catalog().tools.iter().filter(|t| t.part_of.is_none()).any(|t| {
-        name == t.bin || name.strip_prefix(&t.bin).and_then(|r| r.strip_prefix('-')).is_some_and(plain_profile)
+        let names = [Some(t.mcp_name.as_deref().unwrap_or(&t.bin)), t.replaces.as_ref().map(|r| r.bin.as_str())];
+        names.into_iter().flatten().any(|base| {
+            name == base || name.strip_prefix(base).and_then(|r| r.strip_prefix('-')).is_some_and(plain_profile)
+        })
     })
 }
 
@@ -175,8 +179,10 @@ mod tests {
 
     #[test]
     fn only_wirecat_names_pass() {
-        let keys = ["pencil", "tg", "tg-personal", "max-work.2", "tgx", "tg-", "tg--help", "github", "memo"];
-        assert_eq!(wirecat_names(keys.iter().map(ToString::to_string)), ["max-work.2", "memo", "tg", "tg-personal"]);
+        let keys = ["pencil", "tg", "tg-personal", "max-work.2", "tgx", "tg-", "tg--help", "github", "wirecat", "memo"];
+        let names = wirecat_names(keys.iter().map(ToString::to_string));
+        assert_eq!(names, ["max-work.2", "memo", "tg", "tg-personal", "wirecat"]);
+        assert!(!is_wirecat("wcat-wirecat"), "wcat's server is registered as wirecat");
     }
 
     #[test]

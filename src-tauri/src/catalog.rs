@@ -19,6 +19,12 @@ pub struct Tool {
     pub id: String,
     pub bin: String,
     pub package: String,
+    /// The package this one took over, whose program the owner may still have: the switch removes it (`install.rs`).
+    #[serde(default)]
+    pub replaces: Option<Replaced>,
+    /// The name its MCP server is registered under in an agent, when it is not `bin` (`mcp.rs`).
+    #[serde(default)]
+    pub mcp_name: Option<String>,
     /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`); empty only for
     /// an own tool whose repository is private or outside GitHub.
     #[serde(default, deserialize_with = "null_as_empty")]
@@ -159,6 +165,13 @@ pub struct Tool {
     /// Removing one account with the tool's own commands (`account.rs`); none for a tool that has no sign-out.
     #[serde(default)]
     pub account_remove: Option<crate::account::AccountRemoveSource>,
+}
+
+/// npm refuses a program another package installed, and the old program would keep running beside the new one.
+#[derive(Debug, Deserialize)]
+pub struct Replaced {
+    pub package: String,
+    pub bin: String,
 }
 
 /// Only `preexisting` is read here: the data folders that existed before the app added the tool, keyed by path, which
@@ -545,7 +558,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 19);
+        assert_eq!(catalog().tools.len(), 20);
     }
 
     #[test]

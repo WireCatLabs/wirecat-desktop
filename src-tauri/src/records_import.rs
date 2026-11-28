@@ -99,7 +99,7 @@ pub fn template_args(kind: &str, format: &str, locale: &str, account: Option<&st
 pub fn template(kind: &str, format: &str, locale: &str, account: Option<&str>) -> Result<String, String> {
     let (out, json) = call(&template_args(kind, format, locale, account)?, READ)?;
     let v = answered(&out, json)?;
-    v["text"].as_str().map(str::to_string).ok_or_else(|| "memo wrote no template".into())
+    v["text"].as_str().map(str::to_string).ok_or_else(|| "wcat wrote no template".into())
 }
 
 /// The file name the save window offers for a template, and the template's text.

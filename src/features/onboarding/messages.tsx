@@ -148,7 +148,7 @@ const en = {
       },
       memo: {
         title: "Mail and notes in one search",
-        text: "Memo keeps your notes and mail together, and your agent searches them along with your messages.",
+        text: "wcat keeps your notes and mail together, and your agent searches them along with your messages.",
       },
       guides: {
         title: "A brief before each call",
@@ -478,7 +478,7 @@ const ru: OnboardingText = {
       },
       memo: {
         title: "Почта и заметки в одном поиске",
-        text: "Memo хранит заметки и почту вместе, и агент ищет в них вместе с вашими сообщениями.",
+        text: "wcat хранит заметки и почту вместе, и агент ищет в них вместе с вашими сообщениями.",
       },
       guides: {
         title: "Справка перед каждым звонком",
@@ -769,7 +769,7 @@ const es: OnboardingText = {
       },
       memo: {
         title: "Correo y notas en una búsqueda",
-        text: "Memo guarda tus notas y tu correo juntos, y tu agente busca en ellos junto con tus mensajes.",
+        text: "wcat guarda tus notas y tu correo juntos, y tu agente busca en ellos junto con tus mensajes.",
       },
       guides: {
         title: "Un resumen antes de cada llamada",

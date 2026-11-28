@@ -28,10 +28,20 @@ const programs = new Map<string, Program>(
 
 const words = (run: string) => run.match(/"[^"]*"|'[^']*'|\S+/g) ?? []
 
+// `wcat <tool> …` runs the program `wcat-<tool>`, and `wcat …` alone runs wcat's own `wcat-wirecat`.
+const programOf = (said: string, after: string[]): [string, string[]] =>
+  said !== "wcat"
+    ? [said, after]
+    : programs.has(`wcat-${after[0]}`)
+      ? [`wcat-${after[0]}`, after.slice(1)]
+      : ["wcat-wirecat", after]
+
 /** What is wrong with a step's command line for the installed tools, or null when every word is the tool's own. */
 function problemOf(run: string): string | null {
-  const [bin = "", ...rest] = words(run)
-  const program = programs.get(bin)
+  const [said = "", ...after] = words(run)
+  const [name, rest] = programOf(said, after)
+  const bin = name === "wcat-wirecat" ? "wcat" : name
+  const program = programs.get(name)
   if (!program) return `${bin} is not a known program`
   if (program.profile !== (rest[0] === "<profile>"))
     return program.profile ? "the profile must stay <profile> for the agent" : `${bin} takes no profile`
@@ -73,7 +83,7 @@ it("catches a typo in a command or an option", () => {
   expect(problemOf("wa <profile> review --unanswred")).toBe("wa review has no --unanswred")
   expect(problemOf("tg personal inbox")).toBe("the profile must stay <profile> for the agent")
   expect(problemOf("tg inbox")).toBe("the profile must stay <profile> for the agent")
-  expect(problemOf("memo <profile> tasks list")).toBe("memo takes no profile")
+  expect(problemOf("wcat <profile> tasks list")).toBe("wcat takes no profile")
 })
 
 it("names no other messenger once a guide is filled for one", () => {

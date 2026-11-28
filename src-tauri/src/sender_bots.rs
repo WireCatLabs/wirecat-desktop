@@ -183,7 +183,7 @@ fn shown(v: &Value) -> Option<SenderBot> {
 
 fn show_with(call: &Call, reference: &str) -> Result<SenderBot, String> {
     let reference = sendable(bot_ref(reference)?).ok_or("not a bot")?;
-    shown(&call(&words(&["bots", "show", reference]))?).ok_or_else(|| "Memo's answer did not describe the bot".into())
+    shown(&call(&words(&["bots", "show", reference]))?).ok_or_else(|| "wcat's answer did not describe the bot".into())
 }
 
 pub fn show(reference: &str) -> Result<SenderBot, String> {

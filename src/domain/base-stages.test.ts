@@ -50,7 +50,7 @@ const card = (ref: string, pipeline: string, stage: string, baseStage: string | 
 const read = { base, mapping }
 
 describe("the base board's columns", () => {
-  it("puts a card under its confirmed base stage, else under memo's suggestion, else in Unsorted first", () => {
+  it("puts a card under its confirmed base stage, else under wcat's suggestion, else in Unsorted first", () => {
     const columns = baseColumnsOf(
       base,
       [

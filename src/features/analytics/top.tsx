@@ -165,7 +165,7 @@ export function WeekTiles() {
           now={0}
           last={null}
           format={() => "—"}
-          note={tasks === "missing" ? p.missing("Memo") : p.failed("Memo", null)}
+          note={tasks === "missing" ? p.missing("wcat") : p.failed("wcat", null)}
         />
       ) : (
         <Tile

@@ -85,7 +85,7 @@ describe("People", () => {
     expect(screen.queryByRole("group", { name: "Which people" })).not.toBeInTheDocument()
   })
 
-  it("lists bots apart from people, from memo's bots list, each opening its own card", async () => {
+  it("lists bots apart from people, from wcat's bots list, each opening its own card", async () => {
     const user = userEvent.setup()
     const people = vi.spyOn(platform, "peopleShow")
     render(<PeoplePage />)
@@ -104,7 +104,7 @@ describe("People", () => {
     expect(people).not.toHaveBeenCalledWith(expect.stringMatching(/^bot:/))
   })
 
-  it("on a memo without bots list, the Bots tab lists the people memo marks automated", async () => {
+  it("on a wcat without bots list, the Bots tab lists the people wcat marks automated", async () => {
     const user = userEvent.setup()
     const read = platform.peopleRead.bind(platform)
     vi.spyOn(platform, "peopleRead").mockImplementation(async (kind) => {
@@ -125,7 +125,7 @@ describe("People", () => {
     expect(bots).not.toHaveBeenCalled()
   })
 
-  it("on a memo older than kinds, lists everyone named, with a contact read from their accounts", async () => {
+  it("on a wcat older than kinds, lists everyone named, with a contact read from their accounts", async () => {
     const real = platform.peopleRead.bind(platform)
     vi.spyOn(platform, "peopleKinds").mockResolvedValue({})
     vi.spyOn(platform, "peopleRead").mockImplementation(async () => {
@@ -152,7 +152,7 @@ describe("People", () => {
     expect((await within(await table()).findAllByRole("button", { name: "No name yet" }))[0]).toBeVisible()
   })
 
-  it("reads one page at a time from memo, never everyone, and memo sorts and searches it", async () => {
+  it("reads one page at a time from wcat, never everyone, and wcat sorts and searches it", async () => {
     const page = vi.spyOn(platform, "peoplePage")
     const user = userEvent.setup()
     render(<PeoplePage />)
@@ -559,7 +559,7 @@ describe("People", () => {
     )
   })
 
-  it("says why memo did not join a match on its own", async () => {
+  it("says why wcat did not join a match on its own", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     await openMatches(user)
@@ -589,7 +589,7 @@ describe("People", () => {
     expect(await screen.findByText("No one has nobody@example.org.")).toBeInTheDocument()
   })
 
-  it("says when memo has more people and matches than the page read", async () => {
+  it("says when wcat has more people and matches than the page read", async () => {
     vi.spyOn(platform, "peopleRead").mockResolvedValue({
       kind: "ready",
       people: [{ ref: "person:1", name: null, owner: true, tasks: 0, ...older }],
@@ -604,10 +604,10 @@ describe("People", () => {
     expect(await screen.findByText(/There are more people than this page read/)).toBeInTheDocument()
   })
 
-  it("offers memo's update when it is too old", async () => {
+  it("offers wcat's update when it is too old", async () => {
     vi.spyOn(platform, "peopleRead").mockResolvedValue({ kind: "old", version: "0.131.63", need: "0.131.72" })
     render(<PeoplePage />)
-    expect(await screen.findByText(/needs Memo 0.131.72 or newer/)).toBeInTheDocument()
+    expect(await screen.findByText(/needs wcat 0.131.72 or newer/)).toBeInTheDocument()
   })
 
   it("after a join, the person merged away says whom they are part of now", async () => {
@@ -667,7 +667,7 @@ describe("People", () => {
     expect(contact).toHaveBeenCalledWith("person:42", "organization:3")
   })
 
-  it("hides a card of test data alone through memo, and brings a hidden person back as a real contact", async () => {
+  it("hides a card of test data alone through wcat, and brings a hidden person back as a real contact", async () => {
     const hide = vi.spyOn(platform, "peopleTestData")
     const keep = vi.spyOn(platform, "peopleKeep")
     const user = userEvent.setup()

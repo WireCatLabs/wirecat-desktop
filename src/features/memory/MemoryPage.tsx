@@ -40,7 +40,7 @@ import { findingsMessages } from "./messages-findings"
 import { Row, SubjectLabel } from "./Row"
 import { MEMORY_PAGE_SIZES, useMemory } from "./store"
 
-const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
+const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/wcat/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
 export function MemoryPage() {

@@ -32,7 +32,7 @@ const profile = (meetings: PersonProfile["meetings"]): PersonProfile => ({
 afterEach(() => vi.restoreAllMocks())
 
 describe("A person's messages and calls", () => {
-  it("lists their latest mail and every call memo reads, and a call folds open in place", async () => {
+  it("lists their latest mail and every call wcat reads, and a call folds open in place", async () => {
     vi.spyOn(platform, "peopleProfile").mockResolvedValue(profile(MOCK_CALLS))
     const user = userEvent.setup()
     render(<PersonContacts reference="person:7" />)
@@ -45,7 +45,7 @@ describe("A person's messages and calls", () => {
     expect(zoom).toHaveAttribute("aria-expanded", "true")
   })
 
-  it("shows no calls from a memo that reads none, and says nothing about it", async () => {
+  it("shows no calls from a wcat that reads none, and says nothing about it", async () => {
     vi.spyOn(platform, "peopleProfile").mockResolvedValue(profile(null))
     render(<PersonContacts reference="person:7" />)
     expect(await screen.findByText("Invoice for October attached.")).toBeInTheDocument()

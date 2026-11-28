@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest"
 import { summarize } from "./doctor"
 
 describe("summarize", () => {
-  it("reads memo's problems with their fixes", () => {
-    const report = { item: { problems: [{ what: "No search model", fix: "memo search model download" }] } }
-    expect(summarize(report, 1)).toEqual([{ tone: "warn", text: "No search model", fix: "memo search model download" }])
+  it("reads wcat's problems with their fixes", () => {
+    const report = { item: { problems: [{ what: "No search model", fix: "wcat search model download" }] } }
+    expect(summarize(report, 1)).toEqual([{ tone: "warn", text: "No search model", fix: "wcat search model download" }])
   })
 
   it("explains an expired Zoom sign-in", () => {

@@ -19,7 +19,7 @@ const en = {
     save: "Save",
     remove: "Remove",
     none: "No instructions yet: the digest follows the built-in ones alone.",
-    unsupported: "Your instructions cannot be kept yet. Update Memo on the Tools page to write them.",
+    unsupported: "Your instructions cannot be kept yet. Update wcat on the Tools page to write them.",
     failed: (message: string) => `Not saved: ${message}`,
     template: {
       daily:
@@ -47,7 +47,7 @@ const en = {
     problems: "This cannot be saved:",
     save: "Save",
     reset: "Reset to default",
-    unsupported: "The digest's templates cannot be changed yet. Update Memo on the Tools page to edit them.",
+    unsupported: "The digest's templates cannot be changed yet. Update wcat on the Tools page to edit them.",
     failed: (message: string) => `Not saved: ${message}`,
     previewFailed: "Could not show a preview.",
   },
@@ -69,7 +69,7 @@ const ru: typeof en = {
     save: "Сохранить",
     remove: "Удалить",
     none: "Указаний пока нет: сводка следует только встроенным.",
-    unsupported: "Ваши указания пока нельзя сохранить. Обновите Memo на странице «Инструменты», чтобы их написать.",
+    unsupported: "Ваши указания пока нельзя сохранить. Обновите wcat на странице «Инструменты», чтобы их написать.",
     failed: (message) => `Не сохранено: ${message}`,
     template: {
       daily:
@@ -97,7 +97,7 @@ const ru: typeof en = {
     problems: "Это нельзя сохранить:",
     save: "Сохранить",
     reset: "Вернуть по умолчанию",
-    unsupported: "Шаблоны сводки пока нельзя менять. Обновите Memo на странице «Инструменты», чтобы их править.",
+    unsupported: "Шаблоны сводки пока нельзя менять. Обновите wcat на странице «Инструменты», чтобы их править.",
     failed: (message) => `Не сохранено: ${message}`,
     previewFailed: "Не удалось показать предпросмотр.",
   },
@@ -121,7 +121,7 @@ const es: typeof en = {
     remove: "Quitar",
     none: "Aún no hay instrucciones: el resumen sigue solo las integradas.",
     unsupported:
-      "Aún no se pueden guardar tus instrucciones. Actualiza Memo en la página Herramientas para escribirlas.",
+      "Aún no se pueden guardar tus instrucciones. Actualiza wcat en la página Herramientas para escribirlas.",
     failed: (message) => `No se guardó: ${message}`,
     template: {
       daily:
@@ -150,7 +150,7 @@ const es: typeof en = {
     save: "Guardar",
     reset: "Volver a la predeterminada",
     unsupported:
-      "Aún no se pueden cambiar las plantillas del resumen. Actualiza Memo en la página Herramientas para editarlas.",
+      "Aún no se pueden cambiar las plantillas del resumen. Actualiza wcat en la página Herramientas para editarlas.",
     failed: (message) => `No se guardó: ${message}`,
     previewFailed: "No se pudo mostrar la vista previa.",
   },

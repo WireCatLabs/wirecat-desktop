@@ -214,10 +214,10 @@ fn allow(id: &str, supported: &[Runnable], acknowledged: &[String]) -> Result<Pi
     let found = supported.iter().find(|r| r.id == id).ok_or_else(refused)?;
     let ack = !found.restricted;
     if ack && !found.ack {
-        return Err(format!("Memo cannot limit what {id} runs, so it does not run background jobs."));
+        return Err(format!("wcat cannot limit what {id} runs, so it does not run background jobs."));
     }
     if ack && !acknowledged.iter().any(|a| a == id) {
-        return Err(format!("Memo cannot limit what {id} runs: confirm its warning in Settings first."));
+        return Err(format!("wcat cannot limit what {id} runs: confirm its warning in Settings first."));
     }
     Ok(Pick { id: found.id.clone(), costed: found.reports_cost, ack })
 }

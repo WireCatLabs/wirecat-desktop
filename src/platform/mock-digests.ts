@@ -20,7 +20,7 @@ import type { Platform } from "./types"
 // `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
 
 const CODEX_NEEDS =
-  "codex runs on a schedule only with your consent: `memo digest edit evening-wrap --agent codex --allow-dangerous`"
+  "codex runs on a schedule only with your consent: `wcat digest edit evening-wrap --agent codex --allow-dangerous`"
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -467,7 +467,7 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       // The mock's Codex is the agent memo runs only with the owner's consent.
       if (spec.agent === "codex" && !(consent && spec.allowDangerous)) throw new Error("agent.unrestricted")
       if (!named && (spec.name !== "morning-digest" || spec.times.length !== 1))
-        throw new Error("this needs a newer Memo")
+        throw new Error("this needs a newer wcat")
       const old = book.find((d) => d.name === spec.name)
       if (create && old && named) throw new Error(`a digest named ${spec.name} already exists`)
       // As memo: an edit without an agent keeps the digest's own, and the last run stays until the next.

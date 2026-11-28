@@ -150,8 +150,8 @@ describe("the People pages", () => {
     expect(usePeople.getState()).toMatchObject({ page: 1, people: [row] })
   })
 
-  it("lets the page's own read say memo is missing, not the page's refusal", async () => {
-    vi.spyOn(platform, "peoplePage").mockRejectedValue(new Error("Memo is not installed"))
+  it("lets the page's own read say wcat is missing, not the page's refusal", async () => {
+    vi.spyOn(platform, "peoplePage").mockRejectedValue(new Error("wcat is not installed"))
     usePeople.setState({ read: "missing", kinded: false })
     await usePeople.getState().readPage()
     expect(usePeople.getState().error).toBeNull()

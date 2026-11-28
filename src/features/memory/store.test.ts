@@ -17,7 +17,7 @@ describe("the Memory store", () => {
     expect(useMemory.getState()).toMatchObject({ reading: true, entries: shown })
     expect(read).toHaveBeenCalledTimes(2)
   })
-  it("reads only the memo page turned to, even within a minute of the last read", async () => {
+  it("reads only the wcat page turned to, even within a minute of the last read", async () => {
     const read = vi.spyOn(platform, "memoryRead")
     await useMemory.getState().load()
     useMemory.getState().turnMemoPage(2)

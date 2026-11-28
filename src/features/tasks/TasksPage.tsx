@@ -22,7 +22,7 @@ import { TaskBoard } from "./TaskBoard"
 import { TaskDialog } from "./TaskDialog"
 import { TaskTable } from "./TaskTable"
 
-const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/tasks`
+const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/wcat/tasks`
 
 export function TasksPage() {
   const m = useMessages(taskMessages)

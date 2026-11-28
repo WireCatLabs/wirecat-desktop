@@ -29,7 +29,8 @@ export function runTool(bin, args, { agent = false, path } = {}) {
   return answer
 }
 
-export const memo = (args, options) => runTool("memo", args, options)
+export const memo = (args, options) => runTool("wcat-wirecat", args, options)
+export const files = (args, options) => runTool("wcat-files", args, options)
 
 /**
  * Every page of a memo list, so a lookup never misses a row past the first page. Lists page by number or by cursor;

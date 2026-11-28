@@ -147,9 +147,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Documentos clave, tareas abiertas y menciones recientes de un proyecto, con fuentes.",
     },
     prompt: {
-      en: "Use memo CLI. Gather what I have on the Harbour project: its key documents, open tasks, and what was said about it in messages, mail and meetings in the last 60 days. Link every source and say which history is missing. Do not confirm or save anything.",
-      ru: "Используй memo CLI. Собери всё, что у меня есть по проекту Harbour: ключевые документы, открытые задачи и что о нём говорили в сообщениях, письмах и на встречах за последние 60 дней. Дай ссылку на каждый источник и скажи, какой истории не хватает. Ничего не подтверждай и не сохраняй.",
-      es: "Usa memo CLI. Reúne lo que tengo sobre el proyecto Harbour: sus documentos clave, las tareas abiertas y lo que se dijo de él en mensajes, correo y reuniones en los últimos 60 días. Enlaza cada fuente y dime qué historial falta. No confirmes ni guardes nada.",
+      en: "Use wcat CLI. Gather what I have on the Harbour project: its key documents, open tasks, and what was said about it in messages, mail and meetings in the last 60 days. Link every source and say which history is missing. Do not confirm or save anything.",
+      ru: "Используй wcat CLI. Собери всё, что у меня есть по проекту Harbour: ключевые документы, открытые задачи и что о нём говорили в сообщениях, письмах и на встречах за последние 60 дней. Дай ссылку на каждый источник и скажи, какой истории не хватает. Ничего не подтверждай и не сохраняй.",
+      es: "Usa wcat CLI. Reúne lo que tengo sobre el proyecto Harbour: sus documentos clave, las tareas abiertas y lo que se dijo de él en mensajes, correo y reuniones en los últimos 60 días. Enlaza cada fuente y dime qué historial falta. No confirmes ni guardes nada.",
     },
     steps: [
       {
@@ -158,7 +158,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Открывает проект: сначала ключевые документы, потом открытые задачи",
           es: "Abre el proyecto: primero los documentos clave, luego las tareas abiertas",
         },
-        run: "memo projects context Harbour",
+        run: "wcat projects context Harbour",
       },
       {
         text: {
@@ -166,7 +166,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Находит, что о нём говорят сообщения, письма и встречи",
           es: "Encuentra lo que dicen de él los mensajes, el correo y las reuniones",
         },
-        run: "memo projects evidence Harbour --source all --since-time 60d",
+        run: "wcat projects evidence Harbour --source all --since-time 60d",
       },
     ],
     result: {
@@ -175,9 +175,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Una página: qué leer primero, qué está abierto y dónde salió el proyecto.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/people#key-documents-of-a-project",
-      ru: "https://wirecat.dev/ru/docs/memo/people#ключевые-документы-проекта",
-      es: "https://wirecat.dev/es/docs/memo/people#documentos-clave-de-un-proyecto",
+      en: "https://wirecat.dev/en/docs/wcat/people#key-documents-of-a-project",
+      ru: "https://wirecat.dev/ru/docs/wcat/people#ключевые-документы-проекта",
+      es: "https://wirecat.dev/es/docs/wcat/people#documentos-clave-de-un-proyecto",
     },
   },
   {
@@ -510,9 +510,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Chats donde esperas respuesta y recordatorios para los que elijas.",
     },
     prompt: {
-      en: "Use memo CLI. Find chats where I wrote last and have had no answer for three days or more. Show who it was and what I asked. For the ones I choose, add a task to follow up, linked to my message, with a reminder on Monday at 9:00. Show me first and add them only after I agree.",
-      ru: "Используй memo CLI. Найди чаты, где я написал последним и мне не отвечают три дня или больше. Покажи, кому и о чём я писал. Для тех, что я выберу, добавь задачу написать ещё раз, со ссылкой на моё сообщение и напоминанием на понедельник, 9:00. Сначала покажи и добавь только после моего согласия.",
-      es: "Usa memo CLI. Busca los chats donde escribí yo el último y nadie me responde desde hace tres días o más. Muéstrame a quién y qué pregunté. Para los que elija, añade una tarea de seguimiento enlazada a mi mensaje, con un recordatorio el lunes a las 9:00. Muéstramelo primero y añádelas solo cuando yo esté de acuerdo.",
+      en: "Use wcat CLI. Find chats where I wrote last and have had no answer for three days or more. Show who it was and what I asked. For the ones I choose, add a task to follow up, linked to my message, with a reminder on Monday at 9:00. Show me first and add them only after I agree.",
+      ru: "Используй wcat CLI. Найди чаты, где я написал последним и мне не отвечают три дня или больше. Покажи, кому и о чём я писал. Для тех, что я выберу, добавь задачу написать ещё раз, со ссылкой на моё сообщение и напоминанием на понедельник, 9:00. Сначала покажи и добавь только после моего согласия.",
+      es: "Usa wcat CLI. Busca los chats donde escribí yo el último y nadie me responde desde hace tres días o más. Muéstrame a quién y qué pregunté. Para los que elija, añade una tarea de seguimiento enlazada a mi mensaje, con un recordatorio el lunes a las 9:00. Muéstramelo primero y añádelas solo cuando yo esté de acuerdo.",
     },
     steps: [
       {
@@ -521,7 +521,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Перечисляет чаты, где вы написали последним и ждёте ответа",
           es: "Enumera los chats donde escribiste el último y esperas respuesta",
         },
-        run: "memo tasks agenda --waiting 3d",
+        run: "wcat tasks agenda --waiting 3d",
       },
       {
         text: {
@@ -529,7 +529,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Добавляет задачу со ссылкой на ваше сообщение",
           es: "Añade una tarea de seguimiento enlazada a tu mensaje",
         },
-        run: "memo tasks add msg:{provider}/…",
+        run: "wcat tasks add msg:{provider}/…",
       },
       {
         text: {
@@ -537,7 +537,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Ставит напоминание на эту задачу",
           es: "Pone el recordatorio en esa tarea",
         },
-        run: "memo reminders add <task> --at-time … --account {provider}:…",
+        run: "wcat reminders add <task> --at-time … --account {provider}:…",
       },
     ],
     result: {
@@ -546,9 +546,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Tareas de seguimiento con fecha de recordatorio. Tu agente te las muestra cuando revisa tus recordatorios.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/tasks#reminders",
-      ru: "https://wirecat.dev/ru/docs/memo/tasks#напоминания",
-      es: "https://wirecat.dev/es/docs/memo/tasks#recordatorios",
+      en: "https://wirecat.dev/en/docs/wcat/tasks#reminders",
+      ru: "https://wirecat.dev/ru/docs/wcat/tasks#напоминания",
+      es: "https://wirecat.dev/es/docs/wcat/tasks#recordatorios",
     },
   },
   {
@@ -619,9 +619,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Tareas de la semana, chats que esperan tu respuesta y trabajo abierto por proyecto.",
     },
     prompt: {
-      en: "Use memo CLI. Plan my week: tasks that are overdue or due in the next 7 days, chats where I owe an answer, and how many open tasks each project has. Suggest what to do on which day and say why. Do not change anything.",
-      ru: "Используй memo CLI. Спланируй мою неделю: просроченные задачи и задачи на ближайшие 7 дней, чаты, где я должен ответить, и сколько открытых задач в каждом проекте. Предложи, что делать в какой день, и объясни почему. Ничего не меняй.",
-      es: "Usa memo CLI. Planifica mi semana: tareas atrasadas o que vencen en los próximos 7 días, chats donde debo una respuesta y cuántas tareas abiertas tiene cada proyecto. Sugiere qué hacer cada día y explica por qué. No cambies nada.",
+      en: "Use wcat CLI. Plan my week: tasks that are overdue or due in the next 7 days, chats where I owe an answer, and how many open tasks each project has. Suggest what to do on which day and say why. Do not change anything.",
+      ru: "Используй wcat CLI. Спланируй мою неделю: просроченные задачи и задачи на ближайшие 7 дней, чаты, где я должен ответить, и сколько открытых задач в каждом проекте. Предложи, что делать в какой день, и объясни почему. Ничего не меняй.",
+      es: "Usa wcat CLI. Planifica mi semana: tareas atrasadas o que vencen en los próximos 7 días, chats donde debo una respuesta y cuántas tareas abiertas tiene cada proyecto. Sugiere qué hacer cada día y explica por qué. No cambies nada.",
     },
     steps: [
       {
@@ -630,7 +630,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Читает, что просрочено или нужно сделать за неделю и кто ждёт вашего ответа",
           es: "Lee lo atrasado o lo que vence en una semana, y quién espera tu respuesta",
         },
-        run: "memo tasks agenda --due-within 7d",
+        run: "wcat tasks agenda --due-within 7d",
       },
       {
         text: {
@@ -638,7 +638,7 @@ export const MORE_GUIDES: Guide[] = [
           ru: "Считает открытые задачи по проектам",
           es: "Cuenta las tareas abiertas por proyecto",
         },
-        run: "memo tasks counts project:*",
+        run: "wcat tasks counts project:*",
       },
     ],
     result: {
@@ -647,9 +647,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Un plan de la semana por días, con el motivo de cada elección.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/memo/recipes#weekly-review",
-      ru: "https://wirecat.dev/ru/docs/memo/recipes#обзор-за-неделю",
-      es: "https://wirecat.dev/es/docs/memo/recipes#revisión-semanal",
+      en: "https://wirecat.dev/en/docs/wcat/recipes#weekly-review",
+      ru: "https://wirecat.dev/ru/docs/wcat/recipes#обзор-за-неделю",
+      es: "https://wirecat.dev/es/docs/wcat/recipes#revisión-semanal",
     },
   },
 ]

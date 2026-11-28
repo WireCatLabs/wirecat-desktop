@@ -241,6 +241,7 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
         s.installs[entry.id],
         s.latest ? (s.latest[entry.id] ?? null) : undefined,
         s.sessions[ownerId(entry.id)],
+        s.switchFrom[entry.id],
       ).kind === "outdated",
   )
   const close = (

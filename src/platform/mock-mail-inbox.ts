@@ -138,7 +138,7 @@ export function mailInboxMock(params: URLSearchParams): Pick<Platform, Mocked> {
           result: "failed",
           code: "configuration_error",
           reason: "ai.key-missing",
-          message: "no API key is stored for the AI model: store it with `memo models ai set … --secret-stdin`",
+          message: "no API key is stored for the AI model: store it with `wcat models ai set … --secret-stdin`",
           ask: null,
         }
       if (runScenario === "ask" && !yes)
@@ -146,7 +146,7 @@ export function mailInboxMock(params: URLSearchParams): Pick<Platform, Mocked> {
           result: "failed",
           code: "permission_error",
           reason: "chat-sending.ask",
-          message: `8 emails of 5 threads (about 3100 tokens) go to ${BY} at api.anthropic.com, and memo models chats asks first`,
+          message: `8 emails of 5 threads (about 3100 tokens) go to ${BY} at api.anthropic.com, and wcat models chats asks first`,
           ask: { emails: 8, threads: 5, tokens: 3100, host: "api.anthropic.com", model: BY, estimatedCostUsd: 0.004 },
         }
       const fresh = profile === "personal" ? FRESH.filter((f) => !threads.some((t) => t.ref === f.ref)) : []

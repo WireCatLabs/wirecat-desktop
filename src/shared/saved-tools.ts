@@ -20,6 +20,7 @@ const ToolStatesSchema = v.array(
         problem: v.nullable(v.string()),
       }),
     ),
+    switchFrom: v.optional(v.nullable(v.string()), null),
   }),
 ) satisfies v.GenericSchema<unknown, ToolState[]>
 

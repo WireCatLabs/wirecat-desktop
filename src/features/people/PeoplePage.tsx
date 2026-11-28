@@ -22,7 +22,7 @@ import { UndoMergeDialog } from "./UndoMergeDialog"
 /** The longest the page waits for the links check before it shows the rest. */
 const HOLD_MS = 4000
 
-const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/people`
+const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/wcat/people`
 
 export function PeoplePage() {
   const m = useMessages(peopleMessages)

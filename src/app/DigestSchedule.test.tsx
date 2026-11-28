@@ -91,7 +91,7 @@ describe("the other schedules", () => {
   it("links mail triage to where it is set up and says a hand-made one is changed in a terminal", async () => {
     const user = await openPage()
     const others = await screen.findByRole("region", { name: "Other schedules" })
-    expect(within(others).getByText("In a terminal: memo schedule")).toBeInTheDocument()
+    expect(within(others).getByText("In a terminal: wcat schedule")).toBeInTheDocument()
     expect(others).toHaveTextContent(/mail-triage.*Every 30 minutes/)
     await user.click(within(others).getByRole("button", { name: "Change in Tools → Email → Mail agent" }))
     expect(useNav.getState().active).toBe("tools")
@@ -161,7 +161,7 @@ describe("a digest whose last run failed", () => {
       date: "2026-11-14",
       stamp: "2026-11-14T06-30-00Z",
       document: null,
-      text: "memo review agenda failed: command.crashed",
+      text: "wcat review agenda failed: command.crashed",
       refused: false,
       invalid: null,
     })
@@ -170,7 +170,7 @@ describe("a digest whose last run failed", () => {
     expect(failures).toHaveTextContent("“Morning digest” failed 1 h ago: it wrote no digest.")
     expect(failures).not.toHaveTextContent("Weekly digest")
     await user.click(within(failures).getByRole("button", { name: "Open “Morning digest”" }))
-    expect(await screen.findByText("memo review agenda failed: command.crashed")).toBeInTheDocument()
+    expect(await screen.findByText("wcat review agenda failed: command.crashed")).toBeInTheDocument()
     expect(screen.getByText(/This run failed: instead of a digest/)).toBeInTheDocument()
     expect(screen.queryByText(/here is its text as it was/)).not.toBeInTheDocument()
     expect(screen.getByRole("combobox", { name: "Digest" })).toHaveTextContent("Morning digest")
@@ -457,7 +457,7 @@ describe("the agent that writes it", () => {
     expect(screen.queryByText(/has no credit left/)).not.toBeInTheDocument()
   })
 
-  it("never offers Codex for a digest, even confirmed: memo cannot write digests in it yet", async () => {
+  it("never offers Codex for a digest, even confirmed: wcat cannot write digests in it yet", async () => {
     vi.spyOn(platform, "backgroundAgents").mockResolvedValue(agentsFixture(["claude", "codex"], "codex", true, true))
     const failed: DigestItem = {
       ...morning,
@@ -501,7 +501,7 @@ describe("what the page cannot do", () => {
     expect(between).toHaveLength(1)
   })
 
-  it("shows an older memo's morning digest as one row and keeps to what that memo can do", async () => {
+  it("shows an older wcat's morning digest as one row and keeps to what that wcat can do", async () => {
     const old = ready([{ ...morning, title: null }], { named: false })
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(old)
     const set = vi
@@ -511,8 +511,8 @@ describe("what the page cannot do", () => {
     const table = await screen.findByRole("table", { name: "Digests" })
     expect(within(table).getAllByRole("row")).toHaveLength(2)
     expect(screen.queryByRole("region", { name: "New digest" })).not.toBeInTheDocument()
-    expect(screen.getByText(/needs Memo 0\.131\.75 or newer/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(screen.getByText(/needs wcat 0\.131\.75 or newer/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
 
     await user.click(within(table).getByRole("switch", { name: "Morning digest on schedule" }))
     expect(set).toHaveBeenCalledWith("morning-digest", false)
@@ -586,7 +586,7 @@ describe("the agent that writes a digest", () => {
     expect(within(settings).getByRole("spinbutton", { name: "A run, at most" })).toBeInTheDocument()
   })
 
-  it("clears a saved model with an empty field, and leaves memo's default alone when none was saved", async () => {
+  it("clears a saved model with an empty field, and leaves wcat's default alone when none was saved", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openMorning(ready([{ ...morning, model: "sonnet" }]))
     const settings = screen.getByRole("region", { name: "Settings" })
@@ -615,16 +615,16 @@ describe("the agent that writes a digest", () => {
     expect(within(dialog).queryByRole("combobox", { name: "Agent" })).not.toBeInTheDocument()
   })
 
-  it("words memo's agent refusals", async () => {
+  it("words wcat's agent refusals", async () => {
     vi.spyOn(platform, "digestSave").mockRejectedValueOnce(new Error("digest.agent-unchosen"))
     const user = await openMorning(ready([morning]))
     const settings = screen.getByRole("region", { name: "Settings" })
     await user.type(within(settings).getByRole("textbox", { name: "Model" }), "opus")
     await user.click(within(settings).getByRole("button", { name: "Save" }))
-    expect(await within(settings).findByText(/Memo asks which agent writes this digest/)).toBeInTheDocument()
+    expect(await within(settings).findByText(/wcat asks which agent writes this digest/)).toBeInTheDocument()
   })
 
-  it("asks an older memo for no agent and offers Drive, Calendar and a CRM only on a memo that reads them", async () => {
+  it("asks an older wcat for no agent and offers Drive, Calendar and a CRM only on a wcat that reads them", async () => {
     const user = await openMorning(ready([morning], { agent: false, moreSources: false }))
     await withDriveAndCrm()
     const settings = screen.getByRole("region", { name: "Settings" })
@@ -634,7 +634,7 @@ describe("the agent that writes a digest", () => {
     await user.keyboard("{Escape}")
   })
 
-  it("offers Drive and a CRM as sources once memo reads them, where their tools are installed", async () => {
+  it("offers Drive and a CRM as sources once wcat reads them, where their tools are installed", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openMorning(ready([morning]))
     await withDriveAndCrm()
@@ -649,7 +649,7 @@ describe("the agent that writes a digest", () => {
   })
 })
 
-describe("the agents memo lets a schedule start", () => {
+describe("the agents wcat lets a schedule start", () => {
   const CODEX_WHY = "runs any program and reads your files"
   const withKimi = () => {
     const agents = agentsFixture(["claude", "gemini", "codex"])
@@ -676,10 +676,10 @@ describe("the agents memo lets a schedule start", () => {
     return { user, dialog, agent: within(dialog).getByRole("combobox", { name: "Agent" }) }
   }
 
-  it("starts with Claude Code and greys out the agent memo refuses, with memo's reason", async () => {
+  it("starts with Claude Code and greys out the agent wcat refuses, with wcat's reason", async () => {
     const { user, dialog, agent } = await newDigest(ready([morning]))
     await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
-    expect(dialog).toHaveTextContent("Memo runs these agents on no schedule:")
+    expect(dialog).toHaveTextContent("wcat runs these agents on no schedule:")
     expect(dialog).toHaveTextContent("Kimi CLI: no allow list")
     await user.click(agent)
     expect(await screen.findByRole("option", { name: /^Kimi CLI · / })).toHaveAttribute("aria-disabled", "true")
@@ -688,7 +688,7 @@ describe("the agents memo lets a schedule start", () => {
     expect(dialog).toHaveTextContent("This agent does not say what a run costs")
   })
 
-  it("offers no agent that needs consent before memo takes the consent", async () => {
+  it("offers no agent that needs consent before wcat takes the consent", async () => {
     const { user, agent } = await newDigest(ready([morning], { agentConsent: false }))
     await waitFor(() => expect(agent).toHaveTextContent("Claude Code"))
     await user.click(agent)
@@ -714,8 +714,8 @@ describe("the agents memo lets a schedule start", () => {
     )
   })
 
-  it("marks a digest that waits for the owner on its row and says on its page what memo asks", async () => {
-    const needs = "codex runs on a schedule only with your consent: `memo digest edit morning-digest --agent codex`"
+  it("marks a digest that waits for the owner on its row and says on its page what wcat asks", async () => {
+    const needs = "codex runs on a schedule only with your consent: `wcat digest edit morning-digest --agent codex`"
     const waiting = { ...morning, agent: "codex", needs }
     const user = await openPage(ready([waiting, weekly]))
     const row = (await screen.findByRole("button", { name: "Open Morning digest" })).closest(
@@ -731,13 +731,13 @@ describe("the agents memo lets a schedule start", () => {
     expect(within(settings).getByRole("checkbox", { name: /I agree: Codex/ })).not.toBeChecked()
   })
 
-  it("words memo's refusal of an agent no schedule may start", async () => {
+  it("words wcat's refusal of an agent no schedule may start", async () => {
     vi.spyOn(platform, "digestSave").mockRejectedValueOnce(new Error("agent.unrestricted"))
     const user = await openMorning(ready([morning]))
     const settings = screen.getByRole("region", { name: "Settings" })
     await user.type(within(settings).getByRole("textbox", { name: "Model" }), "opus")
     await user.click(within(settings).getByRole("button", { name: "Save" }))
-    expect(await within(settings).findByText(/Memo does not run this agent on a schedule/)).toBeInTheDocument()
+    expect(await within(settings).findByText(/wcat does not run this agent on a schedule/)).toBeInTheDocument()
   })
 })
 
@@ -767,10 +767,10 @@ describe("the digest history", () => {
     expect(await within(dialog).findByText(/Built 11 days/)).toBeInTheDocument()
   })
 
-  it("shows Build past days off when this memo has no digest backfill", async () => {
+  it("shows Build past days off when this wcat has no digest backfill", async () => {
     vi.spyOn(platform, "digestBackfill").mockResolvedValue({ state: "unsupported" })
     await openMorning()
-    expect(await screen.findByText("Needs a Memo update")).toBeInTheDocument()
+    expect(await screen.findByText("Needs a wcat update")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Build past days" })).toBeDisabled()
   })
 })

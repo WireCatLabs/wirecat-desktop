@@ -434,7 +434,7 @@ fn list_models(tool: &Tool, src: &NotesSetupSource) -> Result<Vec<NotesModel>, S
 
 /// A model the card shows, as memo lists it now: the only ids that reach `models download` and `models set`.
 fn shown_model(tool: &Tool, src: &NotesSetupSource, id: &str) -> Result<NotesModel, String> {
-    list_models(tool, src)?.into_iter().find(|m| m.id == id).ok_or_else(|| format!("memo offers no search model {id}"))
+    list_models(tool, src)?.into_iter().find(|m| m.id == id).ok_or_else(|| format!("files offers no search model {id}"))
 }
 
 pub fn status(tool: &Tool) -> Result<NotesSetup, String> {
@@ -568,13 +568,13 @@ mod tests {
     const SET: &str = include_str!("../tests/fixtures/notes-models/memo-0.131.61-set.json");
     const NOT_DOWNLOADED: &str = include_str!("../tests/fixtures/notes-models/memo-0.131.61-set-not-downloaded.json");
 
-    fn memo_src() -> &'static NotesSetupSource {
-        source(crate::catalog::tool("memo").unwrap()).unwrap()
+    fn files_src() -> &'static NotesSetupSource {
+        source(crate::catalog::tool("files").unwrap()).unwrap()
     }
 
     #[test]
     fn shows_the_catalogs_choices_best_first_with_the_terms_link() {
-        let models = models_of(&serde_json::from_str(MODELS).unwrap(), memo_src());
+        let models = models_of(&serde_json::from_str(MODELS).unwrap(), files_src());
         let ids: Vec<&str> = models.iter().map(|m| m.id.as_str()).collect();
         assert_eq!(ids, ["embeddinggemma", "e5-small"]);
         assert_eq!(models[0].role, NotesModelRole::Recommended);
@@ -591,16 +591,16 @@ mod tests {
         for m in v["items"].as_array_mut().unwrap() {
             m["default"] = Value::Bool(m["id"] == "e5-large");
         }
-        let ids: Vec<String> = models_of(&v, memo_src()).into_iter().map(|m| m.id).collect();
+        let ids: Vec<String> = models_of(&v, files_src()).into_iter().map(|m| m.id).collect();
         assert_eq!(ids, ["embeddinggemma", "e5-small", "e5-large"]);
     }
 
     #[test]
     fn every_model_is_downloaded_and_set_by_id_terms_or_not() {
-        let models = models_of(&serde_json::from_str(MODELS).unwrap(), memo_src());
-        assert_eq!(download_words(memo_src(), &models[0]).join(" "), "models download embeddinggemma --json");
-        assert_eq!(download_words(memo_src(), &models[1]).join(" "), "models download e5-small --json");
-        assert_eq!(with(&memo_src().use_model, "{model}", "e5-small").join(" "), "models set e5-small --json");
+        let models = models_of(&serde_json::from_str(MODELS).unwrap(), files_src());
+        assert_eq!(download_words(files_src(), &models[0]).join(" "), "models download embeddinggemma --json");
+        assert_eq!(download_words(files_src(), &models[1]).join(" "), "models download e5-small --json");
+        assert_eq!(with(&files_src().use_model, "{model}", "e5-small").join(" "), "models set e5-small --json");
     }
 
     #[test]
@@ -668,7 +668,7 @@ mod tests {
 
     #[test]
     fn the_folder_and_its_format_are_the_only_words_filled_in() {
-        let add = &memo_src().add;
+        let add = &files_src().add;
         let words = with(&with(add, "{path}", "/a b/c"), "{format}", "markdown");
         assert_eq!(words.join(" "), "folders add /a b/c --format markdown --no-record --json");
     }

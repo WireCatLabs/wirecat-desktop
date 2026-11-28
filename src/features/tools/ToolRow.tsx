@@ -57,6 +57,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const installs = useTools((s) => s.installs[tool.id])
   const latest = useTools((s) => (s.latest ? (s.latest[tool.id] ?? null) : undefined))
   const session = useTools((s) => s.sessions[ownerId(tool.id)])
+  const switchFrom = useTools((s) => s.switchFrom[tool.id])
   const expanded = useTools((s) => s.expanded === tool.id)
   const nodeReady = useSystem((s) => s.readiness?.node.ok ?? false)
   const fit = useFits()?.all[ownerId(tool.id)]
@@ -81,7 +82,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
     tools.toggle(id)
   }
 
-  const status = toolStatus(installs, latest, session)
+  const status = toolStatus(installs, latest, session, switchFrom)
   const installed = status.kind === "ready" || status.kind === "outdated"
   const severity = installed ? fitSeverity(fit) : null
   const latestKnown = useLatestKnown()
@@ -296,7 +297,11 @@ function Action(props: ActionProps) {
     const update = status.kind === "outdated"
     return (
       <Button variant="primary" onClick={onInstall} title={needsNode ? nodeFirst : undefined}>
-        {update ? m.updateTo(status.latest) : m.install}
+        {status.kind === "outdated" && status.switchFrom
+          ? m.switchFrom(status.switchFrom)
+          : update
+            ? m.updateTo(status.latest)
+            : m.install}
       </Button>
     )
   }

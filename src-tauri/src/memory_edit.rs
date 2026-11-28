@@ -44,7 +44,7 @@ fn refused(item: &Value) -> Option<String> {
         text(r, "reason")
             .or_else(|| text(r, "message"))
             .or_else(|| text(r, "code"))
-            .unwrap_or_else(|| "Memo refused it".into())
+            .unwrap_or_else(|| "wcat refused it".into())
     })
 }
 
@@ -58,7 +58,7 @@ fn confirm_proposal(call: &Call, id: &str) -> Result<String, String> {
         .as_array()
         .and_then(|m| m.iter().filter_map(Value::as_str).find_map(|r| id_after(r, PROPOSAL)))
         .map(str::to_string)
-        .ok_or_else(|| "Memo did not say which link the approval made".into())
+        .ok_or_else(|| "wcat did not say which link the approval made".into())
 }
 
 fn edit_with(call: &Call, reference: &str, role: Option<&str>) -> Result<RelationEdited, String> {
@@ -87,7 +87,7 @@ pub fn edit(reference: &str, role: Option<&str>) -> Result<RelationEdited, Strin
 fn remove_with(call: &Call, reference: &str) -> Result<(), String> {
     if let Some(id) = id_after(reference, LINK) {
         let v = call(&decision(&["relationships", "remove", id]))?;
-        return if body(&v)["removed"].as_bool() == Some(true) { Ok(()) } else { Err("Memo did not remove it".into()) };
+        return if body(&v)["removed"].as_bool() == Some(true) { Ok(()) } else { Err("wcat did not remove it".into()) };
     }
     let id = id_after(reference, PROPOSAL).ok_or_else(|| format!("not a relationship: {reference}"))?;
     let v = call(&decision(&["review", "reject", id, "--reason", REJECTED_HERE]))?;
@@ -174,9 +174,9 @@ fn decide_with(call: &Call, references: &[String], approve: bool) -> Result<Vec<
                     status: None,
                     error: text(&r, "reason")
                         .or_else(|| text(&r, "message"))
-                        .or_else(|| Some("Memo refused it".into())),
+                        .or_else(|| Some("wcat refused it".into())),
                 },
-                (None, None) => Decided { reference, status: None, error: Some("Memo did not answer for it".into()) },
+                (None, None) => Decided { reference, status: None, error: Some("wcat did not answer for it".into()) },
             });
         }
     }

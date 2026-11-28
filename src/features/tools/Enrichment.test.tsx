@@ -55,12 +55,12 @@ const on: EnrichmentStatus = {
 
 afterEach(() => vi.restoreAllMocks())
 
-it("is offered only for memo", () => {
+it("is offered only for wcat", () => {
   expect(memo.enrichment).not.toBeNull()
   expect(findTool("tg")?.enrichment).toBeNull()
 })
 
-it("shows memo's price while off, before anything is sent", async () => {
+it("shows wcat's price while off, before anything is sent", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
   render(<Enrichment tool={memo} />)
 
@@ -96,7 +96,7 @@ it("turns on only after the consent step shows what is sent, to whom, how many, 
   expect(turnOn).toHaveBeenCalledWith("memo", { provider: "openai", model: "gpt-4o-mini", baseUrl: null })
 })
 
-it("asks memo again for the other offer, and turns on with that one", async () => {
+it("asks wcat again for the other offer, and turns on with that one", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
   const anthropic = { ...off, target: target("anthropic", "claude-haiku-5-5", "api.anthropic.com", true) }
   const preview = vi
@@ -112,7 +112,7 @@ it("asks memo again for the other offer, and turns on with that one", async () =
     await screen.findByText("It goes to Anthropic (api.anthropic.com), model claude-haiku-5-5."),
   ).toBeInTheDocument()
   expect(preview).toHaveBeenLastCalledWith("memo", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
-  expect(screen.getByText("Memo found your API key (in the system keyring).")).toBeInTheDocument()
+  expect(screen.getByText("wcat found your API key (in the system keyring).")).toBeInTheDocument()
   fireEvent.click(screen.getByRole("button", { name: "Send 10,444 records to Anthropic and turn on" }))
   await screen.findByText(/Search rewriting is on/)
   expect(turnOn).toHaveBeenCalledWith("memo", { provider: "anthropic", model: "claude-haiku-5-5", baseUrl: null })
@@ -170,7 +170,7 @@ it("while on, says how many syncs are left and what the last sync rewrote, read 
   expect(status).toHaveBeenCalledTimes(2)
 })
 
-it("says why a sync sent nothing, in memo's words", async () => {
+it("says why a sync sent nothing, in wcat's words", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({
     state: "ready",
     status: { ...on, target: target("openai", "gpt-4o-mini", "api.openai.com") },
@@ -224,7 +224,7 @@ it("asks before turning off, says the model's text is deleted, then says how muc
   expect(turnOff).toHaveBeenCalledWith("memo")
 })
 
-it("shows memo's words when turning on fails, and stays off", async () => {
+it("shows wcat's words when turning on fails, and stays off", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
   vi.spyOn(platform, "enrichmentPreview").mockResolvedValue(off)
   vi.spyOn(platform, "enrichmentOn").mockRejectedValue(new Error("permission denied"))
@@ -237,12 +237,12 @@ it("shows memo's words when turning on fails, and stays off", async () => {
   expect(screen.getByRole("button", { name: /^Send 10,444 records/ })).toBeEnabled()
 })
 
-it("says a memo without the command needs an update", async () => {
+it("says a wcat without the command needs an update", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "old", version: "0.131.50" })
   render(<Enrichment tool={memo} />)
 
   expect(
-    await screen.findByText("Memo 0.131.50 cannot rewrite records yet. It comes with a Memo update."),
+    await screen.findByText("wcat 0.131.50 cannot rewrite records yet. It comes with a wcat update."),
   ).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull()
 })
@@ -285,7 +285,7 @@ const noKey = { ...on, target: target("openai", "gpt-4o-mini", "api.openai.com")
 // Not a real key: the tests only follow it to the platform call and check it is cleared.
 const TYPED = "synthetic-test-key"
 
-it("saves a key through memo from a masked field, clears the field at once, then offers to remove it", async () => {
+it("saves a key through wcat from a masked field, clears the field at once, then offers to remove it", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: noKey })
   const save = vi.spyOn(platform, "enrichmentKeySet").mockResolvedValue(on)
   render(<Enrichment tool={memo} />)
@@ -297,13 +297,13 @@ it("saves a key through memo from a masked field, clears the field at once, then
   fireEvent.click(screen.getByRole("button", { name: "Save key" }))
 
   expect(field).toHaveValue("")
-  expect(await screen.findByText("Memo found your API key (in the system keyring).")).toBeInTheDocument()
+  expect(await screen.findByText("wcat found your API key (in the system keyring).")).toBeInTheDocument()
   expect(save).toHaveBeenCalledWith("memo", "openai", TYPED)
   expect(screen.getByRole("button", { name: "Remove key" })).toBeInTheDocument()
   expect(document.body.innerHTML).not.toContain(TYPED)
 })
 
-it("removes the key memo keeps, and the field comes back", async () => {
+it("removes the key wcat keeps, and the field comes back", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: on })
   const remove = vi.spyOn(platform, "enrichmentKeyRemove").mockResolvedValue(noKey)
   render(<Enrichment tool={memo} />)
@@ -333,11 +333,11 @@ it("says why a key was not saved and asks for it again", async () => {
   expect(field).toHaveAttribute("aria-invalid", "true")
 })
 
-it("names the variable instead of a field when memo cannot store a key, and keeps an environment key", async () => {
+it("names the variable instead of a field when wcat cannot store a key, and keeps an environment key", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: { ...noKey, keys: false } })
   const { unmount } = render(<Enrichment tool={memo} />)
 
-  expect(await screen.findByText(/Add it as OPENAI_API_KEY where Memo runs/)).toBeInTheDocument()
+  expect(await screen.findByText(/Add it as OPENAI_API_KEY where wcat runs/)).toBeInTheDocument()
   expect(screen.queryByLabelText("API key for OpenAI")).toBeNull()
   unmount()
 
@@ -354,7 +354,7 @@ it("names the variable instead of a field when memo cannot store a key, and keep
   expect(screen.queryByRole("button", { name: "Remove key" })).toBeNull()
 })
 
-it("saving a key in the consent step asks memo's preview again", async () => {
+it("saving a key in the consent step asks wcat's preview again", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
   const preview = vi.spyOn(platform, "enrichmentPreview").mockResolvedValue(off)
   vi.spyOn(platform, "enrichmentKeySet").mockResolvedValue(off)
@@ -370,7 +370,7 @@ it("saving a key in the consent step asks memo's preview again", async () => {
 it("words a sync's reason by its id in the window's language", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: on })
   render(<Enrichment tool={memo} />)
-  await screen.findByText(/Memo found your API key/)
+  await screen.findByText(/wcat found your API key/)
 
   synced({
     status: "failed",
@@ -418,7 +418,7 @@ it("turns on with a model at an address on this computer, and asks it for no key
   expect(turnOn).toHaveBeenCalledWith("memo", choice)
 })
 
-it("says in plain words why memo refuses plain http to another computer, and what to do", async () => {
+it("says in plain words why wcat refuses plain http to another computer, and what to do", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: { ...off, addresses: true } })
   vi.spyOn(platform, "enrichmentPreview").mockImplementation(async (_id, c) => {
     if (c.baseUrl) throw new Error("model.address-refused")
@@ -433,7 +433,7 @@ it("says in plain words why memo refuses plain http to another computer, and wha
   fireEvent.change(screen.getByLabelText("Address (base URL)"), { target: { value: "http://192.168.1.20:11434/v1" } })
 
   expect(
-    await screen.findByText(/Memo refused this address\. It is plain http to another computer/),
+    await screen.findByText(/wcat refused this address\. It is plain http to another computer/),
   ).toBeInTheDocument()
   expect(screen.getByText(/Use an https address, or a server on this computer/)).toBeInTheDocument()
   expect(screen.queryByText("model.address-refused")).toBeNull()
@@ -441,7 +441,7 @@ it("says in plain words why memo refuses plain http to another computer, and wha
   expect(turnOn).not.toHaveBeenCalled()
 })
 
-it("offers no address on a memo that cannot take one", async () => {
+it("offers no address on a wcat that cannot take one", async () => {
   vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
   vi.spyOn(platform, "enrichmentPreview").mockResolvedValue(off)
   render(<Enrichment tool={memo} />)

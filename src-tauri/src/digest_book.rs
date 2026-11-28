@@ -177,7 +177,7 @@ fn check_routes(routes: &[String]) -> Result<(), String> {
         return Err(format!("at most {MAX_ROUTES} routes"));
     }
     match routes.iter().find(|r| route(r).is_none()) {
-        Some(bad) => Err(format!("not a route memo takes: {}", redact::text(bad))),
+        Some(bad) => Err(format!("not a route wcat takes: {}", redact::text(bad))),
         None => Ok(()),
     }
 }
@@ -210,7 +210,7 @@ fn spec_options(spec: &DigestSpec, costed: bool, open: Opened) -> Result<Vec<Str
         return Err(format!("not a source a digest reads: {}", redact::text(bad)));
     }
     if !open.more_sources && spec.sources.iter().any(|s| MORE_SOURCES.contains(&s.as_str())) {
-        return Err("Drive, Calendar and a CRM as sources need a newer Memo".into());
+        return Err("Drive, Calendar and a CRM as sources need a newer wcat".into());
     }
     let model = spec.model.as_deref().map(str::trim).filter(|_| open.agent);
     if let Some(m) = model.filter(|m| !m.is_empty()) {
@@ -307,7 +307,7 @@ fn run_args(name: &str, delivery: &SendTo) -> Result<Vec<String>, String> {
 
 /// What an older memo, with one digest kept as a schedule, can be asked; anything else needs a memo update.
 fn fits_old(spec: &DigestSpec) -> Result<(&str, &[String]), String> {
-    let update = "this needs a newer Memo";
+    let update = "this needs a newer wcat";
     if spec.name != MORNING || spec.times.len() != 1 || !spec.weekdays.is_empty() || !spec.sources.is_empty() {
         return Err(update.into());
     }
@@ -344,9 +344,9 @@ fn agent_for(spec: &DigestSpec, create: bool, open: Opened) -> Result<Option<Pic
     };
     if pick.ack && !consent {
         return Err(if open.agent_consent {
-            format!("Memo cannot limit what {} runs: tick your consent on the digest first.", pick.id)
+            format!("wcat cannot limit what {} runs: tick your consent on the digest first.", pick.id)
         } else {
-            format!("Memo cannot write digests in {} yet. Choose another agent for them.", pick.id)
+            format!("wcat cannot write digests in {} yet. Choose another agent for them.", pick.id)
         });
     }
     Ok(Some(pick))
@@ -550,7 +550,7 @@ pub fn save(spec: &DigestSpec, create: bool) -> Result<DigestBook, String> {
     let json = match write(memo, &args, CALL) {
         Err(said) if said.contains(&memo_cli::unknown_option_text("--agent")) => {
             let plain =
-                without_agent(&args).ok_or("Update Memo to write digests in an agent other than Claude Code.")?;
+                without_agent(&args).ok_or("Update wcat to write digests in an agent other than Claude Code.")?;
             write(memo, &plain, CALL)?
         }
         answer => answer?,
@@ -576,7 +576,7 @@ pub fn run(name: &str, delivery: &SendTo) -> Result<DigestBook, String> {
     let (out, json) = call(memo, &args, RUN_TIMEOUT)?;
     if older(json.as_ref(), "run") {
         if name != MORNING || *delivery != SendTo::All {
-            return Err("this needs a newer Memo".into());
+            return Err("this needs a newer wcat".into());
         }
         digest_schedule::run_now()?;
         return book();
@@ -599,14 +599,14 @@ pub fn set_scheduled(name: &str, on: bool) -> Result<DigestBook, String> {
     let json = match write(memo, &args, CALL) {
         Err(said) if said.contains(&memo_cli::unknown_option_text("--agent")) => {
             let plain =
-                without_agent(&args).ok_or("Update Memo to write digests in an agent other than Claude Code.")?;
+                without_agent(&args).ok_or("Update wcat to write digests in an agent other than Claude Code.")?;
             write(memo, &plain, CALL)?
         }
         answer => answer?,
     };
     if older(json.as_ref(), &args[1]) {
         if name != MORNING || on {
-            return Err("this needs a newer Memo".into());
+            return Err("this needs a newer wcat".into());
         }
         digest_schedule::remove()?;
     }
@@ -622,7 +622,7 @@ pub fn remove(name: &str) -> Result<DigestBook, String> {
     };
     let json = write(memo, &words(&["digest", "remove", name, "--from-app", "--json"]), CALL)?;
     if older(json.as_ref(), "remove") {
-        return Err("this needs a newer Memo".into());
+        return Err("this needs a newer wcat".into());
     }
     book()
 }

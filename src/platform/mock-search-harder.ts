@@ -69,7 +69,7 @@ export function searchHarderMock(
       await delay(700)
       if (scenario === "fail")
         throw new Error(
-          "memo lets only you allow this, and WireCat was started from an AI agent's terminal. Open WireCat from the app menu and turn it on there.",
+          "files lets only you allow this, and WireCat was started from an AI agent's terminal. Open WireCat from the app menu and turn it on there.",
         )
       chosen = choice
       on = true

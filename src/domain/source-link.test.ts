@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { accountValue, sourceLink } from "./source-link"
 
 describe("sourceLink", () => {
-  it("opens a Bitrix24 contact on its own portal, in either form memo names it", () => {
+  it("opens a Bitrix24 contact on its own portal, in either form wcat names it", () => {
     expect(sourceLink("bitrix24:portal.example/contact/7731")).toBe("https://portal.example/crm/contact/details/7731/")
     expect(sourceLink("bitrix24:https://portal.example/crm/contact/details/4120/")).toBe(
       "https://portal.example/crm/contact/details/4120/",
@@ -36,7 +36,7 @@ describe("sourceLink", () => {
     expect(sourceLink("email:not-an-address")).toBeNull()
   })
 
-  it("copies what a person would type, not memo's id", () => {
+  it("copies what a person would type, not wcat's id", () => {
     expect(accountValue("email:ya@burobiz.ru")).toBe("ya@burobiz.ru")
     expect(accountValue("telegram:5401505520", "Xorlov")).toBe("@Xorlov")
     expect(accountValue("telegram:5401505520")).toBe("5401505520")

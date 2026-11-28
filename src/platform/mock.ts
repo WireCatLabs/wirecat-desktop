@@ -90,7 +90,8 @@ const LATEST: Record<string, string> = {
   wa: "0.7.0",
   zm: "0.42.0",
   drive: "0.30.0",
-  memo: "0.95.0",
+  memo: "1.0.0",
+  files: "1.0.0",
   email: "0.22.0",
   gcal: "0.19.0",
   funnel: "0.1.1",
@@ -108,7 +109,8 @@ const PACKAGES: Record<string, string> = {
   wa: "@wirecat/whatsapp-cli",
   zm: "@wirecat/zoom-cli",
   drive: "@wirecat/drive-cli",
-  memo: "@wirecat/cli-memo",
+  memo: "@wirecat/wirecat",
+  files: "@wirecat/files-cli",
   email: "@wirecat/mail-cli",
   gcal: "@wirecat/gcal-cli",
   funnel: "@wirecat/funnel",
@@ -281,8 +283,8 @@ function diagnosed(id: string, profile: string | null): Diagnosis {
           memo: { version: "0.93.0", node: "24.19.0" },
           mail: { accounts: [{ name: "•••", address: "•••", mode: "himalaya" }] },
           problems: [
-            { what: "The search model is not downloaded yet.", fix: "memo search model download" },
-            { what: "The daily sync timer is not installed.", fix: "memo timer install" },
+            { what: "The search model is not downloaded yet.", fix: "wcat search model download" },
+            { what: "The daily sync timer is not installed.", fix: "wcat timer install" },
           ],
         },
       },
@@ -383,9 +385,14 @@ export function createMock(os: Platform["os"]): Platform {
     wa: "whatsapp-cli",
     zm: "zm",
     drive: "drive-cli",
-    memo: "cli-memo",
+    memo: "wcat",
+    files: "files-cli",
     shared: "WireCat",
   }
+
+  // `?switch=memo`: the old memo package is here and wcat is not; Update all, or the row's button, switches.
+  const switching = params.get("switch") === "memo"
+  if (switching) installed.delete("memo")
 
   const program = (path: string, version: string) => ({ path, version, ok: true, problem: null })
   const absent = { path: null, version: null, ok: false, problem: "not found" }
@@ -508,8 +515,13 @@ export function createMock(os: Platform["os"]): Platform {
       await delay(800)
       return tools.map(({ id: tool }) => {
         const id = ownerId(tool)
+        if (id === "memo" && switching && !installed.has("memo")) {
+          const old = { path: "~/.npm-global/bin/memo", version: "0.156.0", manager: "npm", problem: null }
+          return { id: tool, installs: [old], switchFrom: "memo" }
+        }
         return {
           id: tool,
+          switchFrom: null,
           installs: installed.has(id)
             ? [
                 {
@@ -609,6 +621,14 @@ export function createMock(os: Platform["os"]): Platform {
         })
       }
       onEvent({ event: "step", step: "install" })
+      if (id === "memo" && switching && !installed.has("memo") && !installed.has("files")) {
+        onEvent({
+          event: "log",
+          line: "Your notes folders move to Files: installing @wirecat/files-cli first.",
+          stderr: false,
+        })
+        installed.set("files", LATEST.files ?? "1.0.0")
+      }
       const quiet = params.get("npm") === "quiet"
       const manager = quiet ? "pnpm add --global" : "npm install --global"
       const flags = quiet ? "" : " --no-fund --no-audit --loglevel http"
@@ -636,6 +656,8 @@ export function createMock(os: Platform["os"]): Platform {
       await delay(400)
       const update = installed.has(id)
       installed.set(id, version)
+      if (id === "memo" && switching)
+        onEvent({ event: "log", line: "Removed @wirecat/cli-memo at ~/.npm-global/bin/memo.", stderr: false })
       if (update) onEvent({ event: "check", what: "skills" })
       const skills = update ? await refreshSkillsMock(agents, id, version) : { refreshed: [], failed: null }
       const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`

@@ -50,7 +50,7 @@ describe("a person's name on a task", () => {
 })
 
 describe("Tasks", () => {
-  it("lists memo's tasks with their state, priority and who is on them", async () => {
+  it("lists wcat's tasks with their state, priority and who is on them", async () => {
     render(<TasksPage />)
     await loaded()
     const blocked = row("HRB-15")
@@ -64,7 +64,7 @@ describe("Tasks", () => {
     expect(within(row("HRB-12")).getByRole("combobox", { name: "Status of HRB-12" })).toHaveTextContent("Progress")
   })
 
-  it("lists the tasks memo found in chats with the project tasks, and edits their fields as its account", async () => {
+  it("lists the tasks wcat found in chats with the project tasks, and edits their fields as its account", async () => {
     const user = userEvent.setup()
     const found = (key: string, title: string) => ({
       key,
@@ -230,7 +230,7 @@ describe("Tasks", () => {
       expect(within(dialog).getByRole("combobox", { name: "Assignee of Q-9" })).toHaveTextContent("You"),
     )
     expect(within(dialog).getByRole("combobox", { name: "Move to project of Q-9" })).toBeEnabled()
-    expect(await within(dialog).findByText("Memo created it")).toBeInTheDocument()
+    expect(await within(dialog).findByText("wcat created it")).toBeInTheDocument()
     expect(dialog).not.toHaveTextContent("rule")
     await user.click(within(dialog).getByRole("combobox", { name: "Type of Q-9" }))
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
@@ -273,7 +273,7 @@ describe("Tasks", () => {
     await waitFor(() => expect(count("person:1")).toBe(mine - 1))
   })
 
-  it("writes a filter into the search, which memo answers", async () => {
+  it("writes a filter into the search, which wcat answers", async () => {
     const user = userEvent.setup()
     const list = vi.spyOn(platform, "taskList")
     render(<TasksPage />)
@@ -310,7 +310,7 @@ describe("Tasks", () => {
     expect(screen.queryByRole("dialog", { name: "Custom…" })).not.toBeInTheDocument()
   })
 
-  it("makes a range that starts tomorrow, which memo writes as the word tomorrow", async () => {
+  it("makes a range that starts tomorrow, which wcat writes as the word tomorrow", async () => {
     const user = userEvent.setup()
     render(<TasksPage />)
     await loaded()
@@ -340,7 +340,7 @@ describe("Tasks", () => {
     expect(screen.getByRole("button", { name: "Priority" })).toHaveFocus()
   })
 
-  it("keeps an edited row in its place and says nothing changed when memo refuses", async () => {
+  it("keeps an edited row in its place and says nothing changed when wcat refuses", async () => {
     const user = userEvent.setup()
     render(<TasksPage />)
     await loaded()
@@ -474,7 +474,7 @@ describe("Tasks", () => {
     expect(save).not.toHaveTextContent("Saved")
   })
 
-  it("shows what memo kept when it stores something else than was typed", async () => {
+  it("shows what wcat kept when it stores something else than was typed", async () => {
     const user = userEvent.setup()
     render(<TasksPage />)
     await loaded()
@@ -519,7 +519,7 @@ describe("Tasks", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   })
 
-  it("keeps what the owner typed when memo refuses the save because someone changed the task", async () => {
+  it("keeps what the owner typed when wcat refuses the save because someone changed the task", async () => {
     const user = userEvent.setup()
     render(<TasksPage />)
     await loaded()
@@ -630,7 +630,7 @@ describe("Tasks", () => {
     expect(row("OPS-4")).toBeNull()
   })
 
-  it("shows a comment while memo saves it, and gives the text back when memo refuses", async () => {
+  it("shows a comment while wcat saves it, and gives the text back when wcat refuses", async () => {
     const user = userEvent.setup()
     let refuse: (e: Error) => void = () => {}
     vi.spyOn(platform, "taskCommentAdd").mockImplementation(() => new Promise((_, reject) => (refuse = reject)))
@@ -648,7 +648,7 @@ describe("Tasks", () => {
     expect(saving).toHaveTextContent("Booked the hall")
     expect(saving).toHaveAttribute("aria-busy", "true")
     expect(saving).toHaveTextContent("Sending…")
-    refuse(new Error("another memo process holds the store; try again in a minute"))
+    refuse(new Error("another wcat process holds the store; try again in a minute"))
     await waitFor(() => expect(box).toHaveValue("Booked the hall"))
     expect(within(thread).getAllByRole("listitem")).toHaveLength(before)
     expect(within(dialog).getByRole("alert")).toHaveTextContent("The comment was not added. Your text is still here.")
@@ -814,11 +814,11 @@ describe("Tasks", () => {
     expect(move).not.toHaveBeenCalled()
   })
 
-  it("offers the update when memo is too old, and nothing else", async () => {
+  it("offers the update when wcat is too old, and nothing else", async () => {
     vi.spyOn(platform, "taskList").mockResolvedValue({ kind: "old", version: "0.131.2", need: "0.131.4" })
     render(<TasksPage />)
-    expect(await screen.findByText(/needs Memo 0.131.4 or newer; this computer has 0.131.2/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
+    expect(await screen.findByText(/needs wcat 0.131.4 or newer; this computer has 0.131.2/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update wcat" })).toBeInTheDocument()
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
   })
 
@@ -844,7 +844,7 @@ describe("Tasks", () => {
     await waitFor(() => expect(useTasks.getState().creating).toBe(false))
   })
 
-  it("finds an assignee by name in memo, once per search, and never reads everyone to do it", async () => {
+  it("finds an assignee by name in wcat, once per search, and never reads everyone to do it", async () => {
     const user = userEvent.setup()
     const search = vi.spyOn(platform, "peopleSearch")
     const create = vi.spyOn(platform, "taskCreate")

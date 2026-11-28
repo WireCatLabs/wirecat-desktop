@@ -92,7 +92,8 @@ export type ToolStatus =
   | { kind: "missing" }
   | { kind: "working"; operation: Operation; step: InstallStep }
   | { kind: "broken"; problem: string }
-  | { kind: "outdated"; version: string; latest: string }
+  /** `switchFrom`: the copies are of the program this tool replaced, so the update installs it and removes that one. */
+  | { kind: "outdated"; version: string; latest: string; switchFrom?: string }
   /** `checkingUpdates` while npm has not answered yet: the tool may still turn out to be outdated. */
   | { kind: "ready"; version: string; checkingUpdates: boolean }
 
@@ -100,11 +101,13 @@ export function toolStatus(
   installs: readonly InstallRecord[] | undefined,
   latest: string | null | undefined,
   session?: InstallSession,
+  switchFrom?: string | null,
 ): ToolStatus {
   if (session && !session.outcome) return { kind: "working", operation: session.operation, step: session.step }
   if (!installs) return { kind: "checking" }
   const active = installs[0]
   if (!active) return { kind: "missing" }
+  if (switchFrom) return { kind: "outdated", version: active.version ?? "", latest: latest ?? "", switchFrom }
   if (!active.version) return { kind: "broken", problem: active.problem ?? "does not start" }
   if (latest && isNewer(latest, active.version)) return { kind: "outdated", version: active.version, latest }
   return { kind: "ready", version: active.version, checkingUpdates: latest === undefined }

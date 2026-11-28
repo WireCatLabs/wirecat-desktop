@@ -6,6 +6,13 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 New here? Read [the architecture report](architecture-report.md) first. Rules per kind of change are in [guides/](guides/).
 What is not built yet: [BACKLOG.md](BACKLOG.md).
 
+**memo is now wcat and files** (cli-core [#3383](https://github.com/WireCatLabs/cli-core/issues/3383)). The
+catalog id `memo` and the Rust names `memo_cli`, `memo_server` stay: they are internal and key saved state. In this
+file `memo` means the tool with that id, whose program is `wcat-wirecat` (`@wirecat/wirecat`). Notes folders, notes
+search and search harder belong to the catalog entry `files` (`wcat-files`, `@wirecat/files-cli`). An install of
+`memo` over the old `@wirecat/cli-memo` installs files first when memo read notes folders, then wcat, then removes
+the old package (`install.rs`, catalog key `replaces`).
+
 ## Contracts with other programs
 
 Shapes that the app and a tool, or the app and a server, must both follow. Change the file first, then both sides.
@@ -1086,7 +1093,7 @@ profile, with a Sync or Stop button beside the name. A result stays until dismis
 
 ## memo's first run
 
-`notes_setup.rs`, card `src/features/tools/MemoSetup.tsx` on memo's details, catalog key `notesSetup`. Three steps, each
+`notes_setup.rs`, card `src/features/tools/FilesSetup.tsx` on memo's details, catalog key `notesSetup`. Three steps, each
 one of memo's own commands: `folders add <path>` (listed with `folders list`), `sync --only notes`, and
 a search model. The model step lists the catalog's `choices` (EmbeddingGemma, shown only as the best local model, its
 word "model" linking to the `terms` memo gives; e5-small as the lighter one) as memo's `models list` reports them, plus

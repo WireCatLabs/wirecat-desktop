@@ -3,10 +3,10 @@ import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { NotesFolder, NotesSetup, ObsidianVault } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { MemoSetup } from "./MemoSetup"
+import { FilesSetup } from "./FilesSetup"
 import { syncProblem } from "./notes-setup"
 
-const memo = findTool("memo") as NonNullable<ReturnType<typeof findTool>>
+const files = findTool("files") as NonNullable<ReturnType<typeof findTool>>
 const gemma = {
   id: "embeddinggemma",
   title: "EmbeddingGemma 300M, 4-bit",
@@ -38,8 +38,8 @@ const ready = (
 
 beforeEach(() => vi.restoreAllMocks())
 
-it("is offered only for memo, whose catalog names the best search model", () => {
-  expect(memo.notesSetup?.recommended).toBe("embeddinggemma")
+it("is offered only for files, whose catalog names the best search model", () => {
+  expect(files.notesSetup?.recommended).toBe("embeddinggemma")
   expect(findTool("tg")?.notesSetup).toBeNull()
 })
 
@@ -54,7 +54,7 @@ it("walks from the system folder window to the first read of the notes", async (
   vi.spyOn(platform, "notesSync").mockImplementation(async (_id, onEvent) => {
     onEvent({ event: "done", summary: { new: 214, places: 1, failed: 0, left: 0, complete: true, enrichment: null } })
   })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   const read = await screen.findByRole("button", { name: "Read my notes" })
   expect(read).toBeDisabled()
@@ -62,7 +62,7 @@ it("walks from the system folder window to the first read of the notes", async (
 
   fireEvent.click(screen.getByRole("button", { name: "Choose a folder…" }))
   expect(await screen.findByText("~/Notes")).toBeInTheDocument()
-  expect(add).toHaveBeenCalledWith("memo", "/home/a/Notes", false)
+  expect(add).toHaveBeenCalledWith("files", "/home/a/Notes", false)
 
   fireEvent.click(screen.getByRole("button", { name: "Read my notes" }))
   expect(await screen.findByText(/214 notes read\./)).toBeInTheDocument()
@@ -78,16 +78,16 @@ it("connects a vault Obsidian lists, and shows it among the folders as Obsidian"
     setup = ready([added])
     return { result: "added", folder: added }
   })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   expect(await screen.findByRole("list", { name: "Obsidian vaults on this computer" })).toHaveTextContent(
     "~/Obsidian/Personal",
   )
   fireEvent.click(screen.getByRole("button", { name: "Connect the Obsidian vault Personal" }))
   expect(await screen.findByText("Added Personal as Obsidian notes. The next step reads it.")).toBeInTheDocument()
-  expect(add).toHaveBeenCalledWith("memo", "/home/a/Obsidian/Personal", true)
+  expect(add).toHaveBeenCalledWith("files", "/home/a/Obsidian/Personal", true)
   expect(pick).not.toHaveBeenCalled()
-  expect(screen.getByRole("list", { name: "Folders Memo reads" })).toHaveTextContent("Obsidian")
+  expect(screen.getByRole("list", { name: "Folders Files reads" })).toHaveTextContent("Obsidian")
 })
 
 it("says a folder picked as a vault is read as plain Markdown when it has no .obsidian folder", async () => {
@@ -95,7 +95,7 @@ it("says a folder picked as a vault is read as plain Markdown when it has no .ob
   vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([]))
   vi.spyOn(platform, "notesPickFolder").mockResolvedValue("/home/a/Notes/Work")
   vi.spyOn(platform, "notesFolderAdd").mockResolvedValue({ result: "added", folder: plain })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Connect an Obsidian vault…" }))
   expect(await screen.findByText(/Added Work as plain Markdown: it has no \.obsidian folder/)).toBeInTheDocument()
@@ -116,7 +116,7 @@ it("offers the vaults inside a plain folder one by one, or the folder itself as 
         : { result: "holdsVaults", vaults: inside }
     return { result: "added", folder: folder(path.split("/").pop() as string, "obsidian") }
   })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Choose a folder…" }))
   const offered = await screen.findByRole("list", { name: "Obsidian vaults in Obsidian" })
@@ -125,7 +125,7 @@ it("offers the vaults inside a plain folder one by one, or the folder itself as 
 
   fireEvent.click(screen.getByRole("button", { name: "Connect the Obsidian vault Personal" }))
   await act(async () => {})
-  expect(add).toHaveBeenLastCalledWith("memo", "/home/a/Obsidian/Personal", true)
+  expect(add).toHaveBeenLastCalledWith("files", "/home/a/Obsidian/Personal", true)
   expect(screen.getByRole("list", { name: "Obsidian vaults in Obsidian" })).not.toHaveTextContent("Personal")
   expect(screen.queryByRole("button", { name: "Add Obsidian as plain Markdown" })).toBeNull()
 })
@@ -140,19 +140,19 @@ it("adds a plain folder that holds vaults as Markdown when the owner chooses tha
     .mockImplementation(async (_id, _path, plain) =>
       plain ? { result: "added", folder: plainFolder } : { result: "holdsVaults", vaults: inside },
     )
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Choose a folder…" }))
   fireEvent.click(await screen.findByRole("button", { name: "Add Obsidian as plain Markdown" }))
   expect(await screen.findByText("Added Obsidian as plain Markdown files. The next step reads it.")).toBeInTheDocument()
-  expect(add).toHaveBeenLastCalledWith("memo", "/home/a/Obsidian", true)
+  expect(add).toHaveBeenLastCalledWith("files", "/home/a/Obsidian", true)
 })
 
-it("says what to do when memo cannot read the folder", async () => {
+it("says what to do when files cannot read the folder", async () => {
   vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([]))
   vi.spyOn(platform, "notesPickFolder").mockResolvedValue("/home/a/Gone")
   vi.spyOn(platform, "notesFolderAdd").mockResolvedValue({ result: "failed", problem: "folderUnreadable" })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Choose a folder…" }))
   expect(await screen.findByText(/cannot read that folder/)).toBeInTheDocument()
@@ -172,7 +172,7 @@ it("shows a failed download with its way out, then prepares the notes after a go
   const sync = vi.spyOn(platform, "notesSync").mockImplementation(async (_id, onEvent) => {
     onEvent({ event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true, enrichment: null } })
   })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Download 219 MB" }))
   expect(await screen.findByText(/did not reach the internet/)).toBeInTheDocument()
@@ -180,7 +180,7 @@ it("shows a failed download with its way out, then prepares the notes after a go
   fireEvent.click(screen.getByRole("button", { name: "Download 219 MB" }))
   expect(await screen.findByText(/Search by meaning is on/)).toBeInTheDocument()
   expect(download).toHaveBeenCalledTimes(2)
-  expect(download).toHaveBeenLastCalledWith("memo", "embeddinggemma", expect.any(Function))
+  expect(download).toHaveBeenLastCalledWith("files", "embeddinggemma", expect.any(Function))
   expect(sync).toHaveBeenCalledTimes(1)
 })
 
@@ -206,7 +206,7 @@ it("shows how far the first read and the download are, in files and megabytes", 
     onEvent({ event: "counted", done: 67_000_000, total: 219_000_000, unit: "bytes", label: "embeddinggemma" })
     await new Promise(() => {})
   })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Read my notes" }))
   expect(await screen.findByText("Notes: 4 of 12 files")).toBeInTheDocument()
@@ -223,23 +223,23 @@ it("removes a folder only after the dialog that says its notes are deleted", asy
     .spyOn(platform, "notesFolderRemove")
     .mockResolvedValueOnce({ result: "failed", problem: "tooOld" })
     .mockResolvedValueOnce({ result: "removed", notesDeleted: 38 })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Remove Notes and keep its notes searchable" }))
   expect(await screen.findByText(/does not have that command/)).toBeInTheDocument()
-  expect(remove).toHaveBeenCalledWith("memo", "3", false)
+  expect(remove).toHaveBeenCalledWith("files", "3", false)
 
   fireEvent.click(screen.getByRole("button", { name: "Remove Notes and delete its notes" }))
   expect(remove).toHaveBeenCalledTimes(1)
   fireEvent.click(await screen.findByRole("button", { name: "Remove and delete notes" }))
   expect(await screen.findByText(/deleted 38 notes/)).toBeInTheDocument()
-  expect(remove).toHaveBeenLastCalledWith("memo", "3", true)
+  expect(remove).toHaveBeenLastCalledWith("files", "3", true)
 })
 
 it("names the recommended model only as the best local model, its word model linking to the terms", async () => {
   vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([notes]))
   const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   const models = await screen.findByRole("list", { name: "Search models" })
   expect(models).toHaveTextContent("Best local model")
@@ -249,20 +249,20 @@ it("names the recommended model only as the best local model, its word model lin
   expect(open).toHaveBeenCalledWith("https://ai.google.dev/gemma/terms")
 })
 
-it("switches to a downloaded model with memo's own set and says re-indexing keeps search working", async () => {
+it("switches to a downloaded model with files's own set and says re-indexing keeps search working", async () => {
   vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([notes], true, { e5Downloaded: true }))
   const download = vi.spyOn(platform, "notesModelDownload")
   const use = vi
     .spyOn(platform, "notesModelUse")
     .mockResolvedValue({ result: "used", previous: "embeddinggemma", toEmbed: 1840, estimateSeconds: 930 })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Use this model" }))
 
   expect(
     await screen.findByText(/Re-indexing takes about 16 min at the next syncs; search keeps working/),
   ).toBeInTheDocument()
-  expect(use).toHaveBeenCalledWith("memo", "e5-small")
+  expect(use).toHaveBeenCalledWith("files", "e5-small")
   expect(download).not.toHaveBeenCalled()
 })
 
@@ -274,21 +274,21 @@ it("downloads a model that is not here yet before switching to it", async () => 
   const use = vi
     .spyOn(platform, "notesModelUse")
     .mockResolvedValue({ result: "used", previous: "embeddinggemma", toEmbed: null, estimateSeconds: null })
-  render(<MemoSetup tool={memo} />)
+  render(<FilesSetup tool={files} />)
 
   fireEvent.click(await screen.findByRole("button", { name: "Download 135 MB and use" }))
 
-  expect(await screen.findByText(/memo re-indexes your notes and mail at the next syncs/i)).toBeInTheDocument()
-  expect(download).toHaveBeenCalledWith("memo", "e5-small", expect.any(Function))
-  expect(use).toHaveBeenCalledWith("memo", "e5-small")
+  expect(await screen.findByText(/Files re-indexes your notes at the next syncs/i)).toBeInTheDocument()
+  expect(download).toHaveBeenCalledWith("files", "e5-small", expect.any(Function))
+  expect(use).toHaveBeenCalledWith("files", "e5-small")
 })
 
 it("keeps the setup of the tool shown now when the one shown before answers later", async () => {
   const answers: Record<string, (s: NotesSetup) => void> = {}
   vi.spyOn(platform, "notesSetupStatus").mockImplementation((id) => new Promise((resolve) => (answers[id] = resolve)))
-  const { rerender } = render(<MemoSetup tool={memo} />)
-  rerender(<MemoSetup tool={{ ...memo, id: "memo-b" }} />)
-  await act(async () => answers["memo-b"]?.(ready([notes])))
-  await act(async () => answers.memo?.(ready([])))
+  const { rerender } = render(<FilesSetup tool={files} />)
+  rerender(<FilesSetup tool={{ ...files, id: "files-b" }} />)
+  await act(async () => answers["files-b"]?.(ready([notes])))
+  await act(async () => answers.files?.(ready([])))
   expect(screen.getByText("~/Notes")).toBeInTheDocument()
 })

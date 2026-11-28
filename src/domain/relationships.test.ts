@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { relationParts, roleIdOf, roleLabel, roleListFor, standingOf, standingTone } from "./relationships"
 
 describe("relationships", () => {
-  it("knows memo's four standings and nothing else", () => {
+  it("knows wcat's four standings and nothing else", () => {
     expect(standingOf("reported")).toBe("reported")
     expect(standingOf("rejected")).toBeNull()
     expect(standingOf(null)).toBeNull()
@@ -37,7 +37,7 @@ describe("relationParts", () => {
     role,
   })
 
-  it("gives the role to the person, whichever end memo stored first", () => {
+  it("gives the role to the person, whichever end wcat stored first", () => {
     const drive = relationParts(link("document:31", "person:7"))
     expect([drive.holder.name, drive.other.kind]).toEqual(["Kai", "document"])
     const member = relationParts(link("person:7", "project:1"))
@@ -47,7 +47,7 @@ describe("relationParts", () => {
 })
 
 describe("roleIdOf", () => {
-  it("makes memo's id from the owner's name for a role", () => {
+  it("makes wcat's id from the owner's name for a role", () => {
     expect(roleIdOf("Board member")).toBe("board-member")
     expect(roleIdOf("  Café — owner! ")).toBe("cafe-owner")
     expect(roleIdOf("Совет директоров", 1_000_000)).toBe("own-lfls")
