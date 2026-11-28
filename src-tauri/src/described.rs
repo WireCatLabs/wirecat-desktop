@@ -1,9 +1,10 @@
 //! The commands of `WireCat`'s own tools, from the installed CLI itself (docs/dev/cli-registry.md, "Official tools").
 //! An official tool answers `--wcat-describe` with the `desktop` object of its own manifest. Where that object states
 //! a command, the command wins over the compiled catalog's: the answer comes from the package whose code the app runs
-//! anyway, so trusting it adds no trust (NEED-2912). Texts, the data folder, ports and what only Desktop knows (bots,
-//! sign-in screens, search fields) stay the catalog's. An answer that is missing, slow, too large, for another version
-//! or of the wrong shape leaves the catalog as it is, with a line in the log.
+//! anyway, so trusting it adds no trust (NEED-2912). An MCP server's port comes from the answer too when it names one
+//! (NEED-2918). Texts, the data folder and what only Desktop knows (bots, sign-in screens, search fields) stay the
+//! catalog's. An answer that is missing, slow, too large, for another version or of the wrong shape, or that names
+//! another tool's port, leaves the catalog as it is, with a line in the log.
 //!
 //! Answers are kept in `<app data>/described.json` by tool, with the program they came from and its stamp, so the
 //! catalog reads them at start without starting a process. After start, `refresh_all` asks each installed tool whose
@@ -37,6 +38,8 @@ const SIGN_IN: [&str; 2] = ["methods", "setupFrom"];
 const CATALOG_FIRST: [&str; 2] = ["accountRemove.keeps", "accountRemove.removes"];
 /// The version a command needs says nothing about the installed program that describes itself; cli-base writes `0.0.0`.
 const NEVER: [&str; 1] = ["accountRemove.remove.minVersion"];
+/// A `WireCat` tool's own MCP port sits below the ports own tools get (8770 on, `own_tools.rs`), so the two never meet.
+const OFFICIAL_PORTS: std::ops::Range<u64> = 8700..8770;
 /// The keys the interface replaces on a built-in tool whose commands changed.
 pub const SHOWN: [&str; 10] =
     ["profiles", "doctor", "runs", "setup", "skill", "mcpServer", "accountRemove", "meetings", "sync", "signIn"];
@@ -82,9 +85,18 @@ pub fn overlay(entry: &Value, desktop: &Value) -> Result<(Value, Vec<String>), S
     }
     let mut out = entry.clone();
     let mut changed = Vec::new();
+    let port = &desktop["mcpServer"]["port"];
+    if !port.is_null() && !port.as_u64().is_some_and(|p| OFFICIAL_PORTS.contains(&p)) {
+        let (first, end) = (OFFICIAL_PORTS.start, OFFICIAL_PORTS.end);
+        return Err(format!("mcpServer.port: a WireCat tool's port is from {first} to {}.", end - 1));
+    }
     for key in COMMANDS {
-        // A server needs the port Desktop gives it, and the catalog has none for a tool it lists without one.
+        // A server needs a port: the manifest's, else the catalog's. Without either it stays off.
         if key == "mcpServer" && entry["mcpServer"].is_null() {
+            if !port.is_null() {
+                out["mcpServer"] = desktop["mcpServer"].clone();
+                changed.push(key.to_string());
+            }
             continue;
         }
         merge(&mut out[key], &desktop[key], key, &mut changed);
@@ -166,14 +178,33 @@ pub fn apply_kept(tools: &mut [Value]) -> Vec<Value> {
 
 fn apply(tools: &mut [Value], answers: &Answers) -> Vec<Value> {
     let mut shown_tools = Vec::new();
-    for entry in tools.iter_mut().filter(|e| describable_entry(e)) {
-        let id = entry["id"].as_str().unwrap_or_default().to_string();
-        if let Some(out) = current(answers, &id).and_then(|desktop| applied(&id, entry, desktop)) {
-            shown_tools.push(json!({ "id": id, "described": shown(&out) }));
-            *entry = out;
+    for at in 0..tools.len() {
+        if !describable_entry(&tools[at]) {
+            continue;
         }
+        let id = tools[at]["id"].as_str().unwrap_or_default().to_string();
+        let Some(out) = current(answers, &id).and_then(|desktop| applied(&id, &tools[at], desktop)) else { continue };
+        if let Some(other) = port_holder(tools, at, &out["mcpServer"]["port"]) {
+            let why = "the tool's own description names another tool's port; the catalog's commands stay";
+            tracing::warn!(tool = %id, other = %other, "{why}");
+            continue;
+        }
+        shown_tools.push(json!({ "id": id, "described": shown(&out) }));
+        tools[at] = out;
     }
     shown_tools
+}
+
+/// The other entry whose MCP server already has `port`: two servers on one port would collide.
+fn port_holder(tools: &[Value], at: usize, port: &Value) -> Option<String> {
+    if port.is_null() {
+        return None;
+    }
+    tools
+        .iter()
+        .enumerate()
+        .find(|(i, t)| *i != at && t["mcpServer"]["port"] == *port)
+        .map(|(_, t)| t["id"].as_str().unwrap_or_default().to_string())
 }
 
 /// A tool new to this app from the signed list: its entry with its own answer, when it gave one.
@@ -392,12 +423,45 @@ mod tests {
     }
 
     #[test]
-    fn a_server_the_catalog_has_no_port_for_stays_off() {
+    fn a_server_with_no_port_anywhere_stays_off_and_one_its_manifest_names_a_port_for_runs() {
         for id in ["gcal", "email", "zm"] {
             assert!(desktop(id)["mcpServer"].is_object());
             let (out, _) = overlay(&entry(id), &desktop(id)).unwrap();
             assert!(out["mcpServer"].is_null(), "{id}");
         }
+        let mut d = desktop("gcal");
+        d["mcpServer"]["port"] = json!(8754);
+        let (out, changed) = overlay(&entry("gcal"), &d).unwrap();
+        assert_eq!(out["mcpServer"], d["mcpServer"]);
+        assert!(changed.iter().any(|c| c == "mcpServer"), "{changed:?}");
+        let tool: Tool = serde_json::from_value(out).unwrap();
+        assert_eq!(tool.mcp_server.and_then(|m| m.port), Some(8754));
+
+        for outside in [json!(8770), json!(80), json!("8754")] {
+            d["mcpServer"]["port"] = outside;
+            assert!(overlay(&entry("gcal"), &d).unwrap_err().starts_with("mcpServer.port"));
+        }
+    }
+
+    #[test]
+    fn a_port_another_tool_has_leaves_the_catalogs_commands() {
+        let dir = temp_dir("port");
+        let program = dir.join("wcat-gcal");
+        std::fs::write(&program, "one").unwrap();
+        let kept = |port: u64| -> Answers {
+            let mut d = desktop("gcal");
+            d["mcpServer"]["port"] = json!(port);
+            let stamp = Stamp::of(&program).unwrap();
+            [("gcal".to_string(), Kept { program: program.clone(), stamp, version: None, desktop: Some(d) })].into()
+        };
+        let tg = entry("tg")["mcpServer"]["port"].as_u64().unwrap();
+        let mut catalog = compiled();
+        assert_eq!(apply(catalog["tools"].as_array_mut().unwrap(), &kept(tg)), Vec::<Value>::new());
+        assert_eq!(catalog, compiled());
+
+        let shown = apply(catalog["tools"].as_array_mut().unwrap(), &kept(8754));
+        assert_eq!(shown[0]["described"]["mcpServer"]["port"], 8754);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
