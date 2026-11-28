@@ -38,7 +38,7 @@ const SIGN_IN: [&str; 2] = ["methods", "setupFrom"];
 const CATALOG_FIRST: [&str; 2] = ["accountRemove.keeps", "accountRemove.removes"];
 /// The version a command needs says nothing about the installed program that describes itself; cli-base writes `0.0.0`.
 const NEVER: [&str; 1] = ["accountRemove.remove.minVersion"];
-/// A WireCat tool's own MCP port sits below the ports own tools get (8770 on, `own_tools.rs`), so the two never meet.
+/// A `WireCat` tool's own MCP port sits below the ports own tools get (8770 on, `own_tools.rs`), so the two never meet.
 const OFFICIAL_PORTS: std::ops::Range<u64> = 8700..8770;
 /// The keys the interface replaces on a built-in tool whose commands changed.
 pub const SHOWN: [&str; 10] =
@@ -433,7 +433,7 @@ mod tests {
         d["mcpServer"]["port"] = json!(8754);
         let (out, changed) = overlay(&entry("gcal"), &d).unwrap();
         assert_eq!(out["mcpServer"], d["mcpServer"]);
-        assert!(changed.contains(&"mcpServer".to_string()), "{changed:?}");
+        assert!(changed.iter().any(|c| c == "mcpServer"), "{changed:?}");
         let tool: Tool = serde_json::from_value(out).unwrap();
         assert_eq!(tool.mcp_server.and_then(|m| m.port), Some(8754));
 
