@@ -70,3 +70,25 @@
 - src/assets/logos/zoom.png: replaced by zoom.svg (sharp, rounded) in fix/approvals-analytics-feedback; nothing imports
   the PNG any more. 2026-11-11
 - bin/zoom-sync-facts (git-excluded): read-only check for the Zoom tile, remove after the owner has run it. 2026-11-11
+- Scratchpad `rec/` (empty folders from the --record check, TASK-33 session; exact path not recorded). Worktree
+  desktop-sync and branch feat/desktop-sync already removed. 2026-10-27, updated 2026-11-28
+- Local branch `i18n-agents` in visage (944c863a): 1 commit(s) not on any remote, cherry-picked into feat/desktop-mvp,
+  which is not in main yet; worktree already removed. Delete after feat/desktop-mvp merges. 2026-10-29, updated
+  2026-11-28
+- Local branch `i18n-connect` in visage (4bfc374a): 1 commit(s) not on any remote, cherry-picked into feat/desktop-mvp,
+  which is not in main yet; worktree already removed. Delete after feat/desktop-mvp merges. 2026-10-29, updated
+  2026-11-28
+- Local branch `i18n-logs` in visage (edd0b038): 3 commit(s) not on any remote, cherry-picked into feat/desktop-mvp,
+  which is not in main yet; worktree already removed. Delete after feat/desktop-mvp merges. 2026-10-29, updated
+  2026-11-28
+- Local branch `i18n-storage` in visage (778a7715): 2 commit(s) not on any remote, cherry-picked into feat/desktop-mvp,
+  which is not in main yet; worktree already removed. Delete after feat/desktop-mvp merges. 2026-10-29, updated
+  2026-11-28
+- Local branch `i18n-config` in visage (25217faf): 1 commit(s) not on any remote, cherry-picked into feat/desktop-mvp,
+  which is not in main yet; worktree already removed. Delete after feat/desktop-mvp merges. 2026-10-29, updated
+  2026-11-28
+- Local branch `i18n-onboarding` in visage (8cc9937e): 1 commit(s) not on any remote, cherry-picked into
+  feat/desktop-mvp, which is not in main yet; worktree already removed. Delete after feat/desktop-mvp merges.
+  2026-10-29, updated 2026-11-28
+- Remote branch `fix/no-disabled-buttons` (0848fe9b): PR #48 was closed without merging; worktree no-disabled already
+  removed. Delete after the owner confirms the work is not needed. 2026-11-01, updated 2026-11-28
