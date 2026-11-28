@@ -206,10 +206,15 @@ itself, through its `--wcat-describe` answer, not from the compiled catalog and 
   only the keys that hold commands (`profiles`, `doctor`, `runs`, `setup`, `skill`, `mcpServer`, `accountRemove`,
   `meetings`, `sync.run`, `sync.last` with its `sync.lastShape`, `signIn.methods`, `signIn.setupFrom`); a `null` or
   missing key says nothing; an object is merged key by key; a word list replaces the catalog's whole.
+- **The MCP port.** Owner's decision NEED-2918 B: what a tool needs from Desktop is declared in its manifest. A
+  WireCat tool names its fixed port in `mcpServer.port` (cli-base's `ManifestIdentity.mcpPort`), and the answer's port
+  wins over the catalog's. A tool the catalog lists without an MCP server gets the answer's server when the answer
+  names a port. Without a port in either, the server stays off. The port must be from 8700 to 8769, below the ports
+  own tools get, and no other entry may have it. Otherwise the whole answer is refused and the catalog's commands
+  stay. Official ports today: 8752 zm, 8753 email, 8754 gcal (from their manifests), 8755 to 8769 (the catalog).
 - **What stays the catalog's.** The texts (`tagline`, `signIn.gives` and `asks`, `sync.what` and `note`; translations
-  come from the catalog and the signed list), the MCP port, what a sign-out keeps and removes, and every key only
-  Desktop has (`bot`, `search`, `crm`, `folderPicker`…). A tool the catalog lists without an MCP server gets none from
-  its answer, since it has no port (gcal, email and zm, owner's call 2026-11-24).
+  come from the catalog and the signed list), what a sign-out keeps and removes, and every key only Desktop has
+  (`bot`, `search`, `crm`, `folderPicker`…).
 - **Checks.** The answer is refused, with a line in the log, and the catalog's commands stay, when the program does not
   answer within 15 s, answers more than 64 KB, exits with an error, is not `wcat_describe: 2`, is for another version
   than the program's `--version`, or its `desktop` object fails the rules of an own tool's manifest
@@ -407,8 +412,8 @@ for listed tools, and nothing the owner adds reaches another computer.
 - `network`: `{ hosts, user_hosts }`. No `network` means the tool did not say; `hosts: []` means none.
 - `entities`: `{ <name>: { fields } }`.
 
-The manifest names no MCP port. Desktop picks one from 8770 to 8999 that no other tool uses, and an update keeps
-the one it had.
+An own tool's port is Desktop's, whatever its manifest says: Desktop picks one from 8770 to 8999 that no other tool
+uses, and an update keeps the one it had. Only WireCat's own tools name a port (`mcpServer.port`, above).
 
 Limits: 20 s per npm call, a 512 KiB packument, a 10 MiB tarball, a 256 KiB manifest, 64 MiB unpacked.
 
