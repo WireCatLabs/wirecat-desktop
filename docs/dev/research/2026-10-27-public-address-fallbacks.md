@@ -1,6 +1,6 @@
 # Public HTTPS address for a local MCP server: Tailscale Funnel problems and fallbacks
 
-Research for BUG-15 and NEED-100 (journal `docs/journal/2026-10-25-desktop-mvp.md`). Question: Tailscale did not
+Research for BUG-15 and NEED-100 (journal [``](https://github.com/WireCatLabs/wirecat-desktop/blob/caf2881d551ecf7d789156306c15de4b677c1f53/docs/journal/2026-10-25-desktop-mvp.md)). Question: Tailscale did not
 publish the owner's Funnel name for 2+ hours, so ChatGPT and claude.ai could not reach the server. What other ways give
 `127.0.0.1:<port>` a public HTTPS address that a non-technical user can set up from Desktop, with no administrator
 rights (rule 6), and that fit the shape in [mcp-server-api.md](../mcp-server-api.md#the-public-address): one public address,

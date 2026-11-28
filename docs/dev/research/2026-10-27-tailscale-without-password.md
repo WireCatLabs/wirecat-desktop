@@ -1,6 +1,6 @@
 # Tailscale Funnel without an administrator password
 
-Research for TASK-25 (NEED-70 A, journal `docs/journal/2026-10-25-desktop-mvp.md`). Question: can WireCat Desktop give a
+Research for TASK-25 (NEED-70 A, journal [``](https://github.com/WireCatLabs/wirecat-desktop/blob/caf2881d551ecf7d789156306c15de4b677c1f53/docs/journal/2026-10-25-desktop-mvp.md)). Question: can WireCat Desktop give a
 local MCP server on `127.0.0.1:<port>` a public HTTPS address through Tailscale Funnel, with no `sudo`, nothing
 installed into a system folder, and everything kept in the user's home folder?
 

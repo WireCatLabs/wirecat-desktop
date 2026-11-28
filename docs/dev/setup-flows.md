@@ -2,7 +2,7 @@
 
 Goal: every tool installs, signs in and starts working inside WireCat, step by step, the way Telegram already does.
 The owner should never need a terminal or another program for the normal path. The audit behind this plan is TASK-128
-(journal `docs/journal/2026-11-06-polish-after-040.md`).
+(journal [``](https://github.com/WireCatLabs/wirecat-desktop/blob/caf2881d551ecf7d789156306c15de4b677c1f53/docs/journal/2026-11-06-polish-after-040.md)).
 
 Order (owner's decisions NEED-2266 B, NEED-2267 A, NEED-2268 A): desktop fixes first, released with the next normal
 version (no 0.4.2 for this alone); then the CLI changes, one repository at a time; Email after mail-cli has its sign-in

@@ -1,7 +1,7 @@
 # Install and onboarding feedback: everything asked, and where it stands
 
 Written 2026-11-05 from Slava's notes since 2026-11-04 and the two session journals
-([2026-11-04](journal/2026-11-04-smooth-install.md), [2026-11-05](journal/2026-11-05-desktop-install.md)).
+([2026-11-04](https://github.com/WireCatLabs/wirecat-desktop/blob/caf2881d551ecf7d789156306c15de4b677c1f53/docs/journal/2026-11-04-smooth-install.md), [2026-11-05](https://github.com/WireCatLabs/wirecat-desktop/blob/caf2881d551ecf7d789156306c15de4b677c1f53/docs/journal/2026-11-05-desktop-install.md)).
 "Done" means merged into main (PR #93) or into PR #96 (open, `feat/install-polish`), with tests. "Seen" means Slava saw it
 in a test run. Nothing here was checked on a real Mac or Windows machine.
 
