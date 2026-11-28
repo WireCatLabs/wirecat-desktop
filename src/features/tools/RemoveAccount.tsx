@@ -460,7 +460,7 @@ function SignIn(props: { list: RemovalEntry[]; tool: CatalogTool; removal: Remov
   const line = signInLine(tool.id, tool.name, removal.revoked, m, [...removal.removed, ...removal.kept])
   if (line) {
     const why =
-      tool.id === "mail" ? list.map((e) => /\((Google access kept:[^)]*)\)/.exec(e.target)?.[1]).find(Boolean) : null
+      tool.id === "email" ? list.map((e) => /\((Google access kept:[^)]*)\)/.exec(e.target)?.[1]).find(Boolean) : null
     return (
       <span className="block text-ink-soft">
         {line}

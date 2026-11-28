@@ -182,8 +182,8 @@ sources in this order: `official`, then community tools, then own tools, so an o
   with the list's id, name, texts and port. It must be a `@wirecat` package built in a `WireCatLabs` repository, and
   every rule of a listed tool applies: plain words, no key in `FORBIDDEN`, its data folder named after its package,
   no name, program, package, folder, port or call provider of another tool. Its install still needs npm provenance
-  from that repository's `release.yml`, like every built-in tool. It shows no badge. An MCP server without a port in
-  the list is refused.
+  from that repository's `release.yml`, like every built-in tool. It shows no badge. Its MCP port is the manifest's
+  `mcpServer.port`, else the list's `mcpPort`. An MCP server with neither is refused.
 - **Signatures.** Only a list whose minisign signature matches `registry-key.pub` is kept, exactly as before. Official
   and community entries share the key; the array marks which is which, and the rules above stop a community entry
   from claiming to be ours and an official entry from pointing outside `@wirecat`.
@@ -204,7 +204,7 @@ itself, through its `--wcat-describe` answer, not from the compiled catalog and 
 
 - **What is taken.** The `desktop` object of the answer, overlaid on the compiled entry with the drift check's rules:
   only the keys that hold commands (`profiles`, `doctor`, `runs`, `setup`, `skill`, `mcpServer`, `accountRemove`,
-  `meetings`, `sync.run`, `sync.last` with its `sync.lastShape`, `signIn.methods`, `signIn.setupFrom`); a `null` or
+  `meetings`, `sync.run`, `sync.last` with its `sync.lastShape`, `sync.schedule`, `signIn.methods`, `signIn.setupFrom`); a `null` or
   missing key says nothing; an object is merged key by key; a word list replaces the catalog's whole.
 - **The MCP port.** Owner's decision NEED-2918 B: what a tool needs from Desktop is declared in its manifest. A
   WireCat tool names its fixed port in `mcpServer.port` (cli-base's `ManifestIdentity.mcpPort`), and the answer's port

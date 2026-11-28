@@ -32,7 +32,7 @@ export const signInLine = (
   entries: Pick<RemovalEntry, "kind" | "target">[] = [],
 ): string | null => {
   if (SESSION_TOOLS.has(toolId)) return m.signInSession(toolName)
-  if (toolId === "mail") return mailLine(revoked, m, entries)
+  if (toolId === "email") return mailLine(revoked, m, entries)
   if (!PROVIDER_TOOLS.has(toolId)) return null
   if (revoked === true) return m.signInRevoked
   if (revoked === false) return m.signInKept
